@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="ARO" basedir="." default="jar">
+    <description>${ant.project.name}</description>
+
+    <property name="builddir" value="${basedir}/classes" />
+	<property name="jar-dest" value="${basedir}/lib"/>
+
+	<target name="init" description="Initialize the package for compilation and distribution">
+        <mkdir dir="${builddir}" />
+        <mkdir dir="${jar-dest}" />
+    </target>
+    
+    <target name="clean" description="Delete the build directory and dist target">
+        <delete dir="${builddir}"/>
+    </target>
+
+    <target name="compile" depends="clean,init" description="Compiles ARO Analyzer Java Code">
+    	<javac srcdir="${basedir}/src" destdir="${builddir}" >
+    	<classpath>
+    	    <fileset dir="${jar-dest}">
+    	        <include name="*.jar" />
+    	    </fileset>
+    	</classpath>
+    	</javac>
+		<copy todir="${builddir}">
+			<fileset dir="${basedir}/src" casesensitive="false">
+                <exclude name="**/*.java"/>
+			</fileset>
+		</copy>
+    </target>
+    
+    <target name="jar" depends="compile" description="Build the ARO Analyzer jar">
+    	<jar destfile="${jar-dest}/ARO.jar" basedir="${builddir}"/>
+    </target>
+        
+</project>

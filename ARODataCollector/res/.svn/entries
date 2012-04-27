@@ -1,0 +1,49 @@
+10
+
+dir
+32356
+svn://scm.it.att.com:13152/ARO/Client/Android/trunk/ARODataCollector/res
+svn://scm.it.att.com:13152
+
+
+
+2012-03-21T02:10:13.349628Z
+30954
+at0812
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+232d9e9c-b25d-429f-81fe-b109ba11f838
+
+values
+dir
+
+drawable
+dir
+
+drawable-hdpi
+dir
+
+drawable-ldpi
+dir
+
+drawable-mdpi
+dir
+
+raw
+dir
+
+layout
+dir
+
