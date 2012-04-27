@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <drawable name="black">#000000</drawable>
+    <drawable name="white">#ffffff</drawable>
+    <drawable name="gray">#666666</drawable>
+
+    <drawable name="solid_blue">#0000ff</drawable>
+    <drawable name="white_text">#ffffff</drawable>
+    <drawable name="red_crosshair">#BF0000</drawable>
+    <drawable name="toast_whitebg">#EEEEEE</drawable>
+    <drawable name="toast_red">#FF0000</drawable>
+    
+
+    <!-- AT&T Brand Center Color Specifications (Screen) -->
+
+    <!-- Primary Colors -->
+    <drawable name="att_new_orange">#ff7200</drawable>
+    <drawable name="att_orange_highlight">#fcb314</drawable>
+    <drawable name="att_blue">#067ab4</drawable>
+    <drawable name="att_blue_highlight">#3aa5dc</drawable>
+    <drawable name="att_blue_headercolor">#396DA5</drawable>
+    <!-- Secondary Colors -->
+    <drawable name="att_lime">#b6bf00</drawable>
+    <drawable name="att_lime_highlight">#dbd810</drawable>
+    <drawable name="att_green">#6ebb1f</drawable>
+    <drawable name="att_green_highlight">#c4d82d</drawable>
+    <drawable name="att_burgundy">#b30a3c</drawable>
+    <drawable name="att_burgundy_highlight">#da3872</drawable>
+    <drawable name="att_purple">#81017e</drawable>
+    <drawable name="att_purple_highlight">#b8509e</drawable>
+    <drawable name="att_dark_blue">#0c2577</drawable>
+    <drawable name="att_dark_blue_highlight">#020bb3</drawable>
+
+    <!-- Accent Colors -->
+    <drawable name="att_ochre">#eaab00</drawable>
+    <drawable name="att_magenta">#ff0066</drawable>
+    <drawable name="att_royal_blue">#000066</drawable>
+    <drawable name="att_yellow">#ffef00</drawable>
+    <drawable name="att_teal">#00c7b2</drawable>
+    <drawable name="att_dusty_blue">#96b1d0</drawable>
+    <drawable name="att_light_blue">#bcc9d6</drawable>
+    <drawable name="att_mint_green">#99ffcc</drawable>
+    <drawable name="att_gold">#ff9900</drawable>
+    <drawable name="att_taupe">#cccc66</drawable>
+    <drawable name="att_warm_gray">#cccc99</drawable>
+    
+    <!-- silver not actually defined
+    <drawable name="att_silver">#</drawable>
+    -->
+
+</resources>

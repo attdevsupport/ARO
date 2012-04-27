@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="fill_parent"
+	android:layout_height="fill_parent" android:background="@drawable/white">
+	<LinearLayout android:id="@+id/contentPanel"
+		android:layout_width="fill_parent" android:layout_height="wrap_content"
+		android:layout_weight="1" android:minHeight="1000dip"
+		android:orientation="vertical">
+		<WebView android:id="@+id/termsWebView" android:layout_width="fill_parent"
+			android:layout_height="wrap_content" android:minHeight="100dip"
+			android:background="@drawable/white" android:scrollbars="vertical" />
+	</LinearLayout>
+	<LinearLayout android:id="@+id/buttonPanel"
+		android:layout_width="fill_parent" android:layout_height="wrap_content"
+		android:orientation="vertical" android:minHeight="54dip">
+		<LinearLayout android:layout_width="fill_parent"
+			android:layout_height="fill_parent" android:orientation="horizontal"
+			android:paddingTop="8dip" android:paddingLeft="2dip"
+			android:paddingRight="2dip">
+			<Button android:id="@+id/acceptButton" android:layout_width="fill_parent"
+				android:layout_height="wrap_content" android:layout_gravity="center_horizontal"
+				style="@style/BlueButton" android:layout_weight="1"
+				android:layout_marginLeft="2dp" android:maxLines="1"
+				android:text="@string/aro_accept">
+			</Button>
+			<Button android:id="@+id/cancelButton" android:layout_width="fill_parent"
+				android:layout_height="wrap_content" android:layout_gravity="center_horizontal"
+				style="@style/BlueButton" android:layout_weight="1"
+				android:maxLines="1" android:text="@string/aro_decline">
+			</Button>
+		</LinearLayout>
+	</LinearLayout>
+</LinearLayout>
