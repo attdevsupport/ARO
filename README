@@ -42,7 +42,7 @@ The AT&T Application Resource Optimizer(ARO) uses Open Source Software that is l
 
 Application Resource Optimizer (ARO) Open Source Code Package
 
-The AT&T Application Resource Optimizer (ARO) is a diagnostic tool for analyzing mobile web application performance. AT&T ARO allows you to automatically profile an application to optimize performance, make battery utilization more efficient, and reduce network impact.
+The Application Resource Optimizer (ARO) is a diagnostic tool for analyzing mobile web application performance developed by AT&T. ARO allows you to automatically profile an application to optimize performance, make battery utilization more efficient, and reduce network impact.
 
 The ARO Data Collector is the component of the ARO application that captures the data traffic of a mobile device and stores that information in trace files that can be analyzed using the ARO Data Analyzer.
 
@@ -51,8 +51,8 @@ The ARO Data Analyzer is the component of the ARO application that evaluates the
 This Open Source Code Package contains all of the code needed to build both of these ARO components.
 
 
-AT&T ARO Web Resources:
-AT&T Application Resource Optimizer (ARO):  http://developer.att.com/ARO
+ARO Web Resources:
+Application Resource Optimizer (ARO):  http://developer.att.com/ARO
 Forum:  http://developerboards.att.lithium.com/t5/AT-T-Application-Resource/bd-p/ARO
 Blog:  http://developerboards.att.lithium.com/t5/AT-T-Developer-Program-Blogs/bg-p/Blogs
 FAQ:  http://developer.att.com/developer/forward.jsp?passedItemId=10100053
