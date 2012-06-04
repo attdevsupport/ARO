@@ -169,19 +169,21 @@ public class EnergyModelStatistics3GPanel extends EnergyModelStatisticsPanel {
 			energyContent.put(rb.getString("energy.fach"),
 					fachValueLabel.getText());
 			energyContent.put(rb.getString("energy.idle"),
-					idle2dchValueLabel.getText());
+					idleValueLabel.getText());
 			energyContent.put(rb.getString("energy.idle2dch"),
-					fach2dchValueLabel.getText());
+					idle2dchValueLabel.getText());
 			energyContent.put(rb.getString("energy.fach2dch"),
-					dchTailValueLabel.getText());
+					fach2dchValueLabel.getText());
 			energyContent.put(rb.getString("energy.dchTail"),
-					fachTailValueLabel.getText());
+					dchTailValueLabel.getText());
 			energyContent.put(rb.getString("energy.fachTail"),
-					rrcTotalValueLabel.getText());
+					fachTailValueLabel.getText());
 			energyContent.put(rb.getString("energy.rrcTotal"),
 					rrcTotalValueLabel.getText());
 			energyContent.put(rb.getString("energy.jpkb"),
 					jpkbValueLabel.getText());
+			
+			updatePeripheralStatisticsValues();
 		} else {
 			dchValueLabel.setText(null);
 			fachValueLabel.setText(null);

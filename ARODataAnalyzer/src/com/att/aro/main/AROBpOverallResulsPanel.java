@@ -128,8 +128,8 @@ public class AROBpOverallResulsPanel extends JPanel {
 				rb.getString("connections.unnecssaryConn.title"), connRefer);
 		periodicTransferPanel = new BPResultRowPanel(false,
 				rb.getString("connections.periodic.title"), connRefer);
-		screenRotationPanel = new BPResultRowPanel(true,
-				rb.getString("connections.screenRotation.title"), selfTest);
+		screenRotationPanel = new BPResultRowPanel(false,
+				rb.getString("connections.screenRotation.title"), connRefer);
 		connectionClosingPanel = new BPResultRowPanel(false,
 				rb.getString("connections.connClosing.title"), connRefer);
 		wifiOffloadingPanel = new BPResultRowPanel(false,
@@ -413,7 +413,7 @@ public class AROBpOverallResulsPanel extends JPanel {
 					.getAccessingPeripherals());
 			http10UsagePanel.refreshFields(bp.getHttp10Usage());
 			connectionOpeningPanel.refreshFields(true);
-			screenRotationPanel.refreshFields(true);
+			screenRotationPanel.refreshFields(bp.getScreenRotationProblem());
 		} else {
 			durationValueLabel.setText(null);
 			energyConsumedValueLabel.setText(null);

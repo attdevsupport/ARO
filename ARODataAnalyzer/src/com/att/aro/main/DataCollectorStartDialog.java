@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
@@ -50,8 +49,7 @@ import javax.swing.border.TitledBorder;
 public class DataCollectorStartDialog extends JDialog {
 	private static final long serialVersionUID = 1L;
 
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 	private static final int TRACE_FOLDER_ALLOWED_LENGTH = 50;
 
 	private JPanel jContentPane;
@@ -78,8 +76,7 @@ public class DataCollectorStartDialog extends JDialog {
 	 *            - The DataCollectorBridge instance for capturing traces from a
 	 *            device emulator.
 	 */
-	public DataCollectorStartDialog(Frame owner,
-			DatacollectorBridge aroDataCollectorBridge) {
+	public DataCollectorStartDialog(Frame owner, DatacollectorBridge aroDataCollectorBridge) {
 		this(owner, aroDataCollectorBridge, null, true);
 	}
 
@@ -103,9 +100,8 @@ public class DataCollectorStartDialog extends JDialog {
 	 *            – A boolean value that indicates whether to record video for
 	 *            this trace or not.
 	 */
-	public DataCollectorStartDialog(Frame owner,
-			DatacollectorBridge aroDataCollectorBridge, String traceFolderName,
-			boolean recordVideo) {
+	public DataCollectorStartDialog(Frame owner, DatacollectorBridge aroDataCollectorBridge,
+			String traceFolderName, boolean recordVideo) {
 		super(owner);
 		mARODataCollectorBridge = aroDataCollectorBridge;
 		initialize(traceFolderName, recordVideo);
@@ -169,8 +165,7 @@ public class DataCollectorStartDialog extends JDialog {
 			gridLayout.setRows(1);
 			gridLayout.setHgap(10);
 			jButtonGrid = new JPanel();
-			jButtonGrid.setBorder(BorderFactory.createEmptyBorder(10, 10, 10,
-					10));
+			jButtonGrid.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 			jButtonGrid.setLayout(gridLayout);
 			jButtonGrid.add(getOkButton(), null);
 			jButtonGrid.add(getCancelButton(), null);
@@ -191,31 +186,23 @@ public class DataCollectorStartDialog extends JDialog {
 
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
-					if (mARODataCollectorBridge != null
-							&& jTraceFolderName.getText() != null) {
-						if (isContainsSpecialCharacterorSpace(jTraceFolderName
-								.getText())) {
-							JOptionPane.showMessageDialog(
-									getOwner(),
+					if (mARODataCollectorBridge != null && jTraceFolderName.getText() != null) {
+						if (isContainsSpecialCharacterorSpace(jTraceFolderName.getText())) {
+							JOptionPane.showMessageDialog(getOwner(),
 									rb.getString("Error.specialchar"),
-									MessageFormat.format(
-											rb.getString("aro.title.short"), ""),
+									MessageFormat.format(rb.getString("aro.title.short"), ""),
 									JOptionPane.ERROR_MESSAGE);
 							return;
-						} else if (jTraceFolderName.getText().toString()
-								.length() > TRACE_FOLDER_ALLOWED_LENGTH) {
-							JOptionPane.showMessageDialog(
-									getOwner(),
+						} else if (jTraceFolderName.getText().toString().length() > TRACE_FOLDER_ALLOWED_LENGTH) {
+							JOptionPane.showMessageDialog(getOwner(),
 									rb.getString("Error.tracefolderlength"),
-									MessageFormat.format(
-											rb.getString("aro.title.short"), ""),
+									MessageFormat.format(rb.getString("aro.title.short"), ""),
 									JOptionPane.ERROR_MESSAGE);
 							return;
 						} else {
 							DataCollectorStartDialog.this.dispose();
-							mARODataCollectorBridge.startARODataCollector(
-									jTraceFolderName.getText(),
-									getJRecordVideoCheckBox().isSelected());
+							mARODataCollectorBridge.startARODataCollector(jTraceFolderName
+									.getText(), getJRecordVideoCheckBox().isSelected());
 						}
 					}
 				}
@@ -286,16 +273,12 @@ public class DataCollectorStartDialog extends JDialog {
 			gridBagConstraints1.gridy = 0;
 			jAdvancedOptionsPanel = new JPanel();
 			jAdvancedOptionsPanel.setLayout(new GridBagLayout());
-			jAdvancedOptionsPanel.setBorder(BorderFactory.createTitledBorder(
-					null, "", TitledBorder.DEFAULT_JUSTIFICATION,
-					TitledBorder.DEFAULT_POSITION, new Font("Dialog",
-							Font.BOLD, 12), new Color(51, 51, 51)));
-			jAdvancedOptionsPanel.add(getJTraceFolderLabel(),
-					gridBagConstraints1);
-			jAdvancedOptionsPanel.add(getJTraceFolderTextField(),
-					gridBagConstraints2);
-			jAdvancedOptionsPanel.add(getJRecordVideoCheckBox(),
-					gridBagConstraints3);
+			jAdvancedOptionsPanel.setBorder(BorderFactory.createTitledBorder(null, "",
+					TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, new Font(
+							"Dialog", Font.BOLD, 12), new Color(51, 51, 51)));
+			jAdvancedOptionsPanel.add(getJTraceFolderLabel(), gridBagConstraints1);
+			jAdvancedOptionsPanel.add(getJTraceFolderTextField(), gridBagConstraints2);
+			jAdvancedOptionsPanel.add(getJRecordVideoCheckBox(), gridBagConstraints3);
 		}
 		return jAdvancedOptionsPanel;
 	}
@@ -305,8 +288,7 @@ public class DataCollectorStartDialog extends JDialog {
 	 */
 	private JLabel getJTraceFolderLabel() {
 		if (TraceFolderLabel == null) {
-			TraceFolderLabel = new JLabel(rb.getString("collector.folder"),
-					SwingConstants.CENTER);
+			TraceFolderLabel = new JLabel(rb.getString("collector.folder"), SwingConstants.CENTER);
 		}
 
 		return TraceFolderLabel;
@@ -337,8 +319,7 @@ public class DataCollectorStartDialog extends JDialog {
 		boolean isContainsSC = false;
 		if (tracefolername != null && !tracefolername.equals("")) {
 			// Pattern to include alphanumeric with "-"
-			Matcher m = Pattern.compile("[^a-zA-Z0-9[-]]").matcher(
-					tracefolername);
+			Matcher m = Pattern.compile("[^a-zA-Z0-9-]").matcher(tracefolername);
 			if (m.find()) {
 				isContainsSC = true;
 			} else {

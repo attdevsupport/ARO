@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 package com.att.aro.commonui;
 
 import java.awt.Desktop;
@@ -20,11 +20,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.swing.JFileChooser;
 import javax.swing.JMenuItem;
@@ -41,7 +38,6 @@ import com.att.aro.model.UserPreferences;
 public class DataTablePopupMenu extends JPopupMenu {
 	private static final long serialVersionUID = 1L;
 
-	private static final Logger logger = Logger.getLogger(DataTablePopupMenu.class.getName());
 	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
 	private DataTable<?> table;
@@ -149,17 +145,18 @@ public class DataTablePopupMenu extends JPopupMenu {
 			} finally {
 				writer.close();
 			}
-			Object[] options = { rb.getString("Button.ok"), rb.getString("Button.open") };
-			if (JOptionPane.showOptionDialog(table, rb.getString("table.export.success"),
-					rb.getString("confirm.title"), JOptionPane.YES_NO_OPTION,
-					JOptionPane.QUESTION_MESSAGE, null, options, options[0]) != JOptionPane.YES_OPTION) {
-				try {
-					Desktop desktop = Desktop.getDesktop();
-					desktop.open(file);
-				} catch (UnsupportedOperationException unsupportedException) {
-					MessageDialogFactory.showMessageDialog(table,
-							rb.getString("Error.unableToOpen"));
+			if (file.getName().contains(".csv")) {
+				if (MessageDialogFactory.showExportConfirmDialog(table) != JOptionPane.YES_OPTION) {
+					try {
+						Desktop desktop = Desktop.getDesktop();
+						desktop.open(file);
+					} catch (UnsupportedOperationException unsupportedException) {
+						MessageDialogFactory.showMessageDialog(table,
+								rb.getString("Error.unableToOpen"));
+					}
 				}
+			} else {
+				MessageDialogFactory.showMessageDialog(table, rb.getString("table.export.success"));
 			}
 		}
 	}

@@ -18,7 +18,7 @@ package com.att.aro.model;
 import java.io.Serializable;
 
 /**
- * Encapsulates Radio info
+ * Encapsulates information about the Radio signal.
  */
 public class RadioInfo implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -27,13 +27,21 @@ public class RadioInfo implements Serializable {
 	private double radioTimeStamp;
 
 	// Radio signal strength
+	private boolean lte;
 	private double signalStrength;
+	private int lteSignalStrength;
+	private int lteRsrp;
+	private int lteRsrq;
+	private int lteRssnr;
+	private int lteCqi;
 
 	/**
-	 * Constructor
+	 * Initializes an instance of the RadioInfo class using the specified timestamp and signal 
+	 * strength.
 	 * 
-	 * @param radioTimeStamp
-	 * @param signalStrength
+	 * @param radioTimeStamp – The timestamp at which the radio information is evaluated.
+	 * 
+	 * @param signalStrength – The radio signal strength, expressed in Dbm.
 	 */
 	public RadioInfo(double radioTimeStamp, double signalStrength) {
 		this.radioTimeStamp = radioTimeStamp;
@@ -41,21 +49,83 @@ public class RadioInfo implements Serializable {
 	}
 
 	/**
-	 * Returns radio timestamp.
+	 * Initializes an instance of RadioInfo with LTE signal parameters
+	 * @param radioTimeStamp
+	 * @param lteSignalStrength
+	 * @param lteRsrp
+	 * @param lteRsrq
+	 * @param lteRssnr
+	 * @param lteCqi
+	 */
+	public RadioInfo(double radioTimeStamp, int lteSignalStrength, int lteRsrp, int lteRsrq, int lteRssnr, int lteCqi) {
+		this.radioTimeStamp = radioTimeStamp;
+		this.lte = true;
+		this.signalStrength = lteRsrp > 0 ? - lteRsrp : lteRsrp;
+		this.lteSignalStrength = lteSignalStrength;
+		this.lteRsrp = lteRsrp;
+		this.lteRsrq = lteRsrq;
+		this.lteRssnr = lteRssnr;
+		this.lteCqi = lteCqi;
+	}
+
+	/**
+	 * Returns the radio timestamp. 
 	 * 
-	 * @return radio timestamp.
+	 * @return The radio timestamp.
 	 */
 	public double getTimeStamp() {
 		return radioTimeStamp;
 	}
 
 	/**
-	 * Returns radio signal strength.
+	 * Returns the radio signal strength. 
 	 * 
-	 * @return radio signal strength.
+	 * @return The radio signal strength, in Dbm.
 	 */
 	public double getSignalStrength() {
 		return signalStrength;
+	}
+
+	/**
+	 * @return the lte
+	 */
+	public boolean isLte() {
+		return lte;
+	}
+
+	/**
+	 * @return the lteSignalStrength
+	 */
+	public int getLteSignalStrength() {
+		return lteSignalStrength;
+	}
+
+	/**
+	 * @return the lteRsrp
+	 */
+	public int getLteRsrp() {
+		return lteRsrp;
+	}
+
+	/**
+	 * @return the lteRsrq
+	 */
+	public int getLteRsrq() {
+		return lteRsrq;
+	}
+
+	/**
+	 * @return the lteRssnr
+	 */
+	public int getLteRssnr() {
+		return lteRssnr;
+	}
+
+	/**
+	 * @return the lteCqi
+	 */
+	public int getLteCqi() {
+		return lteCqi;
 	}
 
 }

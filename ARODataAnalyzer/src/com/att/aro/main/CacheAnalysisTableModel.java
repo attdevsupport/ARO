@@ -17,6 +17,7 @@
 
 package com.att.aro.main;
 
+import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ResourceBundle;
 
@@ -69,7 +70,7 @@ public class CacheAnalysisTableModel extends DataTableModel<CacheEntry> {
 		TableColumn col;
 
 		col = cols.getColumn(TIME_COL);
-		col.setCellRenderer(new NumberFormatRenderer());
+		col.setCellRenderer(new NumberFormatRenderer(new DecimalFormat("0.000")));
 
 		col = cols.getColumn(FILESIZE_COL);
 		col.setCellRenderer(new NumberFormatRenderer(NumberFormat

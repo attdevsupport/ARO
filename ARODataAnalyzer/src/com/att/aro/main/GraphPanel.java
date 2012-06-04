@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
@@ -125,10 +124,9 @@ import com.att.aro.model.WifiInfo;
 import com.att.aro.model.WifiInfo.WifiState;
 
 /**
- * Represents the Graph Panel that contains the graph in the Diagnostics tab. 
+ * Represents the Graph Panel that contains the graph in the Diagnostics tab.
  */
-public class GraphPanel extends JPanel implements ActionListener,
-		ChartMouseListener {
+public class GraphPanel extends JPanel implements ActionListener, ChartMouseListener {
 	private static final long serialVersionUID = 1L;
 
 	/**
@@ -140,14 +138,12 @@ public class GraphPanel extends JPanel implements ActionListener,
 		private static final long serialVersionUID = 1L;
 
 		@Override
-		public void drawItem(Graphics2D g2, XYItemRendererState state,
-				Rectangle2D dataArea, PlotRenderingInfo info, XYPlot plot,
-				ValueAxis domainAxis, ValueAxis rangeAxis, XYDataset dataset,
-				int series, int item, CrosshairState crosshairState, int pass) {
+		public void drawItem(Graphics2D g2, XYItemRendererState state, Rectangle2D dataArea,
+				PlotRenderingInfo info, XYPlot plot, ValueAxis domainAxis, ValueAxis rangeAxis,
+				XYDataset dataset, int series, int item, CrosshairState crosshairState, int pass) {
 
 			RRCState key = (RRCState) dataset.getSeriesKey(series);
-			if (key == RRCState.PROMO_FACH_DCH
-					|| key == RRCState.PROMO_IDLE_DCH
+			if (key == RRCState.PROMO_FACH_DCH || key == RRCState.PROMO_IDLE_DCH
 					|| key == RRCState.LTE_PROMOTION) {
 
 				if (!getItemVisible(series, item)) {
@@ -177,10 +173,10 @@ public class GraphPanel extends JPanel implements ActionListener,
 					}
 				}
 
-				double translatedValue0 = rangeAxis.valueToJava2D(value0,
-						dataArea, plot.getRangeAxisEdge());
-				double translatedValue1 = rangeAxis.valueToJava2D(value1,
-						dataArea, plot.getRangeAxisEdge());
+				double translatedValue0 = rangeAxis.valueToJava2D(value0, dataArea,
+						plot.getRangeAxisEdge());
+				double translatedValue1 = rangeAxis.valueToJava2D(value1, dataArea,
+						plot.getRangeAxisEdge());
 				double bottom = Math.min(translatedValue0, translatedValue1);
 				double top = Math.max(translatedValue0, translatedValue1);
 
@@ -203,13 +199,10 @@ public class GraphPanel extends JPanel implements ActionListener,
 				}
 
 				RectangleEdge location = plot.getDomainAxisEdge();
-				double translatedStartX = domainAxis.valueToJava2D(startX,
-						dataArea, location);
-				double translatedEndX = domainAxis.valueToJava2D(endX,
-						dataArea, location);
+				double translatedStartX = domainAxis.valueToJava2D(startX, dataArea, location);
+				double translatedEndX = domainAxis.valueToJava2D(endX, dataArea, location);
 
-				double translatedWidth = Math.max(1,
-						Math.abs(translatedEndX - translatedStartX));
+				double translatedWidth = Math.max(1, Math.abs(translatedEndX - translatedStartX));
 
 				double left = Math.min(translatedStartX, translatedEndX);
 				if (getMargin() > 0.0) {
@@ -226,8 +219,7 @@ public class GraphPanel extends JPanel implements ActionListener,
 					top = Math.min(top, dataArea.getMaxX());
 					bar.addPoint((int) bottom, (int) (left + translatedWidth));
 					if (key == RRCState.PROMO_FACH_DCH) {
-						bar.addPoint((int) bottom,
-								(int) (left + (translatedWidth / 2)));
+						bar.addPoint((int) bottom, (int) (left + (translatedWidth / 2)));
 					}
 					bar.addPoint((int) top, (int) left);
 					bar.addPoint((int) top, (int) (left + translatedWidth));
@@ -241,8 +233,7 @@ public class GraphPanel extends JPanel implements ActionListener,
 					top = Math.min(top, dataArea.getMaxY());
 					bar.addPoint((int) left, (int) top);
 					if (key == RRCState.PROMO_FACH_DCH) {
-						bar.addPoint((int) left,
-								(int) (bottom + ((top - bottom) / 2)));
+						bar.addPoint((int) left, (int) (bottom + ((top - bottom) / 2)));
 					}
 					bar.addPoint((int) (left + translatedWidth), (int) bottom);
 					bar.addPoint((int) (left + translatedWidth), (int) top);
@@ -253,16 +244,13 @@ public class GraphPanel extends JPanel implements ActionListener,
 				}
 
 				Paint itemPaint = getItemPaint(series, item);
-				if (getGradientPaintTransformer() != null
-						&& itemPaint instanceof GradientPaint) {
+				if (getGradientPaintTransformer() != null && itemPaint instanceof GradientPaint) {
 					GradientPaint gp = (GradientPaint) itemPaint;
-					itemPaint = getGradientPaintTransformer()
-							.transform(gp, bar);
+					itemPaint = getGradientPaintTransformer().transform(gp, bar);
 				}
 				g2.setPaint(itemPaint);
 				g2.fill(bar);
-				if (isDrawBarOutline()
-						&& Math.abs(translatedEndX - translatedStartX) > 3) {
+				if (isDrawBarOutline() && Math.abs(translatedEndX - translatedStartX) > 3) {
 					Stroke stroke = getItemOutlineStroke(series, item);
 					Paint paint = getItemOutlinePaint(series, item);
 					if (stroke != null && paint != null) {
@@ -273,45 +261,38 @@ public class GraphPanel extends JPanel implements ActionListener,
 				}
 
 				if (isItemLabelVisible(series, item)) {
-					XYItemLabelGenerator generator = getItemLabelGenerator(
-							series, item);
-					drawItemLabel(g2, dataset, series, item, plot, generator,
-							bar.getBounds2D(), value1 < 0.0);
+					XYItemLabelGenerator generator = getItemLabelGenerator(series, item);
+					drawItemLabel(g2, dataset, series, item, plot, generator, bar.getBounds2D(),
+							value1 < 0.0);
 				}
 
 				// update the crosshair point
 				double x1 = (startX + endX) / 2.0;
 				double y1 = dataset.getYValue(series, item);
-				double transX1 = domainAxis.valueToJava2D(x1, dataArea,
-						location);
-				double transY1 = rangeAxis.valueToJava2D(y1, dataArea,
-						plot.getRangeAxisEdge());
+				double transX1 = domainAxis.valueToJava2D(x1, dataArea, location);
+				double transY1 = rangeAxis.valueToJava2D(y1, dataArea, plot.getRangeAxisEdge());
 				int domainAxisIndex = plot.getDomainAxisIndex(domainAxis);
 				int rangeAxisIndex = plot.getRangeAxisIndex(rangeAxis);
-				updateCrosshairValues(crosshairState, x1, y1, domainAxisIndex,
-						rangeAxisIndex, transX1, transY1, plot.getOrientation());
+				updateCrosshairValues(crosshairState, x1, y1, domainAxisIndex, rangeAxisIndex,
+						transX1, transY1, plot.getOrientation());
 
 				EntityCollection entities = state.getEntityCollection();
 				if (entities != null) {
 					addEntity(entities, bar, dataset, series, item, 0.0, 0.0);
 				}
 			} else {
-				super.drawItem(g2, state, dataArea, info, plot, domainAxis,
-						rangeAxis, dataset, series, item, crosshairState, pass);
+				super.drawItem(g2, state, dataArea, info, plot, domainAxis, rangeAxis, dataset,
+						series, item, crosshairState, pass);
 			}
 		}
 	}
 
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
-	private static final String THROUGHPUT_TOOLTIP = rb
-			.getString("throughput.tooltip");
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
+	private static final String THROUGHPUT_TOOLTIP = rb.getString("throughput.tooltip");
 
-	private static final Logger logger = Logger.getLogger(GraphPanel.class
-			.getName());
+	private static final Logger logger = Logger.getLogger(GraphPanel.class.getName());
 
-	private static final Shape DEFAULT_POINT_SHAPE = new Ellipse2D.Double(-2,
-			-2, 4, 4);
+	private static final Shape DEFAULT_POINT_SHAPE = new Ellipse2D.Double(-2, -2, 4, 4);
 
 	private static final String ZOOM_IN_ACTION = "zoomIn";
 	private static final String ZOOM_OUT_ACTION = "zoomOut";
@@ -399,49 +380,39 @@ public class GraphPanel extends JPanel implements ActionListener,
 	 */
 	public GraphPanel() {
 
-		subplotMap.put(ChartPlotOptions.GPS,
-				new GraphPanelPlotLabels(rb.getString("chart.gps"),
-						createGpsPlot(), 1));
-		subplotMap.put(ChartPlotOptions.RADIO,
-				new GraphPanelPlotLabels(rb.getString("chart.radio"),
-						createRadioPlot(), 2));
-		subplotMap.put(ChartPlotOptions.BLUETOOTH,
-				new GraphPanelPlotLabels(rb.getString("chart.bluetooth"),
-						createBluetoothPlot(), 1));
+		subplotMap.put(ChartPlotOptions.GPS, new GraphPanelPlotLabels(rb.getString("chart.gps"),
+				createGpsPlot(), 1));
+		subplotMap.put(ChartPlotOptions.RADIO, new GraphPanelPlotLabels(
+				rb.getString("chart.radio"), createRadioPlot(), 2));
+		subplotMap
+				.put(ChartPlotOptions.BLUETOOTH,
+						new GraphPanelPlotLabels(rb.getString("chart.bluetooth"),
+								createBluetoothPlot(), 1));
 		subplotMap.put(ChartPlotOptions.CAMERA,
-				new GraphPanelPlotLabels(rb.getString("chart.camera"),
-						createCameraPlot(), 1));
+				new GraphPanelPlotLabels(rb.getString("chart.camera"), createCameraPlot(), 1));
 		subplotMap.put(ChartPlotOptions.SCREEN,
-				new GraphPanelPlotLabels(rb.getString("chart.screen"),
-						createScreenStatePlot(), 1));
+				new GraphPanelPlotLabels(rb.getString("chart.screen"), createScreenStatePlot(), 1));
 		subplotMap.put(ChartPlotOptions.BATTERY,
-				new GraphPanelPlotLabels(rb.getString("chart.battery"),
-						createBatteryPlot(), 2));
-		subplotMap.put(ChartPlotOptions.WIFI,
-				new GraphPanelPlotLabels(rb.getString("chart.wifi"),
-						createWifiPlot(), 1));
+				new GraphPanelPlotLabels(rb.getString("chart.battery"), createBatteryPlot(), 2));
+		subplotMap.put(ChartPlotOptions.WIFI, new GraphPanelPlotLabels(rb.getString("chart.wifi"),
+				createWifiPlot(), 1));
 		subplotMap.put(ChartPlotOptions.THROUGHPUT,
-				new GraphPanelPlotLabels(rb.getString("chart.throughput"),
-						createThroughputPlot(), 2));
+				new GraphPanelPlotLabels(rb.getString("chart.throughput"), createThroughputPlot(),
+						2));
 		subplotMap.put(ChartPlotOptions.BURSTS,
-				new GraphPanelPlotLabels(rb.getString("chart.bursts"),
-						createBurstPlot(), 1));
-		subplotMap.put(ChartPlotOptions.USER_INPUT,
-				new GraphPanelPlotLabels(rb.getString("chart.userInput"),
-						createUserEventPlot(), 1));
-		subplotMap.put(ChartPlotOptions.RRC,
-				new GraphPanelPlotLabels(rb.getString("chart.rrc"),
-						createRrcPlot(), 1));
+				new GraphPanelPlotLabels(rb.getString("chart.bursts"), createBurstPlot(), 1));
+		subplotMap
+				.put(ChartPlotOptions.USER_INPUT,
+						new GraphPanelPlotLabels(rb.getString("chart.userInput"),
+								createUserEventPlot(), 1));
+		subplotMap.put(ChartPlotOptions.RRC, new GraphPanelPlotLabels(rb.getString("chart.rrc"),
+				createRrcPlot(), 1));
 
 		this.pp = new PacketPlots();
-		subplotMap.put(
-				ChartPlotOptions.UL_PACKETS,
-				new GraphPanelPlotLabels(rb.getString("chart.ul"), pp
-						.getUlPlot(), 1));
-		subplotMap.put(
-				ChartPlotOptions.DL_PACKETS,
-				new GraphPanelPlotLabels(rb.getString("chart.dl"), pp
-						.getDlPlot(), 1));
+		subplotMap.put(ChartPlotOptions.UL_PACKETS,
+				new GraphPanelPlotLabels(rb.getString("chart.ul"), pp.getUlPlot(), 1));
+		subplotMap.put(ChartPlotOptions.DL_PACKETS,
+				new GraphPanelPlotLabels(rb.getString("chart.dl"), pp.getDlPlot(), 1));
 
 		this.axis = new NumberAxis();
 		this.axis.setStandardTickUnits(units);
@@ -471,23 +442,27 @@ public class GraphPanel extends JPanel implements ActionListener,
 	}
 
 	/**
-	 * Sets the chart plot options to those selected by clicking the Options menu item  in the View menu. 
+	 * Sets the chart plot options to those selected by clicking the Options
+	 * menu item in the View menu.
 	 * 
-	 * @param optionsSelected – A List of ChartPlotOptions to be set on the GraphPanel chart.
+	 * @param optionsSelected
+	 *            – A List of ChartPlotOptions to be set on the GraphPanel
+	 *            chart.
 	 */
-	public synchronized void setChartOptions(
-			List<ChartPlotOptions> optionsSelected) {
+	public synchronized void setChartOptions(List<ChartPlotOptions> optionsSelected) {
 
-		if (optionsSelected == null
-				|| optionsSelected.contains(ChartPlotOptions.DEFAULT_VIEW)) {
+		if (optionsSelected == null || optionsSelected.contains(ChartPlotOptions.DEFAULT_VIEW)) {
 			optionsSelected = ChartPlotOptions.getDefaultList();
 		}
 
 		// Remove all plots from combined plot
 		CombinedDomainXYPlot plot = getPlot();
 		for (GraphPanelPlotLabels subplot : subplotMap.values()) {
-			plot.remove(subplot.getPlot());
-			subplot.getLabel().setVisible(false);
+			if (subplot != null && subplot.getPlot() != null) {
+
+				plot.remove(subplot.getPlot());
+				subplot.getLabel().setVisible(false);
+			}
 		}
 
 		// Add selected plots
@@ -496,7 +471,7 @@ public class GraphPanel extends JPanel implements ActionListener,
 			// Keep charts in order of enum
 			if (optionsSelected.contains(option)) {
 				GraphPanelPlotLabels subplot = subplotMap.get(option);
-				if (subplot != null) {
+				if (subplot != null && subplot.getPlot() != null) {
 					plot.add(subplot.getPlot(), subplot.getWeight());
 					subplot.getLabel().setVisible(true);
 				}
@@ -512,22 +487,26 @@ public class GraphPanel extends JPanel implements ActionListener,
 	}
 
 	/**
-	 * Resets the chart labels, and the chart and axis information of the GraphPanel when the specified 
-	 * trace data is loaded. The current instance of the GraphPanel is preserved, along with the current 
-	 * zoom state. The scroll bar is moved to position 0. 
+	 * Resets the chart labels, and the chart and axis information of the
+	 * GraphPanel when the specified trace data is loaded. The current instance
+	 * of the GraphPanel is preserved, along with the current zoom state. The
+	 * scroll bar is moved to position 0.
 	 * 
-	 * @param Analysis - An Analysis object containing the new trace analysis data.
+	 * @param Analysis
+	 *            - An Analysis object containing the new trace analysis data.
 	 */
 	public synchronized void resetChart(TraceData.Analysis analysis) {
 
 		this.traceData = analysis != null ? analysis.getTraceData() : null;
 		getSaveGraphButton().setEnabled(analysis != null);
-		this.axis.setRange(new Range(0, analysis != null ? analysis
-				.getTraceData().getTraceDuration() : DEFAULT_TIMELINE));
+		// Setting the initial value on the time axis to -0.01 as the first
+		// packet time stamp in pcap analysis is always zero and hence the tool
+		// tip does not get displayed.
+		this.axis.setRange(new Range(-0.01, analysis != null ? analysis.getTraceData()
+				.getTraceDuration() : DEFAULT_TIMELINE));
 
 		setGraphView(0);
-		for (Map.Entry<ChartPlotOptions, GraphPanelPlotLabels> entry : subplotMap
-				.entrySet()) {
+		for (Map.Entry<ChartPlotOptions, GraphPanelPlotLabels> entry : subplotMap.entrySet()) {
 			switch (entry.getKey()) {
 			case BATTERY:
 				populateBatteryPlot(entry.getValue().getPlot(), analysis);
@@ -571,45 +550,51 @@ public class GraphPanel extends JPanel implements ActionListener,
 	}
 
 	/**
-	 * Sets the maximum number of times a user can zoom in or zoom out. Each zoom increment doubles the 
-	 * precision. The default zoom value is 5. 
+	 * Sets the maximum number of times a user can zoom in or zoom out. Each
+	 * zoom increment doubles the precision. The default zoom value is 5.
 	 * 
-	 * @param zoomFactor - The maximum zoom value that can be set.
+	 * @param zoomFactor
+	 *            - The maximum zoom value that can be set.
 	 */
 	public void setMaxZoom(int zoom) {
 		this.maxZoom = zoom;
 	}
 
 	/**
-	 * Sets the zoom factor. The default value is 2, meaning that the zoom doubles in precision for each 
-	 * zoom increment.
+	 * Sets the zoom factor. The default value is 2, meaning that the zoom
+	 * doubles in precision for each zoom increment.
 	 * 
-	 * @param zoomFactor – A double that indicates the zoom factor.
+	 * @param zoomFactor
+	 *            – A double that indicates the zoom factor.
 	 */
 	public void setZoomFactor(double zoomFactor) {
 		this.zoomFactor = zoomFactor;
 	}
 
 	/**
-	 * Sets the GraphPanel cross hair to the specified value, and centers the graph on the cross hair. 
+	 * Sets the GraphPanel cross hair to the specified value, and centers the
+	 * graph on the cross hair.
 	 * 
-	 * @param graphCrosshairSetting – A double that is the new cross-hair value.
+	 * @param graphCrosshairSetting
+	 *            – A double that is the new cross-hair value.
 	 */
 	public void setGraphView(double graphCrosshairSetting) {
 		setGraphView(graphCrosshairSetting, true);
 	}
 
 	/**
-	 * Sets the GraphPanel cross hair to the specified value, and centers the graph on the cross hair if 
-	 * the centerChartOnCrosshair parameter is “true”.
+	 * Sets the GraphPanel cross hair to the specified value, and centers the
+	 * graph on the cross hair if the centerChartOnCrosshair parameter is
+	 * “true”.
 	 * 
-	 * @param graphCrosshairSetting – A  timestamp that is the new cross hair setting. 
+	 * @param graphCrosshairSetting
+	 *            – A timestamp that is the new cross hair setting.
 	 * 
-	 * @param centerChartOnCrosshair – A boolean value that indicates whether the graph should be centered 
-	 * on the new cross hair value.
+	 * @param centerChartOnCrosshair
+	 *            – A boolean value that indicates whether the graph should be
+	 *            centered on the new cross hair value.
 	 */
-	public void setGraphView(double graphCrosshairSetting,
-			boolean centerChartOnCrosshair) {
+	public void setGraphView(double graphCrosshairSetting, boolean centerChartOnCrosshair) {
 		setCrossHair(graphCrosshairSetting);
 		if (centerChartOnCrosshair) {
 			resetScrollPosition();
@@ -617,7 +602,8 @@ public class GraphPanel extends JPanel implements ActionListener,
 	}
 
 	/**
-	 * Returns the lower bound of the area of the GraphPanel that is visible to the user (the viewport). 
+	 * Returns the lower bound of the area of the GraphPanel that is visible to
+	 * the user (the viewport).
 	 * 
 	 * @return A double value that is the lower bound of the viewport.
 	 */
@@ -626,13 +612,13 @@ public class GraphPanel extends JPanel implements ActionListener,
 	}
 
 	/**
-	 * Returns the upper bound of the area of the GraphPanel that is visible to the user (the viewport). 
+	 * Returns the upper bound of the area of the GraphPanel that is visible to
+	 * the user (the viewport).
 	 * 
 	 * @return A double value that is the highest bound of the viewport.
 	 */
 	public double getViewportUpperBound() {
-		return new Float(getViewportLowerBound()
-				+ (getGraphLength() * getViewportOffsetRatio()));
+		return new Float(getViewportLowerBound() + (getGraphLength() * getViewportOffsetRatio()));
 	}
 
 	/**
@@ -647,17 +633,20 @@ public class GraphPanel extends JPanel implements ActionListener,
 	/**
 	 * Adds a listener to the GraphPanel.
 	 * 
-	 * @param listner - The listener to add to the Graph Panel. The listener must be an implementation of 
-	 * the com.att.aro.main.GraphPanelListener interface.
+	 * @param listner
+	 *            - The listener to add to the Graph Panel. The listener must be
+	 *            an implementation of the com.att.aro.main.GraphPanelListener
+	 *            interface.
 	 */
 	public void addGraphPanelListener(GraphPanelListener listner) {
 		listeners.add(listner);
 	}
 
 	/**
-	 * Removes a listener from the GraphPanel. 
+	 * Removes a listener from the GraphPanel.
 	 * 
-	 * @param l - The listener to be removed from the GraphPanel.
+	 * @param l
+	 *            - The listener to be removed from the GraphPanel.
 	 */
 	public void removeGraphPanelListener(GraphPanelListener l) {
 		listeners.remove(l);
@@ -673,10 +662,11 @@ public class GraphPanel extends JPanel implements ActionListener,
 	}
 
 	/**
-	 * Returns a value that indicates if the GraphPanel cross hair is within the viewport (the viewable 
-	 * lower and upper bounds). 
+	 * Returns a value that indicates if the GraphPanel cross hair is within the
+	 * viewport (the viewable lower and upper bounds).
 	 * 
-	 * @return A boolean value that is “true” if the cross-hair is within the viewport.
+	 * @return A boolean value that is “true” if the cross-hair is within the
+	 *         viewport.
 	 */
 	public boolean isCrossHairInViewport() {
 		return (getCrosshair() >= getViewportLowerBound() && getCrosshair() <= getViewportUpperBound());
@@ -698,9 +688,8 @@ public class GraphPanel extends JPanel implements ActionListener,
 		Rectangle2D plotArea = advancedGraphPanel.getScreenDataArea();
 
 		XYPlot plot = (XYPlot) advancedGraph.getPlot();
-		final double lastChartX = new Double(
-				plot.getDomainAxis().java2DToValue(point.getX(), plotArea,
-						plot.getDomainAxisEdge()));
+		final double lastChartX = new Double(plot.getDomainAxis().java2DToValue(point.getX(),
+				plotArea, plot.getDomainAxisEdge()));
 
 		SwingUtilities.invokeLater(new Runnable() {
 
@@ -768,8 +757,7 @@ public class GraphPanel extends JPanel implements ActionListener,
 		int division = Math.round(height / plotWeightedDivs);
 
 		// working from top to bottom, set the y-coord. for the first XYPlot
-		int currentY = getLabelsPanel().getY() + 4
-				+ this.advancedGraphPanel.getY();
+		int currentY = getLabelsPanel().getY() + 4 + this.advancedGraphPanel.getY();
 
 		// loop on the list of Plots
 		for (ChartPlotOptions option : plotOrder) {
@@ -778,8 +766,7 @@ public class GraphPanel extends JPanel implements ActionListener,
 				int weightDivisionFactor = division * subplot.getWeight();
 
 				// set the current position using weight
-				subplot.getLabel().setBounds(3, currentY + 1, 100,
-						weightDivisionFactor + 3);
+				subplot.getLabel().setBounds(3, currentY + 1, 100, weightDivisionFactor + 3);
 
 				// adjust the currentY value for the next label in the loop
 				currentY += weightDivisionFactor;
@@ -787,8 +774,7 @@ public class GraphPanel extends JPanel implements ActionListener,
 		}
 
 		// add the axis label
-		this.axisLabel.setBounds(3,
-				height + 3 + this.advancedGraphPanel.getY(), 100, 15);
+		this.axisLabel.setBounds(3, height + 3 + this.advancedGraphPanel.getY(), 100, 15);
 	}
 
 	/**
@@ -813,19 +799,7 @@ public class GraphPanel extends JPanel implements ActionListener,
 			combinedPlot.setDomainCrosshairVisible(true);
 		}
 
-		/*
-		 * It's important to do this in a runnable because the handle will
-		 * update faster than the chart cross hair can repaint, so we make sure
-		 * that the handle is re-positioned after all other swing events are
-		 * finished including those in the chart.
-		 */
-		SwingUtilities.invokeLater(new Runnable() {
-			@Override
-			public void run() {
-				handlePanel.setHandlePosition(getHandleCoordinate());
-			}
-		});
-
+		handlePanel.setHandlePosition(getHandleCoordinate());
 	}
 
 	/**
@@ -836,10 +810,8 @@ public class GraphPanel extends JPanel implements ActionListener,
 			try {
 				saveAs();
 			} catch (IOException e1) {
-				JOptionPane.showMessageDialog(this,
-						rb.getString("chart.saveError"));
-				logger.fine("An error occurred trying to save the chart: "
-						+ e1.getMessage());
+				JOptionPane.showMessageDialog(this, rb.getString("chart.saveError"));
+				logger.fine("An error occurred trying to save the chart: " + e1.getMessage());
 			}
 		} else if (ZOOM_IN_ACTION.equals(e.getActionCommand())) {
 			zoomIn();
@@ -862,20 +834,16 @@ public class GraphPanel extends JPanel implements ActionListener,
 
 		// Set up file types
 		String[] fileTypesJPG = new String[2];
-		String fileDisplayTypeJPG = rb
-				.getString("fileChooser.contentDisplayType.jpeg");
+		String fileDisplayTypeJPG = rb.getString("fileChooser.contentDisplayType.jpeg");
 		fileTypesJPG[0] = rb.getString("fileChooser.contentType.jpeg");
 		fileTypesJPG[1] = rb.getString("fileChooser.contentType.jpg");
-		FileFilter filterJPG = new ExtensionFileFilter(fileDisplayTypeJPG,
-				fileTypesJPG);
+		FileFilter filterJPG = new ExtensionFileFilter(fileDisplayTypeJPG, fileTypesJPG);
 
 		fc.addChoosableFileFilter(fc.getAcceptAllFileFilter());
 		String[] fileTypesPng = new String[1];
-		String fileDisplayTypePng = rb
-				.getString("fileChooser.contentDisplayType.png");
+		String fileDisplayTypePng = rb.getString("fileChooser.contentDisplayType.png");
 		fileTypesPng[0] = rb.getString("fileChooser.contentType.png");
-		FileFilter filterPng = new ExtensionFileFilter(fileDisplayTypePng,
-				fileTypesPng);
+		FileFilter filterPng = new ExtensionFileFilter(fileDisplayTypePng, fileTypesPng);
 		fc.addChoosableFileFilter(filterPng);
 		fc.setFileFilter(filterJPG);
 		File plotImageFile = null;
@@ -887,56 +855,48 @@ public class GraphPanel extends JPanel implements ActionListener,
 				String strFileLowerCase = strFile.toLowerCase();
 				String fileDesc = fc.getFileFilter().getDescription();
 				String fileType = rb.getString("fileChooser.contentType.jpg");
-				if ((fileDesc.equalsIgnoreCase(rb
-						.getString("fileChooser.contentDisplayType.png")) || strFileLowerCase
+				if ((fileDesc.equalsIgnoreCase(rb.getString("fileChooser.contentDisplayType.png")) || strFileLowerCase
 						.endsWith(rb.getString("fileType.filters.dot")
 								+ fileTypesPng[0].toLowerCase()))) {
 					fileType = fileTypesPng[0];
 				}
 				if (strFile.length() > 0) {
 					// Save current directory
-					graphPanelSaveDirectory = fc.getCurrentDirectory()
-							.getPath();
+					graphPanelSaveDirectory = fc.getCurrentDirectory().getPath();
 
 					if ((fileType != null) && (fileType.length() > 0)) {
-						String fileTypeLowerCaseWithDot = rb
-								.getString("fileType.filters.dot")
+						String fileTypeLowerCaseWithDot = rb.getString("fileType.filters.dot")
 								+ fileType.toLowerCase();
-						if (!strFileLowerCase
-								.endsWith(fileTypeLowerCaseWithDot)) {
-							strFile += rb.getString("fileType.filters.dot")
-									+ fileType;
+						if (!strFileLowerCase.endsWith(fileTypeLowerCaseWithDot)) {
+							strFile += rb.getString("fileType.filters.dot") + fileType;
 						}
 					}
 					plotImageFile = new File(strFile);
 					boolean bAttemptToWriteToFile = true;
 					if (plotImageFile.exists()) {
-						if (MessageDialogFactory.showConfirmDialog(this,
-								MessageFormat.format(
-										rb.getString("fileChooser.fileExists"),
-										plotImageFile.getAbsolutePath()), rb
-										.getString("fileChooser.confirm"),
-								JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) {
+						if (MessageDialogFactory.showConfirmDialog(this, MessageFormat.format(
+								rb.getString("fileChooser.fileExists"),
+								plotImageFile.getAbsolutePath()), rb
+								.getString("fileChooser.confirm"), JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) {
 							bAttemptToWriteToFile = false;
 						}
 					}
 					if (bAttemptToWriteToFile) {
 						try {
 							if (fileType.equalsIgnoreCase(fileTypesPng[0])) {
-								ChartUtilities.saveChartAsPNG(plotImageFile,
-										advancedGraph,
+								ChartUtilities.saveChartAsPNG(plotImageFile, advancedGraph,
 										advancedGraphPanel.getWidth(),
 										advancedGraphPanel.getHeight());
 							} else {
-								ChartUtilities.saveChartAsJPEG(plotImageFile,
-										advancedGraph,
+								ChartUtilities.saveChartAsJPEG(plotImageFile, advancedGraph,
 										advancedGraphPanel.getWidth(),
 										advancedGraphPanel.getHeight());
 							}
 							bSavedOrCancelled = true;
 						} catch (IOException e) {
-							MessageDialogFactory.showMessageDialog(this, rb
-									.getString("fileChooser.errorWritingToFile"
+							MessageDialogFactory.showMessageDialog(
+									this,
+									rb.getString("fileChooser.errorWritingToFile"
 											+ plotImageFile.toString()));
 						}
 					}
@@ -954,8 +914,7 @@ public class GraphPanel extends JPanel implements ActionListener,
 		if (zoomCounter < maxZoom) {
 			this.getZoomInButton().setEnabled(false);
 			advancedGraphPanel.setPreferredSize(new Dimension(
-					(int) (advancedGraphPanel.getWidth() * this.zoomFactor),
-					200));
+					(int) (advancedGraphPanel.getWidth() * this.zoomFactor), 200));
 			zoomCounter++;
 			zoomEventUIUpdate();
 			SwingUtilities.invokeLater(new Runnable() {
@@ -973,8 +932,7 @@ public class GraphPanel extends JPanel implements ActionListener,
 		if (zoomCounter > 0) {
 			this.getZoomOutButton().setEnabled(false);
 			advancedGraphPanel.setPreferredSize(new Dimension(
-					(int) (advancedGraphPanel.getWidth() / this.zoomFactor),
-					200));
+					(int) (advancedGraphPanel.getWidth() / this.zoomFactor), 200));
 			zoomCounter--;
 			zoomEventUIUpdate();
 
@@ -1008,8 +966,8 @@ public class GraphPanel extends JPanel implements ActionListener,
 	private int getHandleCoordinate() {
 		Rectangle2D plotArea = advancedGraphPanel.getScreenDataArea();
 		XYPlot plot = (XYPlot) advancedGraph.getPlot();
-		int handleCoordinate = new Float(plot.getDomainAxis().valueToJava2D(
-				getCrosshair(), plotArea, plot.getDomainAxisEdge())).intValue();
+		int handleCoordinate = new Float(plot.getDomainAxis().valueToJava2D(getCrosshair(),
+				plotArea, plot.getDomainAxisEdge())).intValue();
 		return handleCoordinate;
 	}
 
@@ -1041,18 +999,15 @@ public class GraphPanel extends JPanel implements ActionListener,
 	}
 
 	private float getCrossSectionOffsetRatio() {
-		return new Float(new Float(getCrossSection())
-				/ new Float(getScrollMax()));
+		return new Float(new Float(getCrossSection()) / new Float(getScrollMax()));
 	}
 
 	private float getViewportOffsetRatio() {
-		return new Float(new Float(this.pane.getWidth())
-				/ new Float(getScrollMax()));
+		return new Float(new Float(this.pane.getWidth()) / new Float(getScrollMax()));
 	}
 
 	private float getCrosshairPosRatio() {
-		return new Float(new Float(getCrosshair())
-				/ new Float(getGraphLength()));
+		return new Float(new Float(getCrosshair()) / new Float(getGraphLength()));
 	}
 
 	private float getCrossSection() {
@@ -1115,8 +1070,8 @@ public class GraphPanel extends JPanel implements ActionListener,
 	private JFreeChart getAdvancedGraph() {
 		if (advancedGraph == null) {
 
-			this.advancedGraph = new JFreeChart(null,
-					JFreeChart.DEFAULT_TITLE_FONT, getPlot(), true);
+			this.advancedGraph = new JFreeChart(null, JFreeChart.DEFAULT_TITLE_FONT, getPlot(),
+					true);
 			advancedGraph.removeLegend();
 		}
 		return this.advancedGraph;
@@ -1174,8 +1129,7 @@ public class GraphPanel extends JPanel implements ActionListener,
 			saveGraphButton.setEnabled(false);
 			saveGraphButton.setPreferredSize(new Dimension(60, 30));
 			saveGraphButton.addActionListener(this);
-			saveGraphButton
-					.setToolTipText(rb.getString("chart.tooltip.saveas"));
+			saveGraphButton.setToolTipText(rb.getString("chart.tooltip.saveas"));
 		}
 		return saveGraphButton;
 	}
@@ -1202,42 +1156,27 @@ public class GraphPanel extends JPanel implements ActionListener,
 				seriesMap.put(eventType, series);
 				gpsData.addSeries(series);
 			}
-			Iterator<GpsInfo> iter = analysis.getTraceData().getGpsInfos()
-					.iterator();
+			Iterator<GpsInfo> iter = analysis.getGpsInfos().iterator();
 			if (iter.hasNext()) {
-				GpsInfo lastEvent = iter.next();
 				while (iter.hasNext()) {
-					GpsInfo currEvent = iter.next();
-					if (lastEvent.getGpsState() != GpsState.GPS_DISABLED) {
-						seriesMap.get(lastEvent.getGpsState()).add(
-								lastEvent.getGpsTimeStamp(),
-								lastEvent.getGpsTimeStamp(),
-								currEvent.getGpsTimeStamp(), 0.5, 0, 1);
+					GpsInfo gpsEvent = iter.next();
+					if (gpsEvent.getGpsState() != GpsState.GPS_DISABLED) {
+						seriesMap.get(gpsEvent.getGpsState())
+								.add(gpsEvent.getBeginTimeStamp(), gpsEvent.getBeginTimeStamp(),
+										gpsEvent.getEndTimeStamp(), 0.5, 0, 1);
 					}
-					lastEvent = currEvent;
-				}
-				if (lastEvent.getGpsState() != GpsState.GPS_DISABLED) {
-					seriesMap.get(lastEvent.getGpsState()).add(
-							lastEvent.getGpsTimeStamp(),
-							lastEvent.getGpsTimeStamp(),
-							analysis.getTraceData().getTraceDuration(), 0.5, 0,
-							1);
 				}
 			}
 
 			XYItemRenderer renderer = plot.getRenderer();
-			renderer.setSeriesPaint(gpsData.indexOf(GpsState.GPS_STANDBY),
-					Color.YELLOW);
-			renderer.setSeriesPaint(gpsData.indexOf(GpsState.GPS_ACTIVE),
-					new Color(34, 177, 76));
+			renderer.setSeriesPaint(gpsData.indexOf(GpsState.GPS_STANDBY), Color.YELLOW);
+			renderer.setSeriesPaint(gpsData.indexOf(GpsState.GPS_ACTIVE), new Color(34, 177, 76));
 
 			// Assign ToolTip to renderer
 			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
 				@Override
-				public String generateToolTip(XYDataset dataset, int series,
-						int item) {
-					GpsState eventType = (GpsState) gpsData.getSeries(series)
-							.getKey();
+				public String generateToolTip(XYDataset dataset, int series, int item) {
+					GpsState eventType = (GpsState) gpsData.getSeries(series).getKey();
 					return MessageFormat.format(rb.getString("gps.tooltip"),
 							dataset.getX(series, item),
 							ResourceBundleManager.getEnumString(eventType));
@@ -1274,8 +1213,7 @@ public class GraphPanel extends JPanel implements ActionListener,
 		return gpsPlot;
 	}
 
-	private static void populateBluetoothPlot(XYPlot plot,
-			TraceData.Analysis analysis) {
+	private static void populateBluetoothPlot(XYPlot plot, TraceData.Analysis analysis) {
 
 		// create the dataset...
 		final XYIntervalSeriesCollection bluetoothData = new XYIntervalSeriesCollection();
@@ -1293,14 +1231,12 @@ public class GraphPanel extends JPanel implements ActionListener,
 			// bluetoothStateCollection.addSeries(bluetoothOff);
 
 			// Populate the data set
-			Iterator<BluetoothInfo> iter = analysis.getTraceData()
-					.getBluetoothInfos().iterator();
+			Iterator<BluetoothInfo> iter = analysis.getBluetoothInfos().iterator();
 			XYIntervalSeries series;
 			if (iter.hasNext()) {
-				BluetoothInfo lastEvent = iter.next();
 				while (iter.hasNext()) {
-					BluetoothInfo currEvent = iter.next();
-					switch (lastEvent.getBluetoothState()) {
+					BluetoothInfo btEvent = iter.next();
+					switch (btEvent.getBluetoothState()) {
 					case BLUETOOTH_CONNECTED:
 						series = bluetoothConnected;
 						break;
@@ -1311,45 +1247,25 @@ public class GraphPanel extends JPanel implements ActionListener,
 						series = bluetoothOff;
 						break;
 					}
-					series.add(lastEvent.getBluetoothTimeStamp(),
-							lastEvent.getBluetoothTimeStamp(),
-							currEvent.getBluetoothTimeStamp(), 0.5, 0, 1);
-					lastEvent = currEvent;
+					series.add(btEvent.getBeginTimeStamp(), btEvent.getBeginTimeStamp(),
+							btEvent.getEndTimeStamp(), 0.5, 0, 1);
 				}
-				switch (lastEvent.getBluetoothState()) {
-				case BLUETOOTH_CONNECTED:
-					series = bluetoothConnected;
-					break;
-				case BLUETOOTH_DISCONNECTED:
-					series = bluetoothDisconnected;
-					break;
-				default:
-					series = bluetoothOff;
-					break;
-				}
-				series.add(lastEvent.getBluetoothTimeStamp(), lastEvent
-						.getBluetoothTimeStamp(), analysis.getTraceData()
-						.getTraceDuration(), 0.5, 0, 1);
 
 			}
 
 			XYItemRenderer renderer = plot.getRenderer();
-			renderer.setSeriesPaint(
-					bluetoothData.indexOf(BluetoothState.BLUETOOTH_CONNECTED),
+			renderer.setSeriesPaint(bluetoothData.indexOf(BluetoothState.BLUETOOTH_CONNECTED),
 					new Color(34, 177, 76));
-			renderer.setSeriesPaint(bluetoothData
-					.indexOf(BluetoothState.BLUETOOTH_DISCONNECTED),
+			renderer.setSeriesPaint(bluetoothData.indexOf(BluetoothState.BLUETOOTH_DISCONNECTED),
 					Color.YELLOW);
 
 			// Assign ToolTip to renderer
 			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
 				@Override
-				public String generateToolTip(XYDataset dataset, int series,
-						int item) {
-					BluetoothState eventType = (BluetoothState) bluetoothData
-							.getSeries(series).getKey();
-					return MessageFormat.format(
-							rb.getString("bluetooth.tooltip"),
+				public String generateToolTip(XYDataset dataset, int series, int item) {
+					BluetoothState eventType = (BluetoothState) bluetoothData.getSeries(series)
+							.getKey();
+					return MessageFormat.format(rb.getString("bluetooth.tooltip"),
 							dataset.getX(series, item),
 							ResourceBundleManager.getEnumString(eventType));
 				}
@@ -1379,16 +1295,14 @@ public class GraphPanel extends JPanel implements ActionListener,
 		bluetoothRenderer.setBarPainter(painter);
 
 		// Create result plot
-		XYPlot bluetoothPlot = new XYPlot(null, null, new NumberAxis(),
-				bluetoothRenderer);
+		XYPlot bluetoothPlot = new XYPlot(null, null, new NumberAxis(), bluetoothRenderer);
 		bluetoothPlot.getRangeAxis().setVisible(false);
 
 		return bluetoothPlot;
 
 	}
 
-	private static void populateWifiPlot(XYPlot plot,
-			TraceData.Analysis analysis) {
+	private static void populateWifiPlot(XYPlot plot, TraceData.Analysis analysis) {
 
 		// create the dataset...
 		final XYIntervalSeriesCollection wifiData = new XYIntervalSeriesCollection();
@@ -1411,26 +1325,16 @@ public class GraphPanel extends JPanel implements ActionListener,
 			}
 
 			// Populate the data set
-			List<WifiInfo> wifiInfos = analysis.getTraceData().getWifiInfos();
-			final Map<Double, WifiInfo> eventMap = new HashMap<Double, WifiInfo>(
-					wifiInfos.size());
+			List<WifiInfo> wifiInfos = analysis.getWifiInfos();
+			final Map<Double, WifiInfo> eventMap = new HashMap<Double, WifiInfo>(wifiInfos.size());
 			Iterator<WifiInfo> iter = wifiInfos.iterator();
 			if (iter.hasNext()) {
-				WifiInfo lastEvent = iter.next();
 				while (iter.hasNext()) {
-					WifiInfo currEvent = iter.next();
-					seriesMap.get(lastEvent.getWifiState()).add(
-							lastEvent.getWifiTimeStamp(),
-							lastEvent.getWifiTimeStamp(),
-							currEvent.getWifiTimeStamp(), 0.5, 0, 1);
-					eventMap.put(lastEvent.getWifiTimeStamp(), lastEvent);
-					lastEvent = currEvent;
+					WifiInfo wifiEvent = iter.next();
+					seriesMap.get(wifiEvent.getWifiState()).add(wifiEvent.getBeginTimeStamp(),
+							wifiEvent.getBeginTimeStamp(), wifiEvent.getEndTimeStamp(), 0.5, 0, 1);
+					eventMap.put(wifiEvent.getBeginTimeStamp(), wifiEvent);
 				}
-				seriesMap.get(lastEvent.getWifiState()).add(
-						lastEvent.getWifiTimeStamp(),
-						lastEvent.getWifiTimeStamp(),
-						analysis.getTraceData().getTraceDuration(), 0.5, 0, 1);
-				eventMap.put(lastEvent.getWifiTimeStamp(), lastEvent);
 			}
 
 			XYItemRenderer renderer = plot.getRenderer();
@@ -1460,26 +1364,20 @@ public class GraphPanel extends JPanel implements ActionListener,
 			// Assign ToolTip to renderer
 			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
 				@Override
-				public String generateToolTip(XYDataset dataset, int series,
-						int item) {
-					WifiState eventType = (WifiState) wifiData
-							.getSeries(series).getKey();
+				public String generateToolTip(XYDataset dataset, int series, int item) {
+					WifiState eventType = (WifiState) wifiData.getSeries(series).getKey();
 
-					StringBuffer message = new StringBuffer(rb
-							.getString("wifi.tooltip.prefix"));
-					message.append(MessageFormat.format(
-							rb.getString("wifi.tooltip"),
+					StringBuffer message = new StringBuffer(rb.getString("wifi.tooltip.prefix"));
+					message.append(MessageFormat.format(rb.getString("wifi.tooltip"),
 							dataset.getX(series, item),
 							ResourceBundleManager.getEnumString(eventType)));
 					switch (eventType) {
 					case WIFI_CONNECTED:
 						WifiInfo info = eventMap.get(dataset.getX(series, item));
-						if (info != null
-								&& info.getWifiState() == WifiState.WIFI_CONNECTED) {
-							message.append(MessageFormat.format(
-									rb.getString("wifi.connTooltip"),
-									info.getWifiMacAddress(),
-									info.getWifiRSSI(), info.getWifiSSID()));
+						if (info != null && info.getWifiState() == WifiState.WIFI_CONNECTED) {
+							message.append(MessageFormat.format(rb.getString("wifi.connTooltip"),
+									info.getWifiMacAddress(), info.getWifiRSSI(),
+									info.getWifiSSID()));
 						}
 						break;
 					default:
@@ -1521,35 +1419,25 @@ public class GraphPanel extends JPanel implements ActionListener,
 
 	}
 
-	private static void populateCameraPlot(XYPlot plot,
-			TraceData.Analysis analysis) {
+	private static void populateCameraPlot(XYPlot plot, TraceData.Analysis analysis) {
 
 		XYIntervalSeriesCollection cameraData = new XYIntervalSeriesCollection();
 
 		if (analysis != null) {
 
-			XYIntervalSeries series = new XYIntervalSeries(
-					CameraState.CAMERA_ON);
+			XYIntervalSeries series = new XYIntervalSeries(CameraState.CAMERA_ON);
 			cameraData.addSeries(series);
 
 			// Populate the data set
-			Iterator<CameraInfo> iter = analysis.getTraceData()
-					.getCameraInfos().iterator();
+			Iterator<CameraInfo> iter = analysis.getCameraInfos().iterator();
 			if (iter.hasNext()) {
-				CameraInfo lastEvent = iter.next();
 				while (iter.hasNext()) {
-					CameraInfo currEvent = iter.next();
-					if (lastEvent.getCameraState() == CameraState.CAMERA_ON) {
-						series.add(lastEvent.getCameraTimeStamp(),
-								lastEvent.getCameraTimeStamp(),
-								currEvent.getCameraTimeStamp(), 0.5, 0, 1);
+					CameraInfo cameraEvent = iter.next();
+					if (cameraEvent.getCameraState() == CameraState.CAMERA_ON) {
+						series.add(cameraEvent.getBeginTimeStamp(),
+								cameraEvent.getBeginTimeStamp(), cameraEvent.getEndTimeStamp(),
+								0.5, 0, 1);
 					}
-					lastEvent = currEvent;
-				}
-				if (lastEvent.getCameraState() == CameraState.CAMERA_ON) {
-					series.add(lastEvent.getCameraTimeStamp(), lastEvent
-							.getCameraTimeStamp(), analysis.getTraceData()
-							.getTraceDuration(), 0.5, 0, 1);
 				}
 			}
 
@@ -1557,12 +1445,10 @@ public class GraphPanel extends JPanel implements ActionListener,
 			XYItemRenderer renderer = plot.getRenderer();
 			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
 				@Override
-				public String generateToolTip(XYDataset dataset, int series,
-						int item) {
-					return MessageFormat.format(rb.getString("camera.tooltip"),
-							dataset.getX(series, item), ResourceBundleManager
-									.getEnumString((Enum<?>) dataset
-											.getSeriesKey(series)));
+				public String generateToolTip(XYDataset dataset, int series, int item) {
+					return MessageFormat.format(rb.getString("camera.tooltip"), dataset.getX(
+							series, item), ResourceBundleManager.getEnumString((Enum<?>) dataset
+							.getSeriesKey(series)));
 				}
 			});
 
@@ -1589,43 +1475,31 @@ public class GraphPanel extends JPanel implements ActionListener,
 		cameraRenderer.setBarPainter(new StandardXYBarPainter());
 
 		// Create result plot
-		XYPlot cameraPlot = new XYPlot(null, null, new NumberAxis(),
-				cameraRenderer);
+		XYPlot cameraPlot = new XYPlot(null, null, new NumberAxis(), cameraRenderer);
 		cameraPlot.getRangeAxis().setVisible(false);
 		return cameraPlot;
 	}
 
-	private static void populateScreenStatePlot(XYPlot plot,
-			TraceData.Analysis analysis) {
+	private static void populateScreenStatePlot(XYPlot plot, TraceData.Analysis analysis) {
 
 		final XYIntervalSeriesCollection screenData = new XYIntervalSeriesCollection();
 		if (analysis != null) {
 
-			XYIntervalSeries series = new XYIntervalSeries(
-					ScreenState.SCREEN_ON);
+			XYIntervalSeries series = new XYIntervalSeries(ScreenState.SCREEN_ON);
 			screenData.addSeries(series);
 
 			// Populate the data set
 			final Map<Double, ScreenStateInfo> dataMap = new HashMap<Double, ScreenStateInfo>();
-			Iterator<ScreenStateInfo> iter = analysis.getTraceData()
-					.getScreenStateInfos().iterator();
+			Iterator<ScreenStateInfo> iter = analysis.getScreenStateInfos().iterator();
 			if (iter.hasNext()) {
-				ScreenStateInfo lastEvent = iter.next();
 				while (iter.hasNext()) {
-					ScreenStateInfo currEvent = iter.next();
-					if (lastEvent.getScreenState() == ScreenState.SCREEN_ON) {
-						series.add(lastEvent.getScreenTimeStamp(),
-								lastEvent.getScreenTimeStamp(),
-								currEvent.getScreenTimeStamp(), 0.5, 0, 1);
-						dataMap.put(lastEvent.getScreenTimeStamp(), lastEvent);
+					ScreenStateInfo screenEvent = iter.next();
+					if (screenEvent.getScreenState() == ScreenState.SCREEN_ON) {
+						series.add(screenEvent.getBeginTimeStamp(),
+								screenEvent.getBeginTimeStamp(), screenEvent.getEndTimeStamp(),
+								0.5, 0, 1);
+						dataMap.put(screenEvent.getBeginTimeStamp(), screenEvent);
 					}
-					lastEvent = currEvent;
-				}
-				if (lastEvent.getScreenState() == ScreenState.SCREEN_ON) {
-					series.add(lastEvent.getScreenTimeStamp(), lastEvent
-							.getScreenTimeStamp(), analysis.getTraceData()
-							.getTraceDuration(), 0.5, 0, 1);
-					dataMap.put(lastEvent.getScreenTimeStamp(), lastEvent);
 				}
 			}
 
@@ -1634,11 +1508,9 @@ public class GraphPanel extends JPanel implements ActionListener,
 			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
 
 				@Override
-				public String generateToolTip(XYDataset dataset, int series,
-						int item) {
+				public String generateToolTip(XYDataset dataset, int series, int item) {
 
-					ScreenStateInfo si = dataMap.get(dataset.getXValue(series,
-							item));
+					ScreenStateInfo si = dataMap.get(dataset.getXValue(series, item));
 					if (si != null) {
 
 						StringBuffer displayInfo = new StringBuffer(rb
@@ -1646,13 +1518,10 @@ public class GraphPanel extends JPanel implements ActionListener,
 						int timeout = si.getScreenTimeout();
 						displayInfo.append(MessageFormat.format(
 								rb.getString("screenstate.tooltip.content"),
-								ResourceBundleManager.getEnumString(si
-										.getScreenState()),
+								ResourceBundleManager.getEnumString(si.getScreenState()),
 								si.getScreenBrightness(),
-								timeout > 0 ? timeout : rb
-										.getString("screenstate.noTimeout")));
-						displayInfo.append(rb
-								.getString("screenstate.tooltip.suffix"));
+								timeout > 0 ? timeout : rb.getString("screenstate.noTimeout")));
+						displayInfo.append(rb.getString("screenstate.tooltip.suffix"));
 						return displayInfo.toString();
 					}
 					return null;
@@ -1682,49 +1551,55 @@ public class GraphPanel extends JPanel implements ActionListener,
 		screenStateRenderer.setBarPainter(new StandardXYBarPainter());
 
 		// Create result plot
-		XYPlot screenStatePlot = new XYPlot(null, null, new NumberAxis(),
-				screenStateRenderer);
+		XYPlot screenStatePlot = new XYPlot(null, null, new NumberAxis(), screenStateRenderer);
 		screenStatePlot.getRangeAxis().setVisible(false);
 		return screenStatePlot;
 
 	}
 
-	private static void populateBatteryPlot(XYPlot plot,
-			TraceData.Analysis analysis) {
+	private static void populateBatteryPlot(XYPlot plot, TraceData.Analysis analysis) {
 
 		XYSeries series = new XYSeries(0);
 
 		if (analysis != null) {
 
-			final List<BatteryInfo> batteryInfos = analysis.getTraceData()
-					.getBatteryInfos();
+			final List<BatteryInfo> batteryInfos = analysis.getBatteryInfos();
+
+			if (batteryInfos.size() > 0 && analysis.getFilter().getTimeRange() != null) {
+				BatteryInfo first = batteryInfos.get(0);
+				series.add(analysis.getFilter().getTimeRange().getBeginTime(),
+						first.getBatteryLevel());
+			}
 			for (BatteryInfo bi : batteryInfos) {
 				series.add(bi.getBatteryTimeStamp(), bi.getBatteryLevel());
 			}
 			if (batteryInfos.size() > 0) {
+
 				BatteryInfo last = batteryInfos.get(batteryInfos.size() - 1);
-				series.add(analysis.getTraceData().getTraceDuration(),
-						last.getBatteryLevel());
+				if (analysis.getFilter().getTimeRange() != null) {
+					series.add(analysis.getFilter().getTimeRange().getEndTime(),
+							last.getBatteryLevel());
+				} else {
+					series.add(analysis.getTraceData().getTraceDuration(), last.getBatteryLevel());
+
+				}
 			}
 
 			XYItemRenderer renderer = plot.getRenderer();
 			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
 
 				@Override
-				public String generateToolTip(XYDataset dataset, int series,
-						int item) {
+				public String generateToolTip(XYDataset dataset, int series, int item) {
 
-					BatteryInfo bi = batteryInfos.get(Math.min(item,
-							batteryInfos.size() - 1));
+					BatteryInfo bi = batteryInfos.get(Math.min(item, batteryInfos.size() - 1));
 					StringBuffer displayInfo = new StringBuffer(rb
 							.getString("battery.tooltip.prefix"));
 					displayInfo.append(MessageFormat.format(
 							rb.getString("battery.tooltip.content"),
 							bi.getBatteryLevel(),
 							bi.getBatteryTemp(),
-							bi.isBatteryState() ? rb
-									.getString("battery.tooltip.connected")
-									: rb.getString("battery.tooltip.disconnected")));
+							bi.isBatteryState() ? rb.getString("battery.tooltip.connected") : rb
+									.getString("battery.tooltip.disconnected")));
 					displayInfo.append(rb.getString("battery.tooltip.suffix"));
 
 					return displayInfo.toString();
@@ -1765,8 +1640,7 @@ public class GraphPanel extends JPanel implements ActionListener,
 
 	}
 
-	private static void populateUserEventPlot(XYPlot plot,
-			TraceData.Analysis analysis) {
+	private static void populateUserEventPlot(XYPlot plot, TraceData.Analysis analysis) {
 
 		final XYIntervalSeriesCollection userInputData = new XYIntervalSeriesCollection();
 		if (analysis != null) {
@@ -1774,28 +1648,27 @@ public class GraphPanel extends JPanel implements ActionListener,
 			// create the dataset...
 			Map<UserEvent.UserEventType, XYIntervalSeries> seriesMap = new EnumMap<UserEvent.UserEventType, XYIntervalSeries>(
 					UserEvent.UserEventType.class);
-			for (UserEvent.UserEventType eventType : UserEvent.UserEventType
-					.values()) {
+			for (UserEvent.UserEventType eventType : UserEvent.UserEventType.values()) {
 				XYIntervalSeries series = new XYIntervalSeries(eventType);
 				seriesMap.put(eventType, series);
 				userInputData.addSeries(series);
 			}
 			// Populate the data set
-			for (UserEvent event : analysis.getTraceData().getUserEvents()) {
-				seriesMap.get(event.getEventType())
-						.add(event.getPressTime(), event.getPressTime(),
-								event.getReleaseTime(), 0.5, 0, 1);
+			for (UserEvent event : analysis.getUserEvents()) {
+				seriesMap.get(event.getEventType()).add(event.getPressTime(), event.getPressTime(),
+						event.getReleaseTime(), 0.5, 0, 1);
 			}
-         
+
 			// Assign ToolTip to renderer
 			XYItemRenderer renderer = plot.getRenderer();
-			renderer.setSeriesPaint(userInputData.indexOf(UserEventType.SCREEN_LANDSCAPE), Color.BLUE);
-			renderer.setSeriesPaint(userInputData.indexOf(UserEventType.SCREEN_PORTRAIT), Color.BLUE);
+			renderer.setSeriesPaint(userInputData.indexOf(UserEventType.SCREEN_LANDSCAPE),
+					Color.BLUE);
+			renderer.setSeriesPaint(userInputData.indexOf(UserEventType.SCREEN_PORTRAIT),
+					Color.BLUE);
 			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
 
 				@Override
-				public String generateToolTip(XYDataset dataset, int series,
-						int item) {
+				public String generateToolTip(XYDataset dataset, int series, int item) {
 					UserEvent.UserEventType eventType = (UserEvent.UserEventType) userInputData
 							.getSeries(series).getKey();
 					return ResourceBundleManager.getEnumString(eventType);
@@ -1826,30 +1699,36 @@ public class GraphPanel extends JPanel implements ActionListener,
 		XYBarPainter painter = new StandardXYBarPainter();
 		userInputRenderer.setBarPainter(painter);
 
-		XYPlot userInputPlot = new XYPlot(null, null, new NumberAxis(),
-				userInputRenderer);
+		XYPlot userInputPlot = new XYPlot(null, null, new NumberAxis(), userInputRenderer);
 		userInputPlot.getRangeAxis().setVisible(false);
 		return userInputPlot;
 	}
 
-	private static void populateRadioPlot(XYPlot plot,
-			TraceData.Analysis analysis) {
+	private static void populateRadioPlot(XYPlot plot, TraceData.Analysis analysis) {
 
 		XYSeries series = new XYSeries(0);
 		if (analysis != null) {
 
-			final List<RadioInfo> radioInfos = analysis.getTraceData()
-					.getRadioInfos();
+			final List<RadioInfo> radioInfos = analysis.getRadioInfos();
+
+			if (radioInfos.size() > 0 && analysis.getFilter().getTimeRange() != null) {
+				RadioInfo first = radioInfos.get(0);
+				series.add(analysis.getFilter().getTimeRange().getBeginTime(),
+						first.getSignalStrength() < 0 ? first.getSignalStrength() : MIN_SIGNAL);
+			}
 			for (RadioInfo ri : radioInfos) {
-				series.add(ri.getTimeStamp(),
-						ri.getSignalStrength() < 0 ? ri.getSignalStrength()
-								: MIN_SIGNAL);
+				series.add(ri.getTimeStamp(), ri.getSignalStrength() < 0 ? ri.getSignalStrength()
+						: MIN_SIGNAL);
 			}
 			if (radioInfos.size() > 0) {
 				RadioInfo last = radioInfos.get(radioInfos.size() - 1);
-				series.add(analysis.getTraceData().getTraceDuration(), last
-						.getSignalStrength() < 0 ? last.getSignalStrength()
-						: MIN_SIGNAL);
+				if (analysis.getFilter().getTimeRange() != null) {
+					series.add(analysis.getFilter().getTimeRange().getEndTime(),
+							last.getSignalStrength() < 0 ? last.getSignalStrength() : MIN_SIGNAL);
+				} else {
+					series.add(analysis.getTraceData().getTraceDuration(),
+							last.getSignalStrength() < 0 ? last.getSignalStrength() : MIN_SIGNAL);
+				}
 			}
 
 			// Assign ToolTip to renderer
@@ -1857,15 +1736,17 @@ public class GraphPanel extends JPanel implements ActionListener,
 			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
 
 				@Override
-				public String generateToolTip(XYDataset dataset, int series,
-						int item) {
+				public String generateToolTip(XYDataset dataset, int series, int item) {
 
-					RadioInfo ri = radioInfos.get(Math.min(item,
-							radioInfos.size() - 1));
+					RadioInfo ri = radioInfos.get(Math.min(item, radioInfos.size() - 1));
 					if (ri.getSignalStrength() < 0) {
-						return MessageFormat.format(
-								rb.getString("radio.tooltip"),
-								ri.getSignalStrength());
+						if (ri.isLte()) {
+							return MessageFormat.format(rb.getString("radio.tooltip.lte"),
+									ri.getLteRsrp(), ri.getLteRsrq());
+						} else {
+							return MessageFormat.format(rb.getString("radio.tooltip"),
+									ri.getSignalStrength());
+						}
 					} else {
 						return rb.getString("radio.noSignal");
 					}
@@ -1907,8 +1788,7 @@ public class GraphPanel extends JPanel implements ActionListener,
 
 	}
 
-	private static void populateThroughputPlot(XYPlot plot,
-			TraceData.Analysis analysis) {
+	private static void populateThroughputPlot(XYPlot plot, TraceData.Analysis analysis) {
 
 		XYSeries series = new XYSeries(0);
 		if (analysis != null) {
@@ -1921,47 +1801,43 @@ public class GraphPanel extends JPanel implements ActionListener,
 
 			Double zeroTime = null;
 			double lastTime = 0.0;
-			for (Throughput t : Throughput.calculateThroughput(0.0, maxTS, analysis.getProfile().getThroughputWindow(), packets)) {
+			for (Throughput t : Throughput.calculateThroughput(0.0, maxTS, analysis.getProfile()
+					.getThroughputWindow(), packets)) {
 
 				double time = t.getTime();
 				double kbps = t.getKbps();
 				if (kbps != 0.0) {
 					if (zeroTime != null && zeroTime.doubleValue() != lastTime) {
 						series.add(lastTime, 0.0);
-						tooltipList.add(MessageFormat.format(
-								THROUGHPUT_TOOLTIP, 0.0));
+						tooltipList.add(MessageFormat.format(THROUGHPUT_TOOLTIP, 0.0));
 					}
 					// Add slot to data set
 					series.add(time, kbps);
 
-					tooltipList.add(MessageFormat.format(
-							THROUGHPUT_TOOLTIP, kbps));
+					tooltipList.add(MessageFormat.format(THROUGHPUT_TOOLTIP, kbps));
 					zeroTime = null;
 				} else {
 					if (zeroTime == null) {
 						// Add slot to data set
 						series.add(time, kbps);
 
-						tooltipList.add(MessageFormat.format(
-								THROUGHPUT_TOOLTIP, kbps));
+						tooltipList.add(MessageFormat.format(THROUGHPUT_TOOLTIP, kbps));
 						zeroTime = Double.valueOf(time);
 					}
 				}
-				
+
 				lastTime = time;
 			}
-			plot.getRenderer().setBaseToolTipGenerator(
-					new XYToolTipGenerator() {
+			plot.getRenderer().setBaseToolTipGenerator(new XYToolTipGenerator() {
 
-						@Override
-						public String generateToolTip(XYDataset dataset,
-								int series, int item) {
+				@Override
+				public String generateToolTip(XYDataset dataset, int series, int item) {
 
-							// Tooltip displays throughput value
-							return tooltipList.get(item);
-						}
+					// Tooltip displays throughput value
+					return tooltipList.get(item);
+				}
 
-					});
+			});
 		}
 
 		plot.setDataset(new XYSeriesCollection(series));
@@ -1990,18 +1866,19 @@ public class GraphPanel extends JPanel implements ActionListener,
 		return throughputPlot;
 	}
 
-	private static void populateBurstPlot(XYPlot plot,
-			TraceData.Analysis analysis) {
+	private static void populateBurstPlot(XYPlot plot, TraceData.Analysis analysis) {
 
 		final XYIntervalSeriesCollection burstDataCollection = new XYIntervalSeriesCollection();
 		if (analysis != null) {
 
 			Map<BurstCategory, XYIntervalSeries> seriesMap = new EnumMap<BurstCategory, XYIntervalSeries>(
 					BurstCategory.class);
+			final Map<BurstCategory, List<Burst>> burstMap = new HashMap<BurstCategory, List<Burst>>();
 			for (BurstCategory eventType : BurstCategory.values()) {
 				XYIntervalSeries series = new XYIntervalSeries(eventType);
 				seriesMap.put(eventType, series);
 				burstDataCollection.addSeries(series);
+				burstMap.put(eventType, new ArrayList<Burst>());
 			}
 			final List<Burst> burstStates = analysis.getBurstInfos();
 			Iterator<Burst> iter = burstStates.iterator();
@@ -2011,62 +1888,60 @@ public class GraphPanel extends JPanel implements ActionListener,
 					BurstCategory burstState = currEvent.getBurstCategory();
 					if (burstState != null) {
 						seriesMap.get(burstState).add(currEvent.getBeginTime(),
-								currEvent.getBeginTime(),
-								currEvent.getEndTime(), 0.5, 0, 1);
+								currEvent.getBeginTime(), currEvent.getEndTime(), 0.5, 0, 1);
+						burstMap.get(burstState).add(currEvent);
 					}
 				}
-
 			}
 
 			Color myGreen = new Color(34, 177, 76);
+			Color lightGreen = new Color(134, 232, 162);
 
 			XYItemRenderer renderer = plot.getRenderer();
-			renderer.setSeriesPaint(burstDataCollection
-					.indexOf(BurstCategory.BURSTCAT_PROTOCOL), Color.blue);
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_PROTOCOL),
+					Color.blue);
 
-			renderer.setSeriesPaint(
-					burstDataCollection.indexOf(BurstCategory.BURSTCAT_LOSS),
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_LOSS),
 					Color.black);
 
-			renderer.setSeriesPaint(
-					burstDataCollection.indexOf(BurstCategory.BURSTCAT_USER),
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_USER),
 					myGreen);
 
 			renderer.setSeriesPaint(
-					burstDataCollection.indexOf(BurstCategory.BURSTCAT_CLIENT),
+					burstDataCollection.indexOf(BurstCategory.BURSTCAT_SCREEN_ROTATION), lightGreen);
+
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_CLIENT),
 					Color.red);
 
-			renderer.setSeriesPaint(
-					burstDataCollection.indexOf(BurstCategory.BURSTCAT_SERVER),
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_SERVER),
 					Color.yellow);
-			renderer.setSeriesPaint(
-					burstDataCollection.indexOf(BurstCategory.BURSTCAT_BKG),
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_BKG),
 					Color.lightGray);
 
-			renderer.setSeriesPaint(
-					burstDataCollection.indexOf(BurstCategory.BURSTCAT_LONG),
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_LONG),
 					Color.gray);
-			renderer.setSeriesPaint(burstDataCollection
-					.indexOf(BurstCategory.BURSTCAT_PERIODICAL), Color.magenta);
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_PERIODICAL),
+					Color.magenta);
 
-			renderer.setSeriesPaint(burstDataCollection
-					.indexOf(BurstCategory.BURSTCAT_USERDEF1), Color.magenta);
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_USERDEF1),
+					Color.magenta);
 
-			renderer.setSeriesPaint(burstDataCollection
-					.indexOf(BurstCategory.BURSTCAT_USERDEF2), Color.magenta);
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_USERDEF2),
+					Color.magenta);
 
-			renderer.setSeriesPaint(burstDataCollection
-					.indexOf(BurstCategory.BURSTCAT_USERDEF3), Color.magenta);
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_USERDEF3),
+					Color.magenta);
 
 			// Assign ToolTip to renderer
 			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
 				@Override
-				public String generateToolTip(XYDataset dataset, int series,
-						int item) {
-					BurstCategory eventType = (BurstCategory) burstDataCollection
-							.getSeries(series).getKey();
+				public String generateToolTip(XYDataset dataset, int series, int item) {
+					BurstCategory eventType = (BurstCategory) burstDataCollection.getSeries(series)
+							.getKey();
+					Burst b = burstMap.get(eventType).get(item);
 					final String PREFIX = "BurstCategory.";
-					return rb.getString(PREFIX + eventType.getResourceKey());
+					return MessageFormat.format(rb.getString(PREFIX + eventType.getResourceKey()),
+							b.getPackets().size(), b.getBurstBytes(), b.getBurstThroughPut());
 				}
 			});
 
@@ -2076,7 +1951,6 @@ public class GraphPanel extends JPanel implements ActionListener,
 	}
 
 	private static XYPlot createBurstPlot() {
-
 		// Create renderer
 		XYBarRenderer burstStateRenderer = new XYBarRenderer();
 		burstStateRenderer.setDrawBarOutline(false);
@@ -2090,8 +1964,7 @@ public class GraphPanel extends JPanel implements ActionListener,
 		burstStateRenderer.setBarPainter(painter);
 
 		// Create result plot
-		XYPlot burstPlot = new XYPlot(null, null, new NumberAxis(),
-				burstStateRenderer);
+		XYPlot burstPlot = new XYPlot(null, null, new NumberAxis(), burstStateRenderer);
 		burstPlot.getRangeAxis().setVisible(false);
 		return burstPlot;
 	}
@@ -2108,20 +1981,17 @@ public class GraphPanel extends JPanel implements ActionListener,
 				seriesMap.put(eventType, series);
 				rrcDataCollection.addSeries(series);
 			}
-			final List<RrcStateRange> rrcStates = analysis.getRrcStateMachine()
-					.getRRcStateRanges();
+			final List<RrcStateRange> rrcStates = analysis.getRrcStateMachine().getRRcStateRanges();
 			Iterator<RrcStateRange> iter = rrcStates.iterator();
 			while (iter.hasNext()) {
 				RrcStateRange currEvent = iter.next();
 				RRCState state = currEvent.getState();
 				if (state == RRCState.STATE_FACH || state == RRCState.TAIL_FACH) {
-					seriesMap.get(state).add(currEvent.getBeginTime(),
-							currEvent.getBeginTime(), currEvent.getEndTime(),
-							0.25, 0, 0.5);
+					seriesMap.get(state).add(currEvent.getBeginTime(), currEvent.getBeginTime(),
+							currEvent.getEndTime(), 0.25, 0, 0.5);
 				} else {
-					seriesMap.get(state).add(currEvent.getBeginTime(),
-							currEvent.getBeginTime(), currEvent.getEndTime(),
-							0.5, 0, 1);
+					seriesMap.get(state).add(currEvent.getBeginTime(), currEvent.getBeginTime(),
+							currEvent.getEndTime(), 0.5, 0, 1);
 				}
 
 			}
@@ -2129,58 +1999,40 @@ public class GraphPanel extends JPanel implements ActionListener,
 			Color dchGreen = new Color(34, 177, 76);
 			Color fachOrange = new Color(255, 201, 14);
 
-			renderer.setSeriesPaint(
-					rrcDataCollection.indexOf(RRCState.STATE_IDLE), Color.white);
-			renderer.setSeriesPaint(
-					rrcDataCollection.indexOf(RRCState.LTE_IDLE), Color.white);
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.STATE_IDLE), Color.white);
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.LTE_IDLE), Color.white);
 
-			renderer.setSeriesPaint(
-					rrcDataCollection.indexOf(RRCState.PROMO_IDLE_DCH),
-					Color.red);
-			renderer.setSeriesPaint(
-					rrcDataCollection.indexOf(RRCState.LTE_PROMOTION),
-					Color.red);
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.PROMO_IDLE_DCH), Color.red);
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.LTE_PROMOTION), Color.red);
 
-			renderer.setSeriesPaint(
-					rrcDataCollection.indexOf(RRCState.STATE_DCH), fachOrange);
-			renderer.setSeriesPaint(
-					rrcDataCollection.indexOf(RRCState.LTE_CONTINUOUS),
-					fachOrange);
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.STATE_DCH), fachOrange);
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.LTE_CONTINUOUS), fachOrange);
 
-			renderer.setSeriesPaint(
-					rrcDataCollection.indexOf(RRCState.TAIL_DCH),
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.TAIL_DCH),
 					getTailPaint(fachOrange));
-			renderer.setSeriesPaint(
-					rrcDataCollection.indexOf(RRCState.LTE_CR_TAIL),
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.LTE_CR_TAIL),
 					getTailPaint(fachOrange));
-			renderer.setSeriesPaint(
-					rrcDataCollection.indexOf(RRCState.LTE_DRX_SHORT),
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.LTE_DRX_SHORT),
 					getTailPaint(fachOrange));
-			renderer.setSeriesPaint(
-					rrcDataCollection.indexOf(RRCState.LTE_DRX_LONG),
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.LTE_DRX_LONG),
 					getTailPaint(fachOrange));
 
-			renderer.setSeriesPaint(
-					rrcDataCollection.indexOf(RRCState.STATE_FACH), dchGreen);
-			renderer.setSeriesPaint(
-					rrcDataCollection.indexOf(RRCState.TAIL_FACH),
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.STATE_FACH), dchGreen);
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.TAIL_FACH),
 					getTailPaint(dchGreen));
 
-			renderer.setSeriesPaint(
-					rrcDataCollection.indexOf(RRCState.PROMO_FACH_DCH),
-					Color.red);
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.PROMO_FACH_DCH), Color.red);
 
 			// Assign ToolTip to renderer
 			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
 				@Override
-				public String generateToolTip(XYDataset dataset, int series,
-						int item) {
-					RRCState eventType = (RRCState) rrcDataCollection
-							.getSeries(series).getKey();
+				public String generateToolTip(XYDataset dataset, int series, int item) {
+					RRCState eventType = (RRCState) rrcDataCollection.getSeries(series).getKey();
 					final String PREFIX = "RRCTooltip.";
-					if(eventType == RRCState.LTE_IDLE  ){
+					if (eventType == RRCState.LTE_IDLE) {
 						ProfileLTE profile = (ProfileLTE) analysis.getProfile();
-						return MessageFormat.format(rb.getString(PREFIX + eventType), profile.getIdlePingPeriod());
+						return MessageFormat.format(rb.getString(PREFIX + eventType),
+								profile.getIdlePingPeriod());
 					}
 					return rb.getString(PREFIX + eventType);
 				}
@@ -2212,8 +2064,7 @@ public class GraphPanel extends JPanel implements ActionListener,
 		rrcStateRenderer.setBarPainter(painter);
 
 		// Create result plot
-		XYPlot rrcStatesPlot = new XYPlot(null, null, new NumberAxis(),
-				rrcStateRenderer);
+		XYPlot rrcStatesPlot = new XYPlot(null, null, new NumberAxis(), rrcStateRenderer);
 		rrcStatesPlot.getRangeAxis().setVisible(false);
 
 		return rrcStatesPlot;
@@ -2226,8 +2077,7 @@ public class GraphPanel extends JPanel implements ActionListener,
 	 */
 	private static Paint getTailPaint(Color color) {
 
-		BufferedImage bufferedImage = new BufferedImage(5, 5,
-				BufferedImage.TYPE_INT_ARGB);
+		BufferedImage bufferedImage = new BufferedImage(5, 5, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g2 = bufferedImage.createGraphics();
 		g2.setColor(Color.white);
 		g2.fillRect(0, 0, 5, 5);

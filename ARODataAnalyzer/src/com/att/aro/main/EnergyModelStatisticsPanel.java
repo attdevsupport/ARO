@@ -210,7 +210,8 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 
 	/**
 	 * Updates the JPanel that contains the Energy Consumption statistics data.
-	 * 
+	 * @param TraceData.Analysis
+	 *            analysis data
 	 * @param NumberFormat
 	 *            The display format
 	 * @param String
@@ -255,11 +256,27 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 			bluetoothStandbyValueLabel.setText(null);
 			bluetoothTotalValueLabel.setText(null);
 			screenTotalValueLabel.setText(null);
-
 			energyContent.clear();
 		}
 	}
 
+	/**
+	 * Updates the JPanel that contains the Energy Consumption statistics data with values.
+	 */
+	protected void updatePeripheralStatisticsValues() {
+		energyContent.put(rb.getString("energy.gpsActive"), gpsActiveValueLabel.getText());
+		energyContent.put(rb.getString("energy.gpsStandby"), gpsStandbyValueLabel.getText());
+		energyContent.put(rb.getString("energy.gpsTotal"), gpsTotalValueLabel.getText());
+		energyContent.put(rb.getString("energy.cameraTotal"), cameraTotalValueLabel.getText());
+		energyContent.put(rb.getString("energy.wifiActive"), wifiActiveValueLabel.getText());
+		energyContent.put(rb.getString("energy.wifiStandby"), wifiStandbyValueLabel.getText());
+		energyContent.put(rb.getString("energy.wifiTotal"), wifiTotalValueLabel.getText());
+		energyContent.put(rb.getString("energy.bluetoothActive"), bluetoothActiveValueLabel.getText());
+		energyContent.put(rb.getString("energy.bluetoothStandby"), bluetoothStandbyValueLabel.getText());
+		energyContent.put(rb.getString("energy.bluetoothTotal"), bluetoothTotalValueLabel.getText());
+		energyContent.put(rb.getString("energy.screenTotal"), screenTotalValueLabel.getText());
+	}
+	
 	/**
 	 * Returns a Map containing key-value pairs of the energy consumption
 	 * statistics data.

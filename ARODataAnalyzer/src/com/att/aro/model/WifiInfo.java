@@ -12,44 +12,50 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 package com.att.aro.model;
 
 /**
- * Encapsulates WIFI info
+ * Encapsulates information about the WiFi peripheral.
  */
 public class WifiInfo implements Comparable<WifiInfo> {
 
 	/**
-	 * ENUM to maintain the wifi states.
+	 * The WifiInfo.WifiState Enumeration specifies constant values that
+	 * describe the operational state of the WiFi peripheral on a device. This
+	 * enumeration is part of the WifiInfo class.
 	 */
+	// GPS Time stamp
+	private double beginTimeStamp;
+	private double endTimeStamp;
+
 	public enum WifiState {
 		/**
-		 * Unknown state.
+		 * WiFi is in an unknown state.
 		 */
 		WIFI_UNKNOWN,
 		/**
-		 * WIFI disabled state.
+		 * WIFI is in the disabled state.
 		 */
 		WIFI_DISABLED,
 		/**
-		 * Device is connecting to a Wifi HotSpot.
+		 * The device is connecting to a Wifi HotSpot.
 		 */
 		WIFI_CONNECTING,
 		/**
-		 * Device is connected to a Wifi HotSpot.
+		 * The device is connected to a Wifi HotSpot.
 		 */
 		WIFI_CONNECTED,
 		/**
-		 * Device is disconnecting from a Wifi HotSpot.
+		 * The Device is disconnecting from a Wifi HotSpot.
 		 */
 		WIFI_DISCONNECTING,
 		/**
-		 * Device is disconnected from a Wifi HotSpot.
+		 * The Device is disconnected from a Wifi HotSpot.
 		 */
 		WIFI_DISCONNECTED,
 		/**
-		 * Wifi suspended on the device.
+		 * Wifi is suspended on the device.
 		 */
 		WIFI_SUSPENDED
 	}
@@ -66,14 +72,31 @@ public class WifiInfo implements Comparable<WifiInfo> {
 	private String wifiSSID;
 
 	/**
-	 * Constructor
+	 * Initializes an instance of the WifiInfo class using the specified
+	 * timestamp, WiFi state, Mac address, rssi, and ssid.
 	 * 
-	 * @param dTimestamp
+	 * @param beginTimeStamp
+	 *            The start timestamp for the wifi event.
+	 * @param endTimeStamp
+	 *            The end timestamp for the wifi event.
+	 * 
 	 * @param wifiState
+	 *            – One of the values of the WiFiState enumeration that
+	 *            indicates the state of the WiFi connection.
+	 * 
+	 * @param macAddress
+	 *            – The WiFi Mac address.
+	 * 
+	 * @param rssi
+	 *            – The RSSI value.
+	 * 
+	 * @param ssid
+	 *            – The SSID value.
 	 */
-	public WifiInfo(double dTimestamp, WifiState wifiState, String macAddress, String rssi,
-			String ssid) {
-		this.wifiTimeStamp = dTimestamp;
+	public WifiInfo(double beginTimeStamp, double endTimeStamp,
+			WifiState wifiState, String macAddress, String rssi, String ssid) {
+		this.beginTimeStamp = beginTimeStamp;
+		this.endTimeStamp = endTimeStamp;
 		this.wifiState = wifiState;
 		this.wifiMacAddress = macAddress;
 		this.wifiRSSI = rssi;
@@ -81,6 +104,9 @@ public class WifiInfo implements Comparable<WifiInfo> {
 	}
 
 	/**
+	 * Compares the specified WifiInfo object to this one and returns an int
+	 * that indicates the result.
+	 * 
 	 * @see java.lang.Comparable#compareTo(java.lang.Object)
 	 */
 	@Override
@@ -89,45 +115,55 @@ public class WifiInfo implements Comparable<WifiInfo> {
 	}
 
 	/**
-	 * Returns WiFi timestamp.
+	 * Returns the start timestamp for the wifi state.
 	 * 
-	 * @return wifiTimeStamp.
+	 * @return The start timestamp.
 	 */
-	public double getWifiTimeStamp() {
-		return wifiTimeStamp;
+	public double getBeginTimeStamp() {
+		return beginTimeStamp;
 	}
 
 	/**
-	 * Returns WiFi state.
+	 * Returns the end timestamp for the wifi state.
 	 * 
-	 * @return wifiState.
+	 * @return The end timestamp.
+	 */
+	public double getEndTimeStamp() {
+		return endTimeStamp;
+	}
+
+	/**
+	 * Returns the WiFi state.
+	 * 
+	 * @return One of the values of the WiFiState enumeration that indicates the
+	 *         state of the WiFi connection.
 	 */
 	public WifiState getWifiState() {
 		return wifiState;
 	}
 
 	/**
-	 * Returns WiFi MacAddress.
+	 * Returns the WiFi MacAddress.
 	 * 
-	 * @return wifiMacAddress.
+	 * @return The WiFi Mac address.
 	 */
 	public String getWifiMacAddress() {
 		return wifiMacAddress;
 	}
 
 	/**
-	 * Returns WiFi RSSI value.
+	 * Returns the WiFi RSSI value.
 	 * 
-	 * @return wifiRSSI.
+	 * @return The RSSI value.
 	 */
 	public String getWifiRSSI() {
 		return wifiRSSI;
 	}
 
 	/**
-	 * Returns WiFi SSID value.
+	 * Returns the WiFi SSID value.
 	 * 
-	 * @return wifiSSID.
+	 * @return The WiFi SSID.
 	 */
 	public String getWifiSSID() {
 		return wifiSSID;

@@ -20,7 +20,6 @@ package com.att.aro.main;
 import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
-import java.util.logging.Logger;
 
 /**
  * Opens an instance of the web browser from inside the ARO application.

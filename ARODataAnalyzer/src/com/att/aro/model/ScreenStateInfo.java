@@ -16,30 +16,33 @@
 package com.att.aro.model;
 
 /**
- * Encapsulates Screen State info
+ * Encapsulates information about the Screen State of the device.
  */
 public class ScreenStateInfo {
 
 	/**
-	 * ENUM to maintain the screen states.
+	 * The ScreenStateInfo.ScreenState Enumeration specifies constant values that describe 
+	 * the operational state of the device screen. This enumeration is part of the 
+	 * ScreenStateInfo class. 
 	 */
 	public enum ScreenState {
 		/**
-		 * Screen on state.
+		 * The Screen is in the on state. 
 		 */
 		SCREEN_ON,
 		/**
-		 * Screen off state.
+		 * The Screen is in the off state. 
 		 */
 		SCREEN_OFF,
 		/**
-		 * Unknown state.
+		 * The Screen state is unknown.
 		 */
 		SCREEN_UNKNOWN
 	}
 
 	// Screen Time stamp
-	private double screenTimeStamp;
+	private double beginTimeStamp;
+	private double endTimeStamp;
 
 	// Current Screen State
 	private ScreenState screenState;
@@ -51,50 +54,68 @@ public class ScreenStateInfo {
 	private int screenTimeout;
 
 	/**
-	 * Constructor
+	 * Initializes an instance of the ScreenStateInfo class, using the specified timestamp, 
+	 * ScreenState value, screen brightness, and timeout value.
 	 * 
-	 * @param dTimestamp
-	 * @param screenState
+	 * @param dTimestamp – The timestamp at which the screen state information was captured.
+	 * 
+	 * @param screenState –A ScreenState enumeration value that indicates whether the screen is On, 
+	 * Off, or in an unknown state.
+	 * 
+	 * @param screenBrightness –A string that describes the screen brightness.
+	 * 
+	 * @param screenTimeout –The screen timeout value.
 	 */
-	public ScreenStateInfo(double dTimestamp, ScreenState screenState, String screenBrightness,
+	public ScreenStateInfo(double beginTimeStamp , double endTimeStamp, ScreenState screenState, String screenBrightness,
 			int screenTimeout) {
-		this.screenTimeStamp = dTimestamp;
+		this.beginTimeStamp = beginTimeStamp;
+		this.endTimeStamp = endTimeStamp;
 		this.screenState = screenState;
 		this.screenBrightness = screenBrightness;
 		this.screenTimeout = screenTimeout;
 	}
 
 	/**
-	 * Returns screen timestamp.
+	 * Returns the start timestamp for the GPS state. 
 	 * 
-	 * @return screen timestamp.
+	 * @return A double that is the GPS timestamp.
 	 */
-	public double getScreenTimeStamp() {
-		return screenTimeStamp;
+	public double getBeginTimeStamp() {
+		return beginTimeStamp;
+	}
+	
+	 /** Returns the end timestamp for the GPS state.  
+	 * 
+	 * @return A double that is the GPS timestamp.
+	 */
+	public double getEndTimeStamp() {
+		return endTimeStamp;
 	}
 
+
 	/**
-	 * Returns screen state.
+	 * Returns the screen state. 
 	 * 
-	 * @return screen state.
+	 * @return A ScreenState enumeration value that indicates whether the screen is On, Off, or in 
+	 * an unknown state.
 	 */
 	public ScreenState getScreenState() {
 		return screenState;
 	}
 
 	/**
-	 * Returns screen brightness.
+	 * Returns the screen brightness. 
 	 * 
-	 * @return screen brightness.
+	 * @return The screen brightness expressed as a string.
 	 */
 	public String getScreenBrightness() {
 		return screenBrightness;
 	}
 
 	/**
-	 * Returns screen timeout.
+	 * Returns the screen timeout. 
 	 * 
-	 * @return screen timeout.
+	 * @return The screen timeout value.
 	 */
 	public int getScreenTimeout() {
 		return screenTimeout;

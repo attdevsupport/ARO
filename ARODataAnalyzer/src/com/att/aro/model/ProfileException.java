@@ -15,18 +15,20 @@
 */
 package com.att.aro.model;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.ResourceBundle;
+
+import com.att.aro.main.ResourceBundleManager;
 
 /**
- * Customized Exception to handle profile exception. 
+ * A customized Exception that should be raised when an exception occurs while handling 
+ * device profile information. 
  */
 public class ProfileException extends Exception {
 	private static final long serialVersionUID = 1L;
 
-	private Map<String, String> errorLog;
-
+	private static ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
+	
 	/**
 	 * 
 	 * @param errorLog
@@ -44,20 +46,20 @@ public class ProfileException extends Exception {
 	}
 
 	/**
-	 * Constructor
+	 * Default constructor for invalid profile
+	 */
+	public ProfileException() {
+		super(rb.getString("Exception.ProfileException"));
+	}
+	
+	/**
+	 * Initializes an instance of the ProfileException class using the specified error log.
 	 * 
-	 * @param errorLog
+	 * @param errorLog – A Map of Profile.Attribute objects and strings that form an error 
+	 * log of device profile attribute information.
 	 */
 	public ProfileException(Map<String, String> errorLog) {
 		super(createMessage(errorLog));
-		this.errorLog = new HashMap<String, String>(errorLog);
-	}
-
-	/**
-	 * @return the errorLog
-	 */
-	public Map<String, String> getErrorLog() {
-		return Collections.unmodifiableMap(errorLog);
 	}
 
 }// end ProfileException Class

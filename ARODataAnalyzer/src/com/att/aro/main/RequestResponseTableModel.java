@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
+import java.text.DecimalFormat;
 import java.util.ResourceBundle;
 
 import javax.swing.table.TableColumn;
@@ -69,7 +69,7 @@ public class RequestResponseTableModel extends DataTableModel<HttpRequestRespons
 	public TableColumnModel createDefaultTableColumnModel() {
 		TableColumnModel cols = super.createDefaultTableColumnModel();
 		TableColumn col = cols.getColumn(TIME_COL);
-		col.setCellRenderer(new NumberFormatRenderer());
+		col.setCellRenderer(new NumberFormatRenderer(new DecimalFormat("0.000")));
 		return cols;
 	}
 

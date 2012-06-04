@@ -126,4 +126,21 @@ public class MessageDialogFactory extends JOptionPane {
 				rb.getString("confirm.title"), optionType,
 				JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
 	}
+	
+	/**
+	 * Displays a confirmation dialog using the default title. The confirmation
+	 * dialog is associated with the specified parent window, contains the
+	 * specified message, and uses the specified optionType.
+	 * 
+	 * @param parentComponent
+	 *            The parent window to associate with this dialog.
+	 */
+	public static int showExportConfirmDialog(Component parentComponent) {
+		Object[] options = { rb.getString("Button.ok"), rb.getString("Button.open") };
+		return JOptionPane.showOptionDialog(parentComponent, rb.getString("table.export.success"),
+				rb.getString("confirm.title"), JOptionPane.YES_NO_OPTION,
+				JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+	}
+	
+	
 }

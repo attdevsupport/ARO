@@ -27,10 +27,8 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.ResourceBundle;
 
 import org.jfree.chart.axis.AxisLocation;
@@ -53,7 +51,7 @@ import org.jfree.data.xy.YIntervalSeries;
 import org.jfree.data.xy.YIntervalSeriesCollection;
 import org.jfree.ui.RectangleEdge;
 
-import com.att.aro.model.ApplicationSelection;
+import com.att.aro.model.AnalysisFilter;
 import com.att.aro.model.HttpRequestResponseInfo;
 import com.att.aro.model.PacketInfo;
 import com.att.aro.model.TCPSession;
@@ -167,8 +165,18 @@ public class PacketPlots {
 	private class PacketSeries extends YIntervalSeries {
 		private static final long serialVersionUID = 1L;
 
-		public PacketSeries(String appName) {
-			super(appName != null ? appName : "", false, true);
+		private Color color;
+		
+		public PacketSeries(Color color) {
+			super(color.getRGB(), false, true);
+			this.color = color;
+		}
+
+		/**
+		 * @return the color
+		 */
+		public Color getColor() {
+			return color;
 		}
 
 		public void add(PacketDataItem item) {
@@ -222,14 +230,14 @@ public class PacketPlots {
 	 */
 	public void populatePacketPlots(TraceData.Analysis analysis) {
 
-		LinkedHashMap<String, PacketSeries> ulDatasets = new LinkedHashMap<String, PacketSeries>();
-		LinkedHashMap<String, PacketSeries> dlDatasets = new LinkedHashMap<String, PacketSeries>();
+		LinkedHashMap<Color, PacketSeries> ulDatasets = new LinkedHashMap<Color, PacketSeries>();
+		LinkedHashMap<Color, PacketSeries> dlDatasets = new LinkedHashMap<Color, PacketSeries>();
 
-		Map<String, ApplicationSelection> appSel = Collections.emptyMap();
+		AnalysisFilter filter = null;
 		if (analysis != null) {
-			appSel = analysis.getApplicationSelections();
+			filter = analysis.getFilter();
 
-			LinkedHashMap<String, PacketSeries> datasets;
+			LinkedHashMap<Color, PacketSeries> datasets;
 			for (PacketInfo packet : analysis.getPackets()) {
 				if (packet.getDir() == null) {
 					continue;
@@ -245,20 +253,20 @@ public class PacketPlots {
 					continue;
 				}
 
-				// Add the packet to the proper series based on app name
-				String appName = packet.getAppName();
-				PacketSeries series = datasets.get(appName);
+				// Add the packet to the proper series based on color
+				Color color = filter.getPacketColor(packet);
+				PacketSeries series = datasets.get(color);
 				if (series == null) {
-					series = new PacketSeries(appName);
-					datasets.put(appName, series);
+					series = new PacketSeries(color);
+					datasets.put(color, series);
 				}
 				series.add(new PacketDataItem(packet));
 
 			}
 		}
 
-		populatePacketPlot(dlPlot, appSel, dlDatasets);
-		populatePacketPlot(ulPlot, appSel, ulDatasets);
+		populatePacketPlot(dlPlot, dlDatasets);
+		populatePacketPlot(ulPlot, ulDatasets);
 	}
 
 	/**
@@ -287,14 +295,13 @@ public class PacketPlots {
 	 * 
 	 * @param plot
 	 *            The XYPlot for the uplink/downlink plots.
-	 * @param appSel
-	 *            The selected apps.
+	 * @param filter
+	 *            The filter settings for the analysis
 	 * @param dataset
 	 *            The uplink/downlink datasets.
 	 */
 	private void populatePacketPlot(XYPlot plot,
-			Map<String, ApplicationSelection> appSel,
-			LinkedHashMap<String, PacketSeries> dataset) {
+			LinkedHashMap<Color, PacketSeries> dataset) {
 
 		// Create the XY data set
 		YIntervalSeriesCollection coll = new YIntervalSeriesCollection();
@@ -302,11 +309,7 @@ public class PacketPlots {
 		for (PacketSeries series : dataset.values()) {
 			coll.addSeries(series);
 
-			Comparable<?> key = series.getKey();
-			ApplicationSelection sel = appSel.get(key);
-			if (sel != null) {
-				renderer.setSeriesPaint(coll.indexOf(key), sel.getColor());
-			}
+			renderer.setSeriesPaint(coll.indexOf(series.getKey()), series.getColor());
 		}
 
 		// Create tooltip generator
@@ -322,6 +325,8 @@ public class PacketPlots {
 
 		// Create the plot renderer
 		YIntervalRenderer renderer = new YIntervalRenderer() {
+			private static final long serialVersionUID = 1L;
+
 			public void drawItem(Graphics2D g2, XYItemRendererState state,
 					Rectangle2D dataArea, PlotRenderingInfo info, XYPlot plot,
 					ValueAxis domainAxis, ValueAxis rangeAxis,

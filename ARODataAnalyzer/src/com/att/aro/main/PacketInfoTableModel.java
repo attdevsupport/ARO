@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
+import java.text.DecimalFormat;
 import java.util.ResourceBundle;
 
 import javax.swing.table.TableColumn;
@@ -32,8 +32,7 @@ import com.att.aro.model.PacketInfo;
 public class PacketInfoTableModel extends DataTableModel<PacketInfo> {
 	private static final long serialVersionUID = 1L;
 
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 	private static final String[] columns = { rb.getString("packet.id"),
 			rb.getString("packet.time"), rb.getString("packet.direction"),
 			rb.getString("packet.type"), rb.getString("packet.length"),
@@ -69,7 +68,7 @@ public class PacketInfoTableModel extends DataTableModel<PacketInfo> {
 	public TableColumnModel createDefaultTableColumnModel() {
 		TableColumnModel cols = super.createDefaultTableColumnModel();
 		TableColumn col = cols.getColumn(TIME_COL);
-		col.setCellRenderer(new NumberFormatRenderer());
+		col.setCellRenderer(new NumberFormatRenderer(new DecimalFormat("0.000")));
 		return cols;
 	}
 

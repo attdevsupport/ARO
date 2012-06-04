@@ -12,11 +12,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 package com.att.aro.model;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Serializable;
@@ -25,6 +27,7 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -53,8 +56,8 @@ import com.att.aro.pcap.Packet;
 import com.att.aro.pcap.PacketListener;
 
 /**
- * To read the trace data from trace folder.Parse the date and convert it in to
- * the list of bean objects.
+ * Encapsulates the trace data. Contains methods that parse the files in the
+ * trace folder, and convert it to Lists of Data Analyzer bean objects.
  */
 public class TraceData implements Serializable {
 
@@ -71,15 +74,28 @@ public class TraceData implements Serializable {
 	public class Analysis implements Serializable {
 		private static final long serialVersionUID = 1L;
 
+		private class PacketCounter {
+			private int packetCount;
+			private long totalBytes;
+			
+			public synchronized void add(PacketInfo p) {
+				totalBytes += p.getLen();
+				++packetCount;
+			}
+		}
+		
 		// Configuration/profile/filter
 		private Profile profile;
-		private Map<String, ApplicationSelection> applicationSelections;
-
+		private AnalysisFilter filter;
+		
 		// List of packets included in analysis (application filtered)
 		private List<PacketInfo> packets;
 		private Map<Integer, Integer> packetSizeToCountMap = new HashMap<Integer, Integer>();
 
 		// Analysis results
+		private Set<String> appNames = new HashSet<String>();
+		private Collection<ApplicationPacketSummary> applicationPacketSummary = new ArrayList<ApplicationPacketSummary>();
+		private Collection<IPPacketSummary> ipPacketSummary = new ArrayList<IPPacketSummary>();
 		private long totalBytes = 0;
 		private double packetsDuration = 0.0;
 		private double avgKbps = 0.0;
@@ -92,18 +108,121 @@ public class TraceData implements Serializable {
 		// List of Burst Collection Info
 		private BurstCollectionAnalysis bcAnalysis;
 
+		// CPU activity info
+		private List<CpuActivity> cpuActivityList = new ArrayList<CpuActivity>();
+
+		// Gps Info
+		private List<GpsInfo> gpsInfos = new ArrayList<GpsInfo>();
+
+		// Bluetooth Info
+		private List<BluetoothInfo> bluetoothInfos = new ArrayList<BluetoothInfo>();
+
+		// Wifi Info
+		private List<WifiInfo> wifiInfos = new ArrayList<WifiInfo>();
+
+		// Battery Info
+		private List<BatteryInfo> batteryInfos = new ArrayList<BatteryInfo>();
+
+		// Radio Info
+		private List<RadioInfo> radioInfos = new ArrayList<RadioInfo>();
+
+		// Camera Info
+		private List<CameraInfo> cameraInfos = new ArrayList<CameraInfo>();
+
+		// Screen State Info
+		private List<ScreenStateInfo> screenStateInfos = new ArrayList<ScreenStateInfo>();
+
+		// List of User Event Info
+		private List<UserEvent> userEvents = new ArrayList<UserEvent>();
+		private double gpsActiveDuration;
+		private double wifiActiveDuration;
+		private double bluetoothActiveDuration;
+		private double cameraActiveDuration;
+
 		/**
 		 * Constructor
 		 * 
 		 * @param profile
-		 * @param applicationSelections
+		 *            The profile to be applied.
+		 * @param selections
+		 *            The applications/IP address selections.
+		 * @param selectionType
+		 *            The selection type i.e. Application or IP address.
 		 */
-		private Analysis(Profile profile,
-				Collection<ApplicationSelection> applicationSelections)
-				throws IOException {
+		private Analysis(Profile profile, AnalysisFilter filter) throws IOException {
+
 			this.profile = profile != null ? profile : new Profile3G();
 
-			runAnalysis(applicationSelections);
+			TimeRange timeRange = filter != null ? filter.getTimeRange() : null;
+			if (timeRange != null) {
+				double beginTime = timeRange.getBeginTime();
+				double endTime = timeRange.getEndTime();
+				this.cpuActivityList = getCpuInfosForTheTimeRange(
+						TraceData.this.cpuActivityList, beginTime, endTime);
+				this.gpsInfos = getGpsInfosForTheTimeRange(TraceData.this.gpsInfos,
+						beginTime, endTime);
+				this.bluetoothInfos = getBluetoothInfosForTheTimeRange(
+						TraceData.this.bluetoothInfos, beginTime, endTime);
+				this.wifiInfos = getWifiInfosForTheTimeRange(
+						TraceData.this.wifiInfos, beginTime, endTime);
+				this.batteryInfos = getBatteryInfosForTheTimeRange(
+						TraceData.this.batteryInfos, beginTime, endTime);
+				this.radioInfos = getRadioInfosForTheTimeRange(
+						TraceData.this.radioInfos, beginTime, endTime);
+				this.cameraInfos = getCameraInfosForTheTimeRange(
+						TraceData.this.cameraInfos, beginTime, endTime);
+				this.screenStateInfos = getScreenInfosForTheTimeRange(
+						TraceData.this.screenStateInfos, beginTime, endTime);
+				this.userEvents = getUserEventsForTheTimeRange(
+						TraceData.this.userEvents, beginTime, endTime);
+				
+			} else {
+				this.cpuActivityList = TraceData.this.cpuActivityList;
+				this.gpsInfos = TraceData.this.gpsInfos;
+				this.bluetoothInfos = TraceData.this.bluetoothInfos;
+				this.wifiInfos = TraceData.this.wifiInfos;
+				this.batteryInfos = TraceData.this.batteryInfos;
+				this.radioInfos = TraceData.this.radioInfos;
+				this.cameraInfos = TraceData.this.cameraInfos;
+				this.screenStateInfos = TraceData.this.screenStateInfos;
+				this.userEvents = TraceData.this.userEvents;
+				this.bluetoothActiveDuration = TraceData.this.bluetoothActiveDuration;
+				this.gpsActiveDuration = TraceData.this.gpsActiveDuration;
+				this.cameraActiveDuration = TraceData.this.cameraActiveDuration;
+				this.wifiActiveDuration = TraceData.this.wifiActiveDuration;
+			}
+
+			if (filter != null) {
+
+				// Filter packets based upon selected app names
+				packets = new ArrayList<PacketInfo>();
+				for (PacketInfo packet : TraceData.this.allPackets) {
+					
+					// Check time range
+					double timestamp = packet.getTimeStamp();
+					if (timeRange != null && (timeRange.getBeginTime() > timestamp || timeRange.getEndTime() < timestamp)) {
+
+						// Not in time range
+						continue;
+					}
+					
+					// Check to see if application is selected
+					if (filter.getPacketColor(packet) == null) {
+						
+						// App unknown by filter
+						continue;
+					}
+
+					packets.add(packet);
+				}
+			} else {
+
+				// No filter. Use all packets
+				packets = TraceData.this.allPackets;
+			}
+
+			this.filter = filter != null ? new AnalysisFilter(filter) : new AnalysisFilter(TraceData.this);
+			runAnalysis();
 		}
 
 		/**
@@ -177,6 +296,88 @@ public class TraceData implements Serializable {
 		}
 
 		/**
+		 * Returns the GPS information.
+		 * 
+		 * @return A List of GPSInfo objects containing the information.
+		 */
+		public List<GpsInfo> getGpsInfos() {
+			return Collections.unmodifiableList(gpsInfos);
+		}
+
+		/**
+		 * Returns the Bluetooth information.
+		 * 
+		 * @return A List of BluetoothInfo objects containing the information.
+		 */
+		public List<BluetoothInfo> getBluetoothInfos() {
+			return Collections.unmodifiableList(bluetoothInfos);
+		}
+
+		/**
+		 * Returns the WiFi information.
+		 * 
+		 * @return A List of WiFiInfo objects containing the information.
+		 */
+		public List<WifiInfo> getWifiInfos() {
+			return Collections.unmodifiableList(wifiInfos);
+		}
+
+		/**
+		 * Returns the camera information.
+		 * 
+		 * @return A List of CameraInfo objects containing the information.
+		 */
+		public List<CameraInfo> getCameraInfos() {
+			return Collections.unmodifiableList(cameraInfos);
+		}
+
+		/**
+		 * Returns the screen state information.
+		 * 
+		 * @return A List of ScreenStateInfo objects containing the information.
+		 */
+		public List<ScreenStateInfo> getScreenStateInfos() {
+			return Collections.unmodifiableList(screenStateInfos);
+		}
+
+		/**
+		 * Returns the battery information.
+		 * 
+		 * @return A List of BatteryInfo objects containing the information.
+		 */
+		public List<BatteryInfo> getBatteryInfos() {
+			return Collections.unmodifiableList(batteryInfos);
+		}
+
+		/**
+		 * Returns the user events that occurred during the trace.
+		 * 
+		 * @return A List of UserEvent objects containing the user generated
+		 *         events.
+		 */
+		public List<UserEvent> getUserEvents() {
+			return Collections.unmodifiableList(userEvents);
+		}
+
+		/**
+		 * Returns the radio information.
+		 * 
+		 * @return A List of RadioInfo objects containing the information.
+		 */
+		public List<RadioInfo> getRadioInfos() {
+			return Collections.unmodifiableList(radioInfos);
+		}
+
+		/**
+		 * Returns the cpu activity information.
+		 * 
+		 * @return A List of CpuActivity objects containing the information.
+		 */
+		public List<CpuActivity> getCpuActivityList() {
+			return Collections.unmodifiableList(cpuActivityList);
+		}
+
+		/**
 		 * Returns the trace for which this analysis was run The trace data
 		 * object.
 		 */
@@ -195,7 +396,7 @@ public class TraceData implements Serializable {
 		}
 
 		/**
-		 * Returns the profifile associated with the trace data.
+		 * Returns the profile associated with the trace data.
 		 * 
 		 * @return The profile
 		 */
@@ -203,6 +404,16 @@ public class TraceData implements Serializable {
 			return profile;
 		}
 
+		/**
+		 * Returns the filter settings used for this analysis
+		 * @return
+		 */
+		public AnalysisFilter getFilter() {
+			
+			// Returns a copy to prevent changes
+			return new AnalysisFilter(filter);
+		}
+		
 		/**
 		 * Returns the list of packets associated with the trace data.
 		 * 
@@ -217,6 +428,20 @@ public class TraceData implements Serializable {
 		 */
 		public Map<Integer, Integer> getPacketSizeToCountMap() {
 			return Collections.unmodifiableMap(packetSizeToCountMap);
+		}
+
+		/**
+		 * @return the applicationPacketSummary
+		 */
+		public Collection<ApplicationPacketSummary> getApplicationPacketSummary() {
+			return Collections.unmodifiableCollection(applicationPacketSummary);
+		}
+
+		/**
+		 * @return the ipPacketSummary
+		 */
+		public Collection<IPPacketSummary> getIpPacketSummary() {
+			return Collections.unmodifiableCollection(ipPacketSummary);
 		}
 
 		/**
@@ -271,21 +496,12 @@ public class TraceData implements Serializable {
 		}
 
 		/**
-		 * Returns the application selections used in this analysis
-		 * 
-		 * @return A copy is returned to prevent inadvertant modification
+		 * Returns the names of the apps that contributed to network traffic
+		 * in the analysis
+		 * @return the app names
 		 */
-		public Map<String, ApplicationSelection> getApplicationSelections() {
-
-			// Return a copy
-			Map<String, ApplicationSelection> result = new HashMap<String, ApplicationSelection>(
-					applicationSelections.size());
-			for (Map.Entry<String, ApplicationSelection> entry : applicationSelections
-					.entrySet()) {
-				result.put(entry.getKey(),
-						new ApplicationSelection(entry.getValue()));
-			}
-			return result;
+		public Set<String> getAppNames() {
+			return Collections.unmodifiableSet(appNames);
 		}
 
 		/**
@@ -316,59 +532,30 @@ public class TraceData implements Serializable {
 		}
 
 		/**
-		 * Runs the analysis on the trace data using the current configuration
+		 * Runs the basic analysis on the trace data using the current
+		 * configuration after the applications/ip addresses selections are
+		 * made.
 		 * 
-		 * @param appSel
-		 *            Selected applications to be included in analysis
 		 * @throws IOException
 		 */
-		private synchronized void runAnalysis(
-				Collection<ApplicationSelection> appSel) throws IOException {
-
-			// Set up application filtering
-			Map<String, ApplicationSelection> applicationSelections = new HashMap<String, ApplicationSelection>();
-			Set<String> appNames = null;
-			if (appSel != null) {
-
-				// Build application selection map from input arg
-				appNames = new HashSet<String>(appSel.size());
-				for (ApplicationSelection as : appSel) {
-					String appName = as.getAppName();
-					if (TraceData.this.allAppNames.contains(appName)) {
-						applicationSelections.put(appName, as);
-						if (as.isSelected()) {
-							appNames.add(appName);
-						}
-					}
-				}
-
-				// Filter packets based upon selected app names
-				packets = new ArrayList<PacketInfo>();
-				for (PacketInfo packet : TraceData.this.allPackets) {
-					if (appNames.contains(packet.getAppName())) {
-						packets.add(packet);
-					}
-				}
-			} else {
-
-				// No filter. Use all packets
-				packets = TraceData.this.allPackets;
-			}
-
-			// Make sure all app names are represented
-			for (String app : allAppNames) {
-				if (!applicationSelections.containsKey(app)) {
-					applicationSelections.put(app,
-							new ApplicationSelection(app));
-				}
-			}
-			this.applicationSelections = applicationSelections;
+		private synchronized void runAnalysis() throws IOException {
 
 			// Collect basic statistics
 			if (packets.size() > 0) {
 				PacketInfo lastPacket = packets.get(packets.size() - 1);
+				Map<String, PacketCounter> appPackets = new HashMap<String, PacketCounter>();
+				Map<InetAddress, PacketCounter> ipPackets = new HashMap<InetAddress, PacketCounter>();
 				for (PacketInfo packet : packets) {
 					totalBytes += packet.getLen();
+					
+					String appName = packet.getAppName();
+					appNames.add(appName);
+					PacketCounter pc = appPackets.get(appName);
+					if (pc == null) {
+						pc = new PacketCounter();
+						appPackets.put(appName, pc);
+					}
+					pc.add(packet);
 
 					if (packet.getPacket() instanceof IPPacket) {
 
@@ -382,13 +569,27 @@ public class TraceData implements Serializable {
 							iValue++;
 						}
 						packetSizeToCountMap.put(packetSize, iValue);
-					}
 
+						// Get IP address summary
+						InetAddress ip = packet.getRemoteIPAddress();
+						pc = ipPackets.get(ip);
+						if (pc == null) {
+							pc = new PacketCounter();
+							ipPackets.put(ip, pc);
+						}
+						pc.add(packet);
+					}
+				}
+				for (Map.Entry<InetAddress, PacketCounter> m : ipPackets.entrySet()) {
+					ipPacketSummary.add(new IPPacketSummary(m.getKey(), m.getValue().packetCount, m.getValue().totalBytes));
+				}
+				for (Map.Entry<String, PacketCounter> m : appPackets.entrySet()) {
+					applicationPacketSummary.add(new ApplicationPacketSummary(m.getKey(), m.getValue().packetCount, m.getValue().totalBytes));
 				}
 
 				packetsDuration = lastPacket.getTimeStamp()
 						- packets.get(0).getTimeStamp();
-				avgKbps = totalBytes * 8.0 / 1000.0 / packetsDuration;
+				avgKbps = packetsDuration != 0 ? totalBytes * 8.0 / 1000.0 / packetsDuration : 0.0;
 				if (logger.isLoggable(Level.FINE)) {
 					logger.fine("===== Basic Statistics =====");
 					logger.fine("Size = : " + getTotalBytes());
@@ -398,7 +599,6 @@ public class TraceData implements Serializable {
 					logger.fine("");
 				}
 			}
-
 			// Analyze packets for TCP sessions
 			this.tcpSessions = TCPSession.extractTCPSessions(packets);
 
@@ -418,8 +618,391 @@ public class TraceData implements Serializable {
 			this.bestPractice = new BestPractices(this);
 		}
 
+		/**
+		 * Returns the list of user events filtered based on the time range.
+		 */
+
+		private List<UserEvent> getUserEventsForTheTimeRange(
+				List<UserEvent> userEvents, double beginTime, double endTime) {
+			List<UserEvent> filteredUserEvents = new ArrayList<UserEvent>();
+			for (UserEvent userEvent : userEvents) {
+				if (userEvent.getPressTime() >= beginTime
+						&& userEvent.getReleaseTime() <= endTime) {
+
+					filteredUserEvents.add(userEvent);
+				}
+			}
+			return filteredUserEvents;
+		}
+
+		/**
+		 * Returns the list of screen events filtered based on the time range.
+		 */
+
+		private List<ScreenStateInfo> getScreenInfosForTheTimeRange(
+				List<ScreenStateInfo> screenStateInfos, double beginTime,
+				double endTime) {
+
+			List<ScreenStateInfo> filteredScreenStateInfos = new ArrayList<ScreenStateInfo>();
+			for (ScreenStateInfo screenStateInfo : screenStateInfos) {
+
+				if (screenStateInfo.getBeginTimeStamp() >= beginTime
+						&& screenStateInfo.getEndTimeStamp() <= endTime) {
+					filteredScreenStateInfos.add(screenStateInfo);
+				} else if (screenStateInfo.getBeginTimeStamp() <= beginTime
+						&& screenStateInfo.getEndTimeStamp() <= endTime && screenStateInfo.getEndTimeStamp() > beginTime) {
+					filteredScreenStateInfos.add(new ScreenStateInfo(beginTime,
+							screenStateInfo.getEndTimeStamp(), screenStateInfo
+									.getScreenState(), screenStateInfo
+									.getScreenBrightness(), screenStateInfo
+									.getScreenTimeout()));
+				} else if (screenStateInfo.getBeginTimeStamp() <= beginTime
+						&& screenStateInfo.getEndTimeStamp() >= endTime) {
+					filteredScreenStateInfos.add(new ScreenStateInfo(beginTime,
+							endTime, screenStateInfo.getScreenState(),
+							screenStateInfo.getScreenBrightness(),
+							screenStateInfo.getScreenTimeout()));
+				} else if (screenStateInfo.getBeginTimeStamp() >= beginTime && screenStateInfo.getBeginTimeStamp() < endTime
+						&& screenStateInfo.getEndTimeStamp() >= endTime) {
+					filteredScreenStateInfos.add(new ScreenStateInfo(
+							screenStateInfo.getBeginTimeStamp(), endTime,
+							screenStateInfo.getScreenState(), screenStateInfo
+									.getScreenBrightness(), screenStateInfo
+									.getScreenTimeout()));
+				}
+			}
+			return filteredScreenStateInfos;
+		}
+
+		/**
+		 * Returns the list of camera events filtered based on the time range.
+		 */
+		private List<CameraInfo> getCameraInfosForTheTimeRange(
+				List<CameraInfo> cameraInfos, double beginTime, double endTime) {
+
+			List<CameraInfo> filteredCameraInfos = new ArrayList<CameraInfo>();
+			CameraInfo filteredCameraInfo = null;
+			for (CameraInfo cameraInfo : cameraInfos) {
+
+				if (cameraInfo.getBeginTimeStamp() >= beginTime
+						&& cameraInfo.getEndTimeStamp() <= endTime) {
+					filteredCameraInfo = cameraInfo;
+					filteredCameraInfos.add(filteredCameraInfo);
+					if(filteredCameraInfo.getCameraState() == CameraState.CAMERA_ON){
+						this.cameraActiveDuration += filteredCameraInfo.getEndTimeStamp() - filteredCameraInfo.getBeginTimeStamp();
+					}
+				} else if (cameraInfo.getBeginTimeStamp() <= beginTime
+						&& cameraInfo.getEndTimeStamp() <= endTime && cameraInfo.getEndTimeStamp() > beginTime) {
+					filteredCameraInfo = new CameraInfo(beginTime,
+							cameraInfo.getEndTimeStamp(), cameraInfo
+							.getCameraState());
+					filteredCameraInfos.add(filteredCameraInfo);
+					if(filteredCameraInfo.getCameraState() == CameraState.CAMERA_ON){
+						this.cameraActiveDuration += filteredCameraInfo.getEndTimeStamp() - filteredCameraInfo.getBeginTimeStamp();
+					}
+				} else if (cameraInfo.getBeginTimeStamp() <= beginTime
+						&& cameraInfo.getEndTimeStamp() >= endTime) {
+					filteredCameraInfo = new CameraInfo(beginTime, endTime,
+							cameraInfo.getCameraState());
+					filteredCameraInfos.add(filteredCameraInfo);
+					if(filteredCameraInfo.getCameraState() == CameraState.CAMERA_ON){
+						this.cameraActiveDuration += filteredCameraInfo.getEndTimeStamp() - filteredCameraInfo.getBeginTimeStamp();
+					}
+				} else if (cameraInfo.getBeginTimeStamp() >= beginTime && cameraInfo.getBeginTimeStamp() < endTime
+						&& cameraInfo.getEndTimeStamp() >= endTime) {
+					filteredCameraInfo = new CameraInfo(cameraInfo
+							.getBeginTimeStamp(), endTime, cameraInfo
+							.getCameraState());
+					filteredCameraInfos.add(filteredCameraInfo);
+					if(filteredCameraInfo.getCameraState() == CameraState.CAMERA_ON){
+						this.cameraActiveDuration += filteredCameraInfo.getEndTimeStamp() - filteredCameraInfo.getBeginTimeStamp();
+					}
+				}
+			}
+			return filteredCameraInfos;
+		}
+
+		/**
+		 * Returns the list of radio events filtered based on the time range.
+		 */
+
+		private List<RadioInfo> getRadioInfosForTheTimeRange(
+				List<RadioInfo> radioInfos, double beginTime, double endTime) {
+
+			List<RadioInfo> filteredRadioInfos = new ArrayList<RadioInfo>();
+			for (RadioInfo radioInfo : radioInfos) {
+
+				if (radioInfo.getTimeStamp() >= beginTime
+						&& radioInfo.getTimeStamp() <= endTime) {
+					filteredRadioInfos.add(radioInfo);
+				}
+			}
+			return filteredRadioInfos;
+		}
+
+		/**
+		 * Returns the list of battery events filtered based on the time range.
+		 */
+		private List<BatteryInfo> getBatteryInfosForTheTimeRange(
+				List<BatteryInfo> batteryInfos, double beginTime, double endTime) {
+
+			List<BatteryInfo> filteredBatteryInfos = new ArrayList<BatteryInfo>();
+			for (BatteryInfo batteryInfo : batteryInfos) {
+
+				if (batteryInfo.getBatteryTimeStamp() >= beginTime
+						&& batteryInfo.getBatteryTimeStamp() <= endTime) {
+					filteredBatteryInfos.add(batteryInfo);
+				}
+			}
+			return filteredBatteryInfos;
+		}
+
+		/**
+		 * Returns the list of wifi events filtered based on the time range.
+		 */
+		private List<WifiInfo> getWifiInfosForTheTimeRange(
+				List<WifiInfo> wifiInfos, double beginTime, double endTime) {
+
+			List<WifiInfo> filteredWifiInfos = new ArrayList<WifiInfo>();
+			for (WifiInfo wifiInfo : wifiInfos) {
+
+				if (wifiInfo.getBeginTimeStamp() >= beginTime
+						&& wifiInfo.getEndTimeStamp() <= endTime) {
+					filteredWifiInfos.add(wifiInfo);
+				} else if (wifiInfo.getBeginTimeStamp() <= beginTime
+						&& wifiInfo.getEndTimeStamp() <= endTime && wifiInfo.getEndTimeStamp() > beginTime) {
+					filteredWifiInfos.add(new WifiInfo(beginTime, wifiInfo
+							.getEndTimeStamp(), wifiInfo.getWifiState(),
+							wifiInfo.getWifiMacAddress(), wifiInfo
+									.getWifiRSSI(), wifiInfo.getWifiSSID()));
+				} else if (wifiInfo.getBeginTimeStamp() <= beginTime
+						&& wifiInfo.getEndTimeStamp() >= endTime) {
+					filteredWifiInfos.add(new WifiInfo(beginTime, endTime,
+							wifiInfo.getWifiState(), wifiInfo
+									.getWifiMacAddress(), wifiInfo
+									.getWifiRSSI(), wifiInfo.getWifiSSID()));
+				} else if (wifiInfo.getBeginTimeStamp() >= beginTime && wifiInfo.getBeginTimeStamp() < endTime
+						&& wifiInfo.getEndTimeStamp() >= endTime) {
+					filteredWifiInfos.add(new WifiInfo(wifiInfo
+							.getBeginTimeStamp(), endTime, wifiInfo
+							.getWifiState(), wifiInfo.getWifiMacAddress(),
+							wifiInfo.getWifiRSSI(), wifiInfo.getWifiSSID()));
+				}
+			}
+			return filteredWifiInfos;
+		}
+
+		/**
+		 * Returns the list of bluetooth events filtered based on the time
+		 * range.
+		 */
+		private List<BluetoothInfo> getBluetoothInfosForTheTimeRange(
+				List<BluetoothInfo> bluetoothInfos, double beginTime,
+				double endTime) {
+
+			List<BluetoothInfo> filteredBluetoothInfos = new ArrayList<BluetoothInfo>();
+			
+			BluetoothInfo filteredBluetoothInfo = null;
+			
+			for (BluetoothInfo bluetoothInfo : bluetoothInfos) {
+
+				if (bluetoothInfo.getBeginTimeStamp() >= beginTime
+						&& bluetoothInfo.getEndTimeStamp() <= endTime) {
+					filteredBluetoothInfo = bluetoothInfo;
+					filteredBluetoothInfos.add(filteredBluetoothInfo);
+					if(filteredBluetoothInfo.getBluetoothState() == BluetoothState.BLUETOOTH_CONNECTED){
+						this.bluetoothActiveDuration += filteredBluetoothInfo.getEndTimeStamp() - filteredBluetoothInfo.getBeginTimeStamp();
+					}
+				} else if (bluetoothInfo.getBeginTimeStamp() <= beginTime
+						&& bluetoothInfo.getEndTimeStamp() <= endTime && bluetoothInfo.getEndTimeStamp() > beginTime) {
+					filteredBluetoothInfo = new BluetoothInfo(beginTime,
+							bluetoothInfo.getEndTimeStamp(), bluetoothInfo
+							.getBluetoothState()); 
+					filteredBluetoothInfos.add(filteredBluetoothInfo);
+					if(filteredBluetoothInfo.getBluetoothState() == BluetoothState.BLUETOOTH_CONNECTED){
+						this.bluetoothActiveDuration += filteredBluetoothInfo.getEndTimeStamp() - filteredBluetoothInfo.getBeginTimeStamp();
+					}
+				} else if (bluetoothInfo.getBeginTimeStamp() <= beginTime
+						&& bluetoothInfo.getEndTimeStamp() >= endTime) {
+					filteredBluetoothInfo = new BluetoothInfo(beginTime,
+							endTime, bluetoothInfo.getBluetoothState());
+					filteredBluetoothInfos.add(filteredBluetoothInfo);
+					if(filteredBluetoothInfo.getBluetoothState() == BluetoothState.BLUETOOTH_CONNECTED){
+						this.bluetoothActiveDuration += filteredBluetoothInfo.getEndTimeStamp() - filteredBluetoothInfo.getBeginTimeStamp();
+					}
+				} else if (bluetoothInfo.getBeginTimeStamp() >= beginTime && bluetoothInfo.getBeginTimeStamp() < endTime
+						&& bluetoothInfo.getEndTimeStamp() >= endTime) {
+					filteredBluetoothInfo = new BluetoothInfo(bluetoothInfo
+							.getBeginTimeStamp(), endTime, bluetoothInfo
+							.getBluetoothState());
+					filteredBluetoothInfos.add(filteredBluetoothInfo);
+					if(filteredBluetoothInfo.getBluetoothState() == BluetoothState.BLUETOOTH_CONNECTED){
+						this.bluetoothActiveDuration += filteredBluetoothInfo.getEndTimeStamp() - filteredBluetoothInfo.getBeginTimeStamp();
+					}
+				}
+			}
+
+			return filteredBluetoothInfos;
+		}
+
+		/**
+		 * Returns the list of gps events filtered based on the time range.
+		 */
+		private List<GpsInfo> getGpsInfosForTheTimeRange(
+				List<GpsInfo> gpsInfos, double beginTime, double endTime) {
+
+			List<GpsInfo> filteredGpsInfos = new ArrayList<GpsInfo>();
+			
+			GpsInfo filteredGpsInfo = null;
+
+			for (GpsInfo gpsInfo : gpsInfos) {
+
+				if (gpsInfo.getBeginTimeStamp() >= beginTime
+						&& gpsInfo.getEndTimeStamp() <= endTime) {
+					filteredGpsInfo = gpsInfo;
+					filteredGpsInfos.add(filteredGpsInfo);
+				if(filteredGpsInfo.getGpsState() == GpsState.GPS_ACTIVE){
+					this.gpsActiveDuration += filteredGpsInfo.getEndTimeStamp() - filteredGpsInfo.getBeginTimeStamp();
+				}
+					
+				} else if (gpsInfo.getBeginTimeStamp() <= beginTime
+						&& gpsInfo.getEndTimeStamp() <= endTime && gpsInfo.getEndTimeStamp() > beginTime) {
+					filteredGpsInfo = new GpsInfo(beginTime, gpsInfo
+							.getEndTimeStamp(), gpsInfo.getGpsState());
+					filteredGpsInfos.add(filteredGpsInfo);
+				if(filteredGpsInfo.getGpsState() == GpsState.GPS_ACTIVE){
+					this.gpsActiveDuration += filteredGpsInfo.getEndTimeStamp() - filteredGpsInfo.getBeginTimeStamp();
+				}
+				} else if (gpsInfo.getBeginTimeStamp() <= beginTime
+						&& gpsInfo.getEndTimeStamp() >= endTime) {
+					filteredGpsInfo = new GpsInfo(beginTime, endTime,
+							gpsInfo.getGpsState());
+					filteredGpsInfos.add(filteredGpsInfo);
+				if(filteredGpsInfo.getGpsState() == GpsState.GPS_ACTIVE){
+					this.gpsActiveDuration += filteredGpsInfo.getEndTimeStamp() - filteredGpsInfo.getBeginTimeStamp();
+				}
+				} else if (gpsInfo.getBeginTimeStamp() >= beginTime && gpsInfo.getBeginTimeStamp() < endTime
+						&& gpsInfo.getEndTimeStamp() >= endTime ) {
+					 filteredGpsInfo = new GpsInfo(gpsInfo
+							.getBeginTimeStamp(), endTime, gpsInfo
+							.getGpsState());
+					filteredGpsInfos.add(filteredGpsInfo);
+				if(filteredGpsInfo.getGpsState() == GpsState.GPS_ACTIVE){
+					this.gpsActiveDuration += filteredGpsInfo.getEndTimeStamp() - filteredGpsInfo.getBeginTimeStamp();
+				}
+					
+			}
+			}
+			
+			return filteredGpsInfos;
+		}
+
+		/**
+		 * Returns the list of cpu events filtered based on the time range.
+		 */
+		private List<CpuActivity> getCpuInfosForTheTimeRange(
+				List<CpuActivity> cpuActivityList, double beginTime,
+				double endTime) {
+
+			List<CpuActivity> filteredCpuActivities = new ArrayList<CpuActivity>();
+			for (CpuActivity cpuActivity : cpuActivityList) {
+
+				if (cpuActivity.getBeginTimeStamp() >= beginTime
+						&& cpuActivity.getEndTimeStamp() <= endTime) {
+					filteredCpuActivities.add(cpuActivity);
+				} else if (cpuActivity.getBeginTimeStamp() <= beginTime
+						&& cpuActivity.getEndTimeStamp() <= endTime && cpuActivity.getEndTimeStamp() > beginTime) {
+					filteredCpuActivities.add(new CpuActivity(beginTime,
+							cpuActivity.getEndTimeStamp(), cpuActivity
+									.getUsage()));
+				} else if (cpuActivity.getBeginTimeStamp() <= beginTime
+						&& cpuActivity.getEndTimeStamp() >= endTime) {
+					filteredCpuActivities.add(new CpuActivity(beginTime,
+							endTime, cpuActivity.getUsage()));
+				} else if (cpuActivity.getBeginTimeStamp() >= beginTime && cpuActivity.getBeginTimeStamp() < endTime
+						&& cpuActivity.getEndTimeStamp() >= endTime) {
+					filteredCpuActivities.add(new CpuActivity(cpuActivity
+							.getBeginTimeStamp(), endTime, cpuActivity
+							.getUsage()));
+				}
+			}
+			return filteredCpuActivities;
+		}
+		
+		/**
+		 * Returns the total amount of time that the GPS peripheral was in an active
+		 * state.
+		 * 
+		 * @return The GPS active duration.
+		 */
+		public double getGPSActiveDuration() {
+			return gpsActiveDuration;
+		}
+
+		/**
+		 * Returns the total amount of time that the WiFi peripheral was in an
+		 * active state.
+		 * 
+		 * @return The WiFi active duration.
+		 */
+		public double getWiFiActiveDuration() {
+			return wifiActiveDuration;
+		}
+
+		/**
+		 * Returns the total amount of time that the Bluetooth peripheral was in an
+		 * active state.
+		 * 
+		 * @return The Bluetooth active duration.
+		 */
+		public double getBluetoothActiveDuration() {
+			return bluetoothActiveDuration;
+		}
+
+		/**
+		 * Returns the total amount of time that the camera peripheral was in an
+		 * active state.
+		 * 
+		 * @return The camera active duration.
+		 */
+		public double getCameraActiveDuration() {
+			return cameraActiveDuration;
+		}
+
+
 	}
 
+	/**
+	 * Private utility class
+	 */
+	public static class Times {
+		private Double startTime;
+		private Double eventTime;
+		private Double duration;
+
+		/**
+		 * @return the startTime
+		 */
+		public Double getStartTime() {
+			return startTime;
+		}
+
+		/**
+		 * @return the eventTime
+		 */
+		public Double getEventTime() {
+			return eventTime;
+		}
+
+		/**
+		 * @return the duration
+		 */
+		public Double getDuration() {
+			return duration;
+		}
+
+	}
+	
 	/**
 	 * Logger
 	 */
@@ -577,6 +1160,47 @@ public class TraceData implements Serializable {
 	private static final int HSPAP = 15;
 	private static final int LTE = 13;
 
+	
+	/**
+	 * Utility method that will just read the trace time file info for the specified trace
+	 * directory
+	 * @param traceDirectory The trace directory
+	 * @return Times read from the TIME file
+	 * @throws IOException
+	 */
+	public static Times readTimes(File traceDirectory) throws IOException {
+
+		BufferedReader br = new BufferedReader(new FileReader(new File(traceDirectory, TIME_FILE)));
+		Times result = new Times();
+		try {
+			String s;
+
+			// Ignore first line
+			br.readLine();
+
+			// Second line is pcap time
+			s = br.readLine();
+			if (s != null) {
+				result.startTime = Double.valueOf(s);
+
+				s = br.readLine();
+				if (s != null) {
+					result.eventTime = Double.parseDouble(s) / 1000.0;
+				}
+
+				s = br.readLine();
+				if (s != null) {
+					result.duration = Double.valueOf(Double.parseDouble(s)
+							- result.startTime.doubleValue());
+				}
+			}
+		} finally {
+			br.close();
+		}
+		
+		return result;
+	}
+	
 	private double videoStartTime;
 
 	private File traceDir;
@@ -627,7 +1251,6 @@ public class TraceData implements Serializable {
 	private double pcapTime0;
 	private Date traceDateTime;
 	private double eventTime0;
-	private boolean endTraceTimeFound;
 	private double traceDuration;
 	private double gpsActiveDuration;
 	private double wifiActiveDuration;
@@ -643,6 +1266,7 @@ public class TraceData implements Serializable {
 
 	// private WhatIf whatIf = new WhatIf(WhatIf.WhatIfType.WHATIF_NO) ;
 	private Set<String> allAppNames = new HashSet<String>();
+	private Map<String, Set<InetAddress>> appIps = new HashMap<String, Set<InetAddress>>();
 
 	/**
 	 * Pcap packet listener
@@ -672,10 +1296,12 @@ public class TraceData implements Serializable {
 	};
 
 	/**
-	 * Collects trace data
+	 * Initializes an instance of the TraceData class, using the specified trace
+	 * directory.
 	 * 
 	 * @param traceDir
-	 *            Directory where trace files are located
+	 *            - Directory where the trace files are located.
+	 * 
 	 * @throws IllegalArgumentException
 	 *             if traceDir does not represent and existing directory in the
 	 *             file system
@@ -697,57 +1323,25 @@ public class TraceData implements Serializable {
 			readData();
 		} else {
 
-			// Read standalone pcap file
-			new PCapAdapter(traceDir, packetListener);
-			this.pcapFile = traceDir;
-
-			if (allPackets.size() > 0) {
-
-				// Sort and set IDs on packets
-				Collections.sort(allPackets);
-				int i = 0;
-				for (Iterator<PacketInfo> iter = allPackets.iterator(); iter
-						.hasNext(); ++i) {
-					PacketInfo packet = iter.next();
-
-					// Filter out non-IP packets
-					if (!(packet.getPacket() instanceof IPPacket)) {
-						iter.remove();
-						continue;
-					}
-
-					// Set packet ID to match Wireshark ID
-					packet.setId(i + 1);
-
-					// Set blank app name so that burst analysis is done
-					packet.setAppName("");
-
-				}
-
-				pcapTime0 = allPackets.get(0).getTimeStamp();
-				this.traceDateTime = new Date((long) (pcapTime0 * 1000));
-				syncTime();
-			} else {
-				pcapTime0 = pcapFile.lastModified() / 1000;
-				this.traceDateTime = new Date(pcapFile.lastModified());
-			}
+			// Read PCAP file only
+			readPcapTrace(traceDir, null, null, null);
 		}
 
 	}
 
 	/**
-	 * Returns trace directory.
+	 * Returns the trace directory.
 	 * 
-	 * @return traceDir.
+	 * @return A File object containing the trace directory.
 	 */
 	public File getTraceDir() {
 		return traceDir;
 	}
 
 	/**
-	 * Returns date time of trace data.
+	 * Returns the date and time of the trace data.
 	 * 
-	 * @return traceDateTime.
+	 * @return The trace date and time.
 	 */
 	public Date getTraceDateTime() {
 		return traceDateTime;
@@ -756,16 +1350,17 @@ public class TraceData implements Serializable {
 	/**
 	 * Returns the total duration of the loaded trace file.
 	 * 
-	 * @return The traceDuration
+	 * @return The trace duration.
 	 */
 	public double getTraceDuration() {
 		return traceDuration;
 	}
 
 	/**
-	 * Returns the name of the collector.
+	 * Returns the name of the collector that was used to collect the trace
+	 * data.
 	 * 
-	 * @return The collectorName
+	 * @return The collector name.
 	 */
 	public String getCollectorName() {
 		return collectorName;
@@ -774,7 +1369,7 @@ public class TraceData implements Serializable {
 	/**
 	 * Returns the model of the device.
 	 * 
-	 * @return The deviceModel
+	 * @return The device model.
 	 */
 	public String getDeviceModel() {
 		return deviceModel;
@@ -783,34 +1378,37 @@ public class TraceData implements Serializable {
 	/**
 	 * Returns the make of the device.
 	 * 
-	 * @return The deviceMake
+	 * @return The device make.
 	 */
 	public String getDeviceMake() {
 		return deviceMake;
 	}
 
 	/**
-	 * Returns the type of the operating system.
+	 * Returns the type of operating system that the trace data was collected
+	 * on.
 	 * 
-	 * @return The osType
+	 * @return A string that describes the OS type.
 	 */
 	public String getOsType() {
 		return osType;
 	}
 
 	/**
-	 * Returns the version of the operating system.
+	 * Returns the version of the operating system that the trace data was
+	 * collected on.
 	 * 
-	 * @return The osVersion
+	 * @return A string that describes the OS version.
 	 */
 	public String getOsVersion() {
 		return osVersion;
 	}
 
 	/**
-	 * Returns the version of the collector.
+	 * Returns the version of the collector that was used to collect the trace
+	 * data.
 	 * 
-	 * @return The collectorVersion
+	 * @return The collector version.
 	 */
 	public String getCollectorVersion() {
 		return collectorVersion;
@@ -824,46 +1422,10 @@ public class TraceData implements Serializable {
 	}
 
 	/**
-	 * Returns the active duration of GPS peripheral.
+	 * Returns the names of all the apps in the trace, including apps that were
+	 * filtered from the analysis.
 	 * 
-	 * @return The gpsActiveDuration
-	 */
-	public double getGPSActiveDuration() {
-		return gpsActiveDuration;
-	}
-
-	/**
-	 * Returns the active duration of WiFi peripheral.
-	 * 
-	 * @return The wifiActiveDuration
-	 */
-	public double getWiFiActiveDuration() {
-		return wifiActiveDuration;
-	}
-
-	/**
-	 * Returns the active duration of bluetooth peripheral.
-	 * 
-	 * @return The bluetoothActiveDuration
-	 */
-	public double getBluetoothActiveDuration() {
-		return bluetoothActiveDuration;
-	}
-
-	/**
-	 * Returns the active duration of camera peripheral.
-	 * 
-	 * @return The cameraActiveDuration
-	 */
-	public double getCameraActiveDuration() {
-		return cameraActiveDuration;
-	}
-
-	/**
-	 * Returns all apps included in the trace including apps filtered from the
-	 * analysis
-	 * 
-	 * @return The allAppNames
+	 * @return A Set of strings containing the application names.
 	 */
 	public Set<String> getAllAppNames() {
 		return Collections.unmodifiableSet(allAppNames);
@@ -879,90 +1441,16 @@ public class TraceData implements Serializable {
 	}
 
 	/**
-	 * Returns the list of GPS info.
-	 * 
-	 * @return The gpsInfos
+	 * @return the appIps
 	 */
-	public List<GpsInfo> getGpsInfos() {
-		return Collections.unmodifiableList(gpsInfos);
+	public Map<String, Set<InetAddress>> getAppIps() {
+		return Collections.unmodifiableMap(appIps);
 	}
 
 	/**
-	 * Returns the list of bluetooth info.
+	 * Returns the start time of the video.
 	 * 
-	 * @return The bluetoothInfos
-	 */
-	public List<BluetoothInfo> getBluetoothInfos() {
-		return Collections.unmodifiableList(bluetoothInfos);
-	}
-
-	/**
-	 * Returns the list of WiFi info.
-	 * 
-	 * @return The wifiInfos
-	 */
-	public List<WifiInfo> getWifiInfos() {
-		return Collections.unmodifiableList(wifiInfos);
-	}
-
-	/**
-	 * Returns the list of camera info.
-	 * 
-	 * @return The cameraInfos
-	 */
-	public List<CameraInfo> getCameraInfos() {
-		return Collections.unmodifiableList(cameraInfos);
-	}
-
-	/**
-	 * Returns the list of screen state info.
-	 * 
-	 * @return The screenStateInfos
-	 */
-	public List<ScreenStateInfo> getScreenStateInfos() {
-		return Collections.unmodifiableList(screenStateInfos);
-	}
-
-	/**
-	 * Returns the list of battery info.
-	 * 
-	 * @return The batteryInfos
-	 */
-	public List<BatteryInfo> getBatteryInfos() {
-		return Collections.unmodifiableList(batteryInfos);
-	}
-
-	/**
-	 * Returns the list of userEvents.
-	 * 
-	 * @return The userEvents
-	 */
-	public List<UserEvent> getUserEvents() {
-		return Collections.unmodifiableList(userEvents);
-	}
-
-	/**
-	 * Returns the list of radioInfos.
-	 * 
-	 * @return The radioInfos
-	 */
-	public List<RadioInfo> getRadioInfos() {
-		return Collections.unmodifiableList(radioInfos);
-	}
-
-	/**
-	 * Returns the list of cpuActivity.
-	 * 
-	 * @return The cpuActivityList
-	 */
-	public List<CpuActivity> getCpuActivityList() {
-		return Collections.unmodifiableList(cpuActivityList);
-	}
-
-	/**
-	 * Returns the start time of video.
-	 * 
-	 * @return The videoStartTime
+	 * @return The video start time.
 	 */
 	public double getVideoStartTime() {
 		return videoStartTime;
@@ -971,32 +1459,37 @@ public class TraceData implements Serializable {
 	/**
 	 * Returns the pcapFile.
 	 * 
-	 * @return The pcapFile
+	 * @return The pcap file.
 	 */
 	public File getPcapFile() {
 		return pcapFile;
 	}
 
 	/**
-	 * Returns the set of missingFiles.
+	 * Returns the names of any files missing from the trace directory.
 	 * 
-	 * @return The missingFiles
+	 * @return A Set of strings containing the names of the missing files.
 	 */
 	public Set<String> getMissingFiles() {
 		return Collections.unmodifiableSet(missingFiles);
 	}
 
 	/**
-	 * Runs analysis on the trace for the specified app names
+	 * Runs analysis on the trace data for the specified collection filter,
+	 * using the specified device profile.
 	 * 
 	 * @param profile
-	 *            Device profile settings
-	 * @param appSel
-	 *            The collection of selected applications.
+	 *            The device profile settings.
+	 * 
+	 * @param filter
+	 *            An optional analysis filter that would filter out info from
+	 *            the trace during analysis.
+	 * 
+	 * @return An Analysis object containing the trace analysis.
 	 */
 	public synchronized Analysis runAnalysis(Profile profile,
-			Collection<ApplicationSelection> appSel) throws IOException {
-		return new Analysis(profile, appSel);
+			AnalysisFilter filter) throws IOException {
+		return new Analysis(profile, filter);
 	}
 
 	/**
@@ -1035,6 +1528,7 @@ public class TraceData implements Serializable {
 		File file = new File(traceDir, APPID_FILE);
 		if (!file.exists()) {
 			this.missingFiles.add(APPID_FILE);
+			return Collections.emptyList();
 		}
 
 		List<Integer> appIds = new ArrayList<Integer>();
@@ -1056,46 +1550,31 @@ public class TraceData implements Serializable {
 	}
 
 	/**
-	 * Reads the time form the time trace file.
+	 * Reads the PCAP file and the trace times from the time trace file.
 	 * 
 	 * @throws IOException
 	 */
-	private void readTime() throws IOException {
+	private void readTimeAndPcap() throws IOException {
 
 		File file = new File(traceDir, TIME_FILE);
-		if (!file.exists()) {
+		Double startTime = null;
+		Double duration = null;
+		if (file.exists()) {
+			
+			Times times = readTimes(traceDir);
+			startTime = times.startTime;
+			if (times.eventTime != null) {
+				this.eventTime0 = times.eventTime.doubleValue();
+			}
+			duration = times.duration;
+
+		} else {
 			this.missingFiles.add(TIME_FILE);
 		}
 
-		BufferedReader br = new BufferedReader(new FileReader(file));
-		try {
-			String s;
-
-			// Ignore first line
-			br.readLine();
-
-			// Second line is pcap time
-			s = br.readLine();
-			if (s != null) {
-				this.pcapTime0 = Double.parseDouble(s);
-
-				s = br.readLine();
-				if (s != null) {
-					this.eventTime0 = Double.parseDouble(s) / 1000.0;
-				}
-
-				s = br.readLine();
-				if (s != null) {
-					this.traceDuration = Double.parseDouble(s) - this.pcapTime0;
-					this.endTraceTimeFound = true;
-				}
-			}
-			this.traceDateTime = new Date((long) (pcapTime0 * 1000));
-
-		} finally {
-			br.close();
-		}
-
+		// Read the pcap file to get default times
+		File pcap = new File(traceDir, PCAP_FILE);
+		readPcapTrace(pcap, readAppIDs(), startTime, duration);
 	}
 
 	/**
@@ -1192,15 +1671,16 @@ public class TraceData implements Serializable {
 	 * Reads the pcap trace file from the trace folder. Using Jpcap library it
 	 * iterate through all packet in the pcap file.
 	 * 
-	 * @throws IOException
+	 * @throws IOException when an unexpected I/O error occurs
+	 * @throws FileNotFoundException when file does not exist or is empty
 	 */
-	private void readPcapTrace() throws IOException {
+	private void readPcapTrace(File pcap, List<Integer> appIds, Double startTime, Double duration) throws IOException, FileNotFoundException {
 
-		File pcap = new File(traceDir, PCAP_FILE);
-		if (!pcap.exists() || pcap.length() == 0) {
-			this.missingFiles.add(PCAP_FILE);
-			logger.warning("No TCP data found in trace");
-			return;
+		if (!pcap.exists()) {
+			logger.severe("No TCP data found in trace");
+			
+			// Force FileNotFoundException
+			new FileInputStream(pcap);
 		}
 		this.pcapFile = pcap;
 		new PCapAdapter(pcap, packetListener);
@@ -1211,42 +1691,74 @@ public class TraceData implements Serializable {
 		// allPackets.remove(allPackets.size() - 1);
 
 		// Determine application name associated with each packet
-		List<Integer> appIds = readAppIDs();
-		int i = 0;
-		for (Iterator<PacketInfo> iter = allPackets.iterator(); iter.hasNext(); ++i) {
-			PacketInfo packet = iter.next();
-
-			// Filter out non-IP packets
-			if (!(packet.getPacket() instanceof IPPacket)) {
-				iter.remove();
-				continue;
+		if (allPackets.size() > 0) {
+			int i = 0;
+			final String pcapAppName = "";
+			this.pcapTime0 = startTime != null ? startTime.doubleValue()
+					: allPackets.get(0).getTimeStamp();
+			this.traceDuration = duration != null ? duration
+					.doubleValue() : allPackets.get(allPackets.size() - 1)
+					.getTimeStamp() - this.pcapTime0;
+			if (appIds == null) {
+				appIds = Collections.emptyList();
 			}
+			for (Iterator<PacketInfo> iter = allPackets.iterator(); iter.hasNext(); ++i) {
+				PacketInfo packet = iter.next();
 
-			if (i < appIds.size()) {
-				int appId = appIds.get(i);
-
-				// Check for valid application
-				if (appId >= 0) {
-					assert (appId < appInfos.size());
-
-					String appName = appId < appInfos.size() ? appInfos
-							.get(appId) : null;
-					packet.setAppName(appName);
-					this.allAppNames.add(appName);
-				} else {
-
-					// Should indicate unknown app ID
-					assert (appId == PACKET_UNKNOWN_APP);
-					this.allAppNames.add(null);
+				// Filter out non-IP packets
+				if (!(packet.getPacket() instanceof IPPacket)) {
+					iter.remove();
+					continue;
 				}
+
+				IPPacket ip = (IPPacket) packet.getPacket();
+				packet.setDir(determinePacketDirection(ip.getSourceIPAddress(),
+						ip.getDestinationIPAddress()));
+				packet.setTimestamp(ip.getTimeStamp() - this.pcapTime0);
+
+				String appName;
+				if (i < appIds.size()) {
+					int appId = appIds.get(i);
+
+					// Check for valid application
+					if (appId >= 0) {
+						assert (appId < appInfos.size());
+
+						appName = appId < appInfos.size() ? appInfos
+								.get(appId) : null;
+					} else {
+
+						// Should indicate unknown app ID
+						assert (appId == PACKET_UNKNOWN_APP);
+						appName = null;
+					}
+				} else {
+					appName = pcapAppName;
+				}
+				packet.setAppName(appName);
+				this.allAppNames.add(appName);
+
+				// Group IPs by app
+				Set<InetAddress> ips = appIps.get(appName);
+				if (ips == null) {
+					ips = new HashSet<InetAddress>();
+					appIps.put(appName, ips);
+				}
+				ips.add(packet.getRemoteIPAddress());
+
+				// Set packet ID to match Wireshark ID
+				packet.setId(i + 1);
+
 			}
 
-			// Set packet ID to match Wireshark ID
-			packet.setId(i + 1);
-
+			Collections.sort(allPackets);
+		} else {
+			this.pcapTime0 = startTime != null ? startTime.doubleValue() : pcap
+					.lastModified() / 1000.0;
+			this.traceDuration = duration != null ? duration
+					.doubleValue() : 0.0;
 		}
-
-		Collections.sort(allPackets);
+		this.traceDateTime = new Date((long) (this.pcapTime0 * 1000));
 	}
 
 	/**
@@ -1345,7 +1857,6 @@ public class TraceData implements Serializable {
 					if (lastTime != null) {
 						userEvents.add(new UserEvent(actionType, lastTime,
 								dTimeStamp));
-						checkLastEvent(dTimeStamp);
 					} else {
 						logger.warning("Found key release event with no associated press event: "
 								+ lineBuf);
@@ -1382,14 +1893,7 @@ public class TraceData implements Serializable {
 
 				String[] strFields = line.split(" ");
 				// Get timestamp
-				double dTimeStamp = Double.parseDouble(strFields[0]);
-				if (dTimeStamp > 1.0e9) {
-					dTimeStamp = normalizeTime(dTimeStamp);
-				} else {
-
-					// Old data collector method (backward compatible)
-					dTimeStamp -= eventTime0;
-				}
+				double dTimeStamp = normalizeTime(Double.parseDouble(strFields[0]));
 
 				UserEventType eventType = null;
 
@@ -1403,10 +1907,20 @@ public class TraceData implements Serializable {
 						dTimeStamp + 0.5));
 			}
 
+			Collections.sort(userEvents, new UserEventSorting());
+
 		} finally {
 			reader.close();
 		}
 
+	}
+
+	private class UserEventSorting implements Comparator<UserEvent> {
+		@Override
+		public int compare(UserEvent o1, UserEvent o2) {
+			return Double.valueOf(o1.getPressTime()).compareTo(
+					o2.getPressTime());
+		}
 	}
 
 	/**
@@ -1414,12 +1928,14 @@ public class TraceData implements Serializable {
 	 */
 	private synchronized void readData() throws IOException {
 
-		readAppInfo();
+		try {
+			readAppInfo();
+		} catch (IOException e) {
+			logger.warning("*** Warning: no app information found ***");
+		}
 
-		// Read the time file
-		readTime();
-
-		readPcapTrace();
+		// Read the time file and PCAP trace
+		readTimeAndPcap();
 
 		try {
 			readDeviceInfo();
@@ -1499,8 +2015,6 @@ public class TraceData implements Serializable {
 			logger.warning("*** Warning: no Video time information found ***");
 		}
 
-		syncTime();
-
 	}
 
 	/**
@@ -1513,25 +2027,37 @@ public class TraceData implements Serializable {
 		if (!file.exists()) {
 			this.missingFiles.add(CPU_FILE);
 		}
-		// Integer beginIdx = 0 ;
-
-		// Integer endIdx = 0 ;
-		// Double dShiftTS = 0.0 ;
 
 		BufferedReader br = new BufferedReader(new FileReader(file));
 		try {
-			double dTimeStamp = 0.0;
-			double dUsage = 0.0;
-			for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br
-					.readLine()) {
-				String strFields[] = strLineBuf.split(" ");
-				if (strFields.length == 2) {
-					dTimeStamp = Double.parseDouble(strFields[0]);
-					dUsage = Double.parseDouble(strFields[1]);
-					CpuActivity cpuActivity = new CpuActivity(dTimeStamp,
-							dUsage);
-					cpuActivityList.add(cpuActivity);
+			double prevCpuUsage = 0.0;
+			double beginTime = 0.0;
+			double endTime = 0.0;
+			String firstLine = br.readLine();
+			if (firstLine != null) {
+				String strFieldsFirstLine[] = firstLine.split(" ");
+				if (strFieldsFirstLine.length == 2) {
+					beginTime = normalizeTime(Double.parseDouble(strFieldsFirstLine[0]));
+					prevCpuUsage = Double.parseDouble(strFieldsFirstLine[1]);
+
 				}
+
+				for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br
+						.readLine()) {
+					String strFields[] = strLineBuf.split(" ");
+					if (strFields.length == 2) {
+						endTime = normalizeTime(Double.parseDouble(strFields[0]));
+						double cpuUsage = Double.parseDouble(strFields[1]);
+						CpuActivity cpuActivity = new CpuActivity(beginTime,
+								endTime, prevCpuUsage);
+						cpuActivityList.add(cpuActivity);
+
+						prevCpuUsage = cpuUsage;
+						beginTime = endTime;
+					}
+				}
+				cpuActivityList.add(new CpuActivity(beginTime,
+						getTraceDuration() , prevCpuUsage));
 			}
 		} finally {
 			br.close();
@@ -1550,55 +2076,99 @@ public class TraceData implements Serializable {
 
 		BufferedReader br = new BufferedReader(new FileReader(file));
 		try {
-			double dTimeStamp;
 			double dLastActiveTimeStamp = 0.0;
 			double dActiveDuration = 0.0;
+			GpsState prevGpsState = null;
 			GpsState gpsState = null;
-			for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br
-					.readLine()) {
-				String strFields[] = strLineBuf.split(" ");
-				if (strFields.length == 2) {
+			double beginTime = 0.0;
+			double endTime = 0.0;
+			String firstLine = br.readLine();
+			if (firstLine != null) {
+				String strFieldsFirstLine[] = firstLine.split(" ");
+				if (strFieldsFirstLine.length == 2) {
 					try {
-						dTimeStamp = normalizeTime(Double
-								.parseDouble(strFields[0]));
-						if (GPS_STANDBY.equals(strFields[1])) {
-							gpsState = GpsState.GPS_STANDBY;
-						} else if (GPS_DISABLED.equals(strFields[1])) {
-							gpsState = GpsState.GPS_DISABLED;
-						} else if (GPS_ACTIVE.equals(strFields[1])) {
-							gpsState = GpsState.GPS_ACTIVE;
+						beginTime = normalizeTime(Double
+								.parseDouble(strFieldsFirstLine[0]));
+						if (GPS_STANDBY.equals(strFieldsFirstLine[1])) {
+							prevGpsState = GpsState.GPS_STANDBY;
+						} else if (GPS_DISABLED.equals(strFieldsFirstLine[1])) {
+							prevGpsState = GpsState.GPS_DISABLED;
+						} else if (GPS_ACTIVE.equals(strFieldsFirstLine[1])) {
+							prevGpsState = GpsState.GPS_ACTIVE;
 							if (0.0 == dLastActiveTimeStamp) {
-								dLastActiveTimeStamp = dTimeStamp;
+								dLastActiveTimeStamp = beginTime;
 							}
 						} else {
-							logger.warning("Invalid GPS state: " + strLineBuf);
-							gpsState = GpsState.GPS_UNKNOWN;
+							logger.warning("Invalid GPS state: " + firstLine);
+							prevGpsState = GpsState.GPS_UNKNOWN;
 						}
-						gpsInfos.add(new GpsInfo(dTimeStamp, gpsState));
 
-						if ((!GPS_ACTIVE.equals(strFields[1]))
+						if ((!GPS_ACTIVE.equals(strFieldsFirstLine[1]))
 								&& dLastActiveTimeStamp > 0.0) {
-							dActiveDuration += (dTimeStamp - dLastActiveTimeStamp);
+							dActiveDuration += (beginTime - dLastActiveTimeStamp);
 							dLastActiveTimeStamp = 0.0;
 						}
 					} catch (Exception e) {
 						logger.log(Level.WARNING,
 								"Unexpected error parsing GPS event: "
-										+ strLineBuf, e);
+										+ firstLine, e);
 					}
-				} else {
-					logger.warning("Invalid GPS trace entry: " + strLineBuf);
 				}
-			}
+				for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br
+						.readLine()) {
 
-			// Duration calculation should probably be done in analysis
-			if (gpsState == GpsState.GPS_ACTIVE) {
-				dActiveDuration += Math.max(0, getTraceDuration()
-						- dLastActiveTimeStamp);
-			}
+					String strFields[] = strLineBuf.split(" ");
+					if (strFields.length == 2) {
+						try {
+							endTime = normalizeTime(Double
+									.parseDouble(strFields[0]));
+							if (GPS_STANDBY.equals(strFields[1])) {
+								gpsState = GpsState.GPS_STANDBY;
+							} else if (GPS_DISABLED.equals(strFields[1])) {
+								gpsState = GpsState.GPS_DISABLED;
+							} else if (GPS_ACTIVE.equals(strFields[1])) {
+								gpsState = GpsState.GPS_ACTIVE;
+								if (0.0 == dLastActiveTimeStamp) {
+									dLastActiveTimeStamp = endTime;
+								}
+							} else {
+								logger.warning("Invalid GPS state: "
+										+ strLineBuf);
+								gpsState = GpsState.GPS_UNKNOWN;
+							}
+							gpsInfos.add(new GpsInfo(beginTime, endTime,
+									prevGpsState));
 
-			this.gpsActiveDuration = dActiveDuration;
-			Collections.sort(gpsInfos);
+							if ((!GPS_ACTIVE.equals(strFields[1]))
+									&& dLastActiveTimeStamp > 0.0) {
+								dActiveDuration += (endTime - dLastActiveTimeStamp);
+								dLastActiveTimeStamp = 0.0;
+							}
+							prevGpsState = gpsState;
+							beginTime = endTime;
+
+						} catch (Exception e) {
+							logger.log(Level.WARNING,
+									"Unexpected error parsing GPS event: "
+											+ strLineBuf, e);
+						}
+					} else {
+						logger.warning("Invalid GPS trace entry: " + strLineBuf);
+					}
+
+				}
+
+				gpsInfos.add(new GpsInfo(beginTime, getTraceDuration(), prevGpsState));
+
+				// Duration calculation should probably be done in analysis
+				if (prevGpsState == GpsState.GPS_ACTIVE) {
+					dActiveDuration += Math.max(0, getTraceDuration()
+							- dLastActiveTimeStamp);
+				}
+
+				this.gpsActiveDuration = dActiveDuration;
+				Collections.sort(gpsInfos);
+			}
 		} finally {
 			br.close();
 		}
@@ -1618,55 +2188,96 @@ public class TraceData implements Serializable {
 		}
 		BufferedReader br = new BufferedReader(new FileReader(file));
 		try {
-			double dTimeStamp;
+			double beginTime = 0.0;
+			double endTime;
 			double dLastTimeStamp = 0.0;
 			double dActiveDuration = 0.0;
-			BluetoothState btState;
+			BluetoothState prevBtState = null;
+			BluetoothState btState = null;
 			BluetoothState lastState = null;
-			for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br
-					.readLine()) {
-				String strFields[] = strLineBuf.split(" ");
-				if (strFields.length == 2) {
+			String firstLine = br.readLine();
+			if (firstLine != null) {
+				String strFieldsFirstLine[] = firstLine.split(" ");
+				if (strFieldsFirstLine.length == 2) {
 					try {
-						dTimeStamp = normalizeTime(Double
-								.parseDouble(strFields[0]));
-						if (BLUETOOTH_CONNECTED.equals(strFields[1])) {
-							btState = BluetoothState.BLUETOOTH_CONNECTED;
-						} else if (BLUETOOTH_DISCONNECTED.equals(strFields[1])) {
-							btState = BluetoothState.BLUETOOTH_DISCONNECTED;
-						} else if (BLUETOOTH_OFF.equals(strFields[1])) {
-							btState = BluetoothState.BLUETOOTH_TURNED_OFF;
+						beginTime = normalizeTime(Double
+								.parseDouble(strFieldsFirstLine[0]));
+						if (BLUETOOTH_CONNECTED.equals(strFieldsFirstLine[1])) {
+							prevBtState = BluetoothState.BLUETOOTH_CONNECTED;
+						} else if (BLUETOOTH_DISCONNECTED
+								.equals(strFieldsFirstLine[1])) {
+							prevBtState = BluetoothState.BLUETOOTH_DISCONNECTED;
+						} else if (BLUETOOTH_OFF.equals(strFieldsFirstLine[1])) {
+							prevBtState = BluetoothState.BLUETOOTH_TURNED_OFF;
 						} else {
 							logger.warning("Unknown bluetooth state: "
-									+ strLineBuf);
-							btState = BluetoothState.BLUETOOTH_UNKNOWN;
+									+ firstLine);
+							prevBtState = BluetoothState.BLUETOOTH_UNKNOWN;
 						}
-						bluetoothInfos.add(new BluetoothInfo(dTimeStamp,
-								btState));
 
 						if (lastState == BluetoothState.BLUETOOTH_CONNECTED) {
-							dActiveDuration += (dTimeStamp - dLastTimeStamp);
+							dActiveDuration += (beginTime - dLastTimeStamp);
 						}
-						lastState = btState;
-						dLastTimeStamp = dTimeStamp;
+						lastState = prevBtState;
+						dLastTimeStamp = beginTime;
 					} catch (Exception e) {
 						logger.log(Level.WARNING,
 								"Unexpected error parsing bluetooth event: "
-										+ strLineBuf, e);
+										+ firstLine, e);
 					}
 				} else {
 					logger.warning("Invalid Bluetooth trace entry: "
-							+ strLineBuf);
+							+ firstLine);
 				}
-			}
+				for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br
+						.readLine()) {
+					String strFields[] = strLineBuf.split(" ");
+					if (strFields.length == 2) {
+						try {
+							endTime = normalizeTime(Double
+									.parseDouble(strFields[0]));
+							if (BLUETOOTH_CONNECTED.equals(strFields[1])) {
+								btState = BluetoothState.BLUETOOTH_CONNECTED;
+							} else if (BLUETOOTH_DISCONNECTED
+									.equals(strFields[1])) {
+								btState = BluetoothState.BLUETOOTH_DISCONNECTED;
+							} else if (BLUETOOTH_OFF.equals(strFields[1])) {
+								btState = BluetoothState.BLUETOOTH_TURNED_OFF;
+							} else {
+								logger.warning("Unknown bluetooth state: "
+										+ strLineBuf);
+								btState = BluetoothState.BLUETOOTH_UNKNOWN;
+							}
+							bluetoothInfos.add(new BluetoothInfo(beginTime,
+									endTime, prevBtState));
 
-			// Duration calculation should probably be done in analysis
-			if (lastState == BluetoothState.BLUETOOTH_CONNECTED) {
-				dActiveDuration += Math.max(0, getTraceDuration()
-						- dLastTimeStamp);
-			}
+							if (lastState == BluetoothState.BLUETOOTH_CONNECTED) {
+								dActiveDuration += (endTime - dLastTimeStamp);
+							}
+							lastState = btState;
+							dLastTimeStamp = endTime;
+							prevBtState = btState;
+							beginTime = endTime;
+						} catch (Exception e) {
+							logger.log(Level.WARNING,
+									"Unexpected error parsing bluetooth event: "
+											+ strLineBuf, e);
+						}
+					} else {
+						logger.warning("Invalid Bluetooth trace entry: "
+								+ strLineBuf);
+					}
+				}
+				bluetoothInfos.add(new BluetoothInfo(beginTime,
+						getTraceDuration(), prevBtState));
+				// Duration calculation should probably be done in analysis
+				if (lastState == BluetoothState.BLUETOOTH_CONNECTED) {
+					dActiveDuration += Math.max(0, getTraceDuration()
+							- dLastTimeStamp);
+				}
 
-			this.bluetoothActiveDuration = dActiveDuration;
+				this.bluetoothActiveDuration = dActiveDuration;
+			}
 		} finally {
 			br.close();
 		}
@@ -1681,83 +2292,154 @@ public class TraceData implements Serializable {
 		if (!file.exists()) {
 			this.missingFiles.add(WIFI_FILE);
 		}
+		double dLastTimeStamp = 0.0;
+		double dActiveDuration = 0.0;
+		double beginTime = 0.0;
+		double endTime = 0.0;
+		String prevMacAddress = null;
+		String prevRssi = null;
+		String prevSsid = null;
+		WifiState prevWifiState = null;
+		WifiState lastWifiState = null;
 		BufferedReader br = new BufferedReader(new FileReader(file));
 		try {
-			double dTimeStamp;
-			double dLastTimeStamp = 0.0;
-			double dActiveDuration = 0.0;
-			WifiState wifiState;
-			WifiState lastWifiState = null;
-			for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br
-					.readLine()) {
-				String strFields[] = strLineBuf.split(" ");
+			String firstLine = br.readLine();
+			if (firstLine != null) {
 				try {
-					if (strFields.length >= 2) {
-						String macAddress = null;
-						String rssi = null;
-						String ssid = null;
-						dTimeStamp = normalizeTime(Double
-								.parseDouble(strFields[0]));
-						if (WIFI_OFF.equals(strFields[1])) {
-							wifiState = WifiState.WIFI_DISABLED;
-						} else if (WIFI_CONNECTED.equals(strFields[1])) {
-							wifiState = WifiState.WIFI_CONNECTED;
-							Matcher matcher = wifiPattern.matcher(strLineBuf);
+					String strFieldsFirstLine[] = firstLine.split(" ");
+					if (strFieldsFirstLine.length >= 2) {
+						beginTime = normalizeTime(Double
+								.parseDouble(strFieldsFirstLine[0]));
+						if (WIFI_OFF.equals(strFieldsFirstLine[1])) {
+							prevWifiState = WifiState.WIFI_DISABLED;
+						} else if (WIFI_CONNECTED.equals(strFieldsFirstLine[1])) {
+							prevWifiState = WifiState.WIFI_CONNECTED;
+							Matcher matcher = wifiPattern.matcher(firstLine);
 							if (matcher.lookingAt()) {
-								macAddress = matcher.group(1);
-								rssi = matcher.group(2);
-								ssid = matcher.group(3);
+								prevMacAddress = matcher.group(1);
+								prevRssi = matcher.group(2);
+								prevSsid = matcher.group(3);
 							} else {
 								logger.warning("Unable to parse wifi connection params: "
-										+ strLineBuf);
+										+ firstLine);
 							}
-						} else if (WIFI_DISCONNECTED.equals(strFields[1])) {
-							wifiState = WifiState.WIFI_DISCONNECTED;
-						} else if (WIFI_CONNECTING.equals(strFields[1])) {
-							wifiState = WifiState.WIFI_CONNECTING;
-						} else if (WIFI_DISCONNECTING.equals(strFields[1])) {
-							wifiState = WifiState.WIFI_DISCONNECTING;
-						} else if (WIFI_SUSPENDED.equals(strFields[1])) {
-							wifiState = WifiState.WIFI_SUSPENDED;
+						} else if (WIFI_DISCONNECTED
+								.equals(strFieldsFirstLine[1])) {
+							prevWifiState = WifiState.WIFI_DISCONNECTED;
+						} else if (WIFI_CONNECTING
+								.equals(strFieldsFirstLine[1])) {
+							prevWifiState = WifiState.WIFI_CONNECTING;
+						} else if (WIFI_DISCONNECTING
+								.equals(strFieldsFirstLine[1])) {
+							prevWifiState = WifiState.WIFI_DISCONNECTING;
+						} else if (WIFI_SUSPENDED.equals(strFieldsFirstLine[1])) {
+							prevWifiState = WifiState.WIFI_SUSPENDED;
 						} else {
-							logger.warning("Unknown wifi state: " + strLineBuf);
-							wifiState = WifiState.WIFI_UNKNOWN;
+							logger.warning("Unknown wifi state: " + firstLine);
+							prevWifiState = WifiState.WIFI_UNKNOWN;
 						}
 
-						if (wifiState != lastWifiState) {
-							wifiInfos.add(new WifiInfo(dTimeStamp, wifiState,
-									macAddress, rssi, ssid));
+						if (prevWifiState != lastWifiState) {
+
 							if (lastWifiState == WifiState.WIFI_CONNECTED
 									|| lastWifiState == WifiState.WIFI_CONNECTING
 									|| lastWifiState == WifiState.WIFI_DISCONNECTING) {
-								dActiveDuration += (dTimeStamp - dLastTimeStamp);
+								dActiveDuration += (beginTime - dLastTimeStamp);
 							}
-							lastWifiState = wifiState;
-							dLastTimeStamp = dTimeStamp;
+							lastWifiState = prevWifiState;
+							dLastTimeStamp = beginTime;
 						}
 					} else {
-						logger.warning("Invalid WiFi trace entry: "
-								+ strLineBuf);
+						logger.warning("Invalid WiFi trace entry: " + firstLine);
 					}
+
 				} catch (Exception e) {
-					logger.log(
-							Level.WARNING,
-							"Unexpected error parsing GPS event: " + strLineBuf,
+					logger.log(Level.WARNING,
+							"Unexpected error parsing GPS event: " + firstLine,
 							e);
 				}
 
-			}
+				for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br
+						.readLine()) {
+					String strFields[] = strLineBuf.split(" ");
+					try {
+						if (strFields.length >= 2) {
+							String macAddress = null;
+							String rssi = null;
+							String ssid = null;
+							WifiState wifiState = null;
+							endTime = normalizeTime(Double
+									.parseDouble(strFields[0]));
+							if (WIFI_OFF.equals(strFields[1])) {
+								wifiState = WifiState.WIFI_DISABLED;
+							} else if (WIFI_CONNECTED.equals(strFields[1])) {
+								wifiState = WifiState.WIFI_CONNECTED;
+								Matcher matcher = wifiPattern
+										.matcher(strLineBuf);
+								if (matcher.lookingAt()) {
+									macAddress = matcher.group(1);
+									rssi = matcher.group(2);
+									ssid = matcher.group(3);
+								} else {
+									logger.warning("Unable to parse wifi connection params: "
+											+ strLineBuf);
+								}
+							} else if (WIFI_DISCONNECTED.equals(strFields[1])) {
+								wifiState = WifiState.WIFI_DISCONNECTED;
+							} else if (WIFI_CONNECTING.equals(strFields[1])) {
+								wifiState = WifiState.WIFI_CONNECTING;
+							} else if (WIFI_DISCONNECTING.equals(strFields[1])) {
+								wifiState = WifiState.WIFI_DISCONNECTING;
+							} else if (WIFI_SUSPENDED.equals(strFields[1])) {
+								wifiState = WifiState.WIFI_SUSPENDED;
+							} else {
+								logger.warning("Unknown wifi state: "
+										+ strLineBuf);
+								wifiState = WifiState.WIFI_UNKNOWN;
+							}
 
-			// Duration calculation should probably be done in analysis
-			if (lastWifiState == WifiState.WIFI_CONNECTED
-					|| lastWifiState == WifiState.WIFI_CONNECTING
-					|| lastWifiState == WifiState.WIFI_DISCONNECTING) {
-				dActiveDuration += Math.max(0, getTraceDuration()
-						- dLastTimeStamp);
-			}
+							if (wifiState != lastWifiState) {
+								wifiInfos.add(new WifiInfo(beginTime, endTime,
+										prevWifiState, prevMacAddress,
+										prevRssi, prevSsid));
+								if (lastWifiState == WifiState.WIFI_CONNECTED
+										|| lastWifiState == WifiState.WIFI_CONNECTING
+										|| lastWifiState == WifiState.WIFI_DISCONNECTING) {
+									dActiveDuration += (endTime - dLastTimeStamp);
+								}
+								lastWifiState = wifiState;
+								dLastTimeStamp = endTime;
+								beginTime = endTime;
+								prevWifiState = wifiState;
+								prevMacAddress = macAddress;
+								prevRssi = rssi;
+								prevSsid = ssid;
+							}
+						} else {
+							logger.warning("Invalid WiFi trace entry: "
+									+ strLineBuf);
+						}
+					} catch (Exception e) {
+						logger.log(Level.WARNING,
+								"Unexpected error parsing GPS event: "
+										+ strLineBuf, e);
+					}
 
-			this.wifiActiveDuration = dActiveDuration;
-			Collections.sort(wifiInfos);
+				}
+				wifiInfos.add(new WifiInfo(beginTime, getTraceDuration() , prevWifiState, prevMacAddress, prevRssi,
+						prevSsid));
+
+				// Duration calculation should probably be done in analysis
+				if (lastWifiState == WifiState.WIFI_CONNECTED
+						|| lastWifiState == WifiState.WIFI_CONNECTING
+						|| lastWifiState == WifiState.WIFI_DISCONNECTING) {
+					dActiveDuration += Math.max(0, getTraceDuration()
+							- dLastTimeStamp);
+				}
+
+				this.wifiActiveDuration = dActiveDuration;
+				Collections.sort(wifiInfos);
+			}
 		} finally {
 			br.close();
 		}
@@ -1774,54 +2456,95 @@ public class TraceData implements Serializable {
 		}
 		BufferedReader br = new BufferedReader(new FileReader(file));
 		try {
-			double dTimeStamp;
+			double beginTime = 0.0;
+			double endTime;
 			double dLastActiveTimeStamp = 0.0;
 			double dActiveDuration = 0.0;
+			CameraState prevCameraState = null;
 			CameraState cameraState = null;
-			for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br
-					.readLine()) {
-				String strFields[] = strLineBuf.split(" ");
-				if (strFields.length == 2) {
+			String firstLine = br.readLine();
+			if (firstLine != null) {
+				String strFieldsFirstLine[] = firstLine.split(" ");
+				if (strFieldsFirstLine.length == 2) {
 					try {
-						dTimeStamp = normalizeTime(Double
-								.parseDouble(strFields[0]));
-						if (CAMERA_ON.equals(strFields[1])) {
-							cameraState = CameraState.CAMERA_ON;
+						beginTime = normalizeTime(Double
+								.parseDouble(strFieldsFirstLine[0]));
+						if (CAMERA_ON.equals(strFieldsFirstLine[1])) {
+							prevCameraState = CameraState.CAMERA_ON;
 							if (0.0 == dLastActiveTimeStamp) {
-								dLastActiveTimeStamp = dTimeStamp;
+								dLastActiveTimeStamp = beginTime;
 							}
-						} else if (CAMERA_OFF.equals(strFields[1])) {
-							cameraState = CameraState.CAMERA_OFF;
+						} else if (CAMERA_OFF.equals(strFieldsFirstLine[1])) {
+							prevCameraState = CameraState.CAMERA_OFF;
 						} else {
-							logger.warning("Unknown camera state: "
-									+ strLineBuf);
-							cameraState = CameraState.CAMERA_UNKNOWN;
+							logger.warning("Unknown camera state: " + firstLine);
+							prevCameraState = CameraState.CAMERA_UNKNOWN;
 						}
-						cameraInfos
-								.add(new CameraInfo(dTimeStamp, cameraState));
 
-						if ((!CAMERA_ON.equals(strFields[1]))
+						if ((!CAMERA_ON.equals(strFieldsFirstLine[1]))
 								&& dLastActiveTimeStamp > 0.0) {
-							dActiveDuration += (dTimeStamp - dLastActiveTimeStamp);
+							dActiveDuration += (beginTime - dLastActiveTimeStamp);
 							dLastActiveTimeStamp = 0.0;
 						}
 					} catch (Exception e) {
 						logger.log(Level.WARNING,
 								"Unexpected error in camera events: "
-										+ strLineBuf, e);
+										+ firstLine, e);
 					}
 				} else {
-					logger.warning("Unrecognized camera event: " + strLineBuf);
+					logger.warning("Unrecognized camera event: " + firstLine);
 				}
-			}
 
-			// Duration calculation should probably be done in analysis
-			if (cameraState == CameraState.CAMERA_ON) {
-				dActiveDuration += Math.max(0, getTraceDuration()
-						- dLastActiveTimeStamp);
-			}
+				for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br
+						.readLine()) {
+					String strFields[] = strLineBuf.split(" ");
+					if (strFields.length == 2) {
+						try {
+							endTime = normalizeTime(Double
+									.parseDouble(strFields[0]));
+							if (CAMERA_ON.equals(strFields[1])) {
+								cameraState = CameraState.CAMERA_ON;
+								if (0.0 == dLastActiveTimeStamp) {
+									dLastActiveTimeStamp = endTime;
+								}
+							} else if (CAMERA_OFF.equals(strFields[1])) {
+								cameraState = CameraState.CAMERA_OFF;
+							} else {
+								logger.warning("Unknown camera state: "
+										+ strLineBuf);
+								cameraState = CameraState.CAMERA_UNKNOWN;
+							}
+							cameraInfos.add(new CameraInfo(beginTime, endTime,
+									prevCameraState));
 
-			this.cameraActiveDuration = dActiveDuration;
+							if ((!CAMERA_ON.equals(strFields[1]))
+									&& dLastActiveTimeStamp > 0.0) {
+								dActiveDuration += (endTime - dLastActiveTimeStamp);
+								dLastActiveTimeStamp = 0.0;
+							}
+							prevCameraState = cameraState;
+							beginTime = endTime;
+
+						} catch (Exception e) {
+							logger.log(Level.WARNING,
+									"Unexpected error in camera events: "
+											+ strLineBuf, e);
+						}
+					} else {
+						logger.warning("Unrecognized camera event: "
+								+ strLineBuf);
+					}
+				}
+				cameraInfos.add(new CameraInfo(beginTime, getTraceDuration() , prevCameraState));
+
+				// Duration calculation should probably be done in analysis
+				if (cameraState == CameraState.CAMERA_ON) {
+					dActiveDuration += Math.max(0, getTraceDuration()
+							- dLastActiveTimeStamp);
+				}
+
+				this.cameraActiveDuration = dActiveDuration;
+			}
 		} finally {
 			br.close();
 		}
@@ -1839,45 +2562,90 @@ public class TraceData implements Serializable {
 		}
 		BufferedReader br = new BufferedReader(new FileReader(file));
 		try {
-			double dTimeStamp;
+			double beginTime = 0.0;
+			double endTime = 0.0;
+			ScreenState prevScreenState = null;
 			ScreenState screenState;
-			String brightness;
-			int timeout;
-			for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br
-					.readLine()) {
-				String strFields[] = strLineBuf.split(" ");
-				if (strFields.length >= 2) {
+			String prevBrigtness = null;
+			String brightness = null;
+			int prevTimeOut = 0;
+			int timeout = 0;
+			String firstLine = br.readLine();
+			if (firstLine != null) {
+				String strFieldsFirstLine[] = firstLine.split(" ");
+				if (strFieldsFirstLine.length >= 2) {
 					try {
-						dTimeStamp = normalizeTime(Double
-								.parseDouble(strFields[0]));
-						brightness = null;
-						timeout = 0;
-						if (SCREEN_ON.equals(strFields[1])) {
-							screenState = ScreenState.SCREEN_ON;
-							if (strFields.length >= 4) {
-								timeout = Integer.parseInt(strFields[2]);
-								brightness = strFields[3];
+						beginTime = normalizeTime(Double
+								.parseDouble(strFieldsFirstLine[0]));
+
+						if (SCREEN_ON.equals(strFieldsFirstLine[1])) {
+							prevScreenState = ScreenState.SCREEN_ON;
+							if (strFieldsFirstLine.length >= 4) {
+								prevTimeOut = Integer
+										.parseInt(strFieldsFirstLine[2]);
+								prevBrigtness = strFieldsFirstLine[3];
 							}
-						} else if (SCREEN_OFF.equals(strFields[1])) {
-							screenState = ScreenState.SCREEN_OFF;
+						} else if (SCREEN_OFF.equals(strFieldsFirstLine[1])) {
+							prevScreenState = ScreenState.SCREEN_OFF;
 						} else {
-							logger.warning("Unknown screen state: "
-									+ strLineBuf);
-							screenState = ScreenState.SCREEN_UNKNOWN;
+							logger.warning("Unknown screen state: " + firstLine);
+							prevScreenState = ScreenState.SCREEN_UNKNOWN;
 						}
 
-						ScreenStateInfo screenInfo = new ScreenStateInfo(
-								dTimeStamp, screenState, brightness, timeout);
-						screenStateInfos.add(screenInfo);
 					} catch (Exception e) {
 						logger.log(Level.WARNING,
 								"Unexpected error in screen events: "
-										+ strLineBuf, e);
+										+ firstLine, e);
 					}
 				} else {
 					logger.warning("Unrecognized screen state event: "
-							+ strLineBuf);
+							+ firstLine);
 				}
+				for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br
+						.readLine()) {
+					String strFields[] = strLineBuf.split(" ");
+					if (strFields.length >= 2) {
+						try {
+							endTime = normalizeTime(Double
+									.parseDouble(strFields[0]));
+							brightness = null;
+							timeout = 0;
+							if (SCREEN_ON.equals(strFields[1])) {
+								screenState = ScreenState.SCREEN_ON;
+								if (strFields.length >= 4) {
+									timeout = Integer.parseInt(strFields[2]);
+									brightness = strFields[3];
+								}
+							} else if (SCREEN_OFF.equals(strFields[1])) {
+								screenState = ScreenState.SCREEN_OFF;
+							} else {
+								logger.warning("Unknown screen state: "
+										+ strLineBuf);
+								screenState = ScreenState.SCREEN_UNKNOWN;
+							}
+
+							ScreenStateInfo screenInfo = new ScreenStateInfo(
+									beginTime, endTime, prevScreenState,
+									prevBrigtness, prevTimeOut);
+							screenStateInfos.add(screenInfo);
+							prevScreenState = screenState;
+							prevBrigtness = brightness;
+							prevTimeOut = timeout;
+							beginTime = endTime;
+						} catch (Exception e) {
+							logger.log(Level.WARNING,
+									"Unexpected error in screen events: "
+											+ strLineBuf, e);
+						}
+					} else {
+						logger.warning("Unrecognized screen state event: "
+								+ strLineBuf);
+					}
+				}
+				screenStateInfos.add(new ScreenStateInfo(beginTime,
+						getTraceDuration() , prevScreenState,
+						prevBrigtness, prevTimeOut));
+
 			}
 		} finally {
 			br.close();
@@ -1889,6 +2657,10 @@ public class TraceData implements Serializable {
 	 * batteryInfos list.
 	 */
 	private void readBattery() throws IOException {
+		//Adding defaults for the first line of the battery file.
+		int previousLevel = 0;
+		int previousTemp = 0;
+		boolean previousState = false;
 		File file = new File(traceDir, BATTERY_FILE);
 		if (!file.exists()) {
 			this.missingFiles.add(BATTERY_FILE);
@@ -1905,8 +2677,13 @@ public class TraceData implements Serializable {
 						int bLevel = Integer.parseInt(strFields[1]);
 						int bTemp = Integer.parseInt(strFields[2]);
 						boolean bState = Boolean.valueOf(strFields[3]);
-						batteryInfos.add(new BatteryInfo(bTimeStamp, bState,
-								bLevel, bTemp));
+						//Checks to make sure that the new line is not the same as the previous line so duplicate points arn't plotted
+						if(bLevel != previousLevel || bTemp != previousTemp || bState != previousState) 
+							batteryInfos.add(new BatteryInfo(bTimeStamp, bState,
+									bLevel, bTemp));
+						previousLevel = Integer.parseInt(strFields[1]);
+						previousTemp = Integer.parseInt(strFields[2]);
+						previousState = Boolean.valueOf(strFields[3]);
 					} catch (Exception e) {
 						logger.log(Level.WARNING,
 								"Unexpected error parsing battery event: "
@@ -1937,8 +2714,8 @@ public class TraceData implements Serializable {
 					.readLine()) {
 
 				String[] strFields = strLineBuf.split(" ");
-				if (strFields.length == 2) {
-					try {
+				try {
+					if (strFields.length == 2) {
 						double timestampVal = normalizeTime(Double
 								.parseDouble(strFields[0]));
 						double dbmValue = Double.parseDouble(strFields[1]);
@@ -1956,13 +2733,39 @@ public class TraceData implements Serializable {
 						// Add radio event
 						radioInfos.add(new RadioInfo(timestampVal, dbmValue));
 						lastDbmValue = dbmValue;
-					} catch (Exception e) {
-						logger.log(Level.WARNING,
-								"Unexpected error parsing radio event: "
-										+ strLineBuf, e);
+					} else if (strFields.length == 6) {
+						
+						// LTE
+						double timestampVal = normalizeTime(Double
+								.parseDouble(strFields[0]));
+						RadioInfo ri = new RadioInfo(timestampVal,
+								Integer.parseInt(strFields[1]),
+								Integer.parseInt(strFields[2]),
+								Integer.parseInt(strFields[3]),
+								Integer.parseInt(strFields[4]),
+								Integer.parseInt(strFields[5]));
+						
+						// Special handling for lost or regained signal
+						if (lastDbmValue != null
+								&& timestampVal > 0.0
+								&& (ri.getSignalStrength() >= 0.0 || lastDbmValue
+										.doubleValue() >= 0.0)
+								&& ri.getSignalStrength() != lastDbmValue.doubleValue()) {
+							radioInfos.add(new RadioInfo(timestampVal,
+									lastDbmValue.doubleValue()));
+						}
+
+						// Add radio event
+						radioInfos.add(ri);
+						lastDbmValue = ri.getSignalStrength();
+						
+					} else {
+						logger.warning("Invalid radio_events entry: " + strLineBuf);
 					}
-				} else {
-					logger.warning("Invalid radio_events entry: " + strLineBuf);
+				} catch (Exception e) {
+					logger.log(Level.WARNING,
+							"Unexpected error parsing radio event: "
+									+ strLineBuf, e);
 				}
 			}
 		} finally {
@@ -2036,34 +2839,6 @@ public class TraceData implements Serializable {
 	}
 
 	/**
-	 * Syncs the time.
-	 */
-	private void syncTime() {
-		// MyAssert(nPackets > 0, 220);
-		// MyAssert(pcapTime0 <= packets[0].ts, 221);
-		for (PacketInfo packet : allPackets) {
-			double dTimeStamp = packet.getTimeStamp() - pcapTime0;
-			packet.setTimestamp(dTimeStamp);
-			checkLastEvent(dTimeStamp);
-
-			if (packet.getPacket() instanceof IPPacket) {
-				IPPacket ip = (IPPacket) packet.getPacket();
-				packet.setDir(determinePacketDirection(ip.getSourceIPAddress(),
-						ip.getDestinationIPAddress()));
-			}
-		}
-		int nCPU = cpuActivityList.size();
-		if (nCPU > 0) {
-			for (int i = 0; i < nCPU; i++) {
-				double dNewTimeStamp = cpuActivityList.get(i).getCpuTimeStamp()
-						- pcapTime0;
-				cpuActivityList.get(i).setCpuTimeStamp(dNewTimeStamp);
-				checkLastEvent(dNewTimeStamp);
-			}
-		}
-	}
-
-	/**
 	 * Attempts to determine packet direction based upon source and destination
 	 * IP addresses
 	 */
@@ -2128,22 +2903,10 @@ public class TraceData implements Serializable {
 
 		// The comparison check here is for backward compatibility
 		time = time > 1.0E9 ? time - pcapTime0 : time;
-		checkLastEvent(time);
 		if (time < 0) {
 			return 0.0;
 		}
 		return time;
-	}
-
-	/**
-	 * validate the end of trace time.
-	 * 
-	 * @param time
-	 */
-	private void checkLastEvent(double time) {
-		if (!endTraceTimeFound) {
-			this.traceDuration = Math.max(this.traceDuration, time);
-		}
 	}
 
 	/**

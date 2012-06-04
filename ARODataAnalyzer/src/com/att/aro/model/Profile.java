@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Represents a device profile used in analysis modeling.
+ * Represents a device profile that is used as a model of the device when analyzing trace data.
  */
 public abstract class Profile implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -38,7 +38,7 @@ public abstract class Profile implements Serializable {
 	public static final String CARRIER = "CARRIER";
 
 	/**
-	 * Device name.
+	 * The device name. 
 	 */
 	public static final String DEVICE = "DEVICE";
 
@@ -53,47 +53,49 @@ public abstract class Profile implements Serializable {
 	public static final String USER_INPUT_TH = "USER_INPUT_TH";
 
 	/**
-	 * Average power for active GPS (w).
+	 * The average amount of power (in watts) that should be used when the camera is on. 
 	 */
 	public static final String POWER_GPS_ACTIVE = "POWER_GPS_ACTIVE";
 
 	/**
-	 * Average power for standby GPS (w).
+	 * The average amount of power (in watts) that should be used when GPS is in the 
+	 * Standby state. 
 	 */
 	public static final String POWER_GPS_STANDBY = "POWER_GPS_STANDBY";
 
 	/**
-	 * Average power when camera is on (w).
+	 * The average amount of power (in watts) that should be used when the camera is on. 
 	 */
 	public static final String POWER_CAMERA_ON = "POWER_CAMERA_ON";
 
 	/**
-	 * Average power Wi-Fi connected (w).
+	 * The average amount of power (in watts) that should be used when WiFi is in the Active state. 
 	 */
 	public static final String POWER_WIFI_ACTIVE = "POWER_WIFI_ACTIVE";
 
 	/**
-	 * Average power Wi-Fi inactive (w).
+	 * The average amount of power (in watts) that should be used when WiFi is in the Standby state. 
 	 */
 	public static final String POWER_WIFI_STANDBY = "POWER_WIFI_STANDBY";
 
 	/**
-	 * Average power for active Bluetooth (w).
+	 * The minimum amount of observed samples for periodical bursts. 
 	 */
 	public static final String POWER_BLUETOOTH_ACTIVE = "POWER_BLUETOOTH_ACTIVE";
 
 	/**
-	 * Average power for standby Bluetooth (w).
+	 * The average amount of power (in watts) that should be used (in watts) when 
+	 * Bluetooth is in the Standby state.
 	 */
 	public static final String POWER_BLUETOOTH_STANDBY = "POWER_BLUETOOTH_STANDBY";
 
 	/**
-	 * Average power when screen is on (w).
+	 * The average amount of power (in watts) that should be used when the screen is on. 
 	 */
 	public static final String POWER_SCREEN_ON = "POWER_SCREEN_ON";
 
 	/**
-	 * Threshold for defining a burst (seconds).
+	 * The threshold for defining a burst (in seconds). 
 	 */
 	public static final String BURST_TH = "BURST_TH";
 
@@ -103,17 +105,17 @@ public abstract class Profile implements Serializable {
 	public static final String LONG_BURST_TH = "LONG_BURST_TH";
 
 	/**
-	 * Min cycle for periodical transfers (seconds).
+	 * The minimum tolerable variation for periodical bursts (in seconds). 
 	 */
 	public static final String PERIOD_MIN_CYCLE = "PERIOD_MIN_CYCLE";
 
 	/**
-	 * Max tolerable variation for periodical transfers (seconds).
+	 * The maximum tolerable variation for periodical bursts (in seconds). 
 	 */
 	public static final String PERIOD_CYCLE_TOL = "PERIOD_CYCLE_TOL";
 
 	/**
-	 * Minimum observed samples for periodical transfers.
+	 * The minimum amount of observed samples for periodical bursts. 
 	 */
 	public static final String PERIOD_MIN_SAMPLES = "PERIOD_MIN_SAMPLES";
 
@@ -197,6 +199,7 @@ public abstract class Profile implements Serializable {
 	}
 
 	private Map<String, String> errorLog = new HashMap<String, String>();
+	private boolean init;
 
 	private File file;
 	private String name;
@@ -222,18 +225,19 @@ public abstract class Profile implements Serializable {
 	private double throughputWindow = 0.5;
 
 	/**
-	 * Default constructor
+	 * Initializes an instance of the Profile class.
 	 */
 	public Profile() {
 		super();
 	}
 
 	/**
-	 * Initializes a new instance of Profile with the specified profile file and properties.
+	 * Initializes an instance of the Profile class, using the specified properties.
 	 * 
-	 * @param file
-	 *            The file where profile can be saved. Can be null.
-	 * @param properties The properties that are to be set to the profile object.
+	 * @param file - A file where the profile can be saved. This argument can be null. 
+	 * 
+	 * @param properties – A Properties object containing the profile properties.
+	 * 
 	 * @throws ProfileException
 	 */
 	public Profile(File file, Properties properties) throws ProfileException {
@@ -245,11 +249,13 @@ public abstract class Profile implements Serializable {
 	}
 
 	/**
-	 * Initializes a new instance of Profile with the specified name and properties.
+	 * Initializes an instance of the Profile class, using the specified properties. 
 	 * 
-	 * @param name
-	 *            The name of this profile.
-	 * @param properties The properties that are to be set to the profile object.
+	 * @param name - The name of the profile. The name is either an absolute path to the file that 
+	 * holds this profile, or the name of a pre-defined profile .
+	 * 
+	 * @param properties - A Properties object containing the profile properties.
+	 * 
 	 * @throws ProfileException
 	 */
 	public Profile(String name, Properties properties) throws ProfileException {
@@ -258,18 +264,18 @@ public abstract class Profile implements Serializable {
 	}
 
 	/**
-	 * Utility method that returns a power value for a period of time for a
-	 * specified radeo state
+	 * A utility method for calculating RRC energy.
 	 * 
-	 * @param time1
-	 *            The begin time.
-	 * @param time2
-	 *            The end time.
-	 * @param state
-	 *            The radio state.
-	 * @param packets List of packets passed over the timeline and may be used
+	 * @param time1 – A beginning time value.
+	 * 
+	 * @param time2 – An ending time value.
+	 * 
+	 * @param state – An RRCState enumeration value that indicates the RRC energy state.
+	 * 
+	 * @param packets - List of packets passed over the timeline and may be used
 	 * in determining energy used
-	 * @return The energy in joules.
+	 * 
+	 * @return The RRC energy value.
 	 */
 	public abstract double energy(double time1, double time2, RRCState state,
 			List<PacketInfo> packets);
@@ -282,10 +288,10 @@ public abstract class Profile implements Serializable {
 	public abstract ProfileType getProfileType();
 
 	/**
-	 * Stores the current profile values in the provided file.
+	 * Stores the current profile values contained in this object, in the specified file. 
 	 * 
-	 * @param file
-	 *            location where the profile details are going to be stored.
+	 * @param file – The absolute path to the location where the profile values should be stored. 
+	 * 
 	 * @throws IOException
 	 */
 	public synchronized final void saveToFile(File file) throws IOException {
@@ -324,8 +330,8 @@ public abstract class Profile implements Serializable {
 	}
 
 	/**
-	 * This is the name of a profile. The name is either an absolute path to the
-	 * file that holds this profile or the name of a pre-defined profile
+	 * Returns the name of this profile. The name is either an absolute path to the file that holds 
+	 * this profile, or the name of a pre-defined profile.
 	 * 
 	 * @return The profile name.
 	 */
@@ -334,171 +340,171 @@ public abstract class Profile implements Serializable {
 	}
 
 	/**
-	 * Returns the file containing the profile data.
+	 * Returns the profile file. 
 	 * 
-	 * @return The profile data file.
+	 * @return The file.
 	 */
 	public File getFile() {
 		return file;
 	}
 
 	/**
-	 * Returns the carrier name for the profile.
+	 * Returns the carrier. 
 	 * 
-	 * @return The carrie namer.
+	 * @return The carrier name.
 	 */
 	public String getCarrier() {
 		return carrier;
 	}
 
 	/**
-	 * Returns the device name for the profile.
+	 * Returns the name of the device. 
 	 * 
-	 * @return The profile device name.
+	 * @return A string containing the device name.
 	 */
 	public String getDevice() {
 		return device;
 	}
 
 	/**
-	 * Returns the value of user input threshold.
+	 * Returns the user input threshold. 
 	 * 
-	 * @return userInputTh.
+	 * @return The user input threshold value.
 	 */
 	public double getUserInputTh() {
 		return userInputTh;
 	}
 
 	/**
-	 * Returns the value of power of GPS when active.
+	 * Returns the amount of energy used when GPS is active. 
 	 * 
-	 * @return powerGpsActive.
+	 * @return The GPS active power value.
 	 */
 	public double getPowerGpsActive() {
 		return powerGpsActive;
 	}
 
 	/**
-	 * Returns the value of power of GPS in standby mode.
+	 * Returns the amount of energy used when GPS is in standby mode. 
 	 * 
-	 * @return powerGpsStandby.
+	 * @return The GPS standby mode power value.
 	 */
 	public double getPowerGpsStandby() {
 		return powerGpsStandby;
 	}
 
 	/**
-	 * Returns the value of power of camera when ON.
+	 * Returns the amount of energy used when the camera is ON. 
 	 * 
-	 * @return powerCameraOn.
+	 * @return The amount of power used when the camera is ON.
 	 */
 	public double getPowerCameraOn() {
 		return powerCameraOn;
 	}
 
 	/**
-	 * Returns the value of power of WiFi when active.
+	 * Returns the amount of energy used when WiFi is active. 
 	 * 
-	 * @return powerWifiActive.
+	 * @return The WiFi active power value.
 	 */
 	public double getPowerWifiActive() {
 		return powerWifiActive;
 	}
 
 	/**
-	 * Returns the value of power of WiFi in standby mode.
+	 * Returns the amount of energy used when WiFi is in standby mode. 
 	 * 
-	 * @return powerWifiStandby.
+	 * @return The WiFi standby mode power value.
 	 */
 	public double getPowerWifiStandby() {
 		return powerWifiStandby;
 	}
 
 	/**
-	 * Returns the value of power of bluetooth when active.
+	 * Returns the amount of energy used when Bluetooth is active. 
 	 * 
-	 * @return powerBluetoothActive.
+	 * @return The Bluetooth active power value.
 	 */
 	public double getPowerBluetoothActive() {
 		return powerBluetoothActive;
 	}
 
 	/**
-	 * Returns the value of power of bluetooh in standby mode.
+	 * Returns the amount of energy used when Bluetooth is in standby mode. 
 	 * 
-	 * @return powerBluetoothStandby.
+	 * @return The Bluetooth standby mode power value.
 	 */
 	public double getPowerBluetoothStandby() {
 		return powerBluetoothStandby;
 	}
 
 	/**
-	 * Returns the value of power of screen when ON.
+	 * Returns the total amount of energy used when the device screen is ON. 
 	 * 
-	 * @return powerScreenOn.
+	 * @return The screen ON power value.
 	 */
 	public double getPowerScreenOn() {
 		return powerScreenOn;
 	}
 
 	/**
-	 * Returns the value of burst threshold.
+	 * Returns the value of the burst threshold. 
 	 * 
-	 * @return burstTh.
+	 * @return The burst threshold.
 	 */
 	public double getBurstTh() {
 		return burstTh;
 	}
 
 	/**
-	 * Returns the value of long burst threshold.
+	 * Returns the value of the long burst threshold. 
 	 * 
-	 * @return longBurstTh.
+	 * @return The long burst threshold value.
 	 */
 	public double getLongBurstTh() {
 		return longBurstTh;
 	}
 
 	/**
-	 * Returns the value of minimum cycle period.
+	 * Returns the minimum amount of energy used during the cycle period. 
 	 * 
-	 * @return periodMinCycle.
+	 * @return The minimum cycle period value.
 	 */
 	public double getPeriodMinCycle() {
 		return periodMinCycle;
 	}
 
 	/**
-	 * Returns the value of total cycle period.
+	 * Returns the amount of energy used during the total cycle period. 
 	 * 
-	 * @return periodCycleTol.
+	 * @return The total cycle period value.
 	 */
 	public double getPeriodCycleTol() {
 		return periodCycleTol;
 	}
 
 	/**
-	 * Returns the value of minimum sample period.
+	 * Returns the value of the minimum sample period. 
 	 * 
-	 * @return periodMinSamples.
+	 * @return The minimum sample period value.
 	 */
 	public int getPeriodMinSamples() {
 		return periodMinSamples;
 	}
 
 	/**
-	 * Returns the value of duration of large burst.
+	 * Returns the total duration of all large bursts. 
 	 * 
-	 * @return largeBurstDuration.
+	 * @return The large burst duration value.
 	 */
 	public double getLargeBurstDuration() {
 		return largeBurstDuration;
 	}
 
 	/**
-	 * Returns the value of size of large burst.
+	 * Returns the total size of all large bursts. 
 	 * 
-	 * @return largeBurstSize.
+	 * @return The large burst size value (in bytes).
 	 */
 	public int getLargeBurstSize() {
 		return largeBurstSize;
@@ -532,7 +538,12 @@ public abstract class Profile implements Serializable {
 			double defaultVal) {
 		String value = properties.getProperty(attribute);
 		try {
-			return value != null ? Double.parseDouble(value) : defaultVal;
+			if (value != null) {
+				init = true;
+				return Double.parseDouble(value);
+			} else {
+				return defaultVal;
+			}
 		} catch (NumberFormatException e) {
 			errorLog.put(attribute, value);
 			return defaultVal;
@@ -553,7 +564,12 @@ public abstract class Profile implements Serializable {
 			int defaultVal) {
 		String value = properties.getProperty(attribute);
 		try {
-			return value != null ? Integer.parseInt(value) : defaultVal;
+			if (value != null) {
+				init = true;
+				return Integer.parseInt(value);
+			} else {
+				return defaultVal;
+			}
 		} catch (NumberFormatException e) {
 			errorLog.put(attribute, value);
 			return defaultVal;
@@ -623,6 +639,8 @@ public abstract class Profile implements Serializable {
 
 		if (!errorLog.isEmpty()) {
 			throw new ProfileException(errorLog);
+		} else if (!init) {
+			throw new ProfileException();
 		}
 	}
 

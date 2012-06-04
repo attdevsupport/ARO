@@ -17,6 +17,7 @@
 
 package com.att.aro.main;
 
+import java.text.DecimalFormat;
 import java.util.ResourceBundle;
 
 import javax.swing.table.TableColumn;
@@ -70,7 +71,7 @@ public class SimpleDomainTableModel extends DataTableModel<DomainTCPSessions> {
 		TableColumn col;
 
 		col = cols.getColumn(SESSION_LEN);
-		col.setCellRenderer(new NumberFormatRenderer());
+		col.setCellRenderer(new NumberFormatRenderer(new DecimalFormat("0.000")));
 
 		return cols;
 	}

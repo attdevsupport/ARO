@@ -44,23 +44,25 @@ public class CacheAnalysis implements Serializable {
 			.getName());
 
 	/**
-	 * ENUM to maintain the Cache Expiration Categories.
+	 * The CacheAnalysis.CacheExpiration Enumeration specifies constant values that 
+	 * describe the cache expiration state. This enumeration is part of the CacheAnalysis 
+	 * class.
 	 */
 	public enum CacheExpiration {
 		/**
-		 * Expired cache state.
+		 * The cache has Expired . 
 		 */
 		CACHE_EXPIRED,
 		/**
-		 * Cache not expired state.
+		 * The cache has not expired. 
 		 */
 		CACHE_NOT_EXPIRED,
 		/**
-		 * Discovered expired cache.
+		 * The expired cache has been discovered. 
 		 */
 		CACHE_EXPIRED_HEURISTIC,
 		/**
-		 * Discovered not expired cache.
+		 * The not expired cache has been discovered.
 		 */
 		CACHE_NOT_EXPIRED_HEURISTIC
 	}

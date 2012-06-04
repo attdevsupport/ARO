@@ -47,27 +47,27 @@ public class HttpRequestResponseInfo implements
 		Comparable<HttpRequestResponseInfo> {
 
 	/**
-	 * HTTP version 1.0.
+	 * Returns HTTP version 1.0.
 	 */
 	public static final String HTTP10 = "HTTP/1.0";
 
 	/**
-	 * HTTP version 1.1.
+	 * Returns HTTP version 1.1.
 	 */
 	public static final String HTTP11 = "HTTP/1.1";
 
 	/**
-	 * GET HTTP type.
+	 * Returns the GET HTTP type.
 	 */
 	public static final String HTTP_GET = "GET";
 
 	/**
-	 * PUT HTTP type.
+	 * PReturns the PUT HTTP type.pe.
 	 */
 	public static final String HTTP_PUT = "PUT";
 
 	/**
-	 * POST HTTP type.
+	 * Returns the POST HTTP type.
 	 */
 	public static final String HTTP_POST = "POST";
 
@@ -133,15 +133,18 @@ public class HttpRequestResponseInfo implements
 	private HttpRequestResponseInfo assocReqResp;
 
 	/**
-	 * Indicated request or response
+	 * The HttpRequestResponseInfo.Direction Enumeration specifies constant values that 
+	 * describe the direction of an HTTP request/response. The direction indicates whether 
+	 * an HttpRequestResponseInfo object contains a request (up link) or a response 
+	 * (downlink). This enumeration is part of the HttpRequestResponseInfo class. 
 	 */
 	public enum Direction {
 		/**
-		 * Request direction which is up link.
+		 * A Request traveling in the up link direction. 
 		 */
 		REQUEST,
 		/**
-		 * Response direction which is down link.
+		 * A Response traveling in the down link direction.
 		 */
 		RESPONSE;
 	}
@@ -269,11 +272,13 @@ public class HttpRequestResponseInfo implements
 		}
 
 		/**
-		 * Builds request/response list from the session content
+		 * Returns a list of HTTP requests and responses from the specified TCP session. 
 		 * 
 		 * @param direction
 		 *            The direction i.e. uplink/downlink.
 		 * @throws IOException
+		 * 
+		 * @return A List of HttpRequestResponseInfo objects that contain the request/response data from a TCP session.
 		 */
 		public synchronized void extractHttpRequestResponseInfo(
 				PacketInfo.Direction direction) throws IOException {
@@ -842,6 +847,8 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
+	 * Compares the specified HttpRequestResponseInfo object to this one.
+	 * 
 	 * @see java.lang.Comparable#compareTo(java.lang.Object)
 	 */
 	@Override
@@ -851,40 +858,40 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns TCP session.
+	 * Returns the TCP session. 
 	 * 
-	 * @return The tcp session.
+	 * @return A TCPSession object containing the TCP session.
 	 */
 	public TCPSession getSession() {
 		return session;
 	}
 
 	/**
-	 * Returns HTTP associated request/response.
+	 * Returns the associated HTTP request/response. For instance, if this object contains an HTTP 
+	 * request, then this method will return the HTTP response associated with that request.
 	 * 
-	 * @return associated request/response.
+	 * @return An HttpRequestResponseInfo object containing the associated request/response.
 	 */
 	public HttpRequestResponseInfo getAssocReqResp() {
 		return assocReqResp;
 	}
 
 	/**
-	 * Returns the timestamp offset of the request/response within the current
-	 * trace.
+	 * Returns the timestamp of the first packet associated with this HttpRequestResponseInfo . This 
+	 * is the offset of the request/response within the current trace. 
 	 * 
-	 * @return first packet timestamp associated with the
-	 *         HttpRequestResponseInfo. If first packet is null then returns
-	 *         0.0.
+	 * @return A double that is the first packet timestamp associated with this 
+	 * HttpRequestResponseInfo. If the first packet is null, then this method returns 0.
 	 */
 	public double getTimeStamp() {
 		return firstDataPacket != null ? firstDataPacket.getTimeStamp() : 0.0;
 	}
 
 	/**
-	 * Gets the real Date for the request/response
+	 * Gets the real Date (the first packet Date) for the request/response. 
 	 * 
-	 * @return first packet Date associated with the HttpRequestResponseInfo. if
-	 *         first packet is null then returns null.
+	 * @return The first packet Date associated with the HttpRequestResponseInfo. If the first 
+	 * packet is null, then this method returns null.
 	 */
 	public Date getAbsTimeStamp() {
 		return firstDataPacket != null ? new Date(Math.round(firstDataPacket
@@ -892,45 +899,45 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns direction.
+	 * Returns the direction (request or response). 
 	 * 
-	 * @return The direction i.e uplink/downlink.
+	 * @return An HttpRequestResponseInfo.Direction enumeration value that indicates the direction.
 	 */
 	public Direction getDirection() {
 		return direction;
 	}
 
 	/**
-	 * Returns HTTP requestType.
+	 * The HTTP requestType. 
 	 * 
-	 * @return HTTP requestType.
+	 * @return A string containing the HTTP requestType.
 	 */
 	public String getRequestType() {
 		return requestType;
 	}
 
 	/**
-	 * Returns HTTP object name.
+	 * Returns the HTTP object name. 
 	 * 
-	 * @return object name.
+	 * @return A string containing the object name.
 	 */
 	public String getObjName() {
 		return objName;
 	}
 
 	/**
-	 * Returns HTTP object URL.
+	 * Returns the HTTP object URL. 
 	 * 
-	 * @return object URL.
+	 * @return The HTTP object URL.
 	 */
 	public URI getObjUri() {
 		return objUri;
 	}
 
 	/**
-	 * Returns HTTP object name without parameters.
+	 * Returns the HTTP object name without parameters. 
 	 * 
-	 * @return The object name without parameters.
+	 * @return A string containing the object name without parameters.
 	 */
 	public String getObjNameWithoutParams() {
 		if (objName != null && objNameWithoutParams == null) {
@@ -945,223 +952,232 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns host name.
+	 * Returns the host name. 
 	 * 
-	 * @return The host name.
+	 * @return A string containing the host name.
 	 */
 	public String getHostName() {
 		return hostName;
 	}
 
 	/**
-	 * Returns status code.
+	 * Returns the status code. 
 	 * 
-	 * @return The status code.
+	 * @return An int that is the status code.
 	 */
 	public int getStatusCode() {
 		return statusCode;
 	}
 
 	/**
-	 * Returns the content type.
+	 * Returns the content type. 
 	 * 
-	 * @return The content type.
+	 * @return A string that describes the content type.
 	 */
 	public String getContentType() {
 		return contentType;
 	}
 
 	/**
-	 * Returns the content length.
+	 * Returns the content length. 
 	 * 
-	 * @return content length.
+	 * @return The content length in bytes.
 	 */
 	public int getContentLength() {
 		return contentLength;
 	}
 
 	/**
-	 * Returns the size of raw bytes.
+	 * Returns the raw size in bytes. 
 	 * 
-	 * @return size of raw bytes.
+	 * @return The raw size in bytes.
 	 */
 	public int getRawSize() {
 		return rawSize;
 	}
 
 	/**
-	 * Returns the HTTP request/response version.
+	 * Returns the HTTP request/response version. 
 	 * 
-	 * @return HTTP request/response version.
+	 * @return A string that is the HTTP request/response version.
 	 */
 	public String getVersion() {
 		return version;
 	}
 
 	/**
-	 * Returns the HTTP response result.
+	 * Returns the HTTP response result. 
 	 * 
-	 * @return HTTP response result.
+	 * @return A string containing the HTTP response result.
 	 */
 	public String getResponseResult() {
 		return responseResult;
 	}
 
 	/**
-	 * Returns the HTTP request/response ContentEncoding.
+	 * Returns the HTTP request/response ContentEncoding. 
 	 * 
-	 * @return ContentEncoding.
+	 * @return A string containing the ContentEncoding.
 	 */
 	public String getContentEncoding() {
 		return contentEncoding;
 	}
 
 	/**
-	 * Returns the first data packet associated with the request/response.
+	 * Returns the first data packet associated with the request/response. 
 	 * 
-	 * @return first data packet associated with the request/response.
+	 * @return A PacketInfo object containing the first data packet.
 	 */
 	public PacketInfo getFirstDataPacket() {
 		return firstDataPacket;
 	}
 
 	/**
-	 * Returns the packets found in the request/response object.
+	 * Returns all of the packets in the HTTP request/response. 
 	 * 
-	 * @return The packets.
+	 * @return A List of PacketInfo objects containing the packets.
 	 */
 	public List<PacketInfo> getPackets() {
 		return Collections.unmodifiableList(packets);
 	}
 
 	/**
-	 * Returns HTTP request/response date.
+	 * Returns the HTTP request/response date. 
 	 * 
-	 * @return The request/response date.
+	 * @return The date.
 	 */
 	public Date getDate() {
 		return date;
 	}
 
 	/**
-	 * Returns the HTTP CacheHeaders state.
+	 * Returns the HTTP CacheHeaders state. 
 	 * 
-	 * @return true if it has CacheHeaders; else false.
+	 * @return A boolean value that is true if the request/response has CacheHeaders, and is false 
+	 * otherwise.
 	 */
 	public boolean isHasCacheHeaders() {
 		return hasCacheHeaders;
 	}
 
 	/**
-	 * Returns the HTTP PragmaNoCache state.
+	 * Returns the HTTP PragmaNoCache state. 
 	 * 
-	 * @return true if it has PragmaNoCache; else false.
+	 * @return A boolean value that is true if the request/response has PragmaNoCache, and is false 
+	 * otherwise.
 	 */
 	public boolean isPragmaNoCache() {
 		return pragmaNoCache;
 	}
 
 	/**
-	 * Returns Hthe TTP NoCache state.
+	 * Returns the HTTP NoCache state. 
 	 * 
-	 * @return true if it has NoCache; else false.
+	 * @return A boolean value that is true if the request/response has NoCache, and is false 
+	 * otherwise.
 	 */
 	public boolean isNoCache() {
 		return noCache;
 	}
 
 	/**
-	 * Returns the HTTP NoStore state.
+	 * Returns the HTTP NoStore state. 
 	 * 
-	 * @return true if it has NoStore; else false.
+	 * @return A boolean value that is true if the request/response has NoStore, and is false 
+	 * otherwise.
 	 */
 	public boolean isNoStore() {
 		return noStore;
 	}
 
 	/**
-	 * Returns the HTTP PublicCache state.
+	 * Returns the HTTP PublicCache state. 
 	 * 
-	 * @return true if it has PublicCache; else false.
+	 * @return A boolean value that is true if the request/response has PublicCache, and is false 
+	 * otherwise.
 	 */
 	public boolean isPublicCache() {
 		return publicCache;
 	}
 
 	/**
-	 * Returns the HTTP PrivateCache state.
+	 * Returns the HTTP PrivateCache state. 
 	 * 
-	 * @return true if it has PrivateCache; else false.
+	 * @return A boolean value that is true if the request/response has PrivateCache, and is false 
+	 * otherwise.
 	 */
 	public boolean isPrivateCache() {
 		return privateCache;
 	}
 
 	/**
-	 * Returns the HTTP MustRevalidate state.
+	 * Returns the HTTP MustRevalidate state. 
 	 * 
-	 * @return true if it has MustRevalidate; else false.
+	 * @return A boolean value that is true if the request/response has MustRevalidate, and is 
+	 * false otherwise.
 	 */
 	public boolean isMustRevalidate() {
 		return mustRevalidate;
 	}
 
 	/**
-	 * Returns the HTTP ProxyRevalidate state.
+	 * Returns the HTTP ProxyRevalidate state. 
 	 * 
-	 * @return true if it has ProxyRevalidate; else false.
+	 * @return A boolean value that is true if the request/response has ProxyRevalidate, and is 
+	 * false otherwise.
 	 */
 	public boolean isProxyRevalidate() {
 		return proxyRevalidate;
 	}
 
 	/**
-	 * Returns the HTTP OnlyIfCached state.
+	 * Returns the HTTP OnlyIfCached state. 
 	 * 
-	 * @return true if it has OnlyIfCached; else false.
+	 * @return A boolean value that is true if the request/response has OnlyIfCached, and is false 
+	 * otherwise.
 	 */
 	public boolean isOnlyIfCached() {
 		return onlyIfCached;
 	}
 
 	/**
-	 * Returns the HTTP etag.
+	 * Returns the HTTP etag. 
 	 * 
-	 * @return etag.
+	 * @return A string containing the HTTP etag.
 	 */
 	public String getEtag() {
 		return etag;
 	}
 
 	/**
-	 * Returns the HTTP request/response age.
+	 * Returns the HTTP request/response age. 
 	 * 
-	 * @return HTTP request/response age.
+	 * @return The HTTP request/response age.
 	 */
 	public Long getAge() {
 		return age;
 	}
 
 	/**
-	 * Returns HTTP request/response expire date.
+	 * Returns the HTTP request/response expire date. 
 	 * 
-	 * @return HTTP request/response expire date.
+	 * @return The HTTP request/response expire date.
 	 */
 	public Date getExpires() {
 		return expires;
 	}
 
 	/**
-	 * Returns URI referrer.
+	 * Returns the URI referrer. 
 	 * 
-	 * @return URI referrer.
+	 * @return The URI referrer.
 	 */
 	public URI getReferrer() {
 		return referrer;
 	}
 
 	/**
-	 * Returns the HTTP request/response LastModified date.
+	 * Returns the HTTP request/response LastModified date. 
 	 * 
 	 * @return The HTTP request/response LastModified date.
 	 */
@@ -1170,7 +1186,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response MaxAge.
+	 * Returns the HTTP request/response MaxAge. 
 	 * 
 	 * @return The HTTP request/response MaxAge.
 	 */
@@ -1179,7 +1195,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response sMaxAge.
+	 * Returns the HTTP request/response sMaxAge. 
 	 * 
 	 * @return The HTTP request/response sMaxAge.
 	 */
@@ -1188,7 +1204,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response minFresh.
+	 * Returns the HTTP request/response minFresh. 
 	 * 
 	 * @return The HTTP request/response minFresh.
 	 */
@@ -1197,7 +1213,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response maxStale.
+	 * Returns the HTTP request/response maxStale. 
 	 * 
 	 * @return The HTTP request/response maxStale.
 	 */
@@ -1206,11 +1222,12 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the binary content of the request/response body
+	 * Returns the binary content of the request/response body. 
 	 * 
-	 * @return Null if no content found
-	 * @throws ContentException
-	 *             when part of content is not available
+	 * @return An array of bytes containing the binary content of the request/response body, or Null 
+	 * if no content is found. 
+	 * 
+	 * @throws ContentException - When part of the content is not available.
 	 */
 	public byte[] getContent() throws ContentException, IOException {
 		if (contentOffsetLength != null) {
@@ -1258,10 +1275,9 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Saves the binary content of the request/response body to file.
+	 * Saves the binary content of the request/response body to the specified file. 
 	 * 
-	 * @throws ContentException
-	 *             when part of content is not available
+	 * @throws ContentException - When part of content is not available. 
 	 */
 	public void saveContentToFile(File file) throws IOException {
 
@@ -1297,10 +1313,10 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Gets the actual count of bytes in the request/response body
+	 * Gets the number of bytes in the request/response body. The actual byte count.
 	 * 
-	 * @return total bytes which downloaded, if contentOffsetLength is null then
-	 *         0.
+	 * @return The total number of bytes in the request/response body. If contentOffsetLength is 
+	 * null, then this method returns 0.
 	 */
 	public long getActualByteCount() {
 		if (contentOffsetLength != null) {
@@ -1336,34 +1352,35 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP rangeResponse state.
+	 * Returns the HTTP rangeResponse state. 
 	 * 
-	 * @return true if it has rangeResponse; else false.
+	 * @return A boolean value that is true if the request/response has rangeResponse, and is false 
+	 * otherwise.
 	 */
 	public boolean isRangeResponse() {
 		return rangeResponse;
 	}
 
 	/**
-	 * Returns the HTTP request/response rangeFirst.
+	 * Returns the HTTP request/response rangeFirst value. 
 	 * 
-	 * @return The HTTP request/response rangeFirst.
+	 * @return An int that is the HTTP request/response rangeFirst value.
 	 */
 	public int getRangeFirst() {
 		return rangeFirst;
 	}
 
 	/**
-	 * Returns the HTTP request/response rangeLast.
+	 * Returns the HTTP request/response rangeLast value. 
 	 * 
-	 * @return The HTTP request/response rangeLast.
+	 * @return An int that is the HTTP request/response rangeLast value.
 	 */
 	public int getRangeLast() {
 		return rangeLast;
 	}
 
 	/**
-	 * Returns the HTTP request/response rangeFull.
+	 * Returns the HTTP request/response rangeFull value. 
 	 * 
 	 * @return The HTTP request/response rangeFull.
 	 */
@@ -1372,47 +1389,51 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response IfModifiedSince state.
+	 * Returns the HTTP request/response IfModifiedSince state. 
 	 * 
-	 * @return The true if it has IfModifiedSince; else false.
+	 * @return A boolean value that is true if the request/response has IfModifiedSince, and is 
+	 * false otherwise
 	 */
 	public boolean isIfModifiedSince() {
 		return ifModifiedSince;
 	}
 
 	/**
-	 * Returns the HTTP request/response ifNoneMatch state.
+	 * Returns the HTTP request/response ifNoneMatch state. 
 	 * 
-	 * @return true if it has ifNoneMatch; else false.
+	 * @return A boolean value that is true if the request/response has ifNoneMatch, and is false 
+	 * otherwise.
 	 */
 	public boolean isIfNoneMatch() {
 		return ifNoneMatch;
 	}
 
 	/**
-	 * Returns theHTTP request/response chunked state.
+	 * Returns the HTTP request/response chunked state. 
 	 * 
-	 * @return true if it has chunked; else false.
+	 * @return A boolean value that is true if the request/response is chunked, and is false otherwise.
 	 */
 	public boolean isChunked() {
 		return chunked;
 	}
 
 	/**
-	 * Returns the HTTP request/response chunkModeFinished state.
+	 * Returns the HTTP request/response chunkModeFinished state. 
 	 * 
-	 * @return true if it has chunkModeFinished; else false.
+	 * @return A boolean value that is true if the request/response has chunkModeFinished, and is 
+	 * false otherwise.
 	 */
 	public boolean isChunkModeFinished() {
 		return chunkModeFinished;
 	}
 
 	/**
-	 * Returns the request/response body as text (may not be readable)
+	 * Returns the request/response body as a text string. The returned text may not be readable. 
 	 * 
-	 * @return content value in successful execution else null.
-	 * @throws ContentException
-	 *             when part of content is not available
+	 * @return The content of the request/response body as a string, or null if the method does not 
+	 * execute successfully. 
+	 * 
+	 * @throws ContentException - When part of the content is not available. 
 	 */
 	public String getContentString() throws ContentException, IOException {
 		byte[] content = getContent();

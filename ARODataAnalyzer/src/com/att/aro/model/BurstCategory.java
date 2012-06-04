@@ -16,55 +16,65 @@
 package com.att.aro.model;
 
 /**
- * ENUM to maintain the Burst Categories.
+ * The BurstCategory Enumeration specifies constant values that describe the different 
+ * categories of bursts that occur when data is transferred. 
  */
 public enum BurstCategory {
 	/**
-	 * Default Burst.
+	 * A Protocol Burst. This is the default burst category. A Protocol burst consists of 
+	 * unwanted packets that are being transferred.
 	 */
 	BURSTCAT_PROTOCOL("protocol"),
 	/**
-	 * Recovered and Duplicate Bursts state.
+	 * A Loss burst. This burst consists of the packets that are lost while being 
+	 * transferred. It also includes the Recovered and Duplicate Burst types. 
 	 */
 	BURSTCAT_LOSS("loss"),
 	/**
-	 * User initiated Burst.
+	 * A User initiated Burst. 
 	 */
 	BURSTCAT_USER("user"),
 	/**
-	 * Client initiated Burst.
+	 * User initiated Burst.
+	 */
+	BURSTCAT_SCREEN_ROTATION("screen"),
+	/**
+	 * A Client initiated burst. 
 	 */
 	BURSTCAT_CLIENT("client"),
 	/**
-	 * Server initiated Burst.
+	 * A Server initiated Burst. 
 	 */
 	BURSTCAT_SERVER("server"),
 	/**
-	 * Background Burst.
+	 * A background burst. 
 	 */
 	BURSTCAT_BKG("bkg"),
 	/**
-	 * Long Burst transfers heavy data.
+	 * A Long burst. A Long burst has a duration of more than 5 seconds, and typically 
+	 * transfers large amounts of data. 
 	 */
 	BURSTCAT_LONG("long"),
 	/**
-	 * Periodical Burst which keep on repeats in some delay.
+	 * A Periodical Burst. If the Internet Addresses, host names, or object names are the same for the 
+	 * packets in a set burst over a period of time, then those bursts are considered 
+	 * Periodical bursts. 
 	 */
 	BURSTCAT_PERIODICAL("periodic"),
 	/**
-	 * User input Burst 1.
+	 * User defined burst category 1.
 	 */
 	BURSTCAT_USERDEF1("user"),
 	/**
-	 * User input Burst 2.
+	 * User defined burst category 2.
 	 */
 	BURSTCAT_USERDEF2("user"),
 	/**
-	 * User input Burst 3.
+	 * User defined burst category 3.
 	 */
 	BURSTCAT_USERDEF3("user"),
 	/**
-	 * Unknown Burst state.
+	 * A burst of an unknown category. 
 	 */
 	BURSTCAT_UNKNOWN("unknown");
 

@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 package com.att.aro.model;
 
 /**
@@ -22,55 +22,73 @@ package com.att.aro.model;
 public class CameraInfo {
 
 	/**
-	 * ENUM to maintain the Camera states.
+	 * The CameraInfo.CameraState Enumeration specifies constant values that
+	 * describe the operational state of the camera on a device. This
+	 * enumeration is part of the CameraInfo class.
 	 */
 	public enum CameraState {
 		/**
-		 * Camera on state.
+		 * The camera is in the on state.
 		 */
 		CAMERA_ON,
 		/**
-		 * Camera off state.
+		 * The camera is in the off state.
 		 */
 		CAMERA_OFF,
 		/**
-		 * Unknown statue.
+		 * The camera is in an unknown state.
 		 */
 		CAMERA_UNKNOWN
 	}
 
 	// Camera Time stamp
-	private double cameraTimeStamp;
+	private double beginTimeStamp;
+	private double endTimeStamp;
 	// Current Camera State
 	private CameraState cameraState;
 
 	/**
-	 * Initializes an instance of the CameraInfo class using the specified timestamp, and 
-	 * camera state.
+	 * Initializes an instance of the CameraInfo class using the specified
+	 * timestamp, and camera state.
 	 * 
-	 * @param dTimestamp – A double that is the timestamp for the camera.
-	 * 
-	 * @param cameraState – A CameraState enumeration value that indicates the state of 
-	 * the camera.
+	 * @param beginTimeStamp
+	 *            The start timestamp for the camera state.
+	 * @param endTimeStamp
+	 *            The end timestamp for the camera state.
+	 * @param cameraState
+	 *            – A CameraState enumeration value that indicates the state of
+	 *            the camera.
 	 */
-	public CameraInfo(double dTimestamp, CameraState cameraState) {
-		this.cameraTimeStamp = dTimestamp;
+	public CameraInfo(double beginTimeStamp, double endTimeStamp,
+			CameraState cameraState) {
+		this.beginTimeStamp = beginTimeStamp;
+		this.endTimeStamp = endTimeStamp;
 		this.cameraState = cameraState;
 	}
 
 	/**
-	 * Returns the camera timestamp. 
+	 * Returns the start timestamp for the Camera state.
 	 * 
-	 * @return A double that is the timestamp for the camera.
+	 * @return The start timestamp.
 	 */
-	public double getCameraTimeStamp() {
-		return cameraTimeStamp;
+	public double getBeginTimeStamp() {
+		return beginTimeStamp;
 	}
 
 	/**
-	 * Returns the camera state. 
+	 * Returns the end timestamp for the Camera state.
 	 * 
-	 * @return A CameraState enumeration value that indicates the state of the camera.
+	 * @return The end timestamp..
+	 */
+	public double getEndTimeStamp() {
+		return endTimeStamp;
+	}
+
+	/**
+	 * Returns the camera state.
+	 * 
+	 * @return A CameraState enumeration value that indicates the state of the
+	 *         camera.
 	 */
 	public CameraState getCameraState() {
 		return cameraState;

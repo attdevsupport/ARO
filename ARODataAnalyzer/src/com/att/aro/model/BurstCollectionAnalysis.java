@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 package com.att.aro.model;
 
 import java.io.Serializable;
@@ -31,15 +31,18 @@ import java.util.Set;
 
 import com.att.aro.model.PacketInfo.Direction;
 import com.att.aro.model.PacketInfo.TcpInfo;
+import com.att.aro.model.UserEvent.UserEventType;
 import com.att.aro.pcap.IPPacket;
 import com.att.aro.pcap.Packet;
 
 /**
- * Contains methods for analyzing the information from all of the bursts in the trace data. 
+ * Contains methods for analyzing the information from all of the bursts in the
+ * trace data.
  * <p>
- * The BurstCollectionAnalysis class contains functionality for  collecting the bursts 
- * from the trace data and storeing them in a collection of Burst objects, analyzing each 
- * burst and categorizing them, and performing analysis on the bursts.  
+ * The BurstCollectionAnalysis class contains functionality for collecting the
+ * bursts from the trace data and storeing them in a collection of Burst
+ * objects, analyzing each burst and categorizing them, and performing analysis
+ * on the bursts.
  */
 public class BurstCollectionAnalysis implements Serializable {
 
@@ -53,7 +56,6 @@ public class BurstCollectionAnalysis implements Serializable {
 	private Profile profile;
 	private Set<Integer> mss = new HashSet<Integer>();
 	private List<Burst> burstCollection;
-	private Set<String> hostPeriodicInfoSet = new HashSet<String>();
 	private double totalEnergy;
 	private int longBurstCount = 0;
 	private int tightlyCoupledBurstCount = 0;
@@ -68,10 +70,11 @@ public class BurstCollectionAnalysis implements Serializable {
 	private List<BurstAnalysisInfo> burstAnalysisInfo = new ArrayList<BurstAnalysisInfo>();
 
 	/**
-	 * Initializes an instance of the BurstCollectionAnalysis class, using the specified 
-	 * trace analysis data.
+	 * Initializes an instance of the BurstCollectionAnalysis class, using the
+	 * specified trace analysis data.
 	 * 
-	 * @param analysis - An Analysis object containing the trace analysis data.
+	 * @param analysis
+	 *            - An Analysis object containing the trace analysis data.
 	 */
 	public BurstCollectionAnalysis(TraceData.Analysis analysis) {
 		this.analysis = analysis;
@@ -102,19 +105,6 @@ public class BurstCollectionAnalysis implements Serializable {
 	}
 
 	/**
-	 * Private utility class to keep the time stamp of tcpinfo's and HTTP
-	 * request response info's
-	 */
-	private class RequestEvent implements Comparable<RequestEvent> {
-		private double ts;
-
-		@Override
-		public int compareTo(RequestEvent event) {
-			return Double.valueOf(this.ts).compareTo(event.ts);
-		}
-	}
-
-	/**
 	 * Bean class to contain the information of Request Event's Inter Arrival
 	 * Time.
 	 */
@@ -141,7 +131,7 @@ public class BurstCollectionAnalysis implements Serializable {
 	}
 
 	/**
-	 * Returns the collection of bursts. 
+	 * Returns the collection of bursts.
 	 * 
 	 * @return A List of Burst objects.
 	 */
@@ -150,7 +140,7 @@ public class BurstCollectionAnalysis implements Serializable {
 	}
 
 	/**
-	 * Gets the burst analysis information. 
+	 * Gets the burst analysis information.
 	 * 
 	 * @return A List of BurstAnalysisInformation objects.
 	 */
@@ -168,7 +158,7 @@ public class BurstCollectionAnalysis implements Serializable {
 	}
 
 	/**
-	 * Returns the periodic burst count difference. 
+	 * Returns the periodic burst count difference.
 	 * 
 	 * @return A count of periodic burst differences.
 	 */
@@ -177,7 +167,7 @@ public class BurstCollectionAnalysis implements Serializable {
 	}
 
 	/**
-	 * Returns the number of periodic bursts in the collection. 
+	 * Returns the number of periodic bursts in the collection.
 	 * 
 	 * @return Returns a count of the periodic bursts in the collection.
 	 */
@@ -186,7 +176,7 @@ public class BurstCollectionAnalysis implements Serializable {
 	}
 
 	/**
-	 * Returns the shortest repeat time among periodic bursts. 
+	 * Returns the shortest repeat time among periodic bursts.
 	 * 
 	 * @return A double that is the minimum repeat time for periodic bursts.
 	 */
@@ -195,7 +185,7 @@ public class BurstCollectionAnalysis implements Serializable {
 	}
 
 	/**
-	 * Returns the count of tightly coupled bursts in the collection. 
+	 * Returns the count of tightly coupled bursts in the collection.
 	 * 
 	 * @return The tightly coupled burst count.
 	 */
@@ -204,7 +194,7 @@ public class BurstCollectionAnalysis implements Serializable {
 	}
 
 	/**
-	 * Returns the total time of all tightly coupled bursts in the collection. 
+	 * Returns the total time of all tightly coupled bursts in the collection.
 	 * 
 	 * @return The tightly coupled burst time.
 	 */
@@ -213,27 +203,27 @@ public class BurstCollectionAnalysis implements Serializable {
 	}
 
 	/**
-	 * Returns the TCP session information for the shortest periodic burst. 
+	 * Returns the TCP session information for the shortest periodic burst.
 	 * 
-	 * @return A TCPSession object containing the TCP session information for the shortest 
-	 * periodic burst.
+	 * @return A TCPSession object containing the TCP session information for
+	 *         the shortest periodic burst.
 	 */
 	public TCPSession getShortestPeriodTCPSession() {
 		return shortestPeriodTCPSession;
 	}
 
 	/**
-	 * Returns the packet information for the shortest periodic burst. 
+	 * Returns the packet information for the shortest periodic burst.
 	 * 
-	 * @return A PacketInfo object containing the packet information for the shortest 
-	 * periodic burst
+	 * @return A PacketInfo object containing the packet information for the
+	 *         shortest periodic burst
 	 */
 	public PacketInfo getShortestPeriodPacketInfo() {
 		return shortestPeriodPacketInfo;
 	}
 
 	/**
-	 * Returns the total energy of all bursts in the collection. 
+	 * Returns the total energy of all bursts in the collection.
 	 * 
 	 * @return The total burst energy.
 	 */
@@ -439,12 +429,13 @@ public class BurstCollectionAnalysis implements Serializable {
 					p++;
 				} else {
 					if (time2 > rrCntrl.getEndTime()) {
-						e += profile.energy(time1, rrCntrl.getEndTime(), rrCntrl.getState(), analysis.getPackets());
+						e += profile.energy(time1, rrCntrl.getEndTime(), rrCntrl.getState(),
+								analysis.getPackets());
 						if (rrCntrl.getState() == RRCState.STATE_DCH
 								|| rrCntrl.getState() == RRCState.TAIL_DCH) {
 							dchTime += rrCntrl.getEndTime() - time1;
-						} else if(rrCntrl.getState() == RRCState.LTE_CONTINUOUS
-								|| rrCntrl.getState() == RRCState.LTE_CR_TAIL){
+						} else if (rrCntrl.getState() == RRCState.LTE_CONTINUOUS
+								|| rrCntrl.getState() == RRCState.LTE_CR_TAIL) {
 							crTime += rrCntrl.getEndTime() - time1;
 						}
 						p++;
@@ -460,8 +451,8 @@ public class BurstCollectionAnalysis implements Serializable {
 					if (rrCntrl.getState() == RRCState.STATE_DCH
 							|| rrCntrl.getState() == RRCState.TAIL_DCH) {
 						dchTime += rrCntrl.getEndTime() - Math.max(rrCntrl.getBeginTime(), time1);
-					} else if(rrCntrl.getState() == RRCState.LTE_CONTINUOUS
-							|| rrCntrl.getState() == RRCState.LTE_CR_TAIL){
+					} else if (rrCntrl.getState() == RRCState.LTE_CONTINUOUS
+							|| rrCntrl.getState() == RRCState.LTE_CR_TAIL) {
 						crTime += rrCntrl.getEndTime() - Math.max(rrCntrl.getBeginTime(), time1);
 					}
 					p++;
@@ -471,8 +462,8 @@ public class BurstCollectionAnalysis implements Serializable {
 					if (rrCntrl.getState() == RRCState.STATE_DCH
 							|| rrCntrl.getState() == RRCState.TAIL_DCH) {
 						dchTime += time2 - Math.max(rrCntrl.getBeginTime(), time1);
-					} else if(rrCntrl.getState() == RRCState.LTE_CONTINUOUS
-							|| rrCntrl.getState() == RRCState.LTE_CR_TAIL){
+					} else if (rrCntrl.getState() == RRCState.LTE_CONTINUOUS
+							|| rrCntrl.getState() == RRCState.LTE_CR_TAIL) {
 						crTime += time2 - Math.max(rrCntrl.getBeginTime(), time1);
 					}
 					break;
@@ -507,7 +498,6 @@ public class BurstCollectionAnalysis implements Serializable {
 				BurstCategory.class);
 		Map<BurstCategory, Double> burstCategoryToCR = new EnumMap<BurstCategory, Double>(
 				BurstCategory.class);
-		
 
 		long totalPayload = 0;
 		double totalDCH = 0.0;
@@ -539,7 +529,7 @@ public class BurstCollectionAnalysis implements Serializable {
 			d = catCr != null ? catCr.doubleValue() : 0.0;
 			d += crTime;
 			burstCategoryToCR.put(category, d);
-			
+
 		}
 		{
 			long p1 = getPayloadLenBkg();
@@ -553,14 +543,15 @@ public class BurstCollectionAnalysis implements Serializable {
 			double catDCH = burstCategoryToDch.get(categ);
 			double catCr = burstCategoryToCR.get(categ);
 			Double jpkb = catPayload > 0 ? catEnergy / (catPayload * 8 / 1000.0f) : null;
-			if(analysis.getProfile() instanceof Profile3G){
-			burstAnalysisInfo.add(new BurstAnalysisInfo(categ, catPayload,
-					((double) catPayload / totalPayload) * 100.0, catEnergy,
-					(catEnergy / totalEnergy) * 100.0, catDCH, (catDCH / totalDCH) * 100.0, jpkb));
-			}else if(analysis.getProfile() instanceof ProfileLTE){
-			burstAnalysisInfo.add(new BurstAnalysisInfo(categ, catPayload,
-					((double) catPayload / totalPayload) * 100.0, catEnergy,
-					(catEnergy / totalEnergy) * 100.0, catCr , (catCr / totalCR) * 100.0,jpkb));
+			if (analysis.getProfile() instanceof Profile3G) {
+				burstAnalysisInfo.add(new BurstAnalysisInfo(categ, catPayload,
+						((double) catPayload / totalPayload) * 100.0, catEnergy,
+						(catEnergy / totalEnergy) * 100.0, catDCH, (catDCH / totalDCH) * 100.0,
+						jpkb));
+			} else if (analysis.getProfile() instanceof ProfileLTE) {
+				burstAnalysisInfo.add(new BurstAnalysisInfo(categ, catPayload,
+						((double) catPayload / totalPayload) * 100.0, catEnergy,
+						(catEnergy / totalEnergy) * 100.0, catCr, (catCr / totalCR) * 100.0, jpkb));
 			}
 		}
 	}
@@ -569,8 +560,8 @@ public class BurstCollectionAnalysis implements Serializable {
 	 * Method to assign the burst states.
 	 */
 	private void analyzeBursts() {
-		List<UserEvent> userEvents = analysis.getTraceData().getUserEvents();
-		List<CpuActivity> cpuEvents = analysis.getTraceData().getCpuActivityList();
+		List<UserEvent> userEvents = analysis.getUserEvents();
+		List<CpuActivity> cpuEvents = analysis.getCpuActivityList();
 		int userEventsSize = userEvents.size();
 		int cpuEventsSize = cpuEvents.size();
 		int userEventPointer = 0;
@@ -662,11 +653,16 @@ public class BurstCollectionAnalysis implements Serializable {
 			// Step 6: User triggered
 			final double USER_EVENT_SMALL_TOLERATE = profile.getUserInputTh();
 			if (payloadLen > 0) {
+				UserEvent ue = null;
 				while ((userEventPointer < userEventsSize)
-						&& (userEvents.get(userEventPointer).getReleaseTime() < (time0 - USER_EVENT_TOLERATE)))
+						&& ((ue = userEvents.get(userEventPointer)).getReleaseTime() < (time0 - USER_EVENT_TOLERATE)))
 					++userEventPointer;
+				BurstInfo bi = ue != null ? ((ue.getEventType() == UserEventType.SCREEN_LANDSCAPE || ue
+						.getEventType() == UserEventType.SCREEN_PORTRAIT) ? BurstInfo.BURST_SCREEN_ROTATION_INPUT
+						: BurstInfo.BURST_USER_INPUT)
+						: null;
 				int j = userEventPointer;
-				double minGap = 1e10;
+				double minGap = Double.MAX_VALUE;
 				while (j < userEventsSize) {
 					UserEvent uEvent = userEvents.get(j);
 					if (withinTolerate(uEvent.getPressTime(), time0)) {
@@ -687,7 +683,7 @@ public class BurstCollectionAnalysis implements Serializable {
 					j++;
 				}
 				if (minGap < USER_EVENT_SMALL_TOLERATE) {
-					b.addBurstInfo(BurstInfo.BURST_USER_INPUT);
+					b.addBurstInfo(bi);
 					continue;
 				} else if (minGap < USER_EVENT_TOLERATE
 						&& (lastBurst == null || lastBurst.getEndTime() < b.getBeginTime() - minGap)) {
@@ -695,7 +691,7 @@ public class BurstCollectionAnalysis implements Serializable {
 					double cpuEnd = time0;
 					// Check CPU usage
 					while (cpuPointer < cpuEventsSize) {
-						double t = cpuEvents.get(cpuPointer).getCpuTimeStamp();
+						double t = cpuEvents.get(cpuPointer).getBeginTimeStamp();
 						if (t < b.getBeginTime() - USER_EVENT_TOLERATE) {
 							++cpuPointer;
 						} else {
@@ -707,7 +703,7 @@ public class BurstCollectionAnalysis implements Serializable {
 					int ns = 0;
 					while (k < cpuEventsSize) {
 						CpuActivity cpuAct = cpuEvents.get(k);
-						double t = cpuAct.getCpuTimeStamp();
+						double t = cpuAct.getBeginTimeStamp();
 						if (t > cpuBegin && t < cpuEnd) {
 							s += cpuAct.getUsage();
 							ns++;
@@ -718,7 +714,7 @@ public class BurstCollectionAnalysis implements Serializable {
 						k++;
 					}
 					if (ns > 0 && (s / ns) > AVG_CPU_USAGE_THRESHOLD) {
-						b.addBurstInfo(BurstInfo.BURST_USER_INPUT);
+						b.addBurstInfo(bi);
 						b.addBurstInfo(BurstInfo.BURST_CPU_BUSY);
 						continue;
 					}
@@ -749,87 +745,75 @@ public class BurstCollectionAnalysis implements Serializable {
 	 * Burst data's analyzed to categorize the periodic bursts.
 	 */
 	private void diagnosisPeriodicRequest() {
-		Map<String, List<RequestEvent>> requestHost2tsList = new HashMap<String, List<RequestEvent>>();
-		Map<String, List<RequestEvent>> requestObj2tsList = new HashMap<String, List<RequestEvent>>();
-		Map<InetAddress, List<RequestEvent>> connIP2tsList = new HashMap<InetAddress, List<RequestEvent>>();
-		clearHostPeriodicInfoSet();
+
+		Map<String, List<Double>> requestHost2tsList = new HashMap<String, List<Double>>();
+		Map<String, List<Double>> requestObj2tsList = new HashMap<String, List<Double>>();
+		Map<InetAddress, List<Double>> connIP2tsList = new HashMap<InetAddress, List<Double>>();
+		Set<String> hostPeriodicInfoSet = new HashSet<String>();
 		periodicCount = 0;
 		diffPeriodicCount = 0;
 		minimumPeriodicRepeatTime = 0.0;
 
 		for (TCPSession b : analysis.getTcpSessions()) {
 
+			// Get a list of timestamps of established sessions with each remote IP
 			PacketInfo p = b.getPackets().get(0);
 			if (p.getTcpInfo() == TcpInfo.TCP_ESTABLISH) {
-				RequestEvent re = new RequestEvent();
-				re.ts = p.getTimeStamp();
-				List<RequestEvent> res = connIP2tsList.get(b.getRemoteIP());
+				List<Double> res = connIP2tsList.get(b.getRemoteIP());
 				if (res == null) {
-					res = new ArrayList<RequestEvent>();
+					res = new ArrayList<Double>();
 					connIP2tsList.put(b.getRemoteIP(), res);
 				}
-				res.add(re);
+				res.add(Double.valueOf(p.getTimeStamp()));
 			}
 
+			// Get a list of timestamps of HTTP requests to hosts/object names
 			for (HttpRequestResponseInfo rr : b.getRequestResponseInfo()) {
 				PacketInfo pkt = rr.getFirstDataPacket();
-				double ts0 = pkt.getTimeStamp();
-				if (rr.getDirection() == HttpRequestResponseInfo.Direction.REQUEST
-						&& null != rr.getHostName()) {
-					RequestEvent re = new RequestEvent();
-					re.ts = ts0;
-					List<RequestEvent> tempRequestHostEventList = requestHost2tsList.get(rr
-							.getHostName());
-					if (tempRequestHostEventList == null) {
-						tempRequestHostEventList = new ArrayList<RequestEvent>();
-						requestHost2tsList.put(rr.getHostName(), tempRequestHostEventList);
+				if (rr.getDirection() == HttpRequestResponseInfo.Direction.REQUEST) {
+					Double ts0 = Double.valueOf(pkt.getTimeStamp());
+					if (rr.getHostName() != null) {
+						List<Double> tempRequestHostEventList = requestHost2tsList.get(rr
+								.getHostName());
+						if (tempRequestHostEventList == null) {
+							tempRequestHostEventList = new ArrayList<Double>();
+							requestHost2tsList.put(rr.getHostName(), tempRequestHostEventList);
+						}
+						tempRequestHostEventList.add(ts0);
 					}
-					tempRequestHostEventList.add(re);
-				}
 
-				if (rr.getDirection() == HttpRequestResponseInfo.Direction.REQUEST
-						&& null != rr.getObjName()) {
-					RequestEvent re = new RequestEvent();
-					re.ts = ts0;
-					String objName = rr.getObjNameWithoutParams();
-					List<RequestEvent> tempRequestObjEventList = requestObj2tsList.get(objName);
+					if (rr.getObjName() != null) {
+						String objName = rr.getObjNameWithoutParams();
+						List<Double> tempRequestObjEventList = requestObj2tsList.get(objName);
 
-					if (tempRequestObjEventList == null) {
-						tempRequestObjEventList = new ArrayList<RequestEvent>();
-						requestObj2tsList.put(objName, tempRequestObjEventList);
+						if (tempRequestObjEventList == null) {
+							tempRequestObjEventList = new ArrayList<Double>();
+							requestObj2tsList.put(objName, tempRequestObjEventList);
+						}
+						tempRequestObjEventList.add(ts0);
 					}
-					tempRequestObjEventList.add(re);
 				}
 			}
 		}
 
-		Map<String, Integer> hostList = new HashMap<String, Integer>();
-		for (Map.Entry<String, List<RequestEvent>> iter : requestHost2tsList.entrySet()) {
-			List<RequestEvent> reList = new ArrayList<RequestEvent>();
-			List<RequestEvent> requestHostList = iter.getValue();
-			Collections.sort(requestHostList);
-			if (SelfCorr(requestHostList, reList)) {
-				hostList.put(iter.getKey(), 1);
+		Set<String> hostList = new HashSet<String>();
+		for (Map.Entry<String, List<Double>> iter : requestHost2tsList.entrySet()) {
+			if (SelfCorr(iter.getValue())) {
+				hostList.add(iter.getKey());
 			}
 		}
 
-		Map<String, Integer> objList = new HashMap<String, Integer>();
-		for (Map.Entry<String, List<RequestEvent>> iter : requestObj2tsList.entrySet()) {
-			List<RequestEvent> reList = new ArrayList<RequestEvent>();
-			List<RequestEvent> requestObjList = iter.getValue();
-			Collections.sort(requestObjList);
-			if (SelfCorr(requestObjList, reList)) {
-				objList.put(iter.getKey(), 1);
+		Set<String> objList = new HashSet<String>();
+		for (Map.Entry<String, List<Double>> iter : requestObj2tsList.entrySet()) {
+			if (SelfCorr(iter.getValue())) {
+				objList.add(iter.getKey());
 			}
 		}
 
-		Map<InetAddress, Integer> ipList = new HashMap<InetAddress, Integer>();
-		for (Map.Entry<InetAddress, List<RequestEvent>> iter : connIP2tsList.entrySet()) {
-			List<RequestEvent> reList = new ArrayList<RequestEvent>();
-			List<RequestEvent> requestIpList = iter.getValue();
-			Collections.sort(requestIpList);
-			if (SelfCorr(requestIpList, reList)) {
-				ipList.put(iter.getKey(), 1);
+		Set<InetAddress> ipList = new HashSet<InetAddress>();
+		for (Map.Entry<InetAddress, List<Double>> iter : connIP2tsList.entrySet()) {
+			if (SelfCorr(iter.getValue())) {
+				ipList.add(iter.getKey());
 			}
 		}
 
@@ -840,14 +824,14 @@ public class BurstCollectionAnalysis implements Serializable {
 			Packet beginPacket = burst.getBeginPacket().getPacket();
 			if (beginPacket instanceof IPPacket) {
 				IPPacket ip = (IPPacket) beginPacket;
-				if (ipList.containsKey(ip.getDestinationIPAddress())
-						|| ipList.containsKey(ip.getSourceIPAddress())) {
+				if (ipList.contains(ip.getDestinationIPAddress())
+						|| ipList.contains(ip.getSourceIPAddress())) {
 					periodicCount++;
 					burst.setBurstInfo(BurstInfo.BURST_PERIODICAL);
-					if (ipList.containsKey(ip.getDestinationIPAddress())) {
-						updateHostPeriodicInfoSet(ip.getDestinationIPAddress().toString());
+					if (ipList.contains(ip.getDestinationIPAddress())) {
+						hostPeriodicInfoSet.add(ip.getDestinationIPAddress().toString());
 					} else {
-						updateHostPeriodicInfoSet(ip.getSourceIPAddress().toString());
+						hostPeriodicInfoSet.add(ip.getSourceIPAddress().toString());
 					}
 					continue;
 				}
@@ -864,16 +848,16 @@ public class BurstCollectionAnalysis implements Serializable {
 			for (TCPSession session : analysis.getTcpSessions()) {
 				for (HttpRequestResponseInfo rr : session.getRequestResponseInfo()) {
 					if (rr.getDirection() == HttpRequestResponseInfo.Direction.REQUEST
-							&& (hostList.containsKey(rr.getHostName()) || objList.containsKey(rr
+							&& (hostList.contains(rr.getHostName()) || objList.contains(rr
 									.getObjNameWithoutParams()))) {
 						if (rr.getFirstDataPacket() == firstUplinkPayloadPacket) {
 							periodicCount++;
 							burst.setBurstInfo(BurstInfo.BURST_PERIODICAL);
 							burst.setFirstUplinkDataPacket(firstUplinkPayloadPacket);
-							if (hostList.containsKey(rr.getHostName())) {
-								updateHostPeriodicInfoSet(rr.getHostName());
+							if (hostList.contains(rr.getHostName())) {
+								hostPeriodicInfoSet.add(rr.getHostName());
 							} else {
-								updateHostPeriodicInfoSet(rr.getObjNameWithoutParams());
+								hostPeriodicInfoSet.add(rr.getObjNameWithoutParams());
 							}
 							continue;
 						}
@@ -924,24 +908,33 @@ public class BurstCollectionAnalysis implements Serializable {
 	 * @param subV
 	 * @return
 	 */
-	private boolean SelfCorr(List<RequestEvent> v, List<RequestEvent> subV) {
+	private boolean SelfCorr(List<Double> v) {
 		int n = v.size();
-		subV.clear();
 		if (n <= 3) {
 			return false;
 		}
 
-		List<IatInfo> c = new ArrayList<IatInfo>();
+		List<IatInfo> c = new ArrayList<IatInfo>(n * (n - 1) / 2);
 		for (int i = 0; i < n - 1; i++) {
 			for (int j = i + 1; j < n; j++) {
+				double time1 = v.get(i).doubleValue();
+				double time2 = v.get(j).doubleValue();
+
 				IatInfo ii = new IatInfo();
-				ii.beginTime = v.get(i).ts;
-				ii.iat = v.get(j).ts - ii.beginTime;
-				ii.beginEvent = i;
-				ii.endEvent = j;
+				if (time1 <= time2) {
+					ii.beginTime = time1;
+					ii.iat = time2 - time1;
+					ii.beginEvent = i;
+					ii.endEvent = j;
+				} else {
+					ii.beginTime = time2;
+					ii.iat = time1 - time2;
+					ii.beginEvent = j;
+					ii.endEvent = i;
+				}
+				
 				c.add(ii);
 			}
-
 		}
 		Collections.sort(c, new IatInfoSortByBasicTime1());
 
@@ -952,33 +945,34 @@ public class BurstCollectionAnalysis implements Serializable {
 		int clusterSizeTh = profile.getPeriodMinSamples();/* n/2 */
 
 		int m = c.size();
-		List<IatInfo> cluster = new ArrayList<IatInfo>();
-		List<IatInfo> bestCluster = new ArrayList<IatInfo>();
-		List<IatInfo> subCluster = new ArrayList<IatInfo>();
+
 		int bestNonOverlapSize = 0;
+		double cycle = 0;
 		for (int i = 0; i < m; i++) {
-			cluster.clear();
+
+			IatInfo iat = c.get(i);
+			List<IatInfo> cluster = new ArrayList<IatInfo>();
 			int j = i;
-			while ((j < m) && ((c.get(j).iat - c.get(i).iat) < clusterDurationTh)) {
-				cluster.add(c.get(j++));
+
+			IatInfo iatInfo;
+			double sum = 0;
+			while ((j < m) && (((iatInfo = c.get(j)).iat - iat.iat) < clusterDurationTh)) {
+				cluster.add(iatInfo);
+				sum += iatInfo.iat;
+				++j;
 			}
-			int nonOverlapSize = GetNonOverlapSize(cluster, subCluster);
-			if (getAverage(cluster) > minPeriod && nonOverlapSize > bestNonOverlapSize) {
-				bestCluster = new ArrayList<IatInfo>(cluster);
+
+			double avg = sum / cluster.size();
+			int nonOverlapSize;
+			if (avg > minPeriod && (nonOverlapSize = GetNonOverlapSize(cluster)) > bestNonOverlapSize) {
 				bestNonOverlapSize = nonOverlapSize;
+				cycle = avg;
 			}
 		}
 
-		int r = GetNonOverlapSize(bestCluster, subCluster);
-		if (r < clusterSizeTh) {
+		if (bestNonOverlapSize < clusterSizeTh) {
 			return false;
 		} else {
-			int nSize = subCluster.size();
-			subV.add(v.get(subCluster.get(0).beginEvent));
-			for (int i = 0; i < nSize - 1; i++) {
-				subV.add(v.get(subCluster.get(i).endEvent));
-			}
-			double cycle = getAverage(bestCluster);
 			return cycle > 0;
 		}
 	}
@@ -986,65 +980,52 @@ public class BurstCollectionAnalysis implements Serializable {
 	/**
 	 * Method to calculate the over lap events in burst.
 	 */
-	private int GetNonOverlapSize(List<IatInfo> v, List<IatInfo> subV) {
+	private int GetNonOverlapSize(List<IatInfo> v) {
 
 		Collections.sort(v, new IatInfoSortByBasicTime2());
 
 		// find the longest path
-		List<Integer> opt = new ArrayList<Integer>();
 		int n = v.size();
-		List<Integer> backTrack = new ArrayList<Integer>();
+		int[] opt = new int[n];
+//		int[] backTrack = new int[n];
 
 		int best = -1;
-		int bestI = -1;
+//		int bestI = -1;
 
 		for (int i = 0; i < n; i++) {
+			IatInfo iat = v.get(i);
 			int o = 1;
-			int b = -1;
+//			int b = -1;
 
 			for (int j = 0; j <= i - 1; j++) {
-				if ((v.get(j).endEvent == v.get(i).beginEvent) && ((opt.get(j) + 1) > o)) {
-					o = opt.get(j) + 1;
-					b = j;
+				if (v.get(j).endEvent == iat.beginEvent && opt[j] >= o) {
+					o = opt[j] + 1;
+//					b = j;
 				}
 			}
 
 			if (o > best) {
 				best = o;
-				bestI = i;
+//				bestI = i;
 			}
 
-			opt.add(o);
-			backTrack.add(b);
+			opt[i] = o;
+//			backTrack[i] = b;
 		}
 
-		List<Integer> idxList = new ArrayList<Integer>();
-		int i = bestI;
-		while (i != -1) {
-			idxList.add(i);
-			i = backTrack.get(i);
-		}
-
-		subV.clear();
-		int m = idxList.size();
-		for (int ki = m - 1; ki >= 0; ki--) {
-			subV.add(v.get(idxList.get(ki)));
-		}
+//		List<Integer> idxList = new ArrayList<Integer>();
+//		int i = bestI;
+//		while (i != -1) {
+//			idxList.add(i);
+//			i = backTrack[i];
+//		}
+//
+//		//subV.clear();
+//		int m = idxList.size();
+//		for (int j=m-1; j>=0; j--) {
+//			subV.add(v.get(idxList.get(j)));
+//		}
 		return best;
-	}
-
-	/**
-	 * method to calculate the average.
-	 * 
-	 * @param v
-	 * @return
-	 */
-	private double getAverage(List<IatInfo> v) {
-		double sum = 0;
-		for (IatInfo iatInfo : v) {
-			sum += iatInfo.iat;
-		}
-		return sum / v.size();
 	}
 
 	/**
@@ -1056,7 +1037,8 @@ public class BurstCollectionAnalysis implements Serializable {
 		Burst maxBurst = null;
 		for (int i = 0; i < burstCollection.size(); ++i) {
 			Burst burstInfo = burstCollection.get(i);
-			if (burstInfo.getBurstCategory() == BurstCategory.BURSTCAT_USER) {
+			if (burstInfo.getBurstCategory() == BurstCategory.BURSTCAT_USER
+					|| burstInfo.getBurstCategory() == BurstCategory.BURSTCAT_SCREEN_ROTATION) {
 				continue;
 			}
 			double startTime = burstInfo.getBeginTime();
@@ -1064,7 +1046,8 @@ public class BurstCollectionAnalysis implements Serializable {
 			int count = 1;
 			for (int j = i + 1; j < burstCollection.size()
 					&& burstCollection.get(j).getEndTime() <= endTime; ++j) {
-				if (burstCollection.get(j).getBurstCategory() != BurstCategory.BURSTCAT_USER) {
+				if (burstCollection.get(j).getBurstCategory() != BurstCategory.BURSTCAT_USER
+						|| burstInfo.getBurstCategory() == BurstCategory.BURSTCAT_SCREEN_ROTATION) {
 					++count;
 				}
 			}
@@ -1080,7 +1063,8 @@ public class BurstCollectionAnalysis implements Serializable {
 				count = 1;
 				for (int j = i + 1; j < burstCollection.size()
 						&& burstCollection.get(j).getEndTime() <= endTime; ++j) {
-					if (burstCollection.get(j).getBurstCategory() != BurstCategory.BURSTCAT_USER) {
+					if (burstCollection.get(j).getBurstCategory() != BurstCategory.BURSTCAT_USER
+							|| burstInfo.getBurstCategory() == BurstCategory.BURSTCAT_SCREEN_ROTATION) {
 						++count;
 					}
 				}
@@ -1137,15 +1121,4 @@ public class BurstCollectionAnalysis implements Serializable {
 		}
 	}
 
-	private void clearHostPeriodicInfoSet() {
-		hostPeriodicInfoSet.clear();
-	}
-
-	private void updateHostPeriodicInfoSet(String strKey) {
-		if (strKey != null) {
-			if (!hostPeriodicInfoSet.contains(strKey)) {
-				hostPeriodicInfoSet.add(strKey);
-			}
-		}
-	}
 }

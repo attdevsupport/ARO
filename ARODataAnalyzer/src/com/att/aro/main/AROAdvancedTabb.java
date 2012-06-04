@@ -197,6 +197,13 @@ public class AROAdvancedTabb extends JPanel {
 		}
 		return this.graphPanel;
 	}
+	
+	/**
+	 * Returns the AROVideoPlayer object.
+	 */
+	public AROVideoPlayer getVideoPlayer() {
+		return aroVideoPlayer;
+	}
 
 	/**
 	 * Initializes and returns the Tabbed pane at the bottom.
@@ -418,20 +425,22 @@ public class AROAdvancedTabb extends JPanel {
 	 *            - The timestamp in the chart to which the cross hair should be
 	 *            set.
 	 */
-	public void setTimeLineLinkedComponents(double timeStamp) {
-		if (timeStamp < 0.0) {
-			timeStamp = 0.0;
+	public synchronized void setTimeLineLinkedComponents(double timeStamp) {
+		if (analysisData != null) {
+			if (timeStamp < 0.0) {
+				timeStamp = 0.0;
+			}
+			if (timeStamp > analysisData.getTraceData().getTraceDuration()) {
+				timeStamp = analysisData.getTraceData().getTraceDuration();
+			}
+			getGraphPanel().setGraphView(timeStamp);
 		}
-		if (timeStamp > analysisData.getTraceData().getTraceDuration()) {
-			timeStamp = analysisData.getTraceData().getTraceDuration();
-		}
-		getGraphPanel().setGraphView(timeStamp);
 	}
 
 	/**
 	 * Method to set the time on graph panel.
 	 */
-	private void setTimeLineLinkedComponents(double timeStamp,
+	private synchronized void setTimeLineLinkedComponents(double timeStamp,
 			double dTimeRangeInterval) {
 
 		if (analysisData != null) {

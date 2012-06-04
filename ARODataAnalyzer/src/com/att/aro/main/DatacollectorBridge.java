@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.io.BufferedWriter;
@@ -43,6 +42,7 @@ import com.android.ddmlib.IDevice;
 import com.android.ddmlib.MultiLineReceiver;
 import com.android.ddmlib.SyncService;
 import com.android.ddmlib.SyncService.SyncResult;
+import com.att.aro.commonui.AROProgressDialog;
 import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.model.TraceData;
 import com.att.aro.videocapture.VideoCaptureThread;
@@ -85,19 +85,17 @@ public class DatacollectorBridge {
 		PULLING
 	}
 
-	private static final Logger logger = Logger
-			.getLogger(DatacollectorBridge.class.getName());
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
+	private static final Logger logger = Logger.getLogger(DatacollectorBridge.class.getName());
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
 	private static final String TCPDUMP = rb.getString("Name.tcpdump");
+	private static final String APPVERAPK = rb.getString("Name.appverapk");
 	private static final String KEYDB = rb.getString("Name.keyevent");
 	private static final String TRACE_ROOT = "/sdcard/ARO/";
 	private static final int TCPDUMP_PORT = 50999;
-	private static final String[] mDataCollectortraceFileNames = {
-			TraceData.CPU_FILE, TraceData.APPID_FILE, TraceData.APPNAME_FILE,
-			TraceData.TIME_FILE, TraceData.USER_EVENTS_FILE,
-			TraceData.PCAP_FILE };
+	private static final String[] mDataCollectortraceFileNames = { TraceData.CPU_FILE,
+			TraceData.APPID_FILE, TraceData.APPNAME_FILE, TraceData.TIME_FILE,
+			TraceData.USER_EVENTS_FILE, TraceData.PCAP_FILE };
 
 	private static final int AROSDCARD_MIN_SPACEBYTES = 5120; // 5MB Minimum
 																// Space
@@ -168,16 +166,6 @@ public class DatacollectorBridge {
 	private long tcpdumpStartTime;
 
 	/**
-	 * Local PC time when tcpdump was stopped
-	 */
-	private long tcpdumpEndTime;
-
-	/**
-	 * Duration between tcpdump start and stop.
-	 */
-	private long dataTimeDuration;
-
-	/**
 	 * Timer that is used to constantly check available SD card space on the
 	 * emulator
 	 */
@@ -186,7 +174,7 @@ public class DatacollectorBridge {
 	/**
 	 * Used to track progress window
 	 */
-	private DataCollectorProgressDialog progress;
+	private AROProgressDialog progress;
 
 	/**
 	 * Initializes a new instance of the DatacollectorBridge class using the
@@ -229,8 +217,8 @@ public class DatacollectorBridge {
 	 *            – A boolean value that indicates whether to record video for
 	 *            this trace or not.
 	 */
-	public synchronized void startARODataCollector(
-			final String traceFolderName, boolean mRecordTraceVideo) {
+	public synchronized void startARODataCollector(final String traceFolderName,
+			boolean mRecordTraceVideo) {
 
 		// Make sure proper status of bridge
 		if (status == Status.READY) {
@@ -246,55 +234,58 @@ public class DatacollectorBridge {
 			this.mARORecordTraceVideo = mRecordTraceVideo;
 			String os = System.getProperty("os.name").toLowerCase();
 			if (os.indexOf("mac") >= 0) {
-				this.localTraceFolder = new File(
-						rb.getString("Emulator.localtracepathmac")
-								+ File.separator + traceFolderName);
+				this.localTraceFolder = new File(rb.getString("Emulator.localtracepathmac")
+						+ File.separator + traceFolderName);
 			} else {
-				this.localTraceFolder = new File(
-						rb.getString("Emulator.localtracepath")
-								+ File.separator + traceFolderName);
+				this.localTraceFolder = new File(rb.getString("Emulator.localtracepath")
+						+ File.separator + traceFolderName);
 			}
 
 			this.deviceTracePath = TRACE_ROOT + traceFolderName;
 			try {
 
 				// Make sure the root ARO trace directory exists on SD CARD
-				mAndroidDevice.executeShellCommand("mkdir " + TRACE_ROOT,
-						new ShellOutputReceiver());
+				mAndroidDevice
+						.executeShellCommand("mkdir " + TRACE_ROOT, new ShellOutputReceiver());
 				ShellOutputReceiver shelloutPut = new ShellOutputReceiver();
-				mAndroidDevice.executeShellCommand("mkdir " + deviceTracePath,
-						shelloutPut);
+				mAndroidDevice.executeShellCommand("mkdir " + deviceTracePath, shelloutPut);
 				if (shelloutPut.shellError || localTraceFolder.exists()) {
 
 					// Prompt user for overwrite of trace folders
 					Object[] options = { rb.getString("jdialog.option.yes"),
 							rb.getString("jdialog.option.no") };
-					int confirmSelected = JOptionPane.showOptionDialog(
-							mAROAnalyzer,
-							rb.getString("Error.tracedirexists"),
-							MessageFormat.format(
-									rb.getString("aro.title.short"), ""),
-							JOptionPane.YES_NO_OPTION,
-							JOptionPane.QUESTION_MESSAGE, null, options,
+					int confirmSelected = JOptionPane.showOptionDialog(mAROAnalyzer,
+							rb.getString("Error.tracedirexists"), rb.getString("aro.title.short"),
+							JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options,
 							options[0]);
 					if (confirmSelected == JOptionPane.YES_OPTION) {
+						TraceData traceData = mAROAnalyzer.getTraceData();
+						if (traceData != null && traceData.getTraceDir().equals(localTraceFolder)) {
 
-						// Delete all the trace files from the folders
-						if (localTraceFolder.isDirectory()) {
-							for (File f : localTraceFolder.listFiles()) {
-								f.delete();
+							// Prompt user to clear current trace
+							int currentTraceSelected = JOptionPane.showOptionDialog(mAROAnalyzer,
+									rb.getString("Error.clearcurrenttrace"),
+									rb.getString("aro.title.short"), JOptionPane.YES_NO_OPTION,
+									JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+							if (currentTraceSelected == JOptionPane.YES_OPTION) {
+								mAROAnalyzer.clearTrace();
+								deleteTraceFolderData(shelloutPut);
+							} else {
+								// Re-prompt for trace folder name
+								setStatus(Status.READY);
+								new DataCollectorStartDialog(mAROAnalyzer, this, traceFolderName,
+										mRecordTraceVideo).setVisible(true);
+								return;
 							}
+						} else {
+							deleteTraceFolderData(shelloutPut);
 						}
-						localTraceFolder.delete();
-						mAndroidDevice.executeShellCommand("rm "
-								+ deviceTracePath + "/*", shelloutPut);
 					} else if ((confirmSelected == JOptionPane.NO_OPTION)) {
 
 						// Re-prompt for trace folder name
 						setStatus(Status.READY);
-						new DataCollectorStartDialog(mAROAnalyzer, this,
-								traceFolderName, mRecordTraceVideo)
-								.setVisible(true);
+						new DataCollectorStartDialog(mAROAnalyzer, this, traceFolderName,
+								mRecordTraceVideo).setVisible(true);
 						return;
 					} else {
 						setStatus(Status.READY);
@@ -311,7 +302,18 @@ public class DatacollectorBridge {
 				// Show progress dialog that indicates
 				setStatus(Status.STARTING);
 				localTraceFolder.mkdirs();
-				this.progress = new DataCollectorProgressDialog(mAROAnalyzer,
+				try {
+					// Creates a temporary file having folder name
+					FileWriter fstream = new FileWriter(this.localTraceFolder + File.separator
+							+ rb.getString("Emulator.tempfile"));
+					BufferedWriter out = new BufferedWriter(fstream);
+					out.write(traceFolderName);
+					out.close();
+				} catch (Exception e) {// Catch exception if any
+					System.err.println("Could not create temporary file. Error: " + e.getMessage());
+				}
+
+				this.progress = new AROProgressDialog(mAROAnalyzer,
 						rb.getString("Message.startcollector"));
 				progress.setVisible(true);
 
@@ -333,41 +335,34 @@ public class DatacollectorBridge {
 							// Check for startup error
 							String result = get();
 							if (result != null) {
-								logger.log(Level.SEVERE,
-										"startDataCollectorOnEmulator :: "
-												+ result);
-								MessageDialogFactory.showErrorDialog(
-										mAROAnalyzer, result);
+								logger.log(Level.SEVERE, "startDataCollectorOnEmulator :: "
+										+ result);
+								MessageDialogFactory.showErrorDialog(mAROAnalyzer, result);
 								setStatus(Status.READY);
 							}
 						} catch (ExecutionException e) {
-							MessageDialogFactory.showUnexpectedExceptionDialog(
-									mAROAnalyzer, e);
+							MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
 							setStatus(Status.READY);
 						} catch (InterruptedException e) {
-							MessageDialogFactory.showUnexpectedExceptionDialog(
-									mAROAnalyzer, e);
+							MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
 							setStatus(Status.READY);
 						}
 					}
 
 				}.execute();
 			} catch (IOException e) {
-				logger.log(Level.WARNING,
-						"Unexpected IOException starting data collector", e);
-				MessageDialogFactory.showErrorDialog(mAROAnalyzer,
-						MessageFormat.format(
-								rb.getString("Error.withretrievingsdcardinfo"),
+				logger.log(Level.WARNING, "Unexpected IOException starting data collector", e);
+				MessageDialogFactory.showErrorDialog(
+						mAROAnalyzer,
+						MessageFormat.format(rb.getString("Error.withretrievingsdcardinfo"),
 								e.getLocalizedMessage()));
 			}
-		} else if (status == Status.STARTING
-				&& traceFolderName.equals(this.traceFolderName)
+		} else if (status == Status.STARTING && traceFolderName.equals(this.traceFolderName)
 				&& mRecordTraceVideo == mARORecordTraceVideo) {
 			// Selected to start with same arguments
 			return;
 		} else {
-			throw new IllegalStateException(
-					rb.getString("Error.datacollectostart"));
+			throw new IllegalStateException(rb.getString("Error.datacollectostart"));
 		}
 	}
 
@@ -381,7 +376,7 @@ public class DatacollectorBridge {
 
 		if (status == Status.STARTED) {
 			// Display progress dialog
-			this.progress = new DataCollectorProgressDialog(mAROAnalyzer,
+			this.progress = new AROProgressDialog(mAROAnalyzer,
 					rb.getString("Message.stopcollector"));
 			progress.setVisible(true);
 
@@ -392,18 +387,24 @@ public class DatacollectorBridge {
 
 					try {
 						stopTcpDump();
+						appendAppVersion();
 					} catch (IOException e) {
-						logger.log(Level.WARNING,
-								"Unexpected IOException stopping tcpdump", e);
+						logger.log(Level.WARNING, "Unexpected IOException stopping tcpdump", e);
 					}
 					return null;
+				}
+				
+				@Override
+				protected void done() {
+					super.done();
+					progress.dispose();
+					startPullAROTraceFiles();
 				}
 			}.execute();
 		} else if (status == Status.STOPPING || status == Status.STOPPED) {
 			// Ignore
 		} else {
-			throw new IllegalStateException(
-					rb.getString("Error.datacollectostop"));
+			throw new IllegalStateException(rb.getString("Error.datacollectostop"));
 		}
 
 	}
@@ -418,6 +419,10 @@ public class DatacollectorBridge {
 
 			setStatus(Status.PULLING);
 
+			this.progress = new AROProgressDialog(mAROAnalyzer,
+					rb.getString("Message.pulltrace"));
+			progress.setVisible(true);
+
 			// Pull trace files from emulator in worker thread
 			new SwingWorker<String, Object>() {
 
@@ -425,58 +430,47 @@ public class DatacollectorBridge {
 				protected String doInBackground() throws IOException {
 
 					try {
-						BufferedWriter devicedetailsWriter = new BufferedWriter(
-								new FileWriter(new File(localTraceFolder,
-										TraceData.DEVICEDETAILS_FILE)));
+						BufferedWriter devicedetailsWriter = new BufferedWriter(new FileWriter(
+								new File(localTraceFolder, TraceData.DEVICEDETAILS_FILE)));
 						try {
 							// Writing device details in file.
-							final String eol = System
-									.getProperty("line.separator");
-							final String collector = rb.getString(
-									"Emulator.datacollectorpath").substring(
-									rb.getString("Emulator.datacollectorpath")
-											.lastIndexOf("/") + 1);
+							final String eol = System.getProperty("line.separator");
+							final String collector = rb.getString("Emulator.datacollectorpath")
+									.substring(
+											rb.getString("Emulator.datacollectorpath").lastIndexOf(
+													"/") + 1);
 							devicedetailsWriter.write(collector + eol);
-							devicedetailsWriter.write(rb
-									.getString("bridge.device") + eol);
+							devicedetailsWriter.write(rb.getString("bridge.device") + eol);
 							String deviceManufacturer = mAndroidDevice
 									.getProperty("ro.product.manufacturer");
 							devicedetailsWriter
-									.write((deviceManufacturer != null ? deviceManufacturer
-											: "")
+									.write((deviceManufacturer != null ? deviceManufacturer : "")
 											+ eol);
-							devicedetailsWriter.write(rb
-									.getString("bridge.platform") + eol);
+							devicedetailsWriter.write(rb.getString("bridge.platform") + eol);
 							devicedetailsWriter.write(mAndroidDevice
-									.getProperty("ro.build.version.release")
-									+ eol);
+									.getProperty("ro.build.version.release") + eol);
 							devicedetailsWriter.write(" " + eol);
 
-							final int deviceNetworkType = rb.getString(
-									"bridge.network.UMTS").equalsIgnoreCase(
-									mAndroidDevice
-											.getProperty("gsm.network.type")) ? 3
+							final int deviceNetworkType = rb.getString("bridge.network.UMTS")
+									.equalsIgnoreCase(
+											mAndroidDevice.getProperty("gsm.network.type")) ? 3
 									: -1;
 							devicedetailsWriter.write(deviceNetworkType + eol);
 						} finally {
 							devicedetailsWriter.close();
 						}
 					} catch (IOException e) {
-						MessageDialogFactory.showUnexpectedExceptionDialog(
-								mAROAnalyzer, e);
-						logger.log(Level.SEVERE,
-								"Error writing device details file", e);
+						MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
+						logger.log(Level.SEVERE, "Error writing device details file", e);
 					}
 
 					// Pull files from emulator one at a time
 					final SyncService service = mAndroidDevice.getSyncService();
 					if (service != null) {
 						for (String file : mDataCollectortraceFileNames) {
-							SyncResult result = service.pullFile(
-									deviceTracePath + "/" + file, new File(
-											localTraceFolder, file)
-											.getAbsolutePath(), SyncService
-											.getNullProgressMonitor());
+							SyncResult result = service.pullFile(deviceTracePath + "/" + file,
+									new File(localTraceFolder, file).getAbsolutePath(),
+									SyncService.getNullProgressMonitor());
 							if (result.getCode() != SyncService.RESULT_OK) {
 								return result.getMessage();
 							}
@@ -490,6 +484,7 @@ public class DatacollectorBridge {
 
 					// Close progress dialog
 					super.done();
+					progress.dispose();
 
 					try {
 
@@ -497,40 +492,47 @@ public class DatacollectorBridge {
 						String result = get();
 						if (result != null) {
 							MessageDialogFactory
-									.showErrorDialog(
-											mAROAnalyzer,
-											MessageFormat.format(
-													rb.getString("Error.withretrievingsdcardinfo"),
-													result));
+									.showErrorDialog(mAROAnalyzer, MessageFormat.format(
+											rb.getString("Error.withretrievingsdcardinfo"), result));
 						}
 
-						removeEmulatorData();
+						Double duration = TraceData.readTimes(localTraceFolder).getDuration();
+						String durationStr;
+						if (duration != null) {
+							long dataTimeDuration = duration.longValue();
+							long appTimeR = dataTimeDuration % 3600;
+							long appUpHours = dataTimeDuration / 3600;
+							long appUpMinutes = (appTimeR / 60);
+							long appUpSeconds = appTimeR % 60;
 
+							durationStr = (appUpHours < 10 ? "0" : "") + appUpHours + ":"
+									+ (appUpMinutes < 10 ? "0" : "") + appUpMinutes + ":"
+									+ (appUpSeconds < 10 ? "0" : "") + appUpSeconds;
+						} else {
+							durationStr = rb.getString("aro.unknown");
+						}
 						AROEmulatorTraceSummary summaryPanel = new AROEmulatorTraceSummary(
 								localTraceFolder.getAbsolutePath(),
-								mARORecordTraceVideo ? rb
-										.getString("Emulator.dataValue") : rb
-										.getString("Emulator.noDataValue"),
-								getTraceDuration());
+								mARORecordTraceVideo ? rb.getString("Emulator.dataValue") : rb
+										.getString("Emulator.noDataValue"), durationStr);
 
-						progress.dispose();
-						Object[] options = { rb.getString("Button.ok"),
-								rb.getString("Button.open") };
-						if (JOptionPane.showOptionDialog(mAROAnalyzer,
-								summaryPanel, rb.getString("confirm.title"),
-								JOptionPane.YES_NO_OPTION,
-								JOptionPane.INFORMATION_MESSAGE, null, options,
-								options[0]) != JOptionPane.YES_OPTION) {
-							mAROAnalyzer.openTrace(localTraceFolder
-									.getAbsoluteFile());
+						Object[] options = { rb.getString("Button.ok"), rb.getString("Button.open") };
+						if (JOptionPane.showOptionDialog(mAROAnalyzer, summaryPanel,
+								rb.getString("confirm.title"), JOptionPane.YES_NO_OPTION,
+								JOptionPane.INFORMATION_MESSAGE, null, options, options[0]) != JOptionPane.YES_OPTION) {
+							mAROAnalyzer.openTrace(localTraceFolder.getAbsoluteFile());
 						}
 					} catch (Exception e) {
-						logger.log(Level.SEVERE,
-								"Unexpected exception pulling traces", e);
-						MessageDialogFactory.showUnexpectedExceptionDialog(
-								mAROAnalyzer, e);
+						logger.log(Level.SEVERE, "Unexpected exception pulling traces", e);
+						MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
 					} finally {
 						setStatus(Status.READY);
+						try {
+							Thread.sleep(1000);
+							removeEmulatorData();
+						}catch (Exception e) {
+							MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
+						}
 					}
 				}
 			}.execute();
@@ -538,8 +540,7 @@ public class DatacollectorBridge {
 		} else if (status == Status.PULLING) {
 			// Ignore
 		} else {
-			throw new IllegalStateException(
-					rb.getString("Error.datacollectorpull"));
+			throw new IllegalStateException(rb.getString("Error.datacollectorpull"));
 		}
 	}
 
@@ -550,8 +551,7 @@ public class DatacollectorBridge {
 	 * @return Emulator device that can be used for data collector trace
 	 */
 	private IDevice checkAROEmulatorBridge() {
-		AndroidDebugBridge dataCollectorEmulatorbridge = AndroidDebugBridge
-				.createBridge();
+		AndroidDebugBridge dataCollectorEmulatorbridge = AndroidDebugBridge.createBridge();
 
 		// Wait for ADB device list to fetch connected devices
 		int count = 0;
@@ -621,8 +621,7 @@ public class DatacollectorBridge {
 				MessageDialogFactory.showMessageDialog(mAROAnalyzer,
 						rb.getString("Error.sdcardnotavailable"));
 				return false;
-			} else if (!shellCheckSDCard
-					.doesSDCardHaveEnoughSpace(AROSDCARD_MIN_SPACEBYTES)) {
+			} else if (!shellCheckSDCard.doesSDCardHaveEnoughSpace(AROSDCARD_MIN_SPACEBYTES)) {
 
 				// Not enough free space on SD card
 				MessageDialogFactory.showMessageDialog(mAROAnalyzer,
@@ -636,8 +635,7 @@ public class DatacollectorBridge {
 			logger.log(Level.SEVERE, "IOException accessing device SD card", e);
 			MessageDialogFactory.showMessageDialog(
 					mAROAnalyzer,
-					MessageFormat.format(
-							rb.getString("Error.withretrievingsdcardinfo"),
+					MessageFormat.format(rb.getString("Error.withretrievingsdcardinfo"),
 							e.getLocalizedMessage()));
 			return false;
 		}
@@ -673,8 +671,7 @@ public class DatacollectorBridge {
 						return;
 					}
 				} catch (IOException e) {
-					logger.log(Level.WARNING,
-							"IOException occurred checking SD card space", e);
+					logger.log(Level.WARNING, "IOException occurred checking SD card space", e);
 				}
 			}
 		}, 60000, 60000);
@@ -686,8 +683,7 @@ public class DatacollectorBridge {
 	 * 
 	 * @param filename
 	 */
-	private File getAroCollectorFilesFromJar(String filename)
-			throws IOException {
+	private File getAroCollectorFilesFromJar(String filename) throws IOException {
 		ClassLoader aroClassloader = DatacollectorBridge.class.getClassLoader();
 		InputStream is = aroClassloader.getResourceAsStream(filename);
 		OutputStream os = null;
@@ -725,26 +721,22 @@ public class DatacollectorBridge {
 			stopTcpDump();
 
 			// Copy tcpdump executable to emulator
-			final String tcpdumpPath = rb
-					.getString("Emulator.datacollectorpath") + "/" + TCPDUMP;
+			final String tcpdumpPath = rb.getString("Emulator.datacollectorpath") + "/" + TCPDUMP;
 			SyncService mService = mAndroidDevice.getSyncService();
 			File tcpdump = getAroCollectorFilesFromJar(TCPDUMP);
-			SyncService.SyncResult tcpdumpushResult = mService.pushFile(
-					tcpdump.getAbsolutePath(), tcpdumpPath,
-					SyncService.getNullProgressMonitor());
+			SyncService.SyncResult tcpdumpushResult = mService.pushFile(tcpdump.getAbsolutePath(),
+					tcpdumpPath, SyncService.getNullProgressMonitor());
 			tcpdump.delete();
 			if (tcpdumpushResult.getCode() == SyncService.RESULT_OK) {
 				ShellOutputReceiver mShellOutput = new ShellOutputReceiver();
-				mAndroidDevice.executeShellCommand("chmod 777 " + tcpdumpPath,
-						mShellOutput);
+				mAndroidDevice.executeShellCommand("chmod 777 " + tcpdumpPath, mShellOutput);
 			} else {
 				return rb.getString("Error.withtcpdumppush");
 			}
 
 			// Copy keydb file to data collector
 			File keydb = getAroCollectorFilesFromJar(KEYDB);
-			SyncService.SyncResult keyDbpushResult = mService.pushFile(
-					keydb.getAbsolutePath(),
+			SyncService.SyncResult keyDbpushResult = mService.pushFile(keydb.getAbsolutePath(),
 					rb.getString("Emulator.datacollectorpath") + "/" + KEYDB,
 					SyncService.getNullProgressMonitor());
 			keydb.delete();
@@ -757,15 +749,14 @@ public class DatacollectorBridge {
 					public Object doInBackground() throws IOException {
 
 						// tcpdump command to be executed on emulator
-						String strTcpDumpCommand = tcpdumpPath + " -w "
-								+ traceFolderName + " not port 5555";
+						String strTcpDumpCommand = tcpdumpPath + " -w " + traceFolderName
+								+ " not port 5555";
 						ShellOutputReceiver tcpreceiver = new ShellOutputReceiver();
 
 						// Video is recorded directly into local trace directory
 						if (mARORecordTraceVideo) {
-							mVideoCapture = new VideoCaptureThread(
-									mAndroidDevice, new File(localTraceFolder,
-											TraceData.VIDEO_MOV_FILE));
+							mVideoCapture = new VideoCaptureThread(mAndroidDevice, new File(
+									localTraceFolder, TraceData.VIDEO_MOV_FILE));
 							mVideoCapture.start();
 						} else {
 							mVideoCapture = null;
@@ -774,8 +765,7 @@ public class DatacollectorBridge {
 						// This shell command will block until tcpdump is
 						// stopped
 						tcpdumpStartTime = System.currentTimeMillis();
-						mAndroidDevice.executeShellCommand(strTcpDumpCommand,
-								tcpreceiver);
+						mAndroidDevice.executeShellCommand(strTcpDumpCommand, tcpreceiver);
 
 						return null;
 					}
@@ -786,9 +776,6 @@ public class DatacollectorBridge {
 					@Override
 					protected void done() {
 						super.done();
-
-						// Close progress dialog if open
-						progress.dispose();
 
 						// tcpdump has exited. Make sure everything else is
 						// stopped
@@ -801,17 +788,13 @@ public class DatacollectorBridge {
 								try {
 									get();
 								} catch (InterruptedException e1) {
-									MessageDialogFactory
-											.showUnexpectedExceptionDialog(
-													mAROAnalyzer, e1);
-									logger.log(Level.SEVERE,
-											"Error starting data collector", e1);
+									MessageDialogFactory.showUnexpectedExceptionDialog(
+											mAROAnalyzer, e1);
+									logger.log(Level.SEVERE, "Error starting data collector", e1);
 								} catch (ExecutionException e1) {
-									MessageDialogFactory
-											.showUnexpectedExceptionDialog(
-													mAROAnalyzer, e1);
-									logger.log(Level.SEVERE,
-											"Error starting data collector", e1);
+									MessageDialogFactory.showUnexpectedExceptionDialog(
+											mAROAnalyzer, e1);
+									logger.log(Level.SEVERE, "Error starting data collector", e1);
 								}
 
 								// Stop video if necessary
@@ -819,17 +802,13 @@ public class DatacollectorBridge {
 									mVideoCapture.stopRecording();
 									try {
 										BufferedWriter videoTimeStampWriter = new BufferedWriter(
-												new FileWriter(
-														new File(
-																localTraceFolder,
-																TraceData.VIDEO_TIME_FILE)));
+												new FileWriter(new File(localTraceFolder,
+														TraceData.VIDEO_TIME_FILE)));
 										try {
 											// Writing a video time in file.
-											videoTimeStampWriter
-													.write(Double
-															.toString(mVideoCapture
-																	.getVideoStartTime()
-																	.getTime() / 1000.0));
+											videoTimeStampWriter.write(Double
+													.toString(mVideoCapture.getVideoStartTime()
+															.getTime() / 1000.0));
 											if (tcpdumpStartTime > 0) {
 												videoTimeStampWriter
 														.write(" "
@@ -839,22 +818,15 @@ public class DatacollectorBridge {
 											videoTimeStampWriter.close();
 										}
 									} catch (IOException e) {
-										MessageDialogFactory
-												.showUnexpectedExceptionDialog(
-														mAROAnalyzer, e);
-										logger.log(
-												Level.SEVERE,
-												"Error writing video time file",
-												e);
+										MessageDialogFactory.showUnexpectedExceptionDialog(
+												mAROAnalyzer, e);
+										logger.log(Level.SEVERE, "Error writing video time file", e);
 									} finally {
 										mVideoCapture = null;
 									}
 								}
 							} finally {
-								dataTimeDuration = Math.round(tcpdumpEndTime
-										- tcpdumpStartTime);
 								setStatus(Status.STOPPED);
-								startPullAROTraceFiles();
 							}
 						}
 					}
@@ -875,11 +847,10 @@ public class DatacollectorBridge {
 				}
 				JOptionPane.showMessageDialog(mAROAnalyzer,
 						rb.getString("Message.datacollectorrunning"),
-						rb.getString("aro.title.short"),
-						JOptionPane.INFORMATION_MESSAGE);
+						rb.getString("aro.title.short"), JOptionPane.INFORMATION_MESSAGE);
 				return null;
 			} else {
-				return rb.getString("Error.withemulatorkeybexecution");
+				return rb.getString("Error.withtcpdumppush");
 			}
 		} catch (IOException e) {
 			String msg = rb.getString("Error.withemulatorioexecution");
@@ -922,7 +893,6 @@ public class DatacollectorBridge {
 			}
 			out.close();
 		} finally {
-			tcpdumpEndTime = System.currentTimeMillis();
 			emulatorSocket.close();
 		}
 	}
@@ -933,8 +903,7 @@ public class DatacollectorBridge {
 	 */
 	private static class ShellOutputReceiver extends MultiLineReceiver {
 		private static final Pattern FAILURE = Pattern.compile("failed");
-		private static final Pattern SDCARDFULL = Pattern
-				.compile("No space left on device");
+		private static final Pattern SDCARDFULL = Pattern.compile("No space left on device");
 		private static final Pattern ERROR = Pattern.compile("error");
 
 		private boolean shellError;
@@ -973,8 +942,7 @@ public class DatacollectorBridge {
 	 * Class to get the output from the native process and display when
 	 * determining emulator SD card available space.
 	 */
-	private static class ShellCommandCheckSDCardOutputReceiver extends
-			MultiLineReceiver {
+	private static class ShellCommandCheckSDCardOutputReceiver extends MultiLineReceiver {
 
 		private static final String K = "K";
 		private static final String M = "M";
@@ -990,8 +958,7 @@ public class DatacollectorBridge {
 		 * @param device
 		 * @throws IOException
 		 */
-		public ShellCommandCheckSDCardOutputReceiver(IDevice device)
-				throws IOException {
+		public ShellCommandCheckSDCardOutputReceiver(IDevice device) throws IOException {
 			device.executeShellCommand("df", this);
 		}
 
@@ -1013,8 +980,7 @@ public class DatacollectorBridge {
 					String strFileSize = null;
 					String strValues[] = oneLine.split("\\s+");
 					try {
-						if (oneLine.contains(rb
-								.getString("Emulator.availablespace"))) {
+						if (oneLine.contains(rb.getString("Emulator.availablespace"))) {
 							strFileSize = strValues[5]; // 5th value in
 														// strValues array for
 														// 2.1 and 2.2 v of
@@ -1026,8 +992,7 @@ public class DatacollectorBridge {
 														// emulator
 						}
 					} catch (IndexOutOfBoundsException e) {
-						logger.log(Level.SEVERE,
-								"Error parsing SD card df output", e);
+						logger.log(Level.SEVERE, "Error parsing SD card df output", e);
 					}
 
 					if (strFileSize != null) {
@@ -1039,18 +1004,15 @@ public class DatacollectorBridge {
 							// minimum 5 MB space requirement on sd card
 							long iFileSizeInKB = -1;
 							if (strFileSize.contains(K)) {
-								final String iFileSizeKB[] = strFileSize
-										.split(K);
+								final String iFileSizeKB[] = strFileSize.split(K);
 								iFileSizeInKB = Long.valueOf(iFileSizeKB[0]);
 							} else if (strFileSize.contains(M)) {
-								final String iFileSizeMB[] = strFileSize
-										.split(M);
+								final String iFileSizeMB[] = strFileSize.split(M);
 								iFileSizeInKB = Long.valueOf(iFileSizeMB[0]);
 								// Converting to KB
 								iFileSizeInKB = iFileSizeInKB * 1024;
 							} else if (strFileSize.contains(G)) {
-								final String iFileSizeGB[] = strFileSize
-										.split(G);
+								final String iFileSizeGB[] = strFileSize.split(G);
 								iFileSizeInKB = Long.valueOf(iFileSizeGB[0]);
 								// Converting to KB
 								iFileSizeInKB = iFileSizeInKB * (1024 * 1024);
@@ -1090,41 +1052,64 @@ public class DatacollectorBridge {
 	 */
 	private void removeEmulatorData() throws IOException {
 		ShellOutputReceiver shelloutPut = new ShellOutputReceiver();
-		// TODO looking for short shell commend to delete trace folder.
-		mAndroidDevice.executeShellCommand("rm " + deviceTracePath + "/"
-				+ TraceData.APPID_FILE, shelloutPut);
-		mAndroidDevice.executeShellCommand("rm " + deviceTracePath + "/"
-				+ TraceData.APPNAME_FILE, shelloutPut);
-		mAndroidDevice.executeShellCommand("rm " + deviceTracePath + "/"
-				+ TraceData.CPU_FILE, shelloutPut);
-		mAndroidDevice.executeShellCommand("rm " + deviceTracePath + "/"
-				+ TraceData.TIME_FILE, shelloutPut);
-		mAndroidDevice.executeShellCommand("rm " + deviceTracePath + "/"
-				+ TraceData.PCAP_FILE, shelloutPut);
-		mAndroidDevice.executeShellCommand("rm " + deviceTracePath + "/"
-				+ TraceData.USER_EVENTS_FILE, shelloutPut);
-		mAndroidDevice.executeShellCommand("rmdir " + deviceTracePath,
-				shelloutPut);
+		mAndroidDevice.executeShellCommand("rm " + deviceTracePath + "/*", shelloutPut);
+		mAndroidDevice.executeShellCommand("rmdir " + deviceTracePath, shelloutPut);
 	}
 
 	/**
-	 * Returns trace duration.
+	 * Deletes the trace data's from the local folder.
 	 * 
-	 * @return traceDuration
+	 * @param shelloutPut
+	 * @throws IOException
 	 */
-	private String getTraceDuration() {
-		long appTimeR, appUpHours, appUpMinutes, appUpSeconds;
-		dataTimeDuration = dataTimeDuration / 1000;
-		appTimeR = dataTimeDuration % 3600;
-		appUpHours = dataTimeDuration / 3600;
-		appUpMinutes = (appTimeR / 60);
-		appUpSeconds = appTimeR % 60;
+	private void deleteTraceFolderData(ShellOutputReceiver shelloutPut) throws IOException {
+		// Delete all the trace files from the folders
+		if (localTraceFolder.isDirectory()) {
+			for (File f : localTraceFolder.listFiles()) {
+				f.delete();
+			}
+		}
+		localTraceFolder.delete();
+		mAndroidDevice.executeShellCommand("rm " + deviceTracePath + "/*", shelloutPut);
+	}
 
-		String formatedTraceDuration = (appUpHours < 10 ? "0" : "")
-				+ appUpHours + ":" + (appUpMinutes < 10 ? "0" : "")
-				+ appUpMinutes + ":" + (appUpSeconds < 10 ? "0" : "")
-				+ appUpSeconds;
-		return formatedTraceDuration;
+	/**
+	 * Appends application version numbers in the appname trace file.
+	 */
+	private void appendAppVersion() {
+		try {
+			File tempFile = new File(this.localTraceFolder + File.separator
+					+ rb.getString("Emulator.tempfile"));
+			// Pushing temporary file having trace folder name to emulator.
+			mAndroidDevice.getSyncService().pushFile(tempFile.getAbsolutePath(),
+					TRACE_ROOT + rb.getString("Emulator.tempfile"),
+					SyncService.getNullProgressMonitor());
+			File verCollectingApp = getAroCollectorFilesFromJar(APPVERAPK);
+			// Installs application version collection apk in emulator.
+			mAndroidDevice.installPackage(verCollectingApp.getPath(), false);
+			Thread.sleep(1000);
+			ShellOutputReceiver shelloutPut = new ShellOutputReceiver();
+			// Starts application in emulator.
+			mAndroidDevice
+					.executeShellCommand(
+							rb.getString("Emulator.startapk"),
+							shelloutPut);
+			if(shelloutPut.shellError){
+				logger.log(Level.SEVERE, rb.getString("Error.apknotabletostart"));	
+			}
+			Thread.sleep(2000);
+			// Uninstalls in emulator.
+			mAndroidDevice.uninstallPackage(rb.getString("Emulator.apkpackage"));
+			//Delete local files.
+			tempFile.delete();
+			verCollectingApp.delete();
+		} catch (IOException e1) {
+			String msg = rb.getString("Error.withemulatorioexecution");
+			logger.log(Level.SEVERE, msg, e1);
+		} catch (InterruptedException e) {
+			String msg = rb.getString("Error.withemulatorioexecution");
+			logger.log(Level.SEVERE, msg, e);
+		}
 	}
 
 }

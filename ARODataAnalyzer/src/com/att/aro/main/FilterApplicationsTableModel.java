@@ -28,6 +28,7 @@ import com.att.aro.commonui.CheckBoxRenderer;
 import com.att.aro.commonui.ColorCellEditor;
 import com.att.aro.commonui.ColorCellRenderer;
 import com.att.aro.commonui.DataTableModel;
+import com.att.aro.model.AnalysisFilter;
 import com.att.aro.model.ApplicationSelection;
 
 /**
@@ -55,8 +56,9 @@ public class FilterApplicationsTableModel extends DataTableModel<ApplicationSele
 	/**
 	 * Initializes a new instance of the FilterApplicationsTableModel class.
 	 */
-	public FilterApplicationsTableModel() {
+	public FilterApplicationsTableModel(AnalysisFilter filter) {
 		super(columns);
+		setData(filter.getApplicationSelections());
 	}
 
 	private static final long serialVersionUID = 1L;
@@ -145,6 +147,7 @@ public class FilterApplicationsTableModel extends DataTableModel<ApplicationSele
 				obj.setColor(((Color) aValue));
 			}
 		}
+		fireTableCellUpdated(rowIndex, columnIndex);
 	}
 
 }

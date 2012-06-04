@@ -48,8 +48,7 @@ public class PercentLabelGenerator extends StandardCategoryItemLabelGenerator {
 	 */
 	@Override
 	public String generateLabel(CategoryDataset dataset, int row, int column) {
-		String label = generateLabelString(dataset, row, column);
-		return ("0".equals(label) ? "0" : (formatter.format(Double
-				.parseDouble(label))));
+		Number value = dataset.getValue(row, column);
+		return value != null ? formatter.format(value.doubleValue()) : "";
 	}
 }

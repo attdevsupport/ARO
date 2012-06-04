@@ -22,8 +22,8 @@ import java.util.prefs.Preferences;
 import com.att.aro.main.ChartPlotOptions;
 
 /**
- * User Preferences to handle the Preferences to store the default values such
- * as profile details, visible plots and default directory path.
+ * A class used to store user preferences for the Data Analyzer, like profile details, 
+ * visible plots, and the default directory path. 
  */
 public class UserPreferences {
 
@@ -41,10 +41,9 @@ public class UserPreferences {
 	private Preferences prefs;
 
 	/**
-	 * Returns the UserPreferences instance which contains the user settings for
-	 * the Analyzer.
+	 * Gets a static instance of the UserPreferences class.
 	 * 
-	 * @return The UserPreferences instance.
+	 * @return A static UserPreferences object.
 	 */
 	public static UserPreferences getInstance() {
 		return instance;
@@ -58,9 +57,9 @@ public class UserPreferences {
 	}
 
 	/**
-	 * Gets the directory from where the last trace was loaded
+	 * Gets the directory from which the last trace was loaded. 
 	 * 
-	 * @return The trace directory selected by the user.
+	 * @return The directory of the last loaded trace.
 	 */
 	public File getLastTraceDirectory() {
 		String path = prefs.get(TD_PATH, null);
@@ -68,9 +67,9 @@ public class UserPreferences {
 	}
 
 	/**
-	 * Sets the directory from where the last trace was loaded
+	 * Sets the directory where the last trace was loaded from.
 	 * 
-	 * @param tdPath
+	 * @param tdPath – The absolute path of the last trace directory.
 	 */
 	public void setLastTraceDirectory(File tdPath) {
 		if (tdPath != null && !tdPath.isDirectory()) {
@@ -96,13 +95,13 @@ public class UserPreferences {
 	}
 
 	/**
-	 * Gets either the pre-defined profile name or absolute path to file which
-	 * contains the last profile used of the specified type.
+	 * Returns either the pre-defined profile name, or the absolute path to the file which 
+	 * contains the profile data. 
 	 * 
 	 * @param profileType
 	 *            Specifies profile type to get. If null, last profile of any
 	 *            type is returned.
-	 * @return The profile name
+	 * @return TThe name of the last profile that was used.
 	 */
 	public String getLastProfile(ProfileType profileType) {
 		if (profileType != null) {
@@ -120,11 +119,10 @@ public class UserPreferences {
 	}
 
 	/**
-	 * Sets either the pre-defined profile name or absolute path to file which
-	 * contains profile data
+	 * Sets the pre-defined profile name or the absolute path to the file which contains 
+	 * the profile data. 
 	 * 
-	 * @param profile
-	 *            The last used profile to be stored in user preferences
+	 * @param profile – The last profile.
 	 */
 	public void setLastProfile(Profile profile) {
 		String name = profile != null ? profile.getName() : null;
@@ -139,9 +137,9 @@ public class UserPreferences {
 	}
 
 	/**
-	 * Gets the directory from where the last profile was loaded or saved
+	 * Returns the directory from which the last profile was loaded or saved. 
 	 * 
-	 * @return The profile directory.
+	 * @return The last profile directory.
 	 */ 
 	public File getLastProfileDirectory() {
 		String path = prefs.get(PROFILE_PATH, null);
@@ -149,9 +147,9 @@ public class UserPreferences {
 	}
 
 	/**
-	 * Sets the directory where user device profiles have last been stored
+	 * Sets the directory where the user device profiles were last stored. 
 	 * 
-	 * @param profilePath
+	 * @param profilePath – The absolute path of the last profile directory.
 	 */
 	public void setLastProfileDirectory(File profilePath) {
 		if (profilePath != null && !profilePath.isDirectory()) {
@@ -164,9 +162,10 @@ public class UserPreferences {
 	}
 
 	/**
-	 * Set the list of chart plot options.
+	 * Set the list of chart plot options. 
 	 * 
-	 * @param chartPlotOptions
+	 * @param chartPlotOptions – A List of ChartPlotOptions objects containing the user 
+	 * configurable list of items to plot on the Diagnostic Chart.
 	 */
 	public void setChartPlotOptions(List<ChartPlotOptions> chartPlotOptions) {
 		if (chartPlotOptions == null) {
@@ -179,9 +178,10 @@ public class UserPreferences {
 	}
 
 	/**
-	 * Retrieve the list of chart plot options.
+	 * Retrieves the chart plot options. The user configurable list of items to plot on 
+	 * the Diagnostic Chart.
 	 * 
-	 * @return The list of chart options.
+	 * @return A List of ChartPlotOptions objects containing the information.
 	 */
 	public List<ChartPlotOptions> getChartPlotOptions() {
 		String chartPlotsOptionPrefsString = prefs
@@ -194,7 +194,7 @@ public class UserPreferences {
 	/**
 	 * Returns the directory where the last table export occurred
 	 * 
-	 * @return The last profile exported directory. 
+	 * @return The last export directory.
 	 */
 	public File getLastExportDirectory() {
 		String s = prefs.get(EXPORT_PATH, null);
@@ -210,9 +210,8 @@ public class UserPreferences {
 	/**
 	 * Sets the directory where the last table export occurred
 	 * 
-	 * @param f
-	 *            if is a file, the parent directory is used. If null, the
-	 *            preference is cleared.
+	 * @param f – The last table export directory. If this parameter is a file, the parent 
+	 * directory is used. If it is null, the previous user preference is cleared.
 	 */
 	public void setLastExportDirectory(File f) {
 		if (f != null && f.exists()) {

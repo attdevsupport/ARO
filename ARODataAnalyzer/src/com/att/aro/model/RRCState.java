@@ -16,35 +16,35 @@
 package com.att.aro.model;
 
 /**
- * Identifies valid RRC states
+ * The RRCState Enumeration specifies constant values that describe the valid Radio Resource Control (RRC) states. 
  */
 public enum RRCState {
 	/**
-	 * Idle state for RRC.
+	 * The Idle state. 
 	 */
 	STATE_IDLE,
 	/**
-	 *  Direct Channel active state for RRC.
+	 *  The Direct Channel (DCH) active state. 
 	 */
 	STATE_DCH,
 	/**
-	 *  Forward Access Channel active state for RRC.
+	 *  The Forward Access Channel (FACH) active state. 
 	 */
 	STATE_FACH,
 	/**
-	 *  Direct Channel tail state for RRC.
+	 *  The Direct Channel (DCH) tail state. 
 	 */
 	TAIL_DCH, 
 	/**
-	 *  Forward Access Channel tail state for RRC.
+	 *  The Forward Access Channel (FACH) tail state.
 	 */
 	TAIL_FACH,
 	/**
-	 *  Promotion from Idle to Direct Channel state.
+	 * Promotion from the Idle to Direct Channel (DCH) state. 
 	 */
 	PROMO_IDLE_DCH, 
 	/**
-	 *  Promotion from Forward Access to Direct Channel state.
+	 *  Promotion from the Forward Access (FACH) to Direct Channel (DCH) state. 
 	 */
 	PROMO_FACH_DCH,
 	

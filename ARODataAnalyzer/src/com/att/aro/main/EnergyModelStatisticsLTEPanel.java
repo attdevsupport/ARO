@@ -173,6 +173,8 @@ public class EnergyModelStatisticsLTEPanel extends EnergyModelStatisticsPanel {
 					rrcTotalValueLabel.getText());
 			energyContent.put(rb.getString("energy.jpkb"),
 					jpkbValueLabel.getText());
+			
+			updatePeripheralStatisticsValues();
 		} else {
 			idleCrPromoValueLabel.setText(null);
 			continuousReceptionValueLabel.setText(null);

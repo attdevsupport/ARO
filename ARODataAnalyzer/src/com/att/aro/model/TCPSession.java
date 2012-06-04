@@ -37,15 +37,15 @@ import com.att.aro.model.PacketInfo.TcpInfo;
 import com.att.aro.pcap.TCPPacket;
 
 /**
- * Handles TCP Session related operations, such as extracting the session from
- * the provided packets. analyzing the session to detect the TCP infos. This
- * class acts as a Bean class for TCP Sessions.
+ * Represents a TCP session, acting as a bean class for session information. Provides methods for 
+ * extracting a list of sessions from a collection of packets, and analyzing a session to retrieve 
+ * the TCP information. 
  */
 public class TCPSession implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	/**
-	 * Class to contain the session termination packet information.
+	 * Contains the TCP session termination information for a packet. 
 	 */
 	public static class Termination implements Serializable {
 		private static final long serialVersionUID = 1L;
@@ -65,19 +65,19 @@ public class TCPSession implements Serializable {
 		}
 
 		/**
-		 * Returns the packet.
+		 * Returns the packet information. 
 		 * 
-		 * @return packet.
+		 * @return A PacketInfo object containing the packet.
 		 */
 		public PacketInfo getPacket() {
 			return packet;
 		}
 
 		/**
-		 * The amount of time in seconds between the last data packet and the
-		 * packet that signaled session termination
+		 * The amount of time, in seconds, between the last data packet and the packet 
+		 * that signaled the session termination. 
 		 * 
-		 * @return The sessionTerminationDelay
+		 * @return The session termination delay.
 		 */
 		public double getSessionTerminationDelay() {
 			return sessionTerminationDelay;
@@ -141,11 +141,14 @@ public class TCPSession implements Serializable {
 	}
 
 	/**
-	 * Constructor
+	 * Initializes an instance of the TCPSession class, using the specified remote IP, remote port, 
+	 * and local port.
 	 * 
-	 * @param remoteIP
-	 * @param remotePort
-	 * @param localPort
+	 * @param remoteIP – The remove IP address.
+	 * 
+	 * @param remotePort – The remote port.
+	 * 
+	 * @param localPort – The local port.
 	 */
 	public TCPSession(InetAddress remoteIP, int remotePort, int localPort) {
 		this.remoteIP = remoteIP;
@@ -154,10 +157,10 @@ public class TCPSession implements Serializable {
 	}
 
 	/**
-	 * Extracts the TCP sessions for specified packet collection
+	 * Creates a List of TCP sessions using the specified Collection of packets.
 	 * 
-	 * @param packets
-	 *            The collection of packets that are found in the trace data.
+	 * @param packets – A collection of PacketInfo objects holding the packet information.
+	 * 
 	 * @return The collection of tcp sessions that are found from the packets
 	 *         data.
 	 * @throws IOException
@@ -468,117 +471,117 @@ public class TCPSession implements Serializable {
 	}
 
 	/**
-	 * Returns the set of application name.
+	 * Returns the set of application names contained in the TCP session. 
 	 * 
-	 * @return appNames.
+	 * @return A Set of strings containing the application names.
 	 */
 	public Set<String> getAppNames() {
 		return appNames;
 	}
 
 	/**
-	 * Returns the remoteIP.
+	 * Returns the remote IP address. 
 	 * 
-	 * @return remoteIP.
+	 * @return The remote IP.
 	 */
 	public InetAddress getRemoteIP() {
 		return remoteIP;
 	}
 
 	/**
-	 * Returns the remotePort.
+	 * Returns the remote port. 
 	 * 
-	 * @return remotePort.
+	 * @return The remote port.
 	 */
 	public int getRemotePort() {
 		return remotePort;
 	}
 
 	/**
-	 * Returns the localPort.
+	 * Returns the local port. 
 	 * 
-	 * @return localPort.
+	 * @return The local port.
 	 */
 	public int getLocalPort() {
 		return localPort;
 	}
 
 	/**
-	 * Returns the remote HostName.
+	 * Returns the name of the remote host. 
 	 * 
-	 * @return remoteHostName.
+	 * @return The remote host name.
 	 */
 	public String getRemoteHostName() {
 		return remoteHostName;
 	}
 
 	/**
-	 * Returns the name of TCP domain.
+	 * Returns the name of the TCP domain. 
 	 * 
-	 * @return domainName.
+	 * @return The TCP domain name.
 	 */
 	public String getDomainName() {
 		return domainName;
 	}
 
 	/**
-	 * Returns the count of file download.
+	 * Returns a count of the number of files downloaded during the TCP session. 
 	 * 
-	 * @return fileDownloadCount.
+	 * @return The file download count.
 	 */
 	public int getFileDownloadCount() {
 		return fileDownloadCount;
 	}
 
 	/**
-	 * Returns the number of bytes transferred.
+	 * Returns the number of bytes transferred during the session. 
 	 * 
-	 * @return bytesTransferred.
+	 * @return The total number of bytes transferred.
 	 */
 	public long getBytesTransferred() {
 		return bytesTransferred;
 	}
 
 	/**
-	 * Returns the list of packets.
+	 * Returns all of the packets in the TCP session. 
 	 * 
-	 * @return packets.
+	 * @return A List of PacketInfo objects containing the packet data.
 	 */
 	public List<PacketInfo> getPackets() {
 		return Collections.unmodifiableList(packets);
 	}
 
 	/**
-	 * Gets the start time of the session in seconds relative to start of trace.
+	 * Gets the start time of the session, in seconds, relative to the start of the trace. 
 	 * 
-	 * @return packet timestamp
+	 * @return The start time of the session.
 	 */
 	public double getSessionStartTime() {
 		return packets.get(0).getTimeStamp();
 	}
 
 	/**
-	 * Gets the end time of the session in seconds relative to start of trace
+	 * Gets the end time of the session, in seconds, relative to the start of the trace. 
 	 * 
-	 * @return session end time
+	 * @return The end time of the session.
 	 */
 	public double getSessionEndTime() {
 		return packets.get(packets.size() - 1).getTimeStamp();
 	}
 
 	/**
-	 * Return the request/response info
+	 * Return the request/response information for all of the packets. 
 	 * 
-	 * @return requestResponseInfo
+	 * @return A List of HTTPRequestResponseInfo objects containing the information.
 	 */
 	public List<HttpRequestResponseInfo> getRequestResponseInfo() {
 		return requestResponseInfo;
 	}
 
 	/**
-	 * Return the consolidated string for uplink and downlink storage.
+	 * Returns the consolidated string for uplink and downlink storage. 
 	 * 
-	 * @return result string
+	 * @return The result string.
 	 */
 	public String getDataText() {
 		StringBuffer buf = new StringBuffer(storageUl.length + storageDl.length);
@@ -590,46 +593,50 @@ public class TCPSession implements Serializable {
 	}
 
 	/**
-	 * Return the string for uplink storage.
+	 * Return the uplink storage. 
 	 * 
-	 * @return result string
+	 * @return An array of bytes containing the uplink storage.
 	 */
 	public byte[] getStorageUl() {
 		return storageUl;
 	}
 
 	/**
-	 * Return the string for downlink storage.
+	 * Return the downlink storage. 
 	 * 
-	 * @return result string
+	 * @return An array of bytes containing the downlink storage.
 	 */
 	public byte[] getStorageDl() {
 		return storageDl;
 	}
 
 	/**
-	 * Map of offset within the storage array to the packet whose data is there
+	 * Returns a sorted Map of offsets and packet data for each uplink packet in the 
+	 * storage array. 
 	 * 
-	 * @return the packetOffsetsUl
+	 * @return A Map of offsets and corresponding PacketInfo objects that contain the 
+	 * uplink packet data.
 	 */
 	public SortedMap<Integer, PacketInfo> getPacketOffsetsUl() {
 		return Collections.unmodifiableSortedMap(packetOffsetsUl);
 	}
 
 	/**
-	 * Map of offset within the storage array to the packet whose data is there
+	 * Returns a sorted Map of offsets and packet data for each downlink packet in the 
+	 * storage array.
 	 * 
-	 * @return the packetOffsetsDl
+	 * @return A Map of offsets and corresponding PacketInfo objects that contain the 
+	 * downlink packet data.
 	 */
 	public SortedMap<Integer, PacketInfo> getPacketOffsetsDl() {
 		return Collections.unmodifiableSortedMap(packetOffsetsDl);
 	}
 
 	/**
-	 * Returns information about the session termination or null if none was in
-	 * the trace.
+	 * Returns information about the session termination if one exists in the trace. 
 	 * 
-	 * @return the sessionTermination
+	 * @return A TCPSession.Termination object containing the information, or null, if 
+	 * there was no session termination in the trace.
 	 */
 	public Termination getSessionTermination() {
 		return sessionTermination;

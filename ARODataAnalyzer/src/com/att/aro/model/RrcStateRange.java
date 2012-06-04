@@ -24,9 +24,9 @@ import java.util.List;
 import com.att.aro.model.PacketInfo.Direction;
 
 /**
- * Radio Resource Control analysis carried out from this class. It analysis the
- * time range between each RRC states, also it acts as a Bean class to get the
- * RRC range information.
+ * Provides a runTrace method that performs Radio Resource Control (RRC) analysis by analyzing the 
+ * time range between RRC states. This class also acts as a bean class that encapsulates RRC range 
+ * information.
  */
 public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 	private static final long serialVersionUID = 1L;
@@ -188,10 +188,14 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 	}
 
 	/**
-	 * Runs a state machine analysis for the specified trace analysis
-	 * @param analysisData
-	 * @return list of RRC state range objects representing the RRC state
-	 * machine for the analysis
+	 * Performs Radio Resource Control (RRC) analysis by analyzing the time range between RRC states. 
+	 * This method contains the main algorithm for analyzing the time range between RRC states. It 
+	 * takes the specified trace data and returns a List of RrcStateRange objects.
+	 * 
+	 * @param analysisData – An Analysis object containing the trace data.
+	 * 
+	 * @return A List of RrcStateRange objects.
+	 * 
 	 * @throws NullPointerException when analysisData is null
 	 */
 	public static List<RrcStateRange> runTrace(TraceData.Analysis analysisData) {
@@ -863,7 +867,17 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 	private double beginTime;
 	private double endTime;
 	private RRCState state;
-
+	
+	/**
+	 * Initializes an instance of the RrcStateRange class with one RRC state range, using the 
+	 * specified begin time, end time, and RRC state.
+	 * 
+	 * @param beginTime – The time when the RRC state begins.
+	 * 
+	 * @param endTime – The time when the RRC state ends.
+	 * 
+	 * @param state – The RRC state. One of the values of the RRCState enumeration.
+	 */
 	public RrcStateRange(double beginTime, double endTime, RRCState state) {
 		this.beginTime = beginTime;
 		this.endTime = endTime;
@@ -871,37 +885,37 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 	}
 
 	/**
-	 * Public Comparison method for RRCStateRanges. Sorts from earliest time to
-	 * latest time.
+	 * Compares the specified RrcStateRange object to this one. This method is used to sort 
+	 * RRCStateRanges from the earliest time to the latest time. 
 	 * 
-	 * @return rsr.
+	 * @return An int value that is the result of the comparison.
 	 */
 	public int compareTo(RrcStateRange rsr) {
 		return Double.valueOf(beginTime).compareTo(rsr.beginTime);
 	}
 
 	/**
-	 * Returns RRC beginTime.
+	 * Returns The time when the RRC state begins.
 	 * 
-	 * @return beginTime.
+	 * @return The RRC begin time value.
 	 */
 	public double getBeginTime() {
 		return beginTime;
 	}
 
 	/**
-	 * Returns RRC endTime.
+	 * Returns the time when the RRC state ends.
 	 * 
-	 * @return endTime.
+	 * @return The RRC end time value.
 	 */
 	public double getEndTime() {
 		return endTime;
 	}
 
 	/**
-	 * Returns RRC state.
+	 * Returns the RRC state. 
 	 * 
-	 * @return state.
+	 * @return  The RRC state. One of the values of the RRCState enumeration.
 	 */
 	public RRCState getState() {
 		return state;

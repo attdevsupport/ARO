@@ -51,7 +51,7 @@ public class Throughput implements Serializable {
 			Iterator<PacketInfo> headIter = packets.iterator();
 			Iterator<PacketInfo> tailIter = packets.iterator();
 
-			int nSteps = (int) (maxTS / thStep);
+			int nSteps = (int) ((maxTS - startTime) / thStep);
 			long headUpAccum = 0;
 			long tailUpAccum = 0;
 			long headDownAccum = 0;
@@ -64,9 +64,9 @@ public class Throughput implements Serializable {
 				double endTS = startTime;
 				for (int i = 1; i <= nSteps; i++) {
 					// Set up time slot
-					endTS = thStep * i;
+					endTS += thStep;
 					beginTS = endTS - thBin;
-					if (beginTS < 0)
+					if (beginTS < startTime)
 						continue;
 
 					// Determine the number of bytes downloaded in the

@@ -34,7 +34,6 @@ import javax.swing.JTextArea;
 import javax.swing.UIManager;
 
 import com.att.aro.commonui.AROUIManager;
-import com.att.aro.model.ApplicationSelection;
 import com.att.aro.model.TraceData;
 
 /**
@@ -101,15 +100,13 @@ public class DateTraceAppDetailPanel extends JPanel {
 			dateValueLabel.setText(format.format(traceData.getTraceDateTime()));
 			traceValueLabel.setText(traceData.getTraceDir().getName());
 			StringBuffer apps = new StringBuffer();
-			for (ApplicationSelection app : analysisData
-					.getApplicationSelections().values()) {
-				if (app.isSelected() && app.getAppName() != null) {
-					final String appVersion = analysisData.getTraceData()
-							.getAppVersionMap().get(app.getAppName());
-					apps.append(app.getAppName()
-							+ (appVersion != null ? " : " + appVersion : ""));
-					apps.append('\n');
-				}
+			for (String app : analysisData
+					.getAppNames()) {
+				String appVersion = analysisData.getTraceData()
+						.getAppVersionMap().get(app);
+				apps.append((app != null ? app : rb.getString("aro.unknownApp"))
+						+ (appVersion != null ? " : " + appVersion : ""));
+				apps.append('\n');
 			}
 			applicationNameLabel.setText(apps.toString());
 			appVersionValueLabel.setText(traceData.getCollectorVersion());

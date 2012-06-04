@@ -30,6 +30,7 @@ import org.jfree.ui.tabbedui.VerticalLayout;
 
 import com.att.aro.commonui.AROUIManager;
 import com.att.aro.commonui.DataTable;
+import com.att.aro.model.Burst;
 import com.att.aro.model.BurstAnalysisInfo;
 import com.att.aro.model.Profile3G;
 import com.att.aro.model.ProfileLTE;
@@ -46,11 +47,15 @@ public class BurstAnalysisPanel extends JPanel {
 			.getDefaultBundle();
 
 	private JScrollPane scroll;
+	private JScrollPane burstScroll;
 	private BurstAnalysisTableModel tableModel = new BurstAnalysisTableModel();
+	private BurstCollectionInfoTableModel burstTableModel = new BurstCollectionInfoTableModel();
 	private DataTable<BurstAnalysisInfo> table;
+	private DataTable<Burst> burstTable;
 	private static final Font HEADER_FONT = new Font("HeaderFont", Font.BOLD,
 			16);
-
+	private static final int HEADER_DATA_SPACING = 10;
+	
 	/**
 	 * Initializes a new instance of the BurstAnalysisPanel class.
 	 */
@@ -70,6 +75,8 @@ public class BurstAnalysisPanel extends JPanel {
 	public void refresh(TraceData.Analysis analysis) {
 		tableModel.setData(analysis != null ? analysis.getBcAnalysis()
 				.getBurstAnalysisInfo() : null);
+		burstTableModel.setData(analysis != null ? analysis.getBcAnalysis()
+				.getBurstCollection() : null);
 		if (analysis == null || analysis.getProfile() == null)
 			return;
 
@@ -89,6 +96,18 @@ public class BurstAnalysisPanel extends JPanel {
 		headerLabel.setFont(HEADER_FONT);
 		this.add(headerLabel);
 		this.add(getScroll());
+		
+		JPanel spacePanel = new JPanel();
+		spacePanel.setPreferredSize(new Dimension(this.getWidth(),
+				HEADER_DATA_SPACING));
+		spacePanel.setBackground(UIManager
+				.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
+		this.add(spacePanel);
+		
+		JLabel subHeaderLabel = new JLabel(rb.getString("burstAnalysis.individualBurst"));
+		subHeaderLabel.setFont(HEADER_FONT);
+		this.add(subHeaderLabel);
+		this.add(getBurstScroll());
 	}
 
 	/**
@@ -100,6 +119,17 @@ public class BurstAnalysisPanel extends JPanel {
 			scroll.setPreferredSize(new Dimension(300, 200));
 		}
 		return scroll;
+	}
+	
+	/**
+	 * Returns the JScrollPane containing the burst analysis table.
+	 */
+	private JScrollPane getBurstScroll() {
+		if (burstScroll == null) {
+			burstScroll = new JScrollPane(getBurstTable());
+			burstScroll.setPreferredSize(new Dimension(300, 150));
+		}
+		return burstScroll;
 	}
 
 	/**
@@ -113,6 +143,20 @@ public class BurstAnalysisPanel extends JPanel {
 			table.setGridColor(Color.LIGHT_GRAY);
 		}
 		return table;
+	}
+
+	
+	/**
+	 * Returns a DataTable containing the burst analysis data.
+	 * 
+	 * @return A DataTable object containing the burst analysis data.
+	 */
+	public DataTable<Burst> getBurstTable() {
+		if (burstTable == null) {
+			burstTable = new DataTable<Burst>(burstTableModel);
+			burstTable.setGridColor(Color.LIGHT_GRAY);
+		}
+		return burstTable;
 	}
 
 }

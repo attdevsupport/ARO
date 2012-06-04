@@ -33,6 +33,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
@@ -322,10 +323,19 @@ public class AROSimpleTabb extends JPanel {
 			jExtendedDomainTable.setGridColor(Color.LIGHT_GRAY);
 			jExtendedDomainTable.addMouseListener(new MouseAdapter() {
 				public void mouseClicked(MouseEvent e) {
-					TCPSession tcp = jExtendedDomainTable.getSelectedItem();
+					final TCPSession tcp = jExtendedDomainTable.getSelectedItem();
 					if (e.getClickCount() == 2 && tcp != null) {
 						parent.displayAdvancedTab();
-						parent.getAroAdvancedTab().setHighlightedTCP(tcp);
+						
+						// Make sure the tab is fully displayed before changing selection
+						SwingUtilities.invokeLater(new Runnable() {
+
+							@Override
+							public void run() {
+								parent.getAroAdvancedTab().setHighlightedTCP(tcp);
+							}
+							
+						});
 					}
 				}
 			});

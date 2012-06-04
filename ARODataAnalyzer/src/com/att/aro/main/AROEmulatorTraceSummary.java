@@ -18,24 +18,16 @@
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
-import java.awt.Window;
 import java.util.ResourceBundle;
 
 import javax.swing.BorderFactory;
-import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JProgressBar;
-import javax.swing.SwingConstants;
-import javax.swing.UIManager;
 
 import org.jfree.ui.tabbedui.VerticalLayout;
-
-import com.att.aro.commonui.AROUIManager;
 
 /**
  * Progress dialog displayed during data collector start/stop/pull
@@ -45,8 +37,6 @@ public class AROEmulatorTraceSummary extends JPanel {
 
 	private static final ResourceBundle rb = ResourceBundleManager
 			.getDefaultBundle();
-	private static final Font HEADER_FONT = new Font("HeaderFont", Font.BOLD,
-			16);
 	private static final Font TEXT_FONT = new Font("TEXT_FONT", Font.PLAIN, 12);
 	private static final int HEADER_DATA_SPACING = 10;
 

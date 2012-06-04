@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
+import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ResourceBundle;
 
@@ -45,14 +45,11 @@ public class ExpandedDomainTableModel extends DataTableModel<TCPSession> {
 	private static final int TIME_GAP = 5;
 	private static final int CLOSED_CONN = 6;
 
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
-	private static final String[] columns = {
-			rb.getString("expanded.session.time"),
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
+	private static final String[] columns = { rb.getString("expanded.session.time"),
 			rb.getString("expanded.external"), rb.getString("expanded.local"),
-			rb.getString("expanded.connection.length"),
-			rb.getString("expanded.bytes"), rb.getString("expanded.time.gap"),
-			rb.getString("expanded.domain.name") };
+			rb.getString("expanded.connection.length"), rb.getString("expanded.bytes"),
+			rb.getString("expanded.time.gap"), rb.getString("expanded.domain.name") };
 
 	/**
 	 * Initializes a new instance of the ExpandedDomainTableModel class.
@@ -78,18 +75,19 @@ public class ExpandedDomainTableModel extends DataTableModel<TCPSession> {
 		TableColumnModel cols = super.createDefaultTableColumnModel();
 		TableColumn col;
 
+		NumberFormatRenderer nFFormat = new NumberFormatRenderer(new DecimalFormat("0.000"));
+
 		col = cols.getColumn(SESSION_TIME);
-		col.setCellRenderer(new NumberFormatRenderer());
+		col.setCellRenderer(nFFormat);
 
 		col = cols.getColumn(CONN_LEN);
 		col.setCellRenderer(new NumberFormatRenderer());
 
 		col = cols.getColumn(BYTES);
-		col.setCellRenderer(new NumberFormatRenderer(NumberFormat
-				.getIntegerInstance()));
+		col.setCellRenderer(new NumberFormatRenderer(NumberFormat.getIntegerInstance()));
 
 		col = cols.getColumn(TIME_GAP);
-		col.setCellRenderer(new NumberFormatRenderer());
+		col.setCellRenderer(nFFormat);
 
 		return cols;
 	}

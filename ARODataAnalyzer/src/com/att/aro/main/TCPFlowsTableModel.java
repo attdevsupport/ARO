@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
+import java.text.DecimalFormat;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.ResourceBundle;
@@ -42,16 +42,14 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 	private static final int DOMAIN_COL = 2;
 	private static final int LOCALPORT_COL = 3;
 	private static final int REMOTEPORT_COL = 4;
+	private static final int PACKETCOUNT_COL = 5;
 
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
-	private static final String hostPortSeparator = rb
-			.getString("tcp.hostPortSeparator");
-	private static final String stringListSeparator = rb
-			.getString("stringListSeparator");
-	private static final String[] columns = { rb.getString("tcp.time"),
-			rb.getString("tcp.app"), rb.getString("tcp.domain"),
-			rb.getString("tcp.local"), rb.getString("tcp.remote") };
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
+	private static final String hostPortSeparator = rb.getString("tcp.hostPortSeparator");
+	private static final String stringListSeparator = rb.getString("stringListSeparator");
+	private static final String[] columns = { rb.getString("tcp.time"), rb.getString("tcp.app"),
+			rb.getString("tcp.domain"), rb.getString("tcp.local"), rb.getString("tcp.remote"),
+			rb.getString("tcp.packetcount") };
 
 	private Set<TCPSession> highlighted = new HashSet<TCPSession>();
 
@@ -87,7 +85,7 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 	public TableColumnModel createDefaultTableColumnModel() {
 		TableColumnModel cols = super.createDefaultTableColumnModel();
 		TableColumn col = cols.getColumn(TIME_COL);
-		col.setCellRenderer(new NumberFormatRenderer());
+		col.setCellRenderer(new NumberFormatRenderer(new DecimalFormat("0.000")));
 		return cols;
 	}
 
@@ -139,11 +137,11 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 		case DOMAIN_COL:
 			return item.getDomainName();
 		case LOCALPORT_COL:
-			return rb.getString("tcp.localhost") + hostPortSeparator
-					+ item.getLocalPort();
+			return rb.getString("tcp.localhost") + hostPortSeparator + item.getLocalPort();
 		case REMOTEPORT_COL:
-			return item.getRemoteIP().getHostAddress() + hostPortSeparator
-					+ item.getRemotePort();
+			return item.getRemoteIP().getHostAddress() + hostPortSeparator + item.getRemotePort();
+		case PACKETCOUNT_COL:
+			return item.getPackets().size();
 		default:
 			return null;
 		}

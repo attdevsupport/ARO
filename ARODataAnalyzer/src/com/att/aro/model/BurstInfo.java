@@ -16,27 +16,28 @@
 package com.att.aro.model;
 
 /**
- * Different Burst types.
+ * The BurstInfo Enumeration specifies constant values that describe the different 
+ * categories of bursts that occur when data is transferred. 
  */
 public enum BurstInfo {
 	/**
-	 * Back log Burst.
+	 * A back log burst. 
 	 */
 	BURST_BKG,
 	/**
-	 * Finishing Burst.
+	 * A finishing burst. 
 	 */
 	BURST_FIN,
 	/**
-	 * Synchronize Burst.
+	 * A synchronize burst. 
 	 */
 	BURST_SYN,
 	/**
-	 * Burst Reset.
+	 * A Reset burst. 
 	 */
 	BURST_RST,
 	/**
-	 * Alive Burst.
+	 * A KeepAlive burst. 
 	 */
 	BURST_KEEPALIVE,
 	/**
@@ -44,55 +45,64 @@ public enum BurstInfo {
 	 */
 	BURST_ZEROWIN,
 	/**
-	 * Window update Burst.
+	 * A ZeroWin burst.
 	 */
 	BURST_WINUPDATE,
 	/**
-	 * Recovered Burst.
+	 * A Recovered burst. This is part of the Loss burst category that consists of the 
+	 * packets that are lost while being transferred.
 	 */
 	BURST_LOSS_RECOVER,
 	/**
-	 * Duplicate Burst.
+	 * A Duplicate burst. This is part of the Loss burst category that consists of the 
+	 * packets that are lost while being transferred. 
 	 */
 	BURST_LOSS_DUP,
 	/**
-	 * Burst initiated because of User input.
+	 * A burst initiated by user input. 
 	 */
 	BURST_USER_INPUT,
 	/**
-	 * Server delayed Burst.
+	 * Burst initiated because of User input.
+	 */
+	BURST_SCREEN_ROTATION_INPUT,
+	/**
+	 * A server delayed burst. 
 	 */
 	BURST_SERVER_DELAY,
 	/**
-	 * Client delayed Burst.
+	 * A Client delayed burst. 
 	 */
 	BURST_CLIENT_DELAY,
 	/**
-	 * Long Burst transfers heavy data.
+	 * A Long burst has a duration of more than 5 seconds, and typically transfers large 
+	 * amounts of data.
 	 */
 	BURST_LONG,
 	/**
-	 * CPU buys Burst.
+	 * A burst that occurs when the CPU is busy 
 	 */
 	BURST_CPU_BUSY,
 	/**
-	 * Periodical Burst which keep on repeats in some delay.
+	 * A Periodical Burst. If the Internet Addresses, host names, or object names are the 
+	 * same for the packets in a set burst over a period of time, then those bursts are 
+	 * considered Periodical bursts. 
 	 */
 	BURST_PERIODICAL,
 	/**
-	 * User input Burst 1.
+	 * User defined burst type 1.
 	 */
 	BURST_USERDEF1,
 	/**
-	 * User input Burst 2.
+	 * User defined burst type 2.
 	 */
 	BURST_USERDEF2,
 	/**
-	 * User input Burst 3.
+	 * User defined burst type 3.
 	 */
 	BURST_USERDEF3,
 	/**
-	 * Unknown Burst state.
+	 * A burst of an unknown type. 
 	 */
 	BURST_UNKNOWN;
 }

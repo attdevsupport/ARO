@@ -16,45 +16,44 @@
 package com.att.aro.model;
 
 /**
- * Thrown when an error occurs reading content
+ * An exception that is thrown when an error occurs while reading content.
  */
 public class ContentException extends Exception {
 	private static final long serialVersionUID = 1L;
 
 	/**
-	 * Constructor.
+	 * Initializes an instance of the ContentException class..
 	 */
 	public ContentException() {
 		super();
 	}
 
 	/**
-	 * Constructor.
+	 * Initializes an instance of the ContentException class using the specified exception 
+	 * message, and cause. 
 	 * 
-	 * @param message
-	 *            Exception message.
-	 * @param cause
-	 *            Throwable object.
+	 * @param message - The exception message. 
+	 * 
+	 * @param cause – A Throwable object that indicates the cause of the exception.
 	 */
 	public ContentException(String message, Throwable cause) {
 		super(message, cause);
 	}
 
 	/**
-	 * Constructor.
+	 * Initializes an instance of the ContentException class using the specified 
+	 * exception message. 
 	 * 
-	 * @param message
-	 *            Exception message
+	 * @param message - The exception message. 
 	 */
 	public ContentException(String message) {
 		super(message);
 	}
 
 	/**
-	 * Constructor.
+	 * Initializes an instance of the ContentException class using the specified cause. 
 	 * 
-	 * @param cause
-	 *            Throwable object.
+	 * @param cause – A Throwable object that indicates the cause of the exception.
 	 */
 	public ContentException(Throwable cause) {
 		super(cause);

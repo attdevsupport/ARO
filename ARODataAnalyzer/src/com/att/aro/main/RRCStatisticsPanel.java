@@ -241,8 +241,6 @@ public class RRCStatisticsPanel extends JPanel {
 			} else if (profile instanceof ProfileLTE) {
 
 				// Hiding additional labels in case of LTE profile
-				rrcParam6Label.setVisible(false);
-				rrcParam6ValueLabel.setVisible(false);
 				rrcParam7Label.setVisible(false);
 				rrcParam7ValueLabel.setVisible(false);
 				rrcParam8Label.setVisible(false);
@@ -251,9 +249,10 @@ public class RRCStatisticsPanel extends JPanel {
 				rrcParam1Label.setText(rb
 						.getString("rrc.continuousReceptionIdle"));
 				rrcParam2Label.setText(rb.getString("rrc.continuousReception"));
-				rrcParam3Label.setText(rb.getString("rrc.shortDRX"));
-				rrcParam4Label.setText(rb.getString("rrc.longDRX"));
-				rrcParam5Label.setText(rb.getString("rrc.idle"));
+				rrcParam3Label.setText(rb.getString("rrc.continuousReceptionTail"));
+				rrcParam4Label.setText(rb.getString("rrc.shortDRX"));
+				rrcParam5Label.setText(rb.getString("rrc.longDRX"));
+				rrcParam6Label.setText(rb.getString("rrc.idle"));
 
 				valueAndPct = rb.getString("rrc.valueAndPctLTE");
 				rrcParam1ValueLabel
@@ -266,12 +265,15 @@ public class RRCStatisticsPanel extends JPanel {
 						nf.format(rrc.getLteCrTime()),
 						nf.format(rrc.getLteCrTimeRatio() * 100.0)));
 				rrcParam3ValueLabel.setText(MessageFormat.format(valueAndPct,
+						nf.format(rrc.getLteCrTailTime()),
+						nf.format(rrc.getLteCrTailTimeRatio() * 100.0)));
+				rrcParam4ValueLabel.setText(MessageFormat.format(valueAndPct,
 						nf.format(rrc.getLteDrxShortTime()),
 						nf.format(rrc.getLteDrxShortTimeRatio() * 100.0)));
-				rrcParam4ValueLabel.setText(MessageFormat.format(valueAndPct,
+				rrcParam5ValueLabel.setText(MessageFormat.format(valueAndPct,
 						nf.format(rrc.getLteDrxLongTime()),
 						nf.format(rrc.getLteDrxLongTimeRatio() * 100.0)));
-				rrcParam5ValueLabel.setText(MessageFormat.format(valueAndPct,
+				rrcParam6ValueLabel.setText(MessageFormat.format(valueAndPct,
 						nf.format(rrc.getLteIdleTime()),
 						nf.format(rrc.getLteIdleTimeRatio() * 100.0)));
 

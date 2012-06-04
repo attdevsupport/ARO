@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.GridBagConstraints;
@@ -51,9 +51,13 @@ import com.att.aro.commonui.DataTable;
 import com.att.aro.commonui.ImagePanel;
 import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.images.Images;
+import com.att.aro.model.ApplicationPacketSummary;
+import com.att.aro.model.Burst;
 import com.att.aro.model.BurstAnalysisInfo;
+import com.att.aro.model.IPPacketSummary;
 import com.att.aro.model.Profile;
 import com.att.aro.model.Profile3G;
+import com.att.aro.model.ProfileLTE;
 import com.att.aro.model.TraceData;
 import com.att.aro.model.UserPreferences;
 
@@ -66,17 +70,18 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	private JPanel mainPanel;
 	private BasicStatisticsPanel basicStatisticsPanel;
 	private BurstAnalysisPanel burstAnalysisPanel;
+	private EndPointSummaryPanel endPointSummaryPanel;
 	private RRCStatisticsPanel rrcStatisticsPanel;
 	private EnergyModelStatisticsPanel energyModelStatisticsPanel;
 	private HttpCacheStatisticsPanel cacheStatisticsPanel;
 	private ImagePanel headerPanel;
 	private DateTraceAppDetailPanel dateTraceAppDetailPanel;
 	private JLabel exportBtn;
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
-	String lineSep = System.getProperty(rb
-			.getString("statics.csvLine.seperator"));
+	TraceData.Analysis analysisData = null;
+
+	String lineSep = System.getProperty(rb.getString("statics.csvLine.seperator"));
 
 	/**
 	 * Initializes a new instance of the AROAnalysisResultsTab class, using the
@@ -99,16 +104,18 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	 *            - The Analysis object containing the trace data.
 	 */
 	public void refresh(TraceData.Analysis analysisData) {
+		this.analysisData = analysisData;
 		dateTraceAppDetailPanel.refresh(analysisData);
 		getBasicStatisticsPanel().refresh(analysisData);
 		getBurstAnalysisPanel().refresh(analysisData);
+		getEndPointSummaryPanel().refresh(analysisData);
 		getRRCStatisticsPanel().refresh(analysisData);
 		getCacheStatisticsPanel().refresh(analysisData);
 		if (analysisData != null) {
 			final Profile profile = analysisData.getProfile();
 			if (profile instanceof Profile3G) {
 				getEnergyModelStatistics3GPanel().refresh(analysisData);
-			} else {
+			} else if (profile instanceof ProfileLTE) {
 				getEnergyModelStatisticsLTEPanel().refresh(analysisData);
 			}
 		}
@@ -126,8 +133,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	@Override
 	public int print(Graphics graphics, PageFormat pageFormat, int pageIndex)
 			throws PrinterException {
-		return new AROPrintablePanel(getMainPanel()).print(graphics,
-				pageFormat, pageIndex);
+		return new AROPrintablePanel(getMainPanel()).print(graphics, pageFormat, pageIndex);
 	}
 
 	/**
@@ -136,8 +142,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	 */
 
 	public void scrollToCacheStatistics() {
-		getMainPanel().scrollRectToVisible(
-				getCacheStatisticsPanel().getBounds());
+		getMainPanel().scrollRectToVisible(getCacheStatisticsPanel().getBounds());
 	}
 
 	/**
@@ -148,55 +153,52 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	private JPanel getMainPanel() {
 		if (mainPanel == null) {
 			mainPanel = new JPanel(new GridBagLayout());
-			mainPanel.setBackground(UIManager
-					.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
+			mainPanel.setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
 			Insets headerInsets = new Insets(0, 0, 0, 0);
 			Insets insets = new Insets(5, 5, 5, 5);
 			Insets insetsWithOutHeader = new Insets(5, 20, 5, 5);
-			mainPanel.add(getHeaderPanel(), new GridBagConstraints(0, 0, 1, 1,
-					0.6, 0.0, GridBagConstraints.NORTH,
-					GridBagConstraints.HORIZONTAL, headerInsets, 0, 0));
+			mainPanel.add(getHeaderPanel(), new GridBagConstraints(0, 0, 1, 1, 0.6, 0.0,
+					GridBagConstraints.NORTH, GridBagConstraints.HORIZONTAL, headerInsets, 0, 0));
 			dateTraceAppDetailPanel = new DateTraceAppDetailPanel();
-			mainPanel.add(dateTraceAppDetailPanel, new GridBagConstraints(0, 1,
-					1, 1, 1.0, 0.0, GridBagConstraints.CENTER,
-					GridBagConstraints.HORIZONTAL, insetsWithOutHeader, 0, 0));
-			mainPanel.add(new ImagePanel(Images.DIVIDER.getImage(), true,
-					Color.WHITE), new GridBagConstraints(0, 2, 3, 1, 1.0, 0.0,
-					GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-					insets, 0, 0));
-			mainPanel.add(getBasicStatisticsPanel(), new GridBagConstraints(0,
-					3, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER,
-					GridBagConstraints.HORIZONTAL, insetsWithOutHeader, 0, 0));
-			mainPanel.add(new ImagePanel(Images.DIVIDER.getImage(), true,
-					Color.WHITE), new GridBagConstraints(0, 4, 3, 1, 1.0, 0.0,
-					GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-					insets, 0, 0));
-			mainPanel.add(getRRCStatisticsPanel(), new GridBagConstraints(0, 5,
-					1, 1, 0.6, 0.0, GridBagConstraints.WEST,
-					GridBagConstraints.HORIZONTAL, insetsWithOutHeader, 0, 0));
-			mainPanel.add(new ImagePanel(Images.DIVIDER.getImage(), true,
-					Color.WHITE), new GridBagConstraints(0, 6, 3, 1, 1.0, 0.0,
-					GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-					insets, 0, 0));
-			mainPanel.add(getBurstAnalysisPanel(), new GridBagConstraints(0, 7,
-					1, 1, 0.6, 0.0, GridBagConstraints.WEST,
-					GridBagConstraints.HORIZONTAL, insetsWithOutHeader, 0, 0));
-			mainPanel.add(new ImagePanel(Images.DIVIDER.getImage(), true,
-					Color.WHITE), new GridBagConstraints(0, 8, 3, 1, 1.0, 0.0,
-					GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-					insets, 0, 0));
-			mainPanel.add(getCacheStatisticsPanel(), new GridBagConstraints(0,
-					9, 2, 1, 0.0, 0.0, GridBagConstraints.WEST,
-					GridBagConstraints.HORIZONTAL, insetsWithOutHeader, 0, 0));
-			mainPanel.add(new ImagePanel(Images.DIVIDER.getImage(), true,
-					Color.WHITE), new GridBagConstraints(0, 10, 3, 1, 1.0, 0.0,
-					GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-					insets, 0, 0));
-			mainPanel.add(getEnergyModelStatistics3GPanel(),
-					new GridBagConstraints(0, 11, 1, 3, 0.4, 0.0,
-							GridBagConstraints.WEST,
-							GridBagConstraints.HORIZONTAL, insetsWithOutHeader,
-							0, 0));
+			mainPanel.add(dateTraceAppDetailPanel, new GridBagConstraints(0, 1, 1, 1, 1.0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsWithOutHeader,
+					0, 0));
+			mainPanel.add(new ImagePanel(Images.DIVIDER.getImage(), true, Color.WHITE),
+					new GridBagConstraints(0, 2, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, insets, 0, 0));
+			mainPanel.add(getBasicStatisticsPanel(), new GridBagConstraints(0, 3, 3, 1, 0.0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsWithOutHeader,
+					0, 0));
+			mainPanel.add(new ImagePanel(Images.DIVIDER.getImage(), true, Color.WHITE),
+					new GridBagConstraints(0, 4, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, insets, 0, 0));
+			mainPanel.add(getEndPointSummaryPanel(), new GridBagConstraints(0, 5, 1, 1, 0.6, 0.0,
+					GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
+					new Insets(5, 10, 5, 10), 0, 0));
+			mainPanel.add(new ImagePanel(Images.DIVIDER.getImage(), true, Color.WHITE),
+					new GridBagConstraints(0, 6, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, insets, 0, 0));
+			mainPanel.add(getRRCStatisticsPanel(), new GridBagConstraints(0, 7, 1, 1, 0.6, 0.0,
+					GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsWithOutHeader, 0,
+					0));
+			mainPanel.add(new ImagePanel(Images.DIVIDER.getImage(), true, Color.WHITE),
+					new GridBagConstraints(0, 8, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, insets, 0, 0));
+			mainPanel.add(getBurstAnalysisPanel(), new GridBagConstraints(0, 9, 1, 1, 0.6, 0.0,
+					GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsWithOutHeader, 0,
+					0));
+			mainPanel.add(new ImagePanel(Images.DIVIDER.getImage(), true, Color.WHITE),
+					new GridBagConstraints(0, 10, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, insets, 0, 0));
+			mainPanel.add(getCacheStatisticsPanel(), new GridBagConstraints(0, 11, 2, 1, 0.0, 0.0,
+					GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsWithOutHeader, 0,
+					0));
+			mainPanel.add(new ImagePanel(Images.DIVIDER.getImage(), true, Color.WHITE),
+					new GridBagConstraints(0, 12, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER,
+							GridBagConstraints.HORIZONTAL, insets, 0, 0));
+			mainPanel.add(getEnergyModelStatistics3GPanel(), new GridBagConstraints(0, 13, 1, 3,
+					0.4, 0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
+					insetsWithOutHeader, 0, 0));
 		}
 		return mainPanel;
 	}
@@ -219,6 +221,16 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 			burstAnalysisPanel = new BurstAnalysisPanel();
 		}
 		return burstAnalysisPanel;
+	}
+
+	/**
+	 * Initializes end point summary statistics panel
+	 */
+	private EndPointSummaryPanel getEndPointSummaryPanel() {
+		if (endPointSummaryPanel == null) {
+			endPointSummaryPanel = new EndPointSummaryPanel();
+		}
+		return endPointSummaryPanel;
 	}
 
 	/**
@@ -252,11 +264,9 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 				mainPanel.remove(energyModelStatisticsPanel);
 				energyModelStatisticsPanel = null;
 				energyModelStatisticsPanel = new EnergyModelStatistics3GPanel();
-				mainPanel.add(energyModelStatisticsPanel,
-						new GridBagConstraints(0, 11, 1, 3, 0.4, 0.0,
-								GridBagConstraints.WEST,
-								GridBagConstraints.HORIZONTAL, new Insets(5,
-										20, 5, 5), 0, 0));
+				mainPanel.add(energyModelStatisticsPanel, new GridBagConstraints(0, 13, 1, 3, 0.4,
+						0.0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, new Insets(5,
+								20, 5, 5), 0, 0));
 			}
 		}
 		return energyModelStatisticsPanel;
@@ -271,10 +281,9 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 			mainPanel.remove(energyModelStatisticsPanel);
 			energyModelStatisticsPanel = null;
 			energyModelStatisticsPanel = new EnergyModelStatisticsLTEPanel();
-			mainPanel.add(energyModelStatisticsPanel, new GridBagConstraints(0,
-					11, 1, 3, 0.4, 0.0, GridBagConstraints.WEST,
-					GridBagConstraints.HORIZONTAL, new Insets(5, 20, 5, 5), 0,
-					0));
+			mainPanel.add(energyModelStatisticsPanel, new GridBagConstraints(0, 13, 1, 3, 0.4, 0.0,
+					GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
+					new Insets(5, 20, 5, 5), 0, 0));
 		}
 		return energyModelStatisticsPanel;
 	}
@@ -286,16 +295,13 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 		if (headerPanel == null) {
 			headerPanel = new ImagePanel(Images.BLUE_HEADER.getImage());
 			headerPanel.setLayout(new BorderLayout(50, 50));
-			headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10,
-					10));
-			JLabel l = new JLabel(Images.HEADER_ICON.getIcon(),
-					SwingConstants.CENTER);
+			headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+			JLabel l = new JLabel(Images.HEADER_ICON.getIcon(), SwingConstants.CENTER);
 			l.setPreferredSize(new Dimension(80, 80));
 			headerPanel.add(l, BorderLayout.WEST);
 
 			JLabel bpHeaderLabel = new JLabel(rb.getString("statistics.title"));
-			bpHeaderLabel.setFont(UIManager
-					.getFont(AROUIManager.TITLE_FONT_KEY));
+			bpHeaderLabel.setFont(UIManager.getFont(AROUIManager.TITLE_FONT_KEY));
 			bpHeaderLabel.setForeground(Color.WHITE);
 			headerPanel.add(bpHeaderLabel, BorderLayout.CENTER);
 
@@ -320,21 +326,21 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 
 				@Override
 				public void mouseClicked(MouseEvent e) {
-					JFileChooser chooser = new JFileChooser(UserPreferences
-							.getInstance().getLastExportDirectory());
-					chooser.addChoosableFileFilter(new FileNameExtensionFilter(
-							rb.getString("fileChooser.desc.csv"), rb
-									.getString("fileChooser.contentType.csv")));
+					if(!exportBtn.isEnabled())
+						return;
+					JFileChooser chooser = new JFileChooser(UserPreferences.getInstance()
+							.getLastExportDirectory());
+					chooser.addChoosableFileFilter(new FileNameExtensionFilter(rb
+							.getString("fileChooser.desc.csv"), rb
+							.getString("fileChooser.contentType.csv")));
 					chooser.setDialogTitle(rb.getString("fileChooser.Title"));
-					chooser.setApproveButtonText(rb
-							.getString("fileChooser.Save"));
+					chooser.setApproveButtonText(rb.getString("fileChooser.Save"));
 					chooser.setMultiSelectionEnabled(false);
 					try {
 						saveCSV(chooser);
 					} catch (IOException e1) {
 						MessageDialogFactory.showUnexpectedExceptionDialog(
-								AROAnalysisResultsTab.this
-										.getTopLevelAncestor(), e1);
+								AROAnalysisResultsTab.this.getTopLevelAncestor(), e1);
 					}
 				}
 			});
@@ -346,8 +352,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	 * Method to export the statics data in the csv format.
 	 */
 	private void saveCSV(JFileChooser chooser) throws IOException {
-		if (chooser.showSaveDialog(AROAnalysisResultsTab.this
-				.getTopLevelAncestor()) != JFileChooser.APPROVE_OPTION) {
+		if (chooser.showSaveDialog(AROAnalysisResultsTab.this.getTopLevelAncestor()) != JFileChooser.APPROVE_OPTION) {
 			return;
 		}
 		File file = chooser.getSelectedFile();
@@ -356,10 +361,10 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 					+ rb.getString("fileChooser.contentType.csv"));
 		}
 		if (file.exists()) {
-			if (MessageDialogFactory.showConfirmDialog(this
-					.getTopLevelAncestor(), MessageFormat.format(
-					rb.getString("fileChooser.fileExists"),
-					file.getAbsolutePath()), JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) {
+			if (MessageDialogFactory.showConfirmDialog(
+					this.getTopLevelAncestor(),
+					MessageFormat.format(rb.getString("fileChooser.fileExists"),
+							file.getAbsolutePath()), JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) {
 				saveCSV(chooser);
 				return;
 			}
@@ -369,19 +374,54 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 			writer.append(rb.getString("statics.csvHeader.tcp"));
 			writer.append(lineSep);
 
-			Map<String, String> basicStatisticsData = basicStatisticsPanel
-					.getBasicContent();
+			Map<String, String> basicStatisticsData = basicStatisticsPanel.getBasicContent();
 			// Adding the Basic content in to the file writer
 			writer = addBasicContent(writer, basicStatisticsData);
 			writer.append(lineSep);
 			writer.append(lineSep);
 
-			Map<String, String> rrcStatisticsData = rrcStatisticsPanel
-					.getRrcContent();
+			// Adding the end point per application Summary table in to the file
+			// writer
+			writer.append(rb.getString("statics.csvHeader.endPointSummaryApp"));
+			writer.append(lineSep);
+			// Adding the end point summary content in to the file writer
+			writer = addEndPointSummaryPerAppTable(writer, endPointSummaryPanel.getTable());
+			writer.append(lineSep);
+			writer.append(lineSep);
+
+			// Adding the end point per IP addressSummary table in to the file
+			// writer
+			writer.append(rb.getString("statics.csvHeader.endPointSummaryIP"));
+			writer.append(lineSep);
+			// Adding the end point summary content in to the file writer
+			writer = addEndPointSummaryPerIPTable(writer, endPointSummaryPanel.getIPTable());
+			writer.append(lineSep);
+			writer.append(lineSep);
+
+			Map<String, String> rrcStatisticsData = rrcStatisticsPanel.getRrcContent();
 			writer.append(rb.getString("statics.csvHeader.rrcState"));
 			writer.append(lineSep);
 			// Adding the RRC content in to the file writer
 			writer = addRRCContent(writer, rrcStatisticsData);
+			writer.append(lineSep);
+			writer.append(lineSep);
+
+			writer.append(MessageFormat.format(rb.getString("statics.csvHeader.burst"), 0,
+					analysisData != null ? analysisData.getTraceData().getTraceDuration() : 0.0));
+			writer.append(lineSep);
+			// Adding the burst table in to the file writer
+			writer = addBurstTable(writer, burstAnalysisPanel.getTable());
+			writer.append(lineSep);
+			writer.append(rb.getString("statics.csvHeader.individualBurst"));
+			writer.append(lineSep);
+			writer = addBurstCollectionTable(writer, burstAnalysisPanel.getBurstTable());
+			writer.append(lineSep);
+			writer.append(lineSep);
+
+			Map<String, String> cacheStatisticsData = cacheStatisticsPanel.getCacheContent();
+			// Adding the cache analysis content in to the file writer
+			writer = addCacheContent(writer, cacheStatisticsData);
+
 			writer.append(lineSep);
 			writer.append(lineSep);
 
@@ -391,41 +431,36 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 			writer.append(lineSep);
 			// Adding the energy content in to the file writer
 			writer = addEnergyContent(writer, energyStatisticsData);
-			writer.append(lineSep);
-			writer.append(lineSep);
-
-			writer.append(MessageFormat.format(
-					rb.getString("statics.csvHeader.burst"), 0, 840.00));
-			writer.append(lineSep);
-			// Adding the burst table in to the file writer
-			writer = addBurstTable(writer, burstAnalysisPanel.getTable());
-			writer.append(lineSep);
-			writer.append(lineSep);
-
-			Map<String, String> cacheStatisticsData = cacheStatisticsPanel
-					.getCacheContent();
-			// Adding the cache analysis content in to the file writer
-			writer = addCacheContent(writer, cacheStatisticsData);
 
 		} finally {
 			writer.close();
+		}
+		if (file.getName().contains(".csv")) {
+			if (MessageDialogFactory.showExportConfirmDialog(chooser) != JOptionPane.YES_OPTION) {
+				try {
+					Desktop desktop = Desktop.getDesktop();
+					desktop.open(file);
+				} catch (UnsupportedOperationException unsupportedException) {
+					MessageDialogFactory.showMessageDialog(chooser,
+							rb.getString("Error.unableToOpen"));
+				}
+			}
+		} else {
+			MessageDialogFactory.showMessageDialog(chooser, rb.getString("table.export.success"));
 		}
 	}
 
 	/**
 	 * Method to add the cache content in to the csv file
 	 */
-	private FileWriter addCacheContent(FileWriter writer,
-			Map<String, String> cacheStatisticsData) {
+	private FileWriter addCacheContent(FileWriter writer, Map<String, String> cacheStatisticsData) {
 		try {
-			for (Map.Entry<String, String> iter : cacheStatisticsData
-					.entrySet()) {
+			for (Map.Entry<String, String> iter : cacheStatisticsData.entrySet()) {
 				String individualVal = iter.getValue().replace(
 						rb.getString("statics.csvCell.seperator"), "");
 				String individualKey = iter.getKey().replace(
 						rb.getString("statics.csvCell.seperator"), "");
-				if (individualKey.startsWith(rb
-						.getString("fileType.filters.hash"))) {
+				if (individualKey.startsWith(rb.getString("fileType.filters.hash"))) {
 					writer.append(lineSep);
 					writer.append(lineSep);
 					writer.append(individualKey.substring(1));
@@ -434,12 +469,9 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 				}
 
 				writer.append(rb.getString("statics.csvCell.seperator"));
-				if (individualVal.contains(rb
-						.getString("fileType.filters.forwardSlash"))) {
-					writer.append(individualVal.substring(
-							0,
-							individualVal.indexOf(rb
-									.getString("fileType.filters.forwardSlash"))));
+				if (individualVal.contains(rb.getString("fileType.filters.forwardSlash"))) {
+					writer.append(individualVal.substring(0,
+							individualVal.indexOf(rb.getString("fileType.filters.forwardSlash"))));
 					writer.append(rb.getString("statics.csvCell.seperator"));
 					writer.append(individualVal.substring(individualVal.indexOf(rb
 							.getString("fileType.filters.forwardSlash")) + 1));
@@ -459,27 +491,22 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	/**
 	 * Method to write the RRC statistics content into the csv file
 	 */
-	private FileWriter addRRCContent(FileWriter writer,
-			Map<String, String> rrcStatisticsData) {
+	private FileWriter addRRCContent(FileWriter writer, Map<String, String> rrcStatisticsData) {
 		try {
 			for (Map.Entry<String, String> iter : rrcStatisticsData.entrySet()) {
 				String individualVal = iter.getValue().replace(
 						rb.getString("statics.csvCell.seperator"), "");
 				writer.append(iter.getKey());
 				writer.append(rb.getString("statics.csvCell.seperator"));
-				if (individualVal.contains(rb
-						.getString("statics.csvCell.openBraket"))) {
+				if (individualVal.contains(rb.getString("statics.csvCell.openBraket"))) {
 					writer.append(individualVal.substring(0,
-							individualVal.indexOf(rb
-									.getString("statics.csvCell.openBraket"))));
+							individualVal.indexOf(rb.getString("statics.csvCell.openBraket"))));
 					writer.append(rb.getString("statics.csvCell.seperator"));
 					writer.append(rb.getString("statics.csvUnits.s"));
 					writer.append(rb.getString("statics.csvCell.seperator"));
 					writer.append(individualVal.substring(
-							individualVal.indexOf(rb
-									.getString("statics.csvCell.openBraket")) + 1,
-							individualVal.indexOf(rb
-									.getString("statics.csvCell.closeBraket"))));
+							individualVal.indexOf(rb.getString("statics.csvCell.openBraket")) + 1,
+							individualVal.indexOf(rb.getString("statics.csvCell.closeBraket"))));
 				} else {
 					writer.append(individualVal);
 				}
@@ -494,18 +521,16 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	/**
 	 * Method to add the energy statistics content in the csv file
 	 */
-	private FileWriter addEnergyContent(FileWriter writer,
-			Map<String, String> energyStatisticsData) {
+	private FileWriter addEnergyContent(FileWriter writer, Map<String, String> energyStatisticsData) {
 		try {
-			for (Map.Entry<String, String> iter : energyStatisticsData
-					.entrySet()) {
+			for (Map.Entry<String, String> iter : energyStatisticsData.entrySet()) {
 				String individualVal = iter.getValue().replace(
 						rb.getString("statics.csvCell.seperator"), "");
 				writer.append(iter.getKey());
 				writer.append(rb.getString("statics.csvCell.seperator"));
 				if (individualVal.contains(rb.getString("statics.csvUnits.j"))) {
-					writer.append(individualVal.substring(0, individualVal
-							.indexOf(rb.getString("statics.csvUnits.j"))));
+					writer.append(individualVal.substring(0,
+							individualVal.indexOf(rb.getString("statics.csvUnits.j"))));
 					writer.append(rb.getString("statics.csvCell.seperator"));
 					writer.append(rb.getString("statics.csvUnits.j"));
 				} else {
@@ -522,15 +547,14 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	/**
 	 * Method to add the TCP Statistics content in the csv file.
 	 */
-	private FileWriter addBasicContent(FileWriter writer,
-			Map<String, String> csvContent) {
+	private FileWriter addBasicContent(FileWriter writer, Map<String, String> csvContent) {
 		try {
 			int count = 0;
 			for (Map.Entry<String, String> iter : csvContent.entrySet()) {
 				writer.append(iter.getKey());
 				writer.append(rb.getString("statics.csvCell.seperator"));
-				writer.append(iter.getValue().replace(
-						rb.getString("statics.csvCell.seperator"), ""));
+				writer.append(iter.getValue()
+						.replace(rb.getString("statics.csvCell.seperator"), ""));
 				writer.append(rb.getString("statics.csvCell.seperator"));
 				if (count == 0) {
 					writer.append(rb.getString("statics.csvUnits.bytes"));
@@ -549,16 +573,103 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	/**
 	 * Method to write the burst information into the csv file.
 	 */
-	private FileWriter addBurstTable(FileWriter writer,
-			DataTable<BurstAnalysisInfo> table) {
+	private FileWriter addBurstCollectionTable(FileWriter writer, DataTable<Burst> table) {
 		try {
 			// Write headers
 			for (int i = 0; i < table.getColumnCount(); ++i) {
 				if (i > 0) {
 					writer.append(rb.getString("statics.csvCell.seperator"));
 				}
-				writer.append(createCSVEntry(table.getColumnModel()
-						.getColumn(i).getHeaderValue()));
+				writer.append(createCSVEntry(table.getColumnModel().getColumn(i).getHeaderValue()));
+			}
+			writer.append(lineSep);
+			// Write data
+			for (int i = 0; i < table.getRowCount(); ++i) {
+				for (int j = 0; j < table.getColumnCount(); ++j) {
+					if (j > 0) {
+						writer.append(rb.getString("statics.csvCell.seperator"));
+					}
+					writer.append(createCSVEntry(table.getValueAt(i, j)));
+				}
+				writer.append(lineSep);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return writer;
+	}
+
+	/**
+	 * Method to write the burst information into the csv file.
+	 */
+	private FileWriter addBurstTable(FileWriter writer, DataTable<BurstAnalysisInfo> table) {
+		try {
+			// Write headers
+			for (int i = 0; i < table.getColumnCount(); ++i) {
+				if (i > 0) {
+					writer.append(rb.getString("statics.csvCell.seperator"));
+				}
+				writer.append(createCSVEntry(table.getColumnModel().getColumn(i).getHeaderValue()));
+			}
+			writer.append(lineSep);
+			// Write data
+			for (int i = 0; i < table.getRowCount(); ++i) {
+				for (int j = 0; j < table.getColumnCount(); ++j) {
+					if (j > 0) {
+						writer.append(rb.getString("statics.csvCell.seperator"));
+					}
+					writer.append(createCSVEntry(table.getValueAt(i, j)));
+				}
+				writer.append(lineSep);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return writer;
+	}
+
+	/**
+	 * Method to write the end point summary per application into the csv file.
+	 */
+	private FileWriter addEndPointSummaryPerAppTable(FileWriter writer,
+			DataTable<ApplicationPacketSummary> table) {
+		try {
+			// Write headers
+			for (int i = 0; i < table.getColumnCount(); ++i) {
+				if (i > 0) {
+					writer.append(rb.getString("statics.csvCell.seperator"));
+				}
+				writer.append(createCSVEntry(table.getColumnModel().getColumn(i).getHeaderValue()));
+			}
+			writer.append(lineSep);
+			// Write data
+			for (int i = 0; i < table.getRowCount(); ++i) {
+				for (int j = 0; j < table.getColumnCount(); ++j) {
+					if (j > 0) {
+						writer.append(rb.getString("statics.csvCell.seperator"));
+					}
+					writer.append(createCSVEntry(table.getValueAt(i, j)));
+				}
+				writer.append(lineSep);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return writer;
+	}
+
+	/**
+	 * Method to write the end point summary per IP address into the csv file.
+	 */
+	private FileWriter addEndPointSummaryPerIPTable(FileWriter writer,
+			DataTable<IPPacketSummary> table) {
+		try {
+			// Write headers
+			for (int i = 0; i < table.getColumnCount(); ++i) {
+				if (i > 0) {
+					writer.append(rb.getString("statics.csvCell.seperator"));
+				}
+				writer.append(createCSVEntry(table.getColumnModel().getColumn(i).getHeaderValue()));
 			}
 			writer.append(lineSep);
 			// Write data

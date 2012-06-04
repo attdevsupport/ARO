@@ -37,6 +37,7 @@ public class BestPractices {
 	private double largeBurstTime;
 
 	private boolean conClosingProb = true;
+	private boolean screenRotation = true;
 	private boolean offloadingToWiFi = true;
 	private boolean duplicateContent = true;
 	private boolean usingCache = true;
@@ -56,6 +57,7 @@ public class BestPractices {
 	private double tcpControlEnergyRatio = 0.0;
 	private double tcpControlEnergy = 0.0;
 	private double largestEnergyTime = 0.0;
+	private double screenRotationBurstTime = 0.0;
 
 	/**
 	 * Initializes an instance of the BestPractices class, using the specified set of 
@@ -107,6 +109,13 @@ public class BestPractices {
 					largestEnergyTime = burst.getBeginTime();
 				}
 			}
+			
+			//Verifying burst category to update screen rotation flag value which 
+			//shows whether screen rotation triggered network activity or not.
+			if (BurstCategory.BURSTCAT_SCREEN_ROTATION == burst.getBurstCategory() && this.screenRotation) {
+				this.screenRotation = false;
+				this.screenRotationBurstTime = burst.getBeginTime();
+			}
 		}
 		this.largeBurstTime = largestBurstBeginTime;
 		this.userInputBurstCount = userInputBurstCount;
@@ -130,12 +139,29 @@ public class BestPractices {
 				}
 			}
 		}
-
+        TimeRange timeRange = analysisData.getFilter().getTimeRange();
+        
 		double traceDuration = traceData.getTraceDuration();
-		double activeGPSRatio = (traceData.getGPSActiveDuration() * 100) / traceDuration;
-		double activeBluetoothRatio = (traceData.getBluetoothActiveDuration() * 100)
-				/ traceDuration;
-		double activeCameraRatio = (traceData.getCameraActiveDuration() * 100) / traceDuration;
+		double activeGPSRatio = 0.0;
+		double activeBluetoothRatio = 0.0;
+		double activeCameraRatio = 0.0;
+		
+		if(timeRange != null){
+			
+			double timeRangeDuration = timeRange.getEndTime() - timeRange.getBeginTime();
+			
+			activeGPSRatio = (analysisData.getGPSActiveDuration() * 100) / timeRangeDuration;
+			activeBluetoothRatio = (analysisData.getBluetoothActiveDuration() * 100)
+					/ timeRangeDuration;
+			activeCameraRatio = (analysisData.getCameraActiveDuration() * 100) / timeRangeDuration;
+			
+		}else{
+			
+			activeGPSRatio = (analysisData.getGPSActiveDuration() * 100) / traceDuration;
+			activeBluetoothRatio = (analysisData.getBluetoothActiveDuration() * 100)
+					/ traceDuration;
+			activeCameraRatio = (analysisData.getCameraActiveDuration() * 100) / traceDuration;
+		}
 
 		this.accessingPeripherals = ((activeGPSRatio > PERIPHERAL_ACTIVE_LIMIT
 				|| activeBluetoothRatio > PERIPHERAL_ACTIVE_LIMIT || activeCameraRatio > PERIPHERAL_ACTIVE_LIMIT) ? false
@@ -223,6 +249,17 @@ public class BestPractices {
 	 */
 	public boolean getConnectionClosingProblem() {
 		return conClosingProb;
+	}
+	
+	/**
+	 * Returns a value indicating whether or not, network traffic burst has been detected 
+	 * after rotating the screen.
+	 * 
+	 * @return A boolean value that is true if the trace data shows a screen rotation 
+	 * problem, and false otherwise.
+	 */
+	public boolean getScreenRotationProblem() {
+		return screenRotation;
 	}
 
 	/**
@@ -429,6 +466,15 @@ public class BestPractices {
 	 */
 	public double getLargestEnergyTime() {
 		return largestEnergyTime;
+	}
+	
+	/**
+	 * Returns the screen rotation burst begin time. 
+	 * 
+	 * @return A double that is screen rotation burst begin time.
+	 */
+	public double getScreenRotationBurstTime() {
+		return screenRotationBurstTime;
 	}
 
 	/**

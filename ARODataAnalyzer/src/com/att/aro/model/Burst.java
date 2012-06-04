@@ -16,6 +16,7 @@
 package com.att.aro.model;
 
 import java.io.Serializable;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -50,7 +51,7 @@ public class Burst implements Serializable {
 	private double energy;
 	private double dchTime;
 	private double crTime;
-
+	
 	// burst analysis
 	private Set<BurstInfo> burstInfos = new HashSet<BurstInfo>();
 
@@ -274,6 +275,10 @@ public class Burst implements Serializable {
 			assert multipleCategories : rb.getString("burst.categoryWarning");
 			return BurstCategory.BURSTCAT_USER;
 		}
+		if (burstInfos.contains(BurstInfo.BURST_SCREEN_ROTATION_INPUT)) {
+			assert multipleCategories : rb.getString("burst.categoryWarning");
+			return BurstCategory.BURSTCAT_SCREEN_ROTATION;
+		}
 		if (burstInfos.contains(BurstInfo.BURST_SERVER_DELAY)) {
 			assert multipleCategories : rb.getString("burst.categoryWarning");
 			return BurstCategory.BURSTCAT_SERVER;
@@ -312,6 +317,37 @@ public class Burst implements Serializable {
 			return BurstCategory.BURSTCAT_USERDEF3;
 		}
 		return BurstCategory.BURSTCAT_PROTOCOL;
+	}
+	
+	/**
+	 * Returns the bytes transferred in current Burst.
+	 * @return long Burst bytes. 
+	 */
+	public long getBurstBytes(){
+		long bytes = 0;
+		for(PacketInfo pI : packets){
+			bytes += pI.getPayloadLen();
+		}
+		return bytes;
+	}
+	
+	/**
+	 * Returns the throughput current Burst.
+	 * @return String throughput
+	 */
+	public String getBurstThroughPut(){
+		double throughtput = 0;
+		if((endTime - beginTime) > 0) 
+			throughtput  = getBurstBytes() * 8 / 1000.0 / (endTime - beginTime);
+		return MessageFormat.format(rb.getString("throughput.tooltip"), throughtput);
+	}
+	
+	/**
+	 * Returns the Burst Elapsed Time.
+	 * @return double elapsed time.
+	 */
+	public double getElapsedTime(){
+		return endTime - beginTime;
 	}
 
 }

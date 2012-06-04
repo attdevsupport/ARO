@@ -127,7 +127,7 @@ public class BurstAnalysisTableModel extends DataTableModel<BurstAnalysisInfo> {
 		col.setCellRenderer(pctRenderer);
 
 		col = cols.getColumn(DCH_COL);
-		col.setCellRenderer(renderer);
+		col.setCellRenderer(jpkbRenderer);
 
 		col = cols.getColumn(DCH_PCT_COL);
 		col.setCellRenderer(pctRenderer);
@@ -156,7 +156,7 @@ public class BurstAnalysisTableModel extends DataTableModel<BurstAnalysisInfo> {
 		case DCH_PCT_COL:
 			return item.getDchCrPct();
 		case JPKB_COL:
-			return item.getJpkb();
+			return item.getJpkb() != null? item.getJpkb() : 0.000;
 		default:
 			return null;
 		}
@@ -186,6 +186,8 @@ public class BurstAnalysisTableModel extends DataTableModel<BurstAnalysisInfo> {
 			return rb.getString("burst.type.TcpLossRecover");
 		case BURSTCAT_USER:
 			return rb.getString("burst.type.UserInput");
+		case BURSTCAT_SCREEN_ROTATION:
+			return rb.getString("burst.type.ScreenRotation");
 		case BURSTCAT_CLIENT:
 			return rb.getString("burst.type.App");
 		case BURSTCAT_SERVER:

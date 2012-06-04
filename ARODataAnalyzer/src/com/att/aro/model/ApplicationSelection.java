@@ -17,6 +17,10 @@ package com.att.aro.model;
 
 import java.awt.Color;
 import java.io.Serializable;
+import java.net.InetAddress;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Contains methods for managing the configuration of how applications are displayed 
@@ -28,19 +32,25 @@ public class ApplicationSelection implements Serializable {
 	private String appName;
 	private boolean selected = true;
 	private Color color = Color.GRAY;
+	private Map<InetAddress, IPAddressSelection> ipAddressSelection;
 
 	/**
 	 * Initializes an instance of the ApplicationSelection class, using the specified application name.
 	 * 
 	 * @param appName – The application name.
 	 */
-	public ApplicationSelection(String appName) {
+	public ApplicationSelection(String appName, Collection<InetAddress> ips) {
 		this.appName = appName;
+		this.ipAddressSelection = new HashMap<InetAddress, IPAddressSelection>();
+		if (ips != null) {
+			for (InetAddress ip : ips) {
+				ipAddressSelection.put(ip, new IPAddressSelection(ip));
+			}
+		}
 	}
 
 	/**
-	 * Initializes an instance of the ApplicationSelection class, using another instance 
-	 * of the ApplicationSelection class.
+	 * Copy constructor
 	 * 
 	 * @param app – An ApplicationSelection object.
 	 */
@@ -48,6 +58,10 @@ public class ApplicationSelection implements Serializable {
 		this.appName = app.appName;
 		this.selected = app.selected;
 		this.color = app.color;
+		this.ipAddressSelection = new HashMap<InetAddress, IPAddressSelection>(app.ipAddressSelection.size());
+		for (IPAddressSelection sel : app.ipAddressSelection.values()) {
+			ipAddressSelection.put(sel.getIpAddress(), new IPAddressSelection(sel));
+		}
 	}
 
 	/**
@@ -94,6 +108,24 @@ public class ApplicationSelection implements Serializable {
 	 */
 	public void setColor(Color color) {
 		this.color = color;
+	}
+
+	/**
+	 * Returns the IP address selection settings for the specified IP address accessed
+	 * by this app
+	 * @param ip The IP address for which selection info is requested
+	 * @return The IP selection info for the IP or null if no setting available
+	 */
+	public IPAddressSelection getIPAddressSelection(InetAddress ip) {
+		return ipAddressSelection.get(ip);
+	}
+
+	/**
+	 * Returns all IP address selections for this app
+	 * @return
+	 */
+	public Collection<IPAddressSelection> getIPAddressSelections() {
+		return ipAddressSelection.values();
 	}
 
 }

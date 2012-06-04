@@ -20,14 +20,15 @@ package com.att.aro.video;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Graphics;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.media.CannotRealizeException;
@@ -46,6 +47,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 
 import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.images.Images;
@@ -72,7 +74,7 @@ public class AROVideoPlayer extends JFrame {
 	private static final String operatingSystem = System.getProperty("os.name");
 	private static Logger logger = Logger.getLogger(AROVideoPlayer.class
 			.getName());
-	private String mediaUrl;
+
 	private Component visualComponent;
 	private Component controlComponent;
 	private double videoOffset;
@@ -81,6 +83,66 @@ public class AROVideoPlayer extends JFrame {
 	private JLabel jVideoLabel;
 	private Player videoPlayer;
 
+	/**
+	 * Runnable used to keep diagnostic chart in sync with video
+	 */
+	private Runnable syncThread = new Runnable() {
+
+		private double seconds;
+		
+		@Override
+		public void run() {
+			
+			// Run this in a loop if the video is started
+			int state;
+			do {
+
+				// Get information from video player in this synchronized block
+				// in case video is cleared while running.
+				Time currentVideoTime;
+				synchronized (AROVideoPlayer.this) {
+					if (videoPlayer != null) {
+						currentVideoTime = videoPlayer.getMediaTime();
+						state = videoPlayer.getState();
+					} else {
+						break;
+					}
+				}
+
+				// Check to see if video time has changed
+				if (currentVideoTime != null && currentVideoTime.getSeconds() != seconds) {
+					if (aroAdvancedTab != null) {
+						seconds = currentVideoTime.getSeconds();
+						
+						try {
+							
+							// Update diagnostics on AWT thread
+							SwingUtilities.invokeAndWait(new Runnable() {
+
+								@Override
+								public void run() {
+							
+									aroAdvancedTab.setTimeLineLinkedComponents(seconds + videoOffset);
+								}
+								
+							});
+						} catch (InterruptedException e) {
+							logger.log(Level.SEVERE, "InterruptedException", e);
+						} catch (InvocationTargetException e) {
+							logger.log(Level.SEVERE, "InvocationTargetException", e);
+						}
+					}
+				}
+				try {
+					Thread.sleep(50);
+				} catch (InterruptedException e) {
+					logger.log(Level.SEVERE, "InterruptedException", e);
+				}
+			} while (state == Controller.Started);
+		}
+		
+	};
+	
 	/**
 	 * Initializes a new instance of the AROVideoPlayer class, and displays the
 	 * Video player panel using the methods in the specified AROAdvancedTabb
@@ -100,18 +162,7 @@ public class AROVideoPlayer extends JFrame {
 		setMinimumSize(frameDim);
 		setResizable(false);
 		jVideoLabel = new JLabel(Images.NO_VIDEO_AVAILABLE.getIcon());
-		aroVideoPanel = new JPanel() {
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public void paintComponent(Graphics graphics) {
-				if (videoPlayer != null
-						&& videoPlayer.getState() == Controller.Started) {
-					syncUpWithAdvancedTab();
-				}
-				super.paintComponent(graphics);
-			}
-		};
+		aroVideoPanel = new JPanel();
 		aroVideoPanel.setLayout(new BorderLayout());
 		aroVideoPanel.add(jVideoLabel, BorderLayout.CENTER);
 		setContentPane(aroVideoPanel);
@@ -126,8 +177,10 @@ public class AROVideoPlayer extends JFrame {
 	 */
 	public synchronized void refresh(TraceData.Analysis analysisData)
 			throws IOException {
+		clear();
+		String mediaUrl;
 		if (analysisData == null
-				|| getMediaUrl(analysisData.getTraceData().getTraceDir()) == null) {
+				|| (mediaUrl = getMediaUrl(analysisData.getTraceData().getTraceDir())) == null) {
 			setVideoNotAvailableImage(true);
 			return;
 		}
@@ -138,7 +191,60 @@ public class AROVideoPlayer extends JFrame {
 				- ((double) traceData.getTraceDateTime().getTime() / 1000)
 				: 0.0;
 
-		setupVideoPlayer();
+		MediaLocator mlr = new MediaLocator(mediaUrl);
+		try {
+			videoPlayer = Manager.createRealizedPlayer(mlr);
+			videoPlayer.setRate(PLAYBACK_RATE);
+			setVideoNotAvailableImage(false);
+
+			// This is to turn off plug-in settings on vidoe info window, plugin
+			// tab
+			Control controls[] = videoPlayer.getControls();
+			for (int i = 0; i < controls.length; i++) {
+				String strControlName = controls[i].toString();
+				if (strControlName.contains("BasicJMD")) {
+					Component basicJMDComp = controls[i].getControlComponent();
+					if (basicJMDComp.getParent() != null) {
+						basicJMDComp.getParent().setVisible(false);
+					}
+					basicJMDComp.setVisible(false);
+				}
+			}
+
+			controlComponent = videoPlayer.getControlPanelComponent();
+			if (controlComponent != null) {
+				controlComponent.setVisible(true);
+				aroVideoPanel.add(controlComponent, BorderLayout.SOUTH);
+			}
+
+			visualComponent = videoPlayer.getVisualComponent();
+			if (visualComponent != null) {
+				aroVideoPanel.add(visualComponent, BorderLayout.CENTER);
+				visualComponent.setVisible(true);
+			}
+
+			videoPlayer.addControllerListener(new ControllerListener() {
+				@Override
+				public synchronized void controllerUpdate(ControllerEvent evt) {
+					if (evt instanceof StartEvent
+							|| evt instanceof MediaTimeSetEvent) {
+						
+						new Thread(syncThread).start();
+					}
+				}
+			});
+			setMediaDisplayTime(SHORT_SNIPPET_DURATION_IN_SECONDS);
+ 
+		} catch (NoPlayerException e) {
+			MessageDialogFactory.showUnexpectedExceptionDialog(this, e);
+			return;
+		} catch (CannotRealizeException e) {
+			MessageDialogFactory.showUnexpectedExceptionDialog(this, e);
+			return;
+		} catch (IOException e) {
+			MessageDialogFactory.showUnexpectedExceptionDialog(this, e);
+			return;
+		}
 		setVisible(true);
 	}
 
@@ -196,7 +302,23 @@ public class AROVideoPlayer extends JFrame {
 	 * 
 	 */
 	public synchronized void clear() {
+		
+		// Make sure to remove the components before closing the video player
+		if (visualComponent != null) {
+			aroVideoPanel.remove(visualComponent);
+			visualComponent = null;
+		}
+		if (controlComponent != null) {
+			aroVideoPanel.remove(controlComponent);
+			controlComponent = null;
+		}
+		
+		// Close the video player
 		if (videoPlayer != null) {
+			if (videoPlayer.getState() == Controller.Started) {
+				videoPlayer.stop();
+			}
+			videoPlayer.deallocate();
 			videoPlayer.close();
 			videoPlayer = null;
 		}
@@ -214,15 +336,6 @@ public class AROVideoPlayer extends JFrame {
 	private synchronized String getMediaUrl(File traceDirectory)
 			throws IOException {
 		String result = null;
-		clear();
-		if (visualComponent != null) {
-			aroVideoPanel.remove(visualComponent);
-			visualComponent = null;
-		}
-		if (controlComponent != null) {
-			aroVideoPanel.remove(controlComponent);
-		}
-		controlComponent = null;
 		if ((traceDirectory != null) && (traceDirectory.isDirectory())) {
 			File videoFile = new File(traceDirectory,
 					rb.getString("video.videoDisplayFile"));
@@ -265,84 +378,9 @@ public class AROVideoPlayer extends JFrame {
 			}
 			if (videoFile.canRead()) {
 				result = "file:" + videoFile.getAbsolutePath();
-			} else {
 			}
 		}
-		this.mediaUrl = result;
 		return result;
-	}
-
-	/**
-	 * Method to initialize the video player.
-	 */
-	private synchronized void setupVideoPlayer() {
-		MediaLocator mlr = new MediaLocator(mediaUrl);
-		try {
-			videoPlayer = Manager.createRealizedPlayer(mlr);
-			videoPlayer.setRate(PLAYBACK_RATE);
-			setVideoNotAvailableImage(false);
-
-			// This is to turn off plug-in settings on vidoe info window, plugin
-			// tab
-			Control controls[] = videoPlayer.getControls();
-			for (int i = 0; i < controls.length; i++) {
-				String strControlName = controls[i].toString();
-				if (strControlName.contains("BasicJMD")) {
-					Component basicJMDComp = controls[i].getControlComponent();
-					if (basicJMDComp.getParent() != null) {
-						basicJMDComp.getParent().setVisible(false);
-					}
-					basicJMDComp.setVisible(false);
-				}
-			}
-
-			controlComponent = videoPlayer.getControlPanelComponent();
-			if (controlComponent != null) {
-				controlComponent.setVisible(true);
-				aroVideoPanel.add(controlComponent, BorderLayout.SOUTH);
-			}
-
-			visualComponent = videoPlayer.getVisualComponent();
-			if (visualComponent != null) {
-				aroVideoPanel.add(visualComponent, BorderLayout.CENTER);
-				visualComponent.setVisible(true);
-			}
-
-			videoPlayer.addControllerListener(new ControllerListener() {
-				@Override
-				public synchronized void controllerUpdate(ControllerEvent evt) {
-					if (evt instanceof StartEvent
-							|| evt instanceof MediaTimeSetEvent) {
-						syncUpWithAdvancedTab();
-					}
-				}
-			});
-
-		} catch (NoPlayerException e) {
-			MessageDialogFactory.showUnexpectedExceptionDialog(this, e);
-			return;
-		} catch (CannotRealizeException e) {
-			MessageDialogFactory.showUnexpectedExceptionDialog(this, e);
-			return;
-		} catch (IOException e) {
-			MessageDialogFactory.showUnexpectedExceptionDialog(this, e);
-			return;
-		}
-	}
-
-	/**
-	 * It sync the time of Graph panel and video player as same.
-	 */
-	private void syncUpWithAdvancedTab() {
-		if (videoPlayer != null) {
-			Time currentVideoTime = videoPlayer.getMediaTime();
-			if (currentVideoTime != null) {
-				if (aroAdvancedTab != null) {
-					aroAdvancedTab.setTimeLineLinkedComponents(currentVideoTime
-							.getSeconds() + videoOffset);
-				}
-			}
-		}
 	}
 
 	/**

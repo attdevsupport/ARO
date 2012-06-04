@@ -31,13 +31,15 @@ public class TimeRangeAnalysis implements Serializable {
 	private double energy;
 
 	/**
-	 * Initializing constructor
+	 * Initializes an instance of the TimeRangeAnalysis class, using the specified payload 
+	 * length, DCH time, and energy value.
+	 * 
 	 * @param startTime start of time range in seconds
 	 * @param endTime end of time range in seconds
 	 * @param totalBytes total bytes transferred including all packet headers
-	 * @param payloadLen length of payload in bytes
+	 * @param payloadLen – The length of the payload in bytes.
 	 * @param activeTime time of high energy radio time
-	 * @param energy total energy used
+	 * @param energy – The amount of energy used to deliver the payload.
 	 */
 	public TimeRangeAnalysis(double startTime, double endTime, long totalBytes,
 			long payloadLen, double activeTime, double energy) {
@@ -58,9 +60,9 @@ public class TimeRangeAnalysis implements Serializable {
 	}
 
 	/**
-	 * Returns the length of payload in bytes.
+	 *  Returns the length of the payload, in bytes. 
 	 * 
-	 * @return payloadLen.
+	 * @return The payload length.
 	 */
 	public long getPayloadLen() {
 		return payloadLen;
@@ -76,9 +78,9 @@ public class TimeRangeAnalysis implements Serializable {
 	}
 
 	/**
-	 * Returns the energy value.
+	 * Returns the amount of energy used to deliver the payload. 
 	 * 
-	 * @return energy.
+	 * @return The energy value, in joules.
 	 */
 	public double getEnergy() {
 		return energy;

@@ -217,7 +217,7 @@ public class Profile3G extends Profile implements Serializable {
 	 * @throws ProfileException
 	 */
 	@Override
-	public void setProperties(Properties properties) {
+	protected void setProperties(Properties properties) {
 
 		dchFachTimer = readDouble(properties, DCH_FACH_TIMER, 5);
 		fachIdleTimer = readDouble(properties, FACH_IDLE_TIMER, 12);
@@ -253,7 +253,7 @@ public class Profile3G extends Profile implements Serializable {
 	 * @throws IOException
 	 */
 	@Override
-	public synchronized void saveProperties(Properties props) {
+	protected synchronized void saveProperties(Properties props) {
 
 		props.setProperty(DCH_FACH_TIMER, String.valueOf(dchFachTimer));
 		props.setProperty(FACH_IDLE_TIMER, String.valueOf(fachIdleTimer));

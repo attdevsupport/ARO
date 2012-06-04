@@ -324,24 +324,31 @@ public class AROBestPracticesPanel extends JScrollPane implements Printable {
 			}
 
 		});
-		list.add(new DetailedResultRowPanel(appParent, true, rb
+		list.add(new DetailedResultRowPanel(appParent, false, rb
 				.getString("connections.screenRotation.detailedTitle"), rb
 				.getString("connections.screenRotation.desc"), rb
 				.getString("connections.screenRotation.url")) {
 
 			@Override
 			public boolean isPass(BestPractices bp) {
-				return true;
+				return bp.getScreenRotationProblem();
 			}
 
 			@Override
 			public String resultText(Analysis analysisData) {
-				return rb
-						.getString("connections.screenRotation.selfEvaluation");
+				if (isPass(analysisData.getBestPractice())) {
+					return rb.getString("connections.screenRotation.pass");
+				} else {
+					return rb.getString("connections.screenRotation.results");
+				}
 			}
 
 			@Override
 			public void performAction() {
+				refreshAndDisplayBurst();
+				double screenRotationBurstTime = parent.getAnalysisData().getBestPractice().getScreenRotationBurstTime();
+				parent.getAroAdvancedTab().setTimeLineLinkedComponents(screenRotationBurstTime);
+				parent.getAroAdvancedTab().getVideoPlayer().setMediaDisplayTime(screenRotationBurstTime);
 			}
 
 		});

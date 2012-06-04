@@ -18,61 +18,63 @@ package com.att.aro.model;
 import java.io.Serializable;
 
 /**
- * Encapsulates data from user event
+ * Encapsulates the data from a user generated event. 
  */
 public class UserEvent implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	/**
-	 * ENUM to maintain the different user types.
+	 * The UserEvent.UserEventType Enumeration specifies constant values that describe 
+	 * different types of user generated events. This enumeration is part of the UserEvent 
+	 * class.
 	 */
 	public enum UserEventType {
 		/**
-		 * Unknown event.
+		 * The event is of an Unknown type. 
 		 */
 		EVENT_UNKNOWN,
 		/**
-		 * Screen touched state.
+		 * The Screen was touched.
 		 */
 		SCREEN_TOUCH,
 		/**
-		 * Power key pressed state.
+		 * The Power key was pressed. 
 		 */
 		KEY_POWER,
 		/**
-		 * Volume up key pressed state.
+		 * Volume Up key was pressed. 
 		 */
 		KEY_VOLUP,
 		/**
-		 * Volume down key pressed state.
+		 * The Volume Down key was pressed. 
 		 */
 		KEY_VOLDOWN,
 		/**
-		 * Track ball moved state.
+		 * The Track Ball was moved. 
 		 */
 		KEY_BALL,
 		/**
-		 * Home key pressed state.
+		 * The Home key was pressed. 
 		 */
 		KEY_HOME,
 		/**
-		 * Menu key pressed state.
+		 * The Menu key was pressed. 
 		 */
 		KEY_MENU,
 		/**
-		 * Back key pressed state.
+		 * The Back key was pressed. 
 		 */
 		KEY_BACK,
 		/**
-		 * Search key pressed state.
+		 * The Search key was pressed. 
 		 */
 		KEY_SEARCH,
 		/**
-		 * Call Accept/Green key pressed state.
+		 * The Call Accept/Green key was pressed. 
 		 */
 		KEY_GREEN,
 		/**
-		 * Call Reject/Red key pressed state.
+		 * The Call Reject/Red key was pressed. 
 		 */
 		KEY_RED,
 		/**
@@ -94,11 +96,12 @@ public class UserEvent implements Serializable {
 	private double releaseTime;
 
 	/**
-	 * Constructor
+	 * Initializes an instance of the UserEvent class, using the specified event type, 
+	 * press time, and release time.
 	 * 
-	 * @param eventType
-	 * @param pressTime
-	 * @param releaseTime
+	 * @param eventType – The event type. One of the values of the UserEventType enumeration.
+	 * @param pressTime – The time at which the event was initiated (such as a key being pressed down).
+	 * @param releaseTime - The time at which the event was ended (such as a key being released).
 	 */
 	public UserEvent(UserEventType eventType, double pressTime, double releaseTime) {
 		this.eventType = eventType;
@@ -107,36 +110,36 @@ public class UserEvent implements Serializable {
 	}
 
 	/**
-	 * Returns type of user event.
+	 * Returns the type of user event. 
 	 * 
-	 * @return eventType.
+	 * @return The event type. One of the values of the UserEventType enumeration.
 	 */
 	public UserEventType getEventType() {
 		return eventType;
 	}
 
 	/**
-	 * Returns time of press event.
+	 * Returns the time at which the event was initiated (such as a key being pressed down).
 	 * 
-	 * @return pressTime.
+	 * @return The press time.
 	 */
 	public double getPressTime() {
 		return pressTime;
 	}
 
 	/**
-	 * Returns time of release event.
+	 * Returns time at which the event was ended (such as a key being released). 
 	 * 
-	 * @return releaseTime.
+	 * @return The release time.
 	 */
 	public double getReleaseTime() {
 		return releaseTime;
 	}
 
 	/**
-	 * Sets time of press event.
+	 * Sets the press time of the event. 
 	 * 
-	 * @param dPressTime
+	 * @param dPressTime – The time at which the event was initiated.
 	 * 
 	 */
 	public void setPressTime(double dPressTime) {
@@ -144,9 +147,9 @@ public class UserEvent implements Serializable {
 	}
 
 	/**
-	 * Sets time of release event.
+	 * Sets the release time of therelease event. 
 	 * 
-	 * @param dReleaseTime
+	 * @param dReleaseTime – The time at which the event was ended.
 	 * 
 	 */
 	public void setReleaseTime(double dReleaseTime) {

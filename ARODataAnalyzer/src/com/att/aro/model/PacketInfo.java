@@ -16,12 +16,14 @@
 package com.att.aro.model;
 
 import java.io.Serializable;
+import java.net.InetAddress;
 
+import com.att.aro.pcap.IPPacket;
 import com.att.aro.pcap.Packet;
 import com.att.aro.pcap.TCPPacket;
 
 /**
- * Bean class to contain packet informations.
+ * A bean class that contains information about a packet in a TCP Session. 
  */
 public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	private static final long serialVersionUID = 1L;
@@ -31,15 +33,15 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	 */
 	public enum Direction {
 		/**
-		 * Unknown direcetion.
+		 * The packet direction is unknown. 
 		 */
 		UNKNOWN,
 		/**
-		 * Up link which is Request direction.
+		 * The packet is traveling in the up link (Request) direction.
 		 */
 		UPLINK,
 		/**
-		 * Down link which is Response direction.
+		 * The packet is traveling in the down link (Response) direction. 
 		 */
 		DOWNLINK
 	}
@@ -93,7 +95,7 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 		 */
 		TCP_WINDOW_UPDATE,
 		/**
-		 * TCP date recover.
+		 * TCP data recover. 
 		 */
 		TCP_DATA_RECOVER,
 		/**
@@ -121,9 +123,9 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	private HttpRequestResponseInfo httpRequestResponseInfo = null;
 
 	/**
-	 * Constructor
+	 * Initializes an instance of the PacketInfo class, using the specified packet data.
 	 * 
-	 * @param packet The packet object.
+	 * @param packet – A com.att.aro.pcap.Packet object containing the packet data.
 	 */
 	public PacketInfo(Packet packet) {
 		this.packet = packet;
@@ -135,9 +137,9 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	}
 
 	/**
-	 * Sets the packet id.
+	 * Sets the packet id. 
 	 * 
-	 * @param id
+	 * @param id – The packet id.
 	 */
 	public void setId(int id) {
 		this.id = id;
@@ -146,42 +148,41 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	/**
 	 * Returns the current packet.
 	 * 
-	 * @return the packet
+	 * @return A com.att.aro.pcap.Packet object containing the packet data.
 	 */
 	public Packet getPacket() {
 		return packet;
 	}
 
 	/**
-	 * Returns the packet id.
+	 * Returns the packet id. 
 	 * 
-	 * @return packet id.
+	 * @return An int that is the id of the packet.
 	 */
 	public int getId() {
 		return id;
 	}
 
 	/**
-	 * Setting request/response information regarding packet
+	 * Setting the HTTP request/response information for the packet. 
 	 * 
-	 * @param httpRequestResponseInfo
-	 *            the httpRequestResponseInfo to set
+	 * @param httpRequestResponseInfo - The HTTP request/response information to set.
 	 */
 	public void setRequestResponseInfo(HttpRequestResponseInfo httpRequestResponseInfo) {
 		this.httpRequestResponseInfo = httpRequestResponseInfo;
 	}
 
 	/**
-	 * Returns packet request/response information.
+	 * Returns the packet request/response information. 
 	 * 
-	 * @return packet request/response information.
+	 * @return An HTTPRequestResponse object containing the packet request/response information.
 	 */
 	public HttpRequestResponseInfo getRequestResponseInfo() {
 		return httpRequestResponseInfo;
 	}
 
 	/**
-	 * Override method to compare time between two time stamp.
+	 * Compares the specified PacketInfo object to this one.
 	 */
 	@Override
 	public int compareTo(PacketInfo o) {
@@ -189,9 +190,9 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	}
 
 	/**
-	 * Sets packet timestamp.
+	 * Sets the packet timestamp. 
 	 * 
-	 * @param timestamp
+	 * @param timestamp – The timestamp to set.
 	 * 
 	 */
 	public void setTimestamp(double timestamp) {
@@ -199,38 +200,54 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	}
 
 	/**
-	 * Returns packet timestamp.
+	 * Returns the timestamp of the packet. 
 	 * 
-	 * @return packet timestamp.
+	 * @return The packet timestamp.
 	 */
 	public double getTimeStamp() {
 		return timestamp;
 	}
 
 	/**
-	 * Returns packet direction enum state.
+	 * Returns the direction of the packet (uplink, downlink, or unknown). 
 	 * 
-	 * @return packet direction enum state.
+	 * @return The packet direction. One of the values of the PacketInfo.Direction enumeration.
 	 */
 	public Direction getDir() {
 		return dir;
 	}
 
 	/**
-	 * Sets direction of the packet i.e. uplink/downlink.
+	 * Returns the remote IP address if this packet represents an IP packet and
+	 * a direction for the packet has been identified.
+	 * @return Remote IP address or null if it cannot be determined
+	 */
+	public InetAddress getRemoteIPAddress() {
+		if (packet instanceof IPPacket && dir != null) {
+			IPPacket ip = (IPPacket) packet;
+			switch (dir) {
+			case UPLINK :
+				return ip.getDestinationIPAddress();
+			case DOWNLINK :
+				return ip.getSourceIPAddress();
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Sets the packet direction. 
 	 * 
-	 * @param dir
-	 *            The packet direction to be set.
+	 * @param dir – A PacketInfo.Direction enumeration value that indicates the packet direction.
 	 */
 	public void setDir(Direction dir) {
 		this.dir = dir;
 	}
 
 	/**
-	 * Returns the length (in bytes) of the packet including both the header and
-	 * the data
+	 * Returns the length (in bytes) of the packet, including both the header and the data. 
 	 * 
-	 * @return length (in bytes) of the packet
+	 * @return The length (in bytes) of the packet.
 	 */
 	public int getLen() {
 
@@ -240,104 +257,99 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	}
 
 	/**
-	 * Returns the payload length (in bytes) and the data
+	 * Returns the length of the payload data.
 	 * 
-	 * @return the payload length
+	 * @return The payload length, in bytes.
 	 */
 	public int getPayloadLen() {
 		return packet.getPayloadLen();
 	}
 
 	/**
-	 * Sets packet TCP information.
+	 * Sets the TCP information for the packet. 
 	 * 
-	 * @param tcpInfo
-	 *            TCP info to set for the packet.
+	 * @param tcpInfo – The TCP information to set.
 	 */
 	public void setTcpInfo(TcpInfo tcpInfo) {
 		this.tcpInfo = tcpInfo;
 	}
 
 	/**
-	 * Returns packet TCP information.
+	 * Returns the TCP information for the packet. 
 	 * 
-	 * @return TcpInfo of a packet.
+	 * @return A PacketInfo.TcpInfo enumeration value.
 	 */
 	public TcpInfo getTcpInfo() {
 		return tcpInfo;
 	}
 
 	/**
-	 * Sets packet burst information.
+	 * Sets the burst information for the packet burst. 
 	 * 
-	 * @param burst
-	 *            Burst info to set for a packet.
+	 * @param burst – The burst information to set.
 	 */
 	public void setBurst(Burst burst) {
 		this.burst = burst;
 	}
 
 	/**
-	 * Returns packet burst information.
+	 * Returns the burst information from the packet. 
 	 * 
-	 * @return Burst info of a packet.
+	 * @return A Burst object containing the burst informaiton.
 	 */
 	public Burst getBurst() {
 		return burst;
 	}
 
 	/**
-	 * Sets packet state machine.
+	 * Sets the RRC state machine for the packet. 
 	 * 
-	 * @param stateMachine
-	 *            RRCState state to set.
+	 * @param stateMachine – The RRC state machine value.
 	 */
 	public void setStateMachine(RRCState stateMachine) {
 		this.stateMachine = stateMachine;
 	}
 
 	/**
-	 * Returns packet state machine.
+	 * Returns the RRC state machine for this packet. 
 	 * 
-	 * @return RRCState instance.
+	 * @return An RRCState enumeration value.
 	 */
 	public RRCState getStateMachine() {
 		return stateMachine;
 	}
 
 	/**
-	 * Returns application name.
+	 * Returns the application name. 
 	 * 
-	 * @return appNamee.
+	 * @return A string containing the application name.
 	 */
 	public String getAppName() {
 		return appName;
 	}
 
 	/**
-	 * Sets application name.
+	 * Sets the application name for the packet. 
 	 * 
-	 * @param appName
-	 *            the appName to set
+	 * @param appName - The application name to set.
 	 */
 	public void setAppName(String appName) {
 		this.appName = appName;
 	}
 
 	/**
-	 * Returns packet TCP session.
+	 * Returns the TCP session that contains this packet. 
 	 * 
-	 * @return the session
+	 * @return A TCPSession object that containing this packet.
 	 */
 	public TCPSession getSession() {
 		return session;
 	}
 
 	/**
-	 * Sets packet TCP session.
+	 * Sets the TCP session that is associated with this packet. 
 	 * 
-	 * @param session
-	 *            the session to set
+	 * @param session - The TCP session to set.
 	 */
 	public void setSession(TCPSession session) {
 		this.session = session;
@@ -364,9 +376,9 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	}
 
 	/**
-	 * Returns TCP flag as per TCPPacket type.
+	 * Returns the TCP flag that indicates the TCPPacket type. 
 	 * 
-	 * @return tcp flag of a packet.
+	 * @return A string containing the TCP flag for the packet.
 	 */
 	public String getTcpFlagString() {
 		return strTcpFlags;

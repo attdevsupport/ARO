@@ -81,8 +81,13 @@ public class RRCStateMachine implements Serializable {
 	 *            Trace analysis
 	 */
 	public RRCStateMachine(TraceData.Analysis analysisData) {
-
+        
+		TimeRange timeRange = analysisData.getFilter().getTimeRange();
+		if(timeRange == null){
 		this.rrc = RrcStateRange.runTrace(analysisData);
+		}else{
+			this.rrc = getRRCStatesForTheTimeRange(RrcStateRange.runTrace(analysisData) , timeRange.getBeginTime() , timeRange.getEndTime());
+		}
 		if (logger.isLoggable(Level.FINER)) {
 			for (RrcStateRange r : rrc) {
 				logger.finer(r.getState()
@@ -121,6 +126,36 @@ public class RRCStateMachine implements Serializable {
 			logger.fine("Promotion Ratio = : " + getPromotionRatio());
 			logger.fine("");
 		}
+	}
+	
+	private List<RrcStateRange> getRRCStatesForTheTimeRange(List<RrcStateRange> rrcRanges , double beginTime , double endTime){
+		
+		List<RrcStateRange> filteredRRCStates = new ArrayList<RrcStateRange>();
+		boolean stateAdded = false;
+
+		for (RrcStateRange rrcRange : rrcRanges) {
+
+			if (rrcRange.getBeginTime() >= beginTime
+					&& rrcRange.getEndTime() <= endTime) {
+				filteredRRCStates.add(rrcRange);
+			} else if (rrcRange.getBeginTime() <= beginTime
+					&& rrcRange.getEndTime() <= endTime && rrcRange.getEndTime() > beginTime) {
+				filteredRRCStates.add(new RrcStateRange(beginTime, rrcRange
+						.getEndTime(), rrcRange.getState()));
+			} else if (rrcRange.getBeginTime() <= beginTime
+					&& rrcRange.getEndTime() >= endTime) {
+				filteredRRCStates.add(new RrcStateRange(beginTime, endTime,
+						rrcRange.getState()));
+			} else if (rrcRange.getBeginTime() >= beginTime && rrcRange.getBeginTime() < endTime
+					&& rrcRange.getEndTime() >= endTime && !stateAdded) {
+				filteredRRCStates.add(new RrcStateRange(rrcRange
+						.getBeginTime(), endTime, rrcRange
+						.getState()));
+				stateAdded = true;
+			}
+		}
+		return filteredRRCStates;
+		
 	}
 
 	/**
@@ -586,7 +621,8 @@ public class RRCStateMachine implements Serializable {
 		}
 		this.totalRRCEnergy = fachEnergy + dchEnergy + fachToDchEnergy + idleToDchEnergy
 				+ idleEnergy;
-		this.joulesPerKilobyte = totalRRCEnergy / (analysisData.getTotalBytes() / 1000);
+		long bytes = analysisData.getTotalBytes();
+		this.joulesPerKilobyte = bytes != 0 ? totalRRCEnergy / (bytes / 1000.0) : 0.0;
 	}
 
 	/**
@@ -629,6 +665,7 @@ public class RRCStateMachine implements Serializable {
 				break;
 			}
 		}
-		this.joulesPerKilobyte = totalRRCEnergy / (analysisData.getTotalBytes() / 1000);
+		long bytes = analysisData.getTotalBytes();
+		this.joulesPerKilobyte = bytes != 0 ? totalRRCEnergy / (bytes / 1000.0) : 0.0;
 	}
 }

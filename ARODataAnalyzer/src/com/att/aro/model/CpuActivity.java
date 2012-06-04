@@ -20,29 +20,42 @@ package com.att.aro.model;
  */
 public class CpuActivity {
 
-	private double cpuTimeStamp;
+	// Radio time stamp
+	private double beginTimeStamp;
+	private double endTimeStamp;
 	private double cpuUsage;
 
 	/**
 	 * Initializes an instance of the CpuActivity class using the specified timestamp and 
 	 * CPU usage value.
 	 * 
-	 * @param Timestamp – The timestamp for the CPU.
+	  
+	 * @param beginTimeStamp The start timestamp for the cpu event.
+	 * @param endTimeStamp The end  timestamp for the cpu event.
 	 * 
 	 * @param dCpuUsage – The CPU usage value.
 	 */
-	public CpuActivity(double dTimestamp, double dCpuUsage) {
-		this.cpuTimeStamp = dTimestamp;
+	public CpuActivity(double beginTimeStamp , double endTimeStamp, double dCpuUsage) {
+		this.beginTimeStamp = beginTimeStamp;
+		this.endTimeStamp = endTimeStamp;
 		this.cpuUsage = dCpuUsage;
 	}
 
 	/**
-	 * Returns the CPU timestamp. 
+	 * Returns the start timestamp for the cpu event. 
 	 * 
-	 * @return The CPU timestamp.
+	 * @return The start timestamp.
 	 */
-	public double getCpuTimeStamp() {
-		return cpuTimeStamp;
+	public double getBeginTimeStamp() {
+		return beginTimeStamp;
+	}
+	
+	 /** Returns the end timestamp for the cpu event.  
+	 * 
+	 * @return The end timestamp.
+	 */
+	public double getEndTimeStamp() {
+		return endTimeStamp;
 	}
 
 	/**
@@ -50,8 +63,8 @@ public class CpuActivity {
 	 * 
 	 * @param timestamp - A double that specifies the CPU timestamp.
 	 */
-	public void setCpuTimeStamp(double dTimeStamp) {
-		cpuTimeStamp = dTimeStamp;
+	public void setCpuBeginTimeStamp(double beginTimeStamp) {
+		this.beginTimeStamp = beginTimeStamp;
 	}
 
 	/**

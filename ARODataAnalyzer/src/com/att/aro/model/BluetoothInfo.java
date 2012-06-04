@@ -22,29 +22,32 @@ package com.att.aro.model;
 public class BluetoothInfo {
 
 	/**
-	 * ENUM to maintain the bluetooth states.
+	 * The BluetoothInfo.BluetoothState Enumeration specifies constant values that describe the connectivity 
+	 * state of the Bluetooth peripheral on a device. This enumeration is part of the 
+	 * BluetoothInfo class.
 	 */
 	public enum BluetoothState {
 		/**
-		 * Unknown type.
+		 * The Bluetooth peripheral is of an unknown type.
 		 */
 		BLUETOOTH_UNKNOWN,
 		/**
-		 * Bluetooth pair device is disconnected.
+		 * The Bluetooth peripheral is disconnected.
 		 */
 		BLUETOOTH_DISCONNECTED,
 		/**
-		 * Bluetooth device connected.
+		 * The Bluetooth peripheral is connected.
 		 */
 		BLUETOOTH_CONNECTED,
 		/**
-		 * Bluetooth switched off.
+		 * The Bluetooth peripheral is switched off. 
 		 */
 		BLUETOOTH_TURNED_OFF,
 	}
 
 	// Bluetooth Time stamp
-	private double bluetoothTimeStamp;
+	private double beginTimeStamp;
+	private double endTimeStamp;
 
 	// Current Bluetooth State
 	private BluetoothState bluetoothState;
@@ -53,23 +56,35 @@ public class BluetoothInfo {
 	 * Initializes an instance of the BluetoothInfo class, using the specified time stamp, 
 	 * and Bluetooth state.
 	 * 
-	 * @param dTimestamp - The time at which the Bluetooth information was modified.
+	 *  @param beginTimeStamp
+	 *            The start timestamp for the bluetooth state.
+	 * @param endTimeStamp
+	 *            The end timestamp for the bluetooth state.
 	 * @param bluetoothState - The activation state of Bluetooth on the device.
 	 */
-	public BluetoothInfo(double dTimestamp, BluetoothState bluetoothState) {
-		this.bluetoothTimeStamp = dTimestamp;
+	public BluetoothInfo(double beginTimeStamp , double endTimeStamp , BluetoothState bluetoothState) {
+		this.beginTimeStamp = beginTimeStamp;
+		this.endTimeStamp = endTimeStamp;
 		this.bluetoothState = bluetoothState;
 	}
 
 	/**
-	 * Returns the time stamp of when the Bluetooth information was last modified. 
+	 * Returns the start timestamp for the bluetooth state. 
 	 * 
-	 * @return A double that is the time stamp of when the Bluetooth information was last 
-	 * modified.
+	 * @return The start timestamp.
 	 */
-	public double getBluetoothTimeStamp() {
-		return bluetoothTimeStamp;
+	public double getBeginTimeStamp() {
+		return beginTimeStamp;
 	}
+	
+	 /** Returns the end timestamp for the bluetooth state.  
+	 * 
+	 * @return The end timestamp.
+	 */
+	public double getEndTimeStamp() {
+		return endTimeStamp;
+	}
+
 
 	/**
 	 * Returns the Bluetooth activation state. 

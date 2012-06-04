@@ -12,52 +12,61 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 package com.att.aro.model;
 
 /**
- * Encapsulates the GPS information. 
+ * Encapsulates the GPS information.
  */
 public class GpsInfo implements Comparable<GpsInfo> {
 
 	/**
-	 * ENUM to maintain the gps states.
+	 * The GpsInfo.GpsState Enumeration specifies constant values that describe
+	 * the operational state of the GPS peripheral on a device. This enumeration
+	 * is part of the GpsInfo class.
 	 */
 	public enum GpsState {
 		/**
-		 * Unknown GPS state.
+		 * The GPS is in an unknown state.
 		 */
 		GPS_UNKNOWN,
 		/**
-		 * GPS disabled state.
+		 * The GPS is in the disabled state.
 		 */
 		GPS_DISABLED,
 		/**
-		 * GPS active state.
+		 * The GPS is in an active state.
 		 */
 		GPS_ACTIVE,
 		/**
-		 * GPS standby state.
+		 * The GPS is in the standby state.
 		 */
 		GPS_STANDBY
 	}
 
 	// GPS Time stamp
-	private double gpsTimeStamp;
+	private double beginTimeStamp;
+	private double endTimeStamp;
 
 	// Current GPS State
 	private GpsState gpsState;
 
 	/**
-	 * Initializes an instance of the GpsInfo class using the specified timestamp, and GPS 
-	 * state.
+	 * Initializes an instance of the GpsInfo class using the specified
+	 * timestamp, and GPS state.
 	 * 
-	 * @param dTimestamp – The timestamp.
+	 * @param beginTimeStamp
+	 *            The start timestamp for the gps event.
+	 * @param endTimeStamp
+	 *            The end timestamp for the gps event.
 	 * 
-	 * @param gpsState – A GpsInfo.GpsState enumeration value that specifies the GPS state.
+	 * @param gpsState
+	 *            – A GpsInfo.GpsState enumeration value that specifies the GPS
+	 *            state.
 	 */
-	public GpsInfo(double dTimestamp, GpsState gpsState) {
-		this.gpsTimeStamp = dTimestamp;
+	public GpsInfo(double beginTimeStamp, double endTimeStamp, GpsState gpsState) {
+		this.beginTimeStamp = beginTimeStamp;
+		this.endTimeStamp = endTimeStamp;
 		this.gpsState = gpsState;
 	}
 
@@ -68,22 +77,32 @@ public class GpsInfo implements Comparable<GpsInfo> {
 	 */
 	@Override
 	public int compareTo(GpsInfo o) {
-		return Double.valueOf(gpsTimeStamp).compareTo(o.gpsTimeStamp);
+		return Double.valueOf(beginTimeStamp).compareTo(o.beginTimeStamp);
 	}
 
 	/**
-	 * Returns the GPS timestamp. 
+	 * Returns the start timestamp for the GPS state.
 	 * 
-	 * @return A double that is the GPS timestamp.
+	 * @return The start timestamp.
 	 */
-	public double getGpsTimeStamp() {
-		return gpsTimeStamp;
+	public double getBeginTimeStamp() {
+		return beginTimeStamp;
 	}
 
 	/**
-	 * Returns the GPS state. 
+	 * Returns the end timestamp for the GPS state.
 	 * 
-	 * @return A GpsInfo.GpsState enumeration value that indicates the GPS state.
+	 * @return The end timestamp.
+	 */
+	public double getEndTimeStamp() {
+		return endTimeStamp;
+	}
+
+	/**
+	 * Returns the GPS state.
+	 * 
+	 * @return A GpsInfo.GpsState enumeration value that indicates the GPS
+	 *         state.
 	 */
 	public GpsState getGpsState() {
 		return gpsState;

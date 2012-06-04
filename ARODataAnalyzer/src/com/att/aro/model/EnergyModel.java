@@ -18,6 +18,8 @@ package com.att.aro.model;
 import java.io.Serializable;
 import java.util.Iterator;
 
+import com.att.aro.model.GpsInfo.GpsState;
+
 /**
  * Contains methods for generating energy statistics from race analysis data. 
  */
@@ -46,156 +48,94 @@ public class EnergyModel implements Serializable {
 		this.analysisData = analysisData;
 
 		Profile profile = analysisData.getProfile();
-		TraceData td = analysisData.getTraceData();
-		double endTime = td.getTraceDuration();
-
 		// GPS Energy
-		Iterator<GpsInfo> gpsIter = td.getGpsInfos().iterator();
+		Iterator<GpsInfo> gpsIter = analysisData.getGpsInfos().iterator();
 		if (gpsIter.hasNext()) {
-			GpsInfo gps = gpsIter.next();
-			GpsInfo.GpsState gpsState = gps.getGpsState();
-			double time = gps.getGpsTimeStamp();
+
 			while (gpsIter.hasNext()) {
-				gps = gpsIter.next();
+				GpsInfo gps = gpsIter.next();
+				GpsState gpsState = gps.getGpsState();
 				switch (gpsState) {
 				case GPS_ACTIVE:
-					gpsActiveEnergy += profile.getPowerGpsActive() * (gps.getGpsTimeStamp() - time);
+					gpsActiveEnergy += profile.getPowerGpsActive() * (gps.getEndTimeStamp() - gps.getBeginTimeStamp());
 					break;
 				case GPS_STANDBY:
 					gpsStandbyEnergy += profile.getPowerGpsStandby()
-							* (gps.getGpsTimeStamp() - time);
+							* (gps.getEndTimeStamp() - gps.getBeginTimeStamp());
 					break;
 				}
-				gpsState = gps.getGpsState();
-				time = gps.getGpsTimeStamp();
-			}
-			switch (gpsState) {
-			case GPS_ACTIVE:
-				gpsActiveEnergy += profile.getPowerGpsActive() * (endTime - gps.getGpsTimeStamp());
-				break;
-			case GPS_STANDBY:
-				gpsStandbyEnergy += profile.getPowerGpsStandby()
-						* (endTime - gps.getGpsTimeStamp());
-				break;
-			}
 		}
 		this.totalGpsEnergy = gpsActiveEnergy + gpsStandbyEnergy;
 
 		// Camera Energy
-		Iterator<CameraInfo> cameraIter = td.getCameraInfos().iterator();
+		Iterator<CameraInfo> cameraIter = analysisData.getCameraInfos().iterator();
 		if (cameraIter.hasNext()) {
-			CameraInfo camera = cameraIter.next();
-			CameraInfo.CameraState cameraState = camera.getCameraState();
-			double time = camera.getCameraTimeStamp();
+
 			while (cameraIter.hasNext()) {
-				camera = cameraIter.next();
+				CameraInfo camera = cameraIter.next();
+				CameraInfo.CameraState cameraState = camera.getCameraState();
+				
 				if (cameraState == CameraInfo.CameraState.CAMERA_ON) {
 					totalCameraEnergy += profile.getPowerCameraOn()
-							* (camera.getCameraTimeStamp() - time);
+							* (camera.getEndTimeStamp() - camera.getBeginTimeStamp());
 				}
-				cameraState = camera.getCameraState();
-				time = camera.getCameraTimeStamp();
-			}
-			if (cameraState == CameraInfo.CameraState.CAMERA_ON) {
-				totalCameraEnergy += profile.getPowerCameraOn()
-						* (endTime - camera.getCameraTimeStamp());
+
 			}
 		}
 
 		// WiFi Energy
-		Iterator<WifiInfo> wifiIter = td.getWifiInfos().iterator();
+		Iterator<WifiInfo> wifiIter = analysisData.getWifiInfos().iterator();
 		if (wifiIter.hasNext()) {
-			WifiInfo wifi = wifiIter.next();
-			WifiInfo.WifiState wifiState = wifi.getWifiState();
-			double time = wifi.getWifiTimeStamp();
 			while (wifiIter.hasNext()) {
-				wifi = wifiIter.next();
+				WifiInfo wifi = wifiIter.next();
+				WifiInfo.WifiState wifiState = wifi.getWifiState();
 				switch (wifiState) {
 				case WIFI_CONNECTED:
 				case WIFI_CONNECTING:
 				case WIFI_DISCONNECTING:
 					wifiActiveEnergy += profile.getPowerWifiActive()
-							* (wifi.getWifiTimeStamp() - time);
+							* (wifi.getEndTimeStamp() - wifi.getBeginTimeStamp());
 					break;
 				case WIFI_DISCONNECTED:
 				case WIFI_SUSPENDED:
 					wifiStandbyEnergy += profile.getPowerWifiStandby()
-							* (wifi.getWifiTimeStamp() - time);
+							* (wifi.getEndTimeStamp() - wifi.getBeginTimeStamp());
 					break;
 				}
-				wifiState = wifi.getWifiState();
-				time = wifi.getWifiTimeStamp();
-			}
-			switch (wifiState) {
-			case WIFI_CONNECTED:
-			case WIFI_CONNECTING:
-			case WIFI_DISCONNECTING:
-				wifiActiveEnergy += profile.getPowerWifiActive()
-						* (endTime - wifi.getWifiTimeStamp());
-				break;
-			case WIFI_DISCONNECTED:
-			case WIFI_SUSPENDED:
-				wifiStandbyEnergy += profile.getPowerWifiStandby()
-						* (endTime - wifi.getWifiTimeStamp());
-				break;
 			}
 		}
 		this.totalWifiEnergy = wifiActiveEnergy + wifiStandbyEnergy;
 
 		// Bluetooth Energy
-		Iterator<BluetoothInfo> bluetoothIter = td.getBluetoothInfos().iterator();
+		Iterator<BluetoothInfo> bluetoothIter = analysisData.getBluetoothInfos().iterator();
 		if (bluetoothIter.hasNext()) {
-			BluetoothInfo bt = bluetoothIter.next();
-			BluetoothInfo.BluetoothState btState = bt.getBluetoothState();
-			double time = bt.getBluetoothTimeStamp();
 			while (bluetoothIter.hasNext()) {
-				bt = bluetoothIter.next();
-				switch (btState) {
+				BluetoothInfo btInfo = bluetoothIter.next();
+				switch (btInfo.getBluetoothState()) {
 				case BLUETOOTH_CONNECTED:
 					bluetoothActiveEnergy += profile.getPowerBluetoothActive()
-							* (bt.getBluetoothTimeStamp() - time);
+							* (btInfo.getEndTimeStamp() - btInfo.getBeginTimeStamp());
 					break;
 				case BLUETOOTH_DISCONNECTED:
 					bluetoothStandbyEnergy += profile.getPowerBluetoothStandby()
-							* (bt.getBluetoothTimeStamp() - time);
+							* (btInfo.getEndTimeStamp() - btInfo.getBeginTimeStamp());
 					break;
 				}
-				btState = bt.getBluetoothState();
-				time = bt.getBluetoothTimeStamp();
-			}
-			switch (btState) {
-			case BLUETOOTH_CONNECTED:
-				bluetoothActiveEnergy += profile.getPowerBluetoothActive()
-						* (endTime - bt.getBluetoothTimeStamp());
-				break;
-			case BLUETOOTH_DISCONNECTED:
-				bluetoothStandbyEnergy += profile.getPowerBluetoothStandby()
-						* (endTime - bt.getBluetoothTimeStamp());
-				break;
 			}
 		}
 		this.totalBluetoothEnergy = bluetoothActiveEnergy + bluetoothStandbyEnergy;
 
 		// Screen Energy
-		Iterator<ScreenStateInfo> screenIter = td.getScreenStateInfos().iterator();
+		Iterator<ScreenStateInfo> screenIter = analysisData.getScreenStateInfos().iterator();
 		if (screenIter.hasNext()) {
-			ScreenStateInfo screen = screenIter.next();
-			ScreenStateInfo.ScreenState screenState = screen.getScreenState();
-			double time = screen.getScreenTimeStamp();
 			while (screenIter.hasNext()) {
-				screen = screenIter.next();
-				if (screenState == ScreenStateInfo.ScreenState.SCREEN_ON) {
+				ScreenStateInfo screenInfo = screenIter.next();
+				if (screenInfo.getScreenState() == ScreenStateInfo.ScreenState.SCREEN_ON) {
 					totalScreenEnergy += profile.getPowerScreenOn()
-							* (screen.getScreenTimeStamp() - time);
+							* (screenInfo.getEndTimeStamp() - screenInfo.getBeginTimeStamp());
 				}
-				screenState = screen.getScreenState();
-				time = screen.getScreenTimeStamp();
 			}
-			if (screenState == ScreenStateInfo.ScreenState.SCREEN_ON) {
-				totalScreenEnergy += profile.getPowerScreenOn()
-						* (endTime - screen.getScreenTimeStamp());
-			}
-		}
+		}}
 
 	}
 

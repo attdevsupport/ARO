@@ -284,7 +284,7 @@ public class ProfileLTE extends Profile {
 	 * @throws IOException
 	 */
 	@Override
-	public synchronized void saveProperties(Properties props) {
+	protected synchronized void saveProperties(Properties props) {
 		props.setProperty(T_PROMOTION, String.valueOf(promotionTime));
 		props.setProperty(INACTIVITY_TIMER, String.valueOf(inactivityTimer));
 		props.setProperty(T_SHORT_DRX, String.valueOf(drxShortTime));
