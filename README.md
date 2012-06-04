@@ -60,7 +60,7 @@ Contact Us:  http://developer.att.com/developer/contact_us.jsp
 
 
 **Version:**  
-ARO Data Collector 1.3.0
+ARO Data Collector 1.3.0  
 ARO Data Analyzer  1.3.0
 
 **New Features:**  
