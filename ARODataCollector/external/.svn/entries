@@ -1,0 +1,34 @@
+10
+
+dir
+33918
+svn://scm.it.att.com:13152/ARO/Client/Android/trunk/ARODataCollector/external
+svn://scm.it.att.com:13152
+
+
+
+2012-05-31T16:21:11.355599Z
+33764
+lr7194
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+232d9e9c-b25d-429f-81fe-b109ba11f838
+
+libpcap-1.1.1
+dir
+
+tcpdump-4.1.1
+dir
+
