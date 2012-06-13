@@ -56,6 +56,7 @@ public class BurstCollectionAnalysis implements Serializable {
 	private Profile profile;
 	private Set<Integer> mss = new HashSet<Integer>();
 	private List<Burst> burstCollection;
+	private Set<String> hostPeriodicInfoSet = new HashSet<String>();
 	private double totalEnergy;
 	private int longBurstCount = 0;
 	private int tightlyCoupledBurstCount = 0;
@@ -101,6 +102,19 @@ public class BurstCollectionAnalysis implements Serializable {
 		public PacketTimestamp(PacketInfo packet) {
 			this.packet = packet;
 			this.timestamp = packet.getTimeStamp();
+		}
+	}
+
+	/**
+	 * Private utility class to keep the time stamp of tcpinfo's and HTTP
+	 * request response info's
+	 */
+	private class RequestEvent implements Comparable<RequestEvent> {
+		private double ts;
+
+		@Override
+		public int compareTo(RequestEvent event) {
+			return Double.valueOf(this.ts).compareTo(event.ts);
 		}
 	}
 
@@ -745,75 +759,87 @@ public class BurstCollectionAnalysis implements Serializable {
 	 * Burst data's analyzed to categorize the periodic bursts.
 	 */
 	private void diagnosisPeriodicRequest() {
-
-		Map<String, List<Double>> requestHost2tsList = new HashMap<String, List<Double>>();
-		Map<String, List<Double>> requestObj2tsList = new HashMap<String, List<Double>>();
-		Map<InetAddress, List<Double>> connIP2tsList = new HashMap<InetAddress, List<Double>>();
-		Set<String> hostPeriodicInfoSet = new HashSet<String>();
+		Map<String, List<RequestEvent>> requestHost2tsList = new HashMap<String, List<RequestEvent>>();
+		Map<String, List<RequestEvent>> requestObj2tsList = new HashMap<String, List<RequestEvent>>();
+		Map<InetAddress, List<RequestEvent>> connIP2tsList = new HashMap<InetAddress, List<RequestEvent>>();
+		clearHostPeriodicInfoSet();
 		periodicCount = 0;
 		diffPeriodicCount = 0;
 		minimumPeriodicRepeatTime = 0.0;
 
 		for (TCPSession b : analysis.getTcpSessions()) {
 
-			// Get a list of timestamps of established sessions with each remote IP
 			PacketInfo p = b.getPackets().get(0);
 			if (p.getTcpInfo() == TcpInfo.TCP_ESTABLISH) {
-				List<Double> res = connIP2tsList.get(b.getRemoteIP());
+				RequestEvent re = new RequestEvent();
+				re.ts = p.getTimeStamp();
+				List<RequestEvent> res = connIP2tsList.get(b.getRemoteIP());
 				if (res == null) {
-					res = new ArrayList<Double>();
+					res = new ArrayList<RequestEvent>();
 					connIP2tsList.put(b.getRemoteIP(), res);
 				}
-				res.add(Double.valueOf(p.getTimeStamp()));
+				res.add(re);
 			}
 
-			// Get a list of timestamps of HTTP requests to hosts/object names
 			for (HttpRequestResponseInfo rr : b.getRequestResponseInfo()) {
 				PacketInfo pkt = rr.getFirstDataPacket();
-				if (rr.getDirection() == HttpRequestResponseInfo.Direction.REQUEST) {
-					Double ts0 = Double.valueOf(pkt.getTimeStamp());
-					if (rr.getHostName() != null) {
-						List<Double> tempRequestHostEventList = requestHost2tsList.get(rr
-								.getHostName());
-						if (tempRequestHostEventList == null) {
-							tempRequestHostEventList = new ArrayList<Double>();
-							requestHost2tsList.put(rr.getHostName(), tempRequestHostEventList);
-						}
-						tempRequestHostEventList.add(ts0);
+				double ts0 = pkt.getTimeStamp();
+				if (rr.getDirection() == HttpRequestResponseInfo.Direction.REQUEST
+						&& null != rr.getHostName()) {
+					RequestEvent re = new RequestEvent();
+					re.ts = ts0;
+					List<RequestEvent> tempRequestHostEventList = requestHost2tsList.get(rr
+							.getHostName());
+					if (tempRequestHostEventList == null) {
+						tempRequestHostEventList = new ArrayList<RequestEvent>();
+						requestHost2tsList.put(rr.getHostName(), tempRequestHostEventList);
 					}
+					tempRequestHostEventList.add(re);
+				}
 
-					if (rr.getObjName() != null) {
-						String objName = rr.getObjNameWithoutParams();
-						List<Double> tempRequestObjEventList = requestObj2tsList.get(objName);
+				if (rr.getDirection() == HttpRequestResponseInfo.Direction.REQUEST
+						&& null != rr.getObjName()) {
+					RequestEvent re = new RequestEvent();
+					re.ts = ts0;
+					String objName = rr.getObjNameWithoutParams();
+					List<RequestEvent> tempRequestObjEventList = requestObj2tsList.get(objName);
 
-						if (tempRequestObjEventList == null) {
-							tempRequestObjEventList = new ArrayList<Double>();
-							requestObj2tsList.put(objName, tempRequestObjEventList);
-						}
-						tempRequestObjEventList.add(ts0);
+					if (tempRequestObjEventList == null) {
+						tempRequestObjEventList = new ArrayList<RequestEvent>();
+						requestObj2tsList.put(objName, tempRequestObjEventList);
 					}
+					tempRequestObjEventList.add(re);
 				}
 			}
 		}
 
-		Set<String> hostList = new HashSet<String>();
-		for (Map.Entry<String, List<Double>> iter : requestHost2tsList.entrySet()) {
-			if (SelfCorr(iter.getValue())) {
-				hostList.add(iter.getKey());
+		Map<String, Integer> hostList = new HashMap<String, Integer>();
+		for (Map.Entry<String, List<RequestEvent>> iter : requestHost2tsList.entrySet()) {
+			List<RequestEvent> reList = new ArrayList<RequestEvent>();
+			List<RequestEvent> requestHostList = iter.getValue();
+			Collections.sort(requestHostList);
+			if (SelfCorr(requestHostList, reList)) {
+				hostList.put(iter.getKey(), 1);
 			}
 		}
 
-		Set<String> objList = new HashSet<String>();
-		for (Map.Entry<String, List<Double>> iter : requestObj2tsList.entrySet()) {
-			if (SelfCorr(iter.getValue())) {
-				objList.add(iter.getKey());
+		Map<String, Integer> objList = new HashMap<String, Integer>();
+		for (Map.Entry<String, List<RequestEvent>> iter : requestObj2tsList.entrySet()) {
+			List<RequestEvent> reList = new ArrayList<RequestEvent>();
+			List<RequestEvent> requestObjList = iter.getValue();
+			Collections.sort(requestObjList);
+			if (SelfCorr(requestObjList, reList)) {
+				objList.put(iter.getKey(), 1);
 			}
 		}
 
-		Set<InetAddress> ipList = new HashSet<InetAddress>();
-		for (Map.Entry<InetAddress, List<Double>> iter : connIP2tsList.entrySet()) {
-			if (SelfCorr(iter.getValue())) {
-				ipList.add(iter.getKey());
+		Map<InetAddress, Integer> ipList = new HashMap<InetAddress, Integer>();
+		for (Map.Entry<InetAddress, List<RequestEvent>> iter : connIP2tsList.entrySet()) {
+			List<RequestEvent> reList = new ArrayList<RequestEvent>();
+			List<RequestEvent> requestIpList = iter.getValue();
+			Collections.sort(requestIpList);
+			if (SelfCorr(requestIpList, reList)) {
+				ipList.put(iter.getKey(), 1);
 			}
 		}
 
@@ -824,14 +850,14 @@ public class BurstCollectionAnalysis implements Serializable {
 			Packet beginPacket = burst.getBeginPacket().getPacket();
 			if (beginPacket instanceof IPPacket) {
 				IPPacket ip = (IPPacket) beginPacket;
-				if (ipList.contains(ip.getDestinationIPAddress())
-						|| ipList.contains(ip.getSourceIPAddress())) {
+				if (ipList.containsKey(ip.getDestinationIPAddress())
+						|| ipList.containsKey(ip.getSourceIPAddress())) {
 					periodicCount++;
 					burst.setBurstInfo(BurstInfo.BURST_PERIODICAL);
-					if (ipList.contains(ip.getDestinationIPAddress())) {
-						hostPeriodicInfoSet.add(ip.getDestinationIPAddress().toString());
+					if (ipList.containsKey(ip.getDestinationIPAddress())) {
+						updateHostPeriodicInfoSet(ip.getDestinationIPAddress().toString());
 					} else {
-						hostPeriodicInfoSet.add(ip.getSourceIPAddress().toString());
+						updateHostPeriodicInfoSet(ip.getSourceIPAddress().toString());
 					}
 					continue;
 				}
@@ -848,16 +874,16 @@ public class BurstCollectionAnalysis implements Serializable {
 			for (TCPSession session : analysis.getTcpSessions()) {
 				for (HttpRequestResponseInfo rr : session.getRequestResponseInfo()) {
 					if (rr.getDirection() == HttpRequestResponseInfo.Direction.REQUEST
-							&& (hostList.contains(rr.getHostName()) || objList.contains(rr
+							&& (hostList.containsKey(rr.getHostName()) || objList.containsKey(rr
 									.getObjNameWithoutParams()))) {
 						if (rr.getFirstDataPacket() == firstUplinkPayloadPacket) {
 							periodicCount++;
 							burst.setBurstInfo(BurstInfo.BURST_PERIODICAL);
 							burst.setFirstUplinkDataPacket(firstUplinkPayloadPacket);
-							if (hostList.contains(rr.getHostName())) {
-								hostPeriodicInfoSet.add(rr.getHostName());
+							if (hostList.containsKey(rr.getHostName())) {
+								updateHostPeriodicInfoSet(rr.getHostName());
 							} else {
-								hostPeriodicInfoSet.add(rr.getObjNameWithoutParams());
+								updateHostPeriodicInfoSet(rr.getObjNameWithoutParams());
 							}
 							continue;
 						}
@@ -908,33 +934,24 @@ public class BurstCollectionAnalysis implements Serializable {
 	 * @param subV
 	 * @return
 	 */
-	private boolean SelfCorr(List<Double> v) {
+	private boolean SelfCorr(List<RequestEvent> v, List<RequestEvent> subV) {
 		int n = v.size();
+		subV.clear();
 		if (n <= 3) {
 			return false;
 		}
 
-		List<IatInfo> c = new ArrayList<IatInfo>(n * (n - 1) / 2);
+		List<IatInfo> c = new ArrayList<IatInfo>();
 		for (int i = 0; i < n - 1; i++) {
 			for (int j = i + 1; j < n; j++) {
-				double time1 = v.get(i).doubleValue();
-				double time2 = v.get(j).doubleValue();
-
 				IatInfo ii = new IatInfo();
-				if (time1 <= time2) {
-					ii.beginTime = time1;
-					ii.iat = time2 - time1;
-					ii.beginEvent = i;
-					ii.endEvent = j;
-				} else {
-					ii.beginTime = time2;
-					ii.iat = time1 - time2;
-					ii.beginEvent = j;
-					ii.endEvent = i;
-				}
-				
+				ii.beginTime = v.get(i).ts;
+				ii.iat = v.get(j).ts - ii.beginTime;
+				ii.beginEvent = i;
+				ii.endEvent = j;
 				c.add(ii);
 			}
+
 		}
 		Collections.sort(c, new IatInfoSortByBasicTime1());
 
@@ -945,34 +962,33 @@ public class BurstCollectionAnalysis implements Serializable {
 		int clusterSizeTh = profile.getPeriodMinSamples();/* n/2 */
 
 		int m = c.size();
-
+		List<IatInfo> cluster = new ArrayList<IatInfo>();
+		List<IatInfo> bestCluster = new ArrayList<IatInfo>();
+		List<IatInfo> subCluster = new ArrayList<IatInfo>();
 		int bestNonOverlapSize = 0;
-		double cycle = 0;
 		for (int i = 0; i < m; i++) {
-
-			IatInfo iat = c.get(i);
-			List<IatInfo> cluster = new ArrayList<IatInfo>();
+			cluster.clear();
 			int j = i;
-
-			IatInfo iatInfo;
-			double sum = 0;
-			while ((j < m) && (((iatInfo = c.get(j)).iat - iat.iat) < clusterDurationTh)) {
-				cluster.add(iatInfo);
-				sum += iatInfo.iat;
-				++j;
+			while ((j < m) && ((c.get(j).iat - c.get(i).iat) < clusterDurationTh)) {
+				cluster.add(c.get(j++));
 			}
-
-			double avg = sum / cluster.size();
-			int nonOverlapSize;
-			if (avg > minPeriod && (nonOverlapSize = GetNonOverlapSize(cluster)) > bestNonOverlapSize) {
+			int nonOverlapSize = GetNonOverlapSize(cluster, subCluster);
+			if (getAverage(cluster) > minPeriod && nonOverlapSize > bestNonOverlapSize) {
+				bestCluster = new ArrayList<IatInfo>(cluster);
 				bestNonOverlapSize = nonOverlapSize;
-				cycle = avg;
 			}
 		}
 
-		if (bestNonOverlapSize < clusterSizeTh) {
+		int r = GetNonOverlapSize(bestCluster, subCluster);
+		if (r < clusterSizeTh) {
 			return false;
 		} else {
+			int nSize = subCluster.size();
+			subV.add(v.get(subCluster.get(0).beginEvent));
+			for (int i = 0; i < nSize - 1; i++) {
+				subV.add(v.get(subCluster.get(i).endEvent));
+			}
+			double cycle = getAverage(bestCluster);
 			return cycle > 0;
 		}
 	}
@@ -980,52 +996,65 @@ public class BurstCollectionAnalysis implements Serializable {
 	/**
 	 * Method to calculate the over lap events in burst.
 	 */
-	private int GetNonOverlapSize(List<IatInfo> v) {
+	private int GetNonOverlapSize(List<IatInfo> v, List<IatInfo> subV) {
 
 		Collections.sort(v, new IatInfoSortByBasicTime2());
 
 		// find the longest path
+		List<Integer> opt = new ArrayList<Integer>();
 		int n = v.size();
-		int[] opt = new int[n];
-//		int[] backTrack = new int[n];
+		List<Integer> backTrack = new ArrayList<Integer>();
 
 		int best = -1;
-//		int bestI = -1;
+		int bestI = -1;
 
 		for (int i = 0; i < n; i++) {
-			IatInfo iat = v.get(i);
 			int o = 1;
-//			int b = -1;
+			int b = -1;
 
 			for (int j = 0; j <= i - 1; j++) {
-				if (v.get(j).endEvent == iat.beginEvent && opt[j] >= o) {
-					o = opt[j] + 1;
-//					b = j;
+				if ((v.get(j).endEvent == v.get(i).beginEvent) && ((opt.get(j) + 1) > o)) {
+					o = opt.get(j) + 1;
+					b = j;
 				}
 			}
 
 			if (o > best) {
 				best = o;
-//				bestI = i;
+				bestI = i;
 			}
 
-			opt[i] = o;
-//			backTrack[i] = b;
+			opt.add(o);
+			backTrack.add(b);
 		}
 
-//		List<Integer> idxList = new ArrayList<Integer>();
-//		int i = bestI;
-//		while (i != -1) {
-//			idxList.add(i);
-//			i = backTrack[i];
-//		}
-//
-//		//subV.clear();
-//		int m = idxList.size();
-//		for (int j=m-1; j>=0; j--) {
-//			subV.add(v.get(idxList.get(j)));
-//		}
+		List<Integer> idxList = new ArrayList<Integer>();
+		int i = bestI;
+		while (i != -1) {
+			idxList.add(i);
+			i = backTrack.get(i);
+		}
+
+		subV.clear();
+		int m = idxList.size();
+		for (int ki = m - 1; ki >= 0; ki--) {
+			subV.add(v.get(idxList.get(ki)));
+		}
 		return best;
+	}
+
+	/**
+	 * method to calculate the average.
+	 * 
+	 * @param v
+	 * @return
+	 */
+	private double getAverage(List<IatInfo> v) {
+		double sum = 0;
+		for (IatInfo iatInfo : v) {
+			sum += iatInfo.iat;
+		}
+		return sum / v.size();
 	}
 
 	/**
@@ -1121,4 +1150,15 @@ public class BurstCollectionAnalysis implements Serializable {
 		}
 	}
 
+	private void clearHostPeriodicInfoSet() {
+		hostPeriodicInfoSet.clear();
+	}
+
+	private void updateHostPeriodicInfoSet(String strKey) {
+		if (strKey != null) {
+			if (!hostPeriodicInfoSet.contains(strKey)) {
+				hostPeriodicInfoSet.add(strKey);
+			}
+		}
+	}
 }
