@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-
-
 package com.att.android.arodatacollector.activities;
 
 import java.io.File;
@@ -79,7 +77,7 @@ public class AROCollectorMainActivity extends Activity {
 	/**
 	 * The boolean value to enable logs based on production build or debug build
 	 */
-	private static boolean mIsProduction = false;
+	private static boolean mIsProduction = true;
 
 	/**
 	 * A boolean value that indicates whether or not to enable logging for this
@@ -167,23 +165,16 @@ public class AROCollectorMainActivity extends Activity {
 				if (!state.equals(Environment.MEDIA_MOUNTED)) {
 					showSDCardMountedError(false);
 					return;
-				} else if (mAroUtils.isAirplaneModeOn(getApplicationContext()) // Check
-																				// is
-																				// Airplane
-																				// mode
-																				// is
-																				// on
-																				// or
-																				// Wifi
-																				// Network
-																				// is
-																				// enabled
-																				// during
-																				// Air
-																				// plane
-																				// mode
+				} else if (mAroUtils.isAirplaneModeOn(getApplicationContext())
+				// Check if Airplane mode is on or Wifi network is enabled
+				// during Flight mode
 						&& (mAROConnectiviyMgr.getNetworkInfo(1).getState() == NetworkInfo.State.DISCONNECTED)) {
 					showARODataCollectorErrorDialog(Dialog_Type.AIRPANCE_MODEON);
+					return;
+				} else if (mAROConnectiviyMgr.getNetworkInfo(0).getState() == NetworkInfo.State.DISCONNECTED
+						&& mAROConnectiviyMgr.getNetworkInfo(1).getState() == NetworkInfo.State.DISCONNECTED) {
+					// do not allow DC to start with both Mobile and Wifi off
+					showARODataCollectorErrorDialog(Dialog_Type.WIFI_MOBILE_BOTH_OFF);
 					return;
 				}
 				// Making sure root permission is set to ARO application before
@@ -199,8 +190,7 @@ public class AROCollectorMainActivity extends Activity {
 				showARODataCollectorErrorDialog(Dialog_Type.TRACE_FOLDERNAME);
 			}
 		});
-		handleARODataCollectorErrors(getIntent().getExtras().getInt(
-				ARODataCollector.ERRODIALOGID));
+		handleARODataCollectorErrors(getIntent().getExtras().getInt(ARODataCollector.ERRODIALOGID));
 	}
 
 	/**
@@ -226,16 +216,17 @@ public class AROCollectorMainActivity extends Activity {
 		final AROCollectorTaskManagerProcessInfo mAROTaskManagerProcessInfo = new AROCollectorTaskManagerProcessInfo();
 		mApp.setARODataCollectorStopFlag(false);
 		mApp.setDataCollectorInProgressFlag(true);
+		mApp.setRequestDataCollectorStop(false);
+		mApp.setWifiLost(false);
+		mApp.setPreviousWifiState("NONE");
 		mApp.setVideoCaptureFailed(false);
 		startDataCollector.setEnabled(false);
 		createAROTraceDirectory();
 		// Starting the ARO Data collector service before tcpdump to record
 		// >=t(0)
-		startService(new Intent(getApplicationContext(),
-				AROCollectorTraceService.class));
+		startService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
 		// Starting the tcpdump service and starts the video capture
-		startService(new Intent(getApplicationContext(),
-				AROCollectorService.class));
+		startService(new Intent(getApplicationContext(), AROCollectorService.class));
 		collectScreenVideo.setEnabled(false);
 		if (collectScreenVideo.isChecked()) {
 			mApp.setCollectVideoOption(true);
@@ -243,55 +234,44 @@ public class AROCollectorMainActivity extends Activity {
 			mApp.setCollectVideoOption(false);
 		}
 		mApp.showProgressDialog(this);
-		aroDCStartWatchTimer.schedule(new TimerTask() { // ARO Watch timer for
-														// failed start message
-														// of data collector
-														// start after 15 sec
-					@Override
-					public void run() {
-						if (!mApp.getTcpDumpStartFlag()) {
-							stopService(new Intent(getApplicationContext(),
-									AROCollectorTraceService.class));
-							stopService(new Intent(getApplicationContext(),
-									AROCollectorService.class));
-							// As we collect peripherals trace i.e wifi,GPs
-							// service
-							// before tcpdump trace so we making sure we delete
-							// all of
-							// the traces if we don't have tcpdump running
-							mAroUtils.deleteTraceFolder(new File(mApp
-									.getTcpDumpTraceFolderName()));
-							mAROFailStartHandler.sendMessage(Message.obtain(
-									mAROFailStartHandler, NAVIGATE_HOME_SCREEN));
-						}
-						// Cancel the timers
-						aroDCStartWatchTimer.cancel();
-						aroDCStartTimer.cancel();
+		// ARO Watch timer for failed start message of data collector after 15
+		// sec
+		aroDCStartWatchTimer.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				if (!mApp.getTcpDumpStartFlag()) {
+					stopService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
+					stopService(new Intent(getApplicationContext(), AROCollectorService.class));
+					// As we collect peripherals trace i.e wifi,GPs
+					// service before tcpdump trace so we making sure we delete
+					// all of the traces if we don't have tcpdump running
+					mAroUtils.deleteTraceFolder(new File(mApp.getTcpDumpTraceFolderName()));
+					mAROFailStartHandler.sendMessage(Message.obtain(mAROFailStartHandler,
+							NAVIGATE_HOME_SCREEN));
+				}
+				// Cancel the timers
+				aroDCStartWatchTimer.cancel();
+				aroDCStartTimer.cancel();
+			}
+		}, ARO_START_WATCH_TIME);
+		// Timer to check start data collector kick-off within 15 seconds
+		aroDCStartTimer.scheduleAtFixedRate(new TimerTask() {
+			@Override
+			public void run() {
+				mApp.setTcpDumpStartFlag(mAROTaskManagerProcessInfo.pstcpdump());
+				if (mApp.getTcpDumpStartFlag()) {
+					mApp.hideProgressDialog();
+					mApp.setDataCollectorInProgressFlag(false);
+					mApp.triggerAROAlertNotification();
+					mAROHomeScreenHandler.sendMessage(Message.obtain(mAROHomeScreenHandler, 0));
+					aroDCStartWatchTimer.cancel();
+					aroDCStartTimer.cancel();
+					if (DEBUG) {
+						Log.i(TAG, "Failed to start ARODataCollector in 15 sec");
 					}
-				}, ARO_START_WATCH_TIME);
-
-		aroDCStartTimer.scheduleAtFixedRate(new TimerTask() { // Timer for check
-																// start data
-																// collector
-																// start
-																// kick-off
-																// within 15
-																// seconds
-					@Override
-					public void run() {
-						mApp.setTcpDumpStartFlag(mAROTaskManagerProcessInfo
-								.pstcpdump());
-						if (mApp.getTcpDumpStartFlag()) {
-							mApp.hideProgressDialog();
-							mApp.setDataCollectorInProgressFlag(false);
-							mApp.triggerAROAlertNotification();
-							mAROHomeScreenHandler.sendMessage(Message.obtain(
-									mAROHomeScreenHandler, 0));
-							aroDCStartWatchTimer.cancel();
-							aroDCStartTimer.cancel();
-						}
-					}
-				}, ARO_START_TICK_TIME, ARO_START_TICK_TIME);
+				}
+			}
+		}, ARO_START_TICK_TIME, ARO_START_TICK_TIME);
 
 	}
 
@@ -304,8 +284,7 @@ public class AROCollectorMainActivity extends Activity {
 
 		final String mAroTraceDatapath = mApp.getTcpDumpTraceFolderName();
 		final File traceFolder = new File(mAroTraceDatapath);
-		final File traceRootFolder = new File(
-				ARODataCollector.ARO_TRACE_ROOTDIR);
+		final File traceRootFolder = new File(ARODataCollector.ARO_TRACE_ROOTDIR);
 
 		if (DEBUG)
 			Log.d(TAG, "mAroTraceDatapath=" + mAroTraceDatapath);
@@ -330,8 +309,7 @@ public class AROCollectorMainActivity extends Activity {
 	private void showARODataCollectorErrorDialog(Dialog_Type errordialogid) {
 		m_dialog = errordialogid;
 		final AROCollectorCustomDialog myDialog = new AROCollectorCustomDialog(
-				AROCollectorMainActivity.this,
-				android.R.style.Theme_Translucent, m_dialog,
+				AROCollectorMainActivity.this, android.R.style.Theme_Translucent, m_dialog,
 				new OnTraceFolderListener(), null);
 		myDialog.show();
 	}
@@ -347,8 +325,7 @@ public class AROCollectorMainActivity extends Activity {
 	private void showARODataCollectorStopErrorDialog(Dialog_Type errordialogid) {
 		m_dialog = errordialogid;
 		final AROCollectorCustomDialog myDialog = new AROCollectorCustomDialog(
-				AROCollectorMainActivity.this,
-				android.R.style.Theme_Translucent, m_dialog,
+				AROCollectorMainActivity.this, android.R.style.Theme_Translucent, m_dialog,
 				new OnErrorDialogCallBackListener(), null);
 		myDialog.show();
 	}
@@ -368,8 +345,7 @@ public class AROCollectorMainActivity extends Activity {
 			m_dialog = Dialog_Type.SDCARD_MOUNTED;
 		}
 		final AROCollectorCustomDialog myDialog = new AROCollectorCustomDialog(
-				AROCollectorMainActivity.this,
-				android.R.style.Theme_Translucent, m_dialog,
+				AROCollectorMainActivity.this, android.R.style.Theme_Translucent, m_dialog,
 				new OnTraceFolderListener(), null);
 		myDialog.show();
 	}
@@ -444,17 +420,21 @@ public class AROCollectorMainActivity extends Activity {
 			case NAVIGATE_HOME_SCREEN:
 				mApp.hideProgressDialog();
 				if (AROCollectorTraceService.getServiceObj() != null) {
-					stopService(new Intent(getApplicationContext(),
-							AROCollectorTraceService.class));
+					stopService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
 				}
 				if (AROCollectorService.getServiceObj() != null) {
-					stopService(new Intent(getApplicationContext(),
-							AROCollectorService.class));
+					stopService(new Intent(getApplicationContext(), AROCollectorService.class));
 				}
 				showARODataCollectorErrorDialog(Dialog_Type.DC_FAILED_START);
+				if (DEBUG) {
+					Log.i(TAG, "Setting Data Collector stop flag");
+				}
 				mApp.setARODataCollectorStopFlag(true);
 				collectScreenVideo.setEnabled(true);
 				startDataCollector.setEnabled(true);
+				if (DEBUG) {
+					Log.i(TAG, "Setting Data Collector stop flag");
+				}
 				break;
 			}
 		}
@@ -488,6 +468,11 @@ public class AROCollectorMainActivity extends Activity {
 			m_dialog = Dialog_Type.SDCARD_MOUNTED_MIDTRACE;
 			showSDCardMountedError(true);
 			break;
+
+		case ARODataCollector.WIFI_LOST_ERROR:
+			m_dialog = Dialog_Type.WIFI_LOST_ERROR;
+			showARODataCollectorStopErrorDialog(Dialog_Type.WIFI_LOST_ERROR);
+			break;
 		}
 		if (DEBUG) {
 			Log.i(TAG, "handleErrorDialogs errordialogid=" + errordialogid);
@@ -498,8 +483,7 @@ public class AROCollectorMainActivity extends Activity {
 	 * The Class implements the call back events from the dialogs
 	 * 
 	 */
-	private class OnTraceFolderListener implements
-			AROCollectorCustomDialog.ReadyListener {
+	private class OnTraceFolderListener implements AROCollectorCustomDialog.ReadyListener {
 
 		@Override
 		public void ready(
@@ -507,9 +491,7 @@ public class AROCollectorMainActivity extends Activity {
 				boolean success) {
 			if (success) {
 				if (DEBUG) {
-					Log.i(TAG,
-							"Device SD Card Space="
-									+ mAroUtils.checkSDCardMemoryAvailable());
+					Log.i(TAG, "Device SD Card Space=" + mAroUtils.checkSDCardMemoryAvailable());
 				}
 				// Checking if the available space of SD card is less than 5MB
 				// before start of the trace
@@ -546,8 +528,7 @@ public class AROCollectorMainActivity extends Activity {
 	 * The Class implements the listener for error dialogs
 	 * 
 	 */
-	private class OnErrorDialogCallBackListener implements
-			AROCollectorCustomDialog.ReadyListener {
+	private class OnErrorDialogCallBackListener implements AROCollectorCustomDialog.ReadyListener {
 		@Override
 		public void ready(Dialog_CallBack_Error errorcode, boolean success) {
 			switch (errorcode) {

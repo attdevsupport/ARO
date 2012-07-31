@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-
-
 package com.att.android.arodatacollector.main;
 
 import com.att.android.arodatacollector.utils.AROCollectorUtils;
@@ -119,7 +117,7 @@ public class AROCollectorTraceService extends Service {
 	 * The boolean value to enable logs depending on if production build or
 	 * debug build
 	 */
-	private static boolean mIsProduction = false;
+	private static boolean mIsProduction = true;
 
 	/**
 	 * The boolean value to enable logs depending on if production build or
@@ -322,9 +320,7 @@ public class AROCollectorTraceService extends Service {
 			startARODeviceSDCardSpaceMidTrace();
 			startAroScreenRotationMonitor();
 		} catch (FileNotFoundException e) {
-			Log.e(TAG,
-					"exception in initAROTraceFile: Failed to start ARO-Data Collector Trace",
-					e);
+			Log.e(TAG, "exception in initAROTraceFile: Failed to start ARO-Data Collector Trace", e);
 		}
 
 	}
@@ -343,8 +339,7 @@ public class AROCollectorTraceService extends Service {
 		try {
 			ipAddress = mAroUtils.getLocalIpAddress();
 			if (ipAddress != null) {
-				writeTraceLineToAROTraceFile(mDeviceInfoWriter, ipAddress,
-						false);
+				writeTraceLineToAROTraceFile(mDeviceInfoWriter, ipAddress, false);
 			}
 		} catch (SocketException e) {
 			Log.e(TAG, "exception in getLocalIpAddress", e);
@@ -412,50 +407,33 @@ public class AROCollectorTraceService extends Service {
 		if (DEBUG) {
 			Log.d(TAG, "mAroTraceDatapath=" + mAroTraceDatapath);
 		}
-		mWifiTraceOutputFile = new FileOutputStream(mAroTraceDatapath
-				+ outWifiFileName);
-		mWifiTracewriter = new BufferedWriter(new OutputStreamWriter(
-				mWifiTraceOutputFile));
-		mRadioTraceOutputFile = new FileOutputStream(mAroTraceDatapath
-				+ outRadioFileName);
-		mRadioTracewriter = new BufferedWriter(new OutputStreamWriter(
-				mRadioTraceOutputFile));
-		mCameraTraceOutputFile = new FileOutputStream(mAroTraceDatapath
-				+ outCameraFileName);
-		mCameraTracewriter = new BufferedWriter(new OutputStreamWriter(
-				mCameraTraceOutputFile));
-		mBatteryTraceOutputFile = new FileOutputStream(mAroTraceDatapath
-				+ outBatteryFileName);
-		mBatteryTracewriter = new BufferedWriter(new OutputStreamWriter(
-				mBatteryTraceOutputFile));
-		mGPSTraceOutputFile = new FileOutputStream(mAroTraceDatapath
-				+ outGPSFileName);
-		mGPSTracewriter = new BufferedWriter(new OutputStreamWriter(
-				mGPSTraceOutputFile));
-		mScreenOutputFile = new FileOutputStream(mAroTraceDatapath
-				+ outScreenFileName);
+		mWifiTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outWifiFileName);
+		mWifiTracewriter = new BufferedWriter(new OutputStreamWriter(mWifiTraceOutputFile));
+		mRadioTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outRadioFileName);
+		mRadioTracewriter = new BufferedWriter(new OutputStreamWriter(mRadioTraceOutputFile));
+		mCameraTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outCameraFileName);
+		mCameraTracewriter = new BufferedWriter(new OutputStreamWriter(mCameraTraceOutputFile));
+		mBatteryTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outBatteryFileName);
+		mBatteryTracewriter = new BufferedWriter(new OutputStreamWriter(mBatteryTraceOutputFile));
+		mGPSTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outGPSFileName);
+		mGPSTracewriter = new BufferedWriter(new OutputStreamWriter(mGPSTraceOutputFile));
+		mScreenOutputFile = new FileOutputStream(mAroTraceDatapath + outScreenFileName);
 		mScreenRotationOutputFile = new FileOutputStream(mAroTraceDatapath
 				+ outScreenRotationFileName);
-		mScreenTracewriter = new BufferedWriter(new OutputStreamWriter(
-				mScreenOutputFile));
+		mScreenTracewriter = new BufferedWriter(new OutputStreamWriter(mScreenOutputFile));
 		mScreenRotationTracewriter = new BufferedWriter(new OutputStreamWriter(
 				mScreenRotationOutputFile));
 		mActiveProcessOutputFile = new FileOutputStream(mAroTraceDatapath
 				+ outActiveProcessFileName);
 		mActiveProcessTracewriter = new BufferedWriter(new OutputStreamWriter(
 				mActiveProcessOutputFile));
-		mBluetoohTraceOutputFile = new FileOutputStream(mAroTraceDatapath
-				+ outBluetoothFileName);
-		mBluetoothTracewriter = new BufferedWriter(new OutputStreamWriter(
-				mBluetoohTraceOutputFile));
-		mDeviceInfoOutputFile = new FileOutputStream(mAroTraceDatapath
-				+ outDeviceInfoFileName);
+		mBluetoohTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outBluetoothFileName);
+		mBluetoothTracewriter = new BufferedWriter(new OutputStreamWriter(mBluetoohTraceOutputFile));
+		mDeviceInfoOutputFile = new FileOutputStream(mAroTraceDatapath + outDeviceInfoFileName);
 		mDeviceDetailsOutputFile = new FileOutputStream(mAroTraceDatapath
 				+ outDeviceDetailsFileName);
-		mDeviceInfoWriter = new BufferedWriter(new OutputStreamWriter(
-				mDeviceInfoOutputFile));
-		mDeviceDetailsWriter = new BufferedWriter(new OutputStreamWriter(
-				mDeviceDetailsOutputFile));
+		mDeviceInfoWriter = new BufferedWriter(new OutputStreamWriter(mDeviceInfoOutputFile));
+		mDeviceDetailsWriter = new BufferedWriter(new OutputStreamWriter(mDeviceDetailsOutputFile));
 
 	}
 
@@ -517,14 +495,13 @@ public class AROCollectorTraceService extends Service {
 	 * outputfilewriter : Name of Trace File writer to which trace has to be
 	 * written content : Trace message to be written
 	 */
-	private void writeTraceLineToAROTraceFile(BufferedWriter outputfilewriter,
-			String content, boolean timestamp) {
+	private void writeTraceLineToAROTraceFile(BufferedWriter outputfilewriter, String content,
+			boolean timestamp) {
 		try {
 			final String eol = System.getProperty("line.separator");
 			if (timestamp) {
-				outputfilewriter
-						.write(mAroUtils.getDataCollectorEventTimeStamp() + " "
-								+ content + eol);
+				outputfilewriter.write(mAroUtils.getDataCollectorEventTimeStamp() + " " + content
+						+ eol);
 			} else {
 				outputfilewriter.write(content + eol);
 			}
@@ -550,8 +527,9 @@ public class AROCollectorTraceService extends Service {
 				if (mAroUtils.checkSDCardMemoryAvailable() < AROSDCARD_MIN_SPACEKBYTES) {
 					aroSDCardErrorUIUpdate();
 					if (DEBUG) {
-						Log.i(TAG, "startARODeviceSDCardSpaceMidTrace="
-								+ mAroUtils.checkSDCardMemoryAvailable());
+						Log.i(TAG,
+								"startARODeviceSDCardSpaceMidTrace="
+										+ mAroUtils.checkSDCardMemoryAvailable());
 					}
 					return;
 				}
@@ -573,36 +551,31 @@ public class AROCollectorTraceService extends Service {
 	 * Starts the camera trace collection
 	 */
 	private void startCameraTrace() {
-		checkCameraLaunch.scheduleAtFixedRate(
-				new TimerTask() {
-					public void run() {
-						final String recentTaskName = getRecentTaskInfo()
-								.toLowerCase();
-						if (recentTaskName.contains("camera")
-								|| checkCurrentProcessStateForGround("camera")) {
-							mCameraOn = true;
-						} else
-							mCameraOn = false;
-						if (checkCurrentProcessState("camera"))
-							mCameraOn = false;
-						if (mCameraOn && !mPrevCameraOn) {
-							if (DEBUG)
-								Log.i(TAG, "Camera Turned on");
-							writeTraceLineToAROTraceFile(mCameraTracewriter,
-									"ON", true);
-							mCameraOn = true;
-							mPrevCameraOn = true;
-						} else if (!mCameraOn && mPrevCameraOn) {
-							if (DEBUG)
-								Log.i(TAG, "Camera Turned Off");
-							writeTraceLineToAROTraceFile(mCameraTracewriter,
-									"OFF", true);
-							mCameraOn = false;
-							mPrevCameraOn = false;
-						}
-					}
-				}, HALF_SECOND_TARCE_TIMER_REPATE_TIME,
-				HALF_SECOND_TARCE_TIMER_REPATE_TIME);
+		checkCameraLaunch.scheduleAtFixedRate(new TimerTask() {
+			public void run() {
+				final String recentTaskName = getRecentTaskInfo().toLowerCase();
+				if (recentTaskName.contains("camera")
+						|| checkCurrentProcessStateForGround("camera")) {
+					mCameraOn = true;
+				} else
+					mCameraOn = false;
+				if (checkCurrentProcessState("camera"))
+					mCameraOn = false;
+				if (mCameraOn && !mPrevCameraOn) {
+					if (DEBUG)
+						Log.i(TAG, "Camera Turned on");
+					writeTraceLineToAROTraceFile(mCameraTracewriter, "ON", true);
+					mCameraOn = true;
+					mPrevCameraOn = true;
+				} else if (!mCameraOn && mPrevCameraOn) {
+					if (DEBUG)
+						Log.i(TAG, "Camera Turned Off");
+					writeTraceLineToAROTraceFile(mCameraTracewriter, "OFF", true);
+					mCameraOn = false;
+					mPrevCameraOn = false;
+				}
+			}
+		}, HALF_SECOND_TARCE_TIMER_REPATE_TIME, HALF_SECOND_TARCE_TIMER_REPATE_TIME);
 	}
 
 	/**
@@ -632,14 +605,12 @@ public class AROCollectorTraceService extends Service {
 			}
 			getScreenBrigthnessTimeout();
 			if (mScreenOn) {
-				writeTraceLineToAROTraceFile(mScreenTracewriter,
-						AroTraceFileConstants.ON + " " + mScreenTimeout + " "
-								+ mScreencurBrightness, true);
+				writeTraceLineToAROTraceFile(mScreenTracewriter, AroTraceFileConstants.ON + " "
+						+ mScreenTimeout + " " + mScreencurBrightness, true);
 				mPrevScreencurBrightness = mScreencurBrightness;
 				mPrevScreenTimeout = mScreenTimeout;
 			} else {
-				writeTraceLineToAROTraceFile(mScreenTracewriter,
-						AroTraceFileConstants.OFF, true);
+				writeTraceLineToAROTraceFile(mScreenTracewriter, AroTraceFileConstants.OFF, true);
 				mPrevScreencurBrightness = mScreencurBrightness;
 				mPrevScreenTimeout = mScreenTimeout;
 			}
@@ -664,8 +635,7 @@ public class AROCollectorTraceService extends Service {
 			if (mScreencurBrightness >= 255)
 				mScreencurBrightness = 240;
 			// Brightness Min value 15 and Max 255
-			mScreencurBrightness = Math
-					.round((mScreencurBrightness / 240) * 100);
+			mScreencurBrightness = Math.round((mScreencurBrightness / 240) * 100);
 			mScreenTimeout = Settings.System.getInt(getContentResolver(),
 					Settings.System.SCREEN_OFF_TIMEOUT);
 			mScreenTimeout = mScreenTimeout / 1000; // In Seconds
@@ -682,6 +652,9 @@ public class AROCollectorTraceService extends Service {
 	private BroadcastReceiver mAROBearerChangeReceiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
+			if (DEBUG) {
+				Log.d(TAG, "entered mAROBearerChangeReceiver");
+			}
 			final String action = intent.getAction();
 			if (action.equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
 				final NetworkInfo mAROActiveNetworkInfo = (NetworkInfo) intent
@@ -694,28 +667,48 @@ public class AROCollectorTraceService extends Service {
 					}
 					// !mAROActiveNetworkInfo.isConnected() As this is causing
 					// issue to abnormal termination of trace mid way
-					if (mAROActiveNetworkInfo.getType() != mApp
-							.getCurrentNetworkType()
-							&& mAROActiveNetworkInfo.getType() <= 1
-							|| !activeDataConnection) { // To Do: The Bearer
-														// change has been only
-														// done for Wifi/Mobile
-														// network.
+					if (mAROActiveNetworkInfo.getType() != mApp.getCurrentNetworkType()
+							&& mAROActiveNetworkInfo.getType() <= 1 || !activeDataConnection) { // To
+																								// Do:
+																								// The
+																								// Bearer
+																								// change
+																								// has
+																								// been
+																								// only
+																								// done
+																								// for
+																								// Wifi/Mobile
+																								// network.
 						mApp.setDataCollectorBearerChange(true);
-						AROCollectorService.getServiceObj()
-								.requestDataCollectorStop();
+						// request stop only if it hasn't been requested already
+						if (!mApp.isRequestDataCollectorStop()) {
+							mApp.setRequestDataCollectorStop(true);
+							if (DEBUG) {
+								Log.d(TAG, "requesting tcpdump stop from Bearer");
+							}
+							AROCollectorService.getServiceObj().requestDataCollectorStop();
+						} else {
+							if (DEBUG) {
+								Log.d(TAG,
+										"stop tcpdump already requested. don't call and continue...");
+							}
+						}
 						if (DEBUG) {
 							Log.i(TAG,
 									"Bearer Change TRUE" + "Current="
-											+ mAROActiveNetworkInfo.getType()
-											+ "Previous="
+											+ mAROActiveNetworkInfo.getType() + "Previous="
 											+ mApp.getCurrentNetworkType());
-							Log.i(TAG, "Network Connected" + "isConnected="
-									+ mAROActiveNetworkInfo.isConnected());
+							Log.i(TAG,
+									"Network Connected" + "isConnected="
+											+ mAROActiveNetworkInfo.isConnected());
 						}
 					}
 				} else if (isFirstBearerChange) {
 					mApp.setCurrentNetworkType(mAROActiveNetworkInfo);
+					if (DEBUG) {
+						Log.d(TAG, "isFirstBearerchange-true");
+					}
 				}
 				isFirstBearerChange = false;
 			}
@@ -732,16 +725,27 @@ public class AROCollectorTraceService extends Service {
 		public void onReceive(Context context, Intent intent) {
 			final String action = intent.getAction();
 			if (action.equals(WifiManager.WIFI_STATE_CHANGED_ACTION)) {
+				if (DEBUG) {
+					Log.d(TAG, "entered WIFI_STATE_CHANGED_ACTION");
+				}
 				if (mWifiManager.getWifiState() == WifiManager.WIFI_STATE_ENABLED) {
+					if (DEBUG) {
+						Log.d(TAG, "entered WIFI_STATE_CHANGED_ACTION--DISCONNECTED");
+					}
 					writeTraceLineToAROTraceFile(mWifiTracewriter,
 							AroTraceFileConstants.DISCONNECTED_NETWORK, true);
+
 				} else if (mWifiManager.getWifiState() == WifiManager.WIFI_STATE_DISABLED) {
-					writeTraceLineToAROTraceFile(mWifiTracewriter,
-							AroTraceFileConstants.OFF, true);
+					if (DEBUG) {
+						Log.d(TAG, "entered WIFI_STATE_CHANGED_ACTION--OFF");
+					}
+					writeTraceLineToAROTraceFile(mWifiTracewriter, AroTraceFileConstants.OFF, true);
+
+					wifiMessageLost();
+
 				}
 			}
-			if (WifiManager.NETWORK_STATE_CHANGED_ACTION.equals(intent
-					.getAction())) {
+			if (WifiManager.NETWORK_STATE_CHANGED_ACTION.equals(intent.getAction())) {
 
 				final NetworkInfo info = (NetworkInfo) intent
 						.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
@@ -756,9 +760,12 @@ public class AROCollectorTraceService extends Service {
 				case CONNECTED:
 					collectWifiNetworkData();
 					writeTraceLineToAROTraceFile(mWifiTracewriter,
-							AroTraceFileConstants.CONNECTED_NETWORK + " "
-									+ mWifiMacAddress + " " + mWifiRssi + " "
-									+ mWifiNetworkSSID, true);
+							AroTraceFileConstants.CONNECTED_NETWORK + " " + mWifiMacAddress + " "
+									+ mWifiRssi + " " + mWifiNetworkSSID, true);
+
+					// set previousWifiState flag-used for Wifi Lost logic
+					mApp.setPreviousWifiState(state.name());
+
 					break;
 				case DISCONNECTING:
 					writeTraceLineToAROTraceFile(mWifiTracewriter,
@@ -767,6 +774,9 @@ public class AROCollectorTraceService extends Service {
 				case DISCONNECTED:
 					writeTraceLineToAROTraceFile(mWifiTracewriter,
 							AroTraceFileConstants.DISCONNECTED_NETWORK, true);
+
+					wifiMessageLost();
+
 					break;
 				case SUSPENDED:
 					writeTraceLineToAROTraceFile(mWifiTracewriter,
@@ -780,6 +790,35 @@ public class AROCollectorTraceService extends Service {
 			}
 
 		}//
+
+		private void wifiMessageLost() {
+			// Wifi Lost msg logic
+			// if previous wifi state was connected, then stop Collector and
+			// display Wifi Lost msg
+			if (mApp.getPreviousWifiState().equals(AroTraceFileConstants.CONNECTED_NETWORK)
+					|| mApp.getPreviousWifiState().equals(
+							AroTraceFileConstants.DISCONNECTING_NETWORK)) {
+				if (DEBUG) {
+					Log.d(TAG, "settig wifiLost to true");
+				}
+				mApp.setWifiLost(true);
+				// if haven't request tcpdump to stop (network bearer), then
+				// request
+				if (!mApp.isRequestDataCollectorStop()) {
+					if (DEBUG) {
+						Log.d(TAG, "Wifi Lost, requesting tcpdump stop from wifi receiver");
+					}
+					mApp.setRequestDataCollectorStop(true);
+					AROCollectorService.getServiceObj().requestDataCollectorStop();
+
+				} else {
+					if (DEBUG) {
+						Log.d(TAG, "in wifi receiver-someone already requested tcpdump stop");
+					}
+				}
+			}
+
+		}
 
 	};
 
@@ -800,8 +839,8 @@ public class AROCollectorTraceService extends Service {
 					break;
 
 				case BluetoothAdapter.STATE_OFF:
-					writeTraceLineToAROTraceFile(mBluetoothTracewriter,
-							AroTraceFileConstants.OFF, true);
+					writeTraceLineToAROTraceFile(mBluetoothTracewriter, AroTraceFileConstants.OFF,
+							true);
 					break;
 				}
 			}
@@ -836,49 +875,45 @@ public class AROCollectorTraceService extends Service {
 				String mRadioSignalStrength = String.valueOf(0);
 				TelephonyManager mTelphoneManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 				if (signalStrength.isGsm() || mTelphoneManager.getNetworkType() == 13) {
-					
-				    int mLteSignalStrength = 0;
+
+					int mLteSignalStrength = 0;
 					int mLteRsrp = 0;
-				    int mLteRsrq = 0;
-				    int mLteRssnr = 0;
-				    int mLteCqi = 0;
+					int mLteRsrq = 0;
+					int mLteRssnr = 0;
+					int mLteCqi = 0;
 					if (mTelphoneManager.getNetworkType() == 13) {
 						try {
-							mLteSignalStrength = Integer.parseInt(mAroUtils.getSpecifiedFieldValues(
-									SignalStrength.class, signalStrength, "mLteSignalStrength"));
+							mLteSignalStrength = Integer.parseInt(mAroUtils
+									.getSpecifiedFieldValues(SignalStrength.class, signalStrength,
+											"mLteSignalStrength"));
 						} catch (NumberFormatException nmb) {
-							Log.e(TAG,
-									"mLteSignalStrength not found in LTE Signal Strength");
+							Log.e(TAG, "mLteSignalStrength not found in LTE Signal Strength");
 						}
 
 						try {
 							mLteRsrp = Integer.parseInt(mAroUtils.getSpecifiedFieldValues(
 									SignalStrength.class, signalStrength, "mLteRsrp"));
 						} catch (NumberFormatException nmb) {
-							Log.e(TAG,
-									"mLteRsrp not found in LTE Signal Strength");
+							Log.e(TAG, "mLteRsrp not found in LTE Signal Strength");
 						}
 
 						try {
 							mLteRsrq = Integer.parseInt(mAroUtils.getSpecifiedFieldValues(
 									SignalStrength.class, signalStrength, "mLteRsrq"));
 						} catch (NumberFormatException nmb) {
-							Log.e(TAG,
-									"mLteRsrq not found in LTE Signal Strength");
+							Log.e(TAG, "mLteRsrq not found in LTE Signal Strength");
 						}
 						try {
 							mLteRssnr = Integer.parseInt(mAroUtils.getSpecifiedFieldValues(
 									SignalStrength.class, signalStrength, "mLteRssnr"));
 						} catch (NumberFormatException nmb) {
-							Log.e(TAG,
-									"mLteRssnr not found in LTE Signal Strength");
+							Log.e(TAG, "mLteRssnr not found in LTE Signal Strength");
 						}
 						try {
 							mLteCqi = Integer.parseInt(mAroUtils.getSpecifiedFieldValues(
 									SignalStrength.class, signalStrength, "mLteCqi"));
 						} catch (NumberFormatException nmb) {
-							Log.e(TAG,
-									"mLteCqi not found in LTE Signal Strength");
+							Log.e(TAG, "mLteCqi not found in LTE Signal Strength");
 						}
 
 					}
@@ -886,19 +921,18 @@ public class AROCollectorTraceService extends Service {
 					// Check to see if LTE parameters are set
 					if ((mLteSignalStrength == 0 && mLteRsrp == 0 && mLteRsrq == 0 && mLteCqi == 0)
 							|| (mLteSignalStrength == -1 && mLteRsrp == -1 && mLteRsrq == -1 && mLteCqi == -1)) {
-						
-						// No LTE parameters set.  Use GSM signal strength
+
+						// No LTE parameters set. Use GSM signal strength
 						int gsmSignalStrength = signalStrength.getGsmSignalStrength();
 						if (signalStrength.isGsm() && gsmSignalStrength != 99) {
-							mRadioSignalStrength = String.valueOf(-113
-									+ (gsmSignalStrength * 2));
+							mRadioSignalStrength = String.valueOf(-113 + (gsmSignalStrength * 2));
 						}
 					} else {
-						
-						// If hidden LTE parameters were defined and not set to default values, then used them
-						mRadioSignalStrength = mLteSignalStrength + " "
-								+ mLteRsrp + " " + mLteRsrq + " " + mLteRssnr
-								+ " " + mLteCqi;
+
+						// If hidden LTE parameters were defined and not set to
+						// default values, then used them
+						mRadioSignalStrength = mLteSignalStrength + " " + mLteRsrp + " " + mLteRsrq
+								+ " " + mLteRssnr + " " + mLteCqi;
 					}
 				}
 				/**
@@ -920,10 +954,9 @@ public class AROCollectorTraceService extends Service {
 				}
 
 				if (DEBUG) {
-					Log.i(TAG, "signal strength changed to "+ mRadioSignalStrength);
+					Log.i(TAG, "signal strength changed to " + mRadioSignalStrength);
 				}
-				writeTraceLineToAROTraceFile(mRadioTracewriter,
-						mRadioSignalStrength, true);
+				writeTraceLineToAROTraceFile(mRadioTracewriter, mRadioSignalStrength, true);
 			}
 
 		};
@@ -962,11 +995,9 @@ public class AROCollectorTraceService extends Service {
 		// first, make sure at least one provider actually exists
 		final LocationManager lm = (LocationManager) getSystemService(LOCATION_SERVICE);
 		final boolean gpsExists = (lm.getProvider(LocationManager.GPS_PROVIDER) != null);
-		final boolean networkExists = (lm
-				.getProvider(LocationManager.NETWORK_PROVIDER) != null);
+		final boolean networkExists = (lm.getProvider(LocationManager.NETWORK_PROVIDER) != null);
 		if (gpsExists || networkExists) {
-			enabled = ((!gpsExists || lm
-					.isProviderEnabled(LocationManager.GPS_PROVIDER)) && (!networkExists || lm
+			enabled = ((!gpsExists || lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) && (!networkExists || lm
 					.isProviderEnabled(LocationManager.NETWORK_PROVIDER)));
 		}
 		return enabled;
@@ -979,31 +1010,27 @@ public class AROCollectorTraceService extends Service {
 		mGPSStatesManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 		mGPSStatesListner = new GPSStatesListener();
 		mGPSStatesManager.addGpsStatusListener(mGPSStatesListner);
-		checkLocationService.scheduleAtFixedRate(
-				new TimerTask() {
-					public void run() {
-						// Current GPS enabled state
-						final boolean currentGpsEnabledState = isLocationServiceEnabled();
-						if (currentGpsEnabledState != prevGpsEnabledState) {
-							if (currentGpsEnabledState) {
-								if (DEBUG) {
-									Log.d(TAG, "gps enabled: ");
-								}
-								if (!mGPSActive)
-									writeTraceLineToAROTraceFile(
-											mGPSTracewriter, "STANDBY", true);
-							} else {
-								if (DEBUG) {
-									Log.d(TAG, "gps Disabled: ");
-								}
-								writeTraceLineToAROTraceFile(mGPSTracewriter,
-										"OFF", true);
-							}
+		checkLocationService.scheduleAtFixedRate(new TimerTask() {
+			public void run() {
+				// Current GPS enabled state
+				final boolean currentGpsEnabledState = isLocationServiceEnabled();
+				if (currentGpsEnabledState != prevGpsEnabledState) {
+					if (currentGpsEnabledState) {
+						if (DEBUG) {
+							Log.d(TAG, "gps enabled: ");
 						}
-						prevGpsEnabledState = currentGpsEnabledState;
+						if (!mGPSActive)
+							writeTraceLineToAROTraceFile(mGPSTracewriter, "STANDBY", true);
+					} else {
+						if (DEBUG) {
+							Log.d(TAG, "gps Disabled: ");
+						}
+						writeTraceLineToAROTraceFile(mGPSTracewriter, "OFF", true);
 					}
-				}, HALF_SECOND_TARCE_TIMER_REPATE_TIME,
-				HALF_SECOND_TARCE_TIMER_REPATE_TIME);
+				}
+				prevGpsEnabledState = currentGpsEnabledState;
+			}
+		}, HALF_SECOND_TARCE_TIMER_REPATE_TIME, HALF_SECOND_TARCE_TIMER_REPATE_TIME);
 	}
 
 	/**
@@ -1021,17 +1048,15 @@ public class AROCollectorTraceService extends Service {
 	private void startARORadioTraceMonitor() {
 		mTelphoneManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 		setARORadioSignalListener();
-		mTelphoneManager.listen(mPhoneStateListener,
-				PhoneStateListener.LISTEN_SIGNAL_STRENGTHS
-						| PhoneStateListener.LISTEN_CALL_STATE);
+		mTelphoneManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS
+				| PhoneStateListener.LISTEN_CALL_STATE);
 	}
 
 	/**
 	 * Stops the device radio trace collection
 	 */
 	private void stopARORadioTraceMonitor() {
-		mTelphoneManager.listen(mPhoneStateListener,
-				PhoneStateListener.LISTEN_NONE);
+		mTelphoneManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
 		mTelphoneManager = null;
 		mPhoneStateListener = null;
 
@@ -1044,23 +1069,19 @@ public class AROCollectorTraceService extends Service {
 		mAROIntentFilter = new IntentFilter();
 		mAROIntentFilter.addAction(Intent.ACTION_SCREEN_OFF);
 		mAROIntentFilter.addAction(Intent.ACTION_SCREEN_ON);
-		checkScreenBrightness.scheduleAtFixedRate(
-				new TimerTask() {
-					public void run() {
-						getScreenBrigthnessTimeout();
-						if ((mScreencurBrightness != mPrevScreencurBrightness)
-								|| (mScreenTimeout != mPrevScreenTimeout)) {
-							writeTraceLineToAROTraceFile(mScreenTracewriter,
-									AroTraceFileConstants.ON + " "
-											+ mScreenTimeout + " "
-											+ mScreencurBrightness, true);
-							mPrevScreencurBrightness = mScreencurBrightness;
-							mPrevScreenTimeout = mScreenTimeout;
+		checkScreenBrightness.scheduleAtFixedRate(new TimerTask() {
+			public void run() {
+				getScreenBrigthnessTimeout();
+				if ((mScreencurBrightness != mPrevScreencurBrightness)
+						|| (mScreenTimeout != mPrevScreenTimeout)) {
+					writeTraceLineToAROTraceFile(mScreenTracewriter, AroTraceFileConstants.ON + " "
+							+ mScreenTimeout + " " + mScreencurBrightness, true);
+					mPrevScreencurBrightness = mScreencurBrightness;
+					mPrevScreenTimeout = mScreenTimeout;
 
-						}
-					}
-				}, HALF_SECOND_TARCE_TIMER_REPATE_TIME,
-				HALF_SECOND_TARCE_TIMER_REPATE_TIME);
+				}
+			}
+		}, HALF_SECOND_TARCE_TIMER_REPATE_TIME, HALF_SECOND_TARCE_TIMER_REPATE_TIME);
 		registerReceiver(mAROScreenTraceReceiver, mAROIntentFilter);
 	}
 
@@ -1080,8 +1101,7 @@ public class AROCollectorTraceService extends Service {
 	private void startAROBluetoothTraceMonitor() {
 		switch (BluetoothAdapter.getDefaultAdapter().getState()) {
 		case BluetoothAdapter.STATE_ON:
-			if (BluetoothAdapter.getDefaultAdapter().getBondedDevices()
-					.isEmpty()) {
+			if (BluetoothAdapter.getDefaultAdapter().getBondedDevices().isEmpty()) {
 				writeTraceLineToAROTraceFile(mBluetoothTracewriter,
 						AroTraceFileConstants.DISCONNCTED, true);
 			} else {
@@ -1091,18 +1111,14 @@ public class AROCollectorTraceService extends Service {
 			break;
 
 		case BluetoothAdapter.STATE_OFF:
-			writeTraceLineToAROTraceFile(mBluetoothTracewriter,
-					AroTraceFileConstants.OFF, true);
+			writeTraceLineToAROTraceFile(mBluetoothTracewriter, AroTraceFileConstants.OFF, true);
 			break;
 		}
 
 		mAROBluetoothIntentFilter = new IntentFilter();
-		mAROBluetoothIntentFilter
-				.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
-		mAROBluetoothIntentFilter
-				.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
-		mAROBluetoothIntentFilter
-				.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+		mAROBluetoothIntentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+		mAROBluetoothIntentFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+		mAROBluetoothIntentFilter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
 		mAROBluetoothIntentFilter.addAction(BluetoothDevice.ACTION_FOUND);
 		registerReceiver(mAROBluetoothTraceReceiver, mAROBluetoothIntentFilter);
 
@@ -1179,13 +1195,10 @@ public class AROCollectorTraceService extends Service {
 		mConnectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 		mAROWifiIntentFilter = new IntentFilter();
 		mAROWifiIntentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
-		mAROWifiIntentFilter
-				.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
-		mAROWifiIntentFilter
-				.addAction(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION);
+		mAROWifiIntentFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
+		mAROWifiIntentFilter.addAction(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION);
 		mAROWifiIntentFilter.addAction(WifiManager.RSSI_CHANGED_ACTION);
-		mAROWifiIntentFilter
-				.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+		mAROWifiIntentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
 		registerReceiver(mAROWifiTraceReceiver, mAROWifiIntentFilter);
 
 	}
@@ -1208,20 +1221,14 @@ public class AROCollectorTraceService extends Service {
 		/** Package name of recent launched application */
 		String mLastLaucnhedProcess = " ";
 		final ActivityManager mActivityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-		final List<?> l = mActivityManager.getRecentTasks(5,
-				ActivityManager.RECENT_WITH_EXCLUDED);
+		final List<?> l = mActivityManager.getRecentTasks(5, ActivityManager.RECENT_WITH_EXCLUDED);
 		final RecentTaskInfo rti = (RecentTaskInfo) l.get(0);
-		if (!mLastLaucnhedProcess.equalsIgnoreCase(rti.baseIntent
-				.getComponent().getPackageName())
-				&& !rti.baseIntent
-						.getComponent()
-						.getPackageName()
-						.equalsIgnoreCase(
-								"com.att.android.arodatacollector.main")) {
+		if (!mLastLaucnhedProcess.equalsIgnoreCase(rti.baseIntent.getComponent().getPackageName())
+				&& !rti.baseIntent.getComponent().getPackageName()
+						.equalsIgnoreCase("com.att.android.arodatacollector.main")) {
 			if (DEBUG)
-				Log.i(TAG, "New Task="+ rti.baseIntent.getComponent().getPackageName());
-			mLastLaucnhedProcess = rti.baseIntent.getComponent()
-					.getPackageName();
+				Log.i(TAG, "New Task=" + rti.baseIntent.getComponent().getPackageName());
+			mLastLaucnhedProcess = rti.baseIntent.getComponent().getPackageName();
 			return mLastLaucnhedProcess;
 		}
 		mLastLaucnhedProcess = rti.baseIntent.getComponent().getPackageName();
@@ -1239,8 +1246,8 @@ public class AROCollectorTraceService extends Service {
 		final ActivityManager mActivityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
 		mActiveProcessprocess = mActivityManager.getRunningAppProcesses();
 		mActiveProcessStates = new String[mActiveProcessprocess.size()];
-		for (final Iterator<RunningAppProcessInfo> iterator = mActiveProcessprocess
-				.iterator(); iterator.hasNext();) {
+		for (final Iterator<RunningAppProcessInfo> iterator = mActiveProcessprocess.iterator(); iterator
+				.hasNext();) {
 			final RunningAppProcessInfo runningAppProcessInfo = (RunningAppProcessInfo) iterator
 					.next();
 			final int pImportance = runningAppProcessInfo.importance;
@@ -1248,18 +1255,16 @@ public class AROCollectorTraceService extends Service {
 			switch (pImportance) {
 
 			case RunningAppProcessInfo.IMPORTANCE_BACKGROUND:
-				mActiveProcessStates[Index] = "Name:"
-						+ runningAppProcessInfo.processName + " State:"
-						+ AroTraceFileConstants.IMPORTANCE_BACKGROUND;
+				mActiveProcessStates[Index] = "Name:" + runningAppProcessInfo.processName
+						+ " State:" + AroTraceFileConstants.IMPORTANCE_BACKGROUND;
 				writeTraceLineToAROTraceFile(mActiveProcessTracewriter,
 						mActiveProcessStates[Index], true);
 				Index++;
 				break;
 
 			case RunningAppProcessInfo.IMPORTANCE_FOREGROUND:
-				mActiveProcessStates[Index] = "Name:"
-						+ runningAppProcessInfo.processName + " State:"
-						+ AroTraceFileConstants.IMPORTANCE_FOREGROUND;
+				mActiveProcessStates[Index] = "Name:" + runningAppProcessInfo.processName
+						+ " State:" + AroTraceFileConstants.IMPORTANCE_FOREGROUND;
 				writeTraceLineToAROTraceFile(mActiveProcessTracewriter,
 						mActiveProcessStates[Index], true);
 				Index++;
@@ -1279,12 +1284,11 @@ public class AROCollectorTraceService extends Service {
 	private boolean checkCurrentProcessState(String processname) {
 		final ActivityManager mActivityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
 		mActiveProcessprocess = mActivityManager.getRunningAppProcesses();
-		for (final Iterator<RunningAppProcessInfo> iterator = mActiveProcessprocess
-				.iterator(); iterator.hasNext();) {
+		for (final Iterator<RunningAppProcessInfo> iterator = mActiveProcessprocess.iterator(); iterator
+				.hasNext();) {
 			final RunningAppProcessInfo runningAppProcessInfo = (RunningAppProcessInfo) iterator
 					.next();
-			final String pSname = runningAppProcessInfo.processName
-					.toLowerCase();
+			final String pSname = runningAppProcessInfo.processName.toLowerCase();
 			final int pImportance = runningAppProcessInfo.importance;
 			if (pSname.contains(processname.toLowerCase()) && !pSname.contains(":")) {
 				switch (pImportance) {
@@ -1307,12 +1311,11 @@ public class AROCollectorTraceService extends Service {
 	private boolean checkCurrentProcessStateForGround(String processname) {
 		final ActivityManager mActivityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
 		mActiveProcessprocess = mActivityManager.getRunningAppProcesses();
-		for (final Iterator<RunningAppProcessInfo> iterator = mActiveProcessprocess
-				.iterator(); iterator.hasNext();) {
+		for (final Iterator<RunningAppProcessInfo> iterator = mActiveProcessprocess.iterator(); iterator
+				.hasNext();) {
 			final RunningAppProcessInfo runningAppProcessInfo = (RunningAppProcessInfo) iterator
 					.next();
-			final String pSname = runningAppProcessInfo.processName
-					.toLowerCase();
+			final String pSname = runningAppProcessInfo.processName.toLowerCase();
 			final int pImportance = runningAppProcessInfo.importance;
 			if (pSname.contains(processname.toLowerCase())) {
 				switch (pImportance) {
@@ -1371,8 +1374,8 @@ public class AROCollectorTraceService extends Service {
 			Log.d(TAG, "received battery temp: " + mBatteryTemp / 10 + "C");
 			Log.d(TAG, "received power source " + mPowerSource);
 		}
-		writeTraceLineToAROTraceFile(mBatteryTracewriter, mBatteryLevel + " "
-				+ mBatteryTemp / 10 + " " + mPowerSource, true);
+		writeTraceLineToAROTraceFile(mBatteryTracewriter, mBatteryLevel + " " + mBatteryTemp / 10
+				+ " " + mPowerSource, true);
 	}
 
 	/**
@@ -1389,8 +1392,7 @@ public class AROCollectorTraceService extends Service {
 			};
 		}
 		if (mBatteryLevelReceiver != null) {
-			registerReceiver(mBatteryLevelReceiver, new IntentFilter(
-					Intent.ACTION_BATTERY_CHANGED));
+			registerReceiver(mBatteryLevelReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
 		}
 	}
 
@@ -1416,18 +1418,14 @@ public class AROCollectorTraceService extends Service {
 
 				@Override
 				public void onReceive(Context context, Intent intent) {
-					if (intent.getAction().equals(
-							Intent.ACTION_CONFIGURATION_CHANGED)) {
+					if (intent.getAction().equals(Intent.ACTION_CONFIGURATION_CHANGED)) {
 
-						Configuration newConfig = getResources()
-								.getConfiguration();
+						Configuration newConfig = getResources().getConfiguration();
 						if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-							writeTraceLineToAROTraceFile(
-									mScreenRotationTracewriter, LANDSCAPE_MODE,
-									true);
+							writeTraceLineToAROTraceFile(mScreenRotationTracewriter,
+									LANDSCAPE_MODE, true);
 						} else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
-							writeTraceLineToAROTraceFile(
-									mScreenRotationTracewriter, PORTRAIT_MODE,
+							writeTraceLineToAROTraceFile(mScreenRotationTracewriter, PORTRAIT_MODE,
 									true);
 						}
 

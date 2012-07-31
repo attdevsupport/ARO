@@ -75,6 +75,8 @@ extern FILE * ofsEvents;
 extern double pcapTime;
 extern double userTime;
 extern int exitFlag;
+extern int bearerChangedvalue;
+extern int sleeptimeforbearerchange;
 
 double GetTimestamp(struct timeval * pT) {
 	//return pT->tv_sec + pT->tv_usec / (double)1000000.0f;
@@ -214,7 +216,11 @@ void ReadDeviceKeyDB() {
 							if ((strlen(gszDeviceLine) > 0) &&
 							    (strstr(gszDeviceLine, gDeviceKeyArray[iDeviceIdx].searchString) != NULL)) {
 								myDevice = gDeviceKeyArray[iDeviceIdx].deviceID ;
-								printf("Device Type: %s\n", gDeviceKeyArray[iDeviceIdx].deviceName);
+								printf("Device Type: %s %d\n", gDeviceKeyArray[iDeviceIdx].deviceName);
+								//TODO : Need to come up with generic solution for device transition wait
+								if (myDevice == 9) {
+									sleeptimeforbearerchange = 8;
+								}
 								#ifdef TEST_INPUT
 								sprintf(aLine, "Device Type: %s: %d", 
 									gDeviceKeyArray[iDeviceIdx].deviceName, myDevice);
@@ -390,6 +396,7 @@ static int HandleEvents() {
 
 	char aLine[256];
 	memset(aLine, '\0', sizeof(aLine));
+	
 	sprintf(aLine, "at Start exitFlag = %d", exitFlag);
 	if (exitFlag == 4) { 
 		WriteUserInputLog("libpcap: HandleEvent() returning 0 due to exit flag, exitFlag now 3", aLine);
@@ -411,9 +418,18 @@ static int HandleEvents() {
 				    "returning 1 and exiting HandleEvents()");
 		return 1;
 	} else if (retval == -1) {
-		printf("Error: Select() fails\n");
 		WriteUserInputLog("libpcap: HandleEvent() ERROR: select() fails!", "exiting app!");
-		exit(0);
+		if(bearerChangedvalue > 0)
+		{
+			printf("Bearer Change Should capture again");
+			__android_log_print(ANDROID_LOG_DEBUG, "Thread CaptureUserInput() ", "Bearer Change Should capture again=%d",bearerChangedvalue);
+			HandleEvents();
+		}
+		else
+		{
+			printf("Error: Select() fails");
+			exit(0);
+		}
 	}
 
 	int iEventMatchesCount = 0;
@@ -560,6 +576,7 @@ void * CaptureUserInput(void * arg) {
 	printf("Thread CaptureUserInput() exit.\n");
 	__android_log_print(ANDROID_LOG_DEBUG, "Thread CaptureUserInput() exit", "EXIT");
 	printf("sizeof(struct input_event) = %d\n", sizeof(struct input_event));
+	
 	for (i=0; i<=MAX_INPUT_FILE_ID; i++) {
 		CloseInputDevice(i);
 	}

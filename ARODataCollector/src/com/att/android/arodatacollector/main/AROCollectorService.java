@@ -36,6 +36,7 @@ import java.util.List;
 import android.app.Service;
 import android.content.Intent;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.os.Build;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.provider.Settings.SettingNotFoundException;
@@ -73,7 +74,7 @@ public class AROCollectorService extends Service {
 	 * The boolean value to enable logs depending on if production build or
 	 * debug build
 	 */
-	private static boolean mIsProduction = false;
+	private static boolean mIsProduction = true;
 
 	/**
 	 * A boolean value that indicates whether or not to enable logging for this
@@ -142,9 +143,7 @@ public class AROCollectorService extends Service {
 			// Disable screen timeout
 			setScreenTimeOut(-1);
 		} catch (SettingNotFoundException e) {
-			Log.e(TAG,
-					"exception in getting device settings. Failed to get screen timeout",
-					e);
+			Log.e(TAG, "exception in getting device settings. Failed to get screen timeout", e);
 		}
 		TRACE_FOLDERNAME = mApp.getDumpTraceFolderName();
 		mVideoRecording = mApp.getCollectVideoOption();
@@ -203,9 +202,7 @@ public class AROCollectorService extends Service {
 						mApp.initVideoTraceTime();
 						startScreenVideoCapture();
 					} catch (FileNotFoundException e) {
-						Log.e(TAG,
-								"exception in initVideoTraceTime. Failed to start Video",
-								e);
+						Log.e(TAG, "exception in initVideoTraceTime. Failed to start Video", e);
 					}
 				}
 			}).start();
@@ -227,14 +224,13 @@ public class AROCollectorService extends Service {
 		try {
 			sh = Runtime.getRuntime().exec("su");
 			os = new DataOutputStream(sh.getOutputStream());
-			String Command = "chmod 777 " + ARODataCollector.INTERNAL_DATA_PATH
-					+ TCPDUMPFILENAME + "\n";
+			String Command = "chmod 777 " + ARODataCollector.INTERNAL_DATA_PATH + TCPDUMPFILENAME
+					+ "\n";
 			os.writeBytes(Command);
-			Command = "chmod 777 " + ARODataCollector.INTERNAL_DATA_PATH
-					+ "key.db" + "\n";
+			Command = "chmod 777 " + ARODataCollector.INTERNAL_DATA_PATH + "key.db" + "\n";
 			os.writeBytes(Command);
-			Command = "." + ARODataCollector.INTERNAL_DATA_PATH
-					+ TCPDUMPFILENAME + " -w " + TRACE_FOLDERNAME + "\n";
+			Command = "." + ARODataCollector.INTERNAL_DATA_PATH + TCPDUMPFILENAME + " -w "
+					+ TRACE_FOLDERNAME + "\n";
 			os.writeBytes(Command);
 			Command = "exit\n";
 			os.writeBytes(Command);
@@ -260,8 +256,7 @@ public class AROCollectorService extends Service {
 				mApp.setTcpDumpStartFlag(false);
 				os.close();
 			} catch (IOException e) {
-				Log.e(TAG, "exception in startTcpDump DataOutputStream close",
-						e);
+				Log.e(TAG, "exception in startTcpDump DataOutputStream close", e);
 			}
 			sh.destroy();
 		}
@@ -278,8 +273,7 @@ public class AROCollectorService extends Service {
 			if (DEBUG) {
 				Log.i(TAG, "stopTcpDump In....");
 			}
-			final Socket tcpdumpsocket = new Socket(
-					InetAddress.getByName("localhost"), 50999);
+			final Socket tcpdumpsocket = new Socket(InetAddress.getByName("localhost"), 50999);
 			final OutputStream out = tcpdumpsocket.getOutputStream();
 			out.write("STOP".getBytes("ASCII"));
 			out.flush();
@@ -313,80 +307,89 @@ public class AROCollectorService extends Service {
 	private void handleDataCollectorTraceStop() {
 		if (DEBUG) {
 			Log.i(TAG, "handleDataCollectorTraceStop");
-			Log.i(TAG,
-					"mApp.getDataCollectorBearerChange()="
-							+ mApp.getDataCollectorBearerChange());
-			Log.i(TAG,
-					"mApp.getDataCollectorInProgressFlag()="
-							+ mApp.getDataCollectorInProgressFlag());
-			Log.i(TAG,
-					"mApp.getARODataCollectorStopFlag()="
-							+ mApp.getARODataCollectorStopFlag());
+			Log.i(TAG, "mApp.getDataCollectorBearerChange()=" + mApp.getDataCollectorBearerChange());
+			Log.i(TAG, "mApp.getDataCollectorInProgressFlag()=" + mApp.getDataCollectorInProgressFlag());
+			Log.i(TAG, "mApp.getARODataCollectorStopFlag()=" + mApp.getARODataCollectorStopFlag());
 		}
+
 		if (mApp.getDataCollectorBearerChange()) {
 			mApp.setDataCollectorBearerChange(false);
 			mApp.setTcpDumpStartFlag(false);
 			mApp.cancleAROAlertNotification();
 			tcpdumpStoppedBearerChangeIntent = new Intent(getBaseContext(),
 					AROCollectorMainActivity.class);
-			tcpdumpStoppedBearerChangeIntent.putExtra(
-					ARODataCollector.ERRODIALOGID,
-					ARODataCollector.BEARERCHANGEERROR);
-			tcpdumpStoppedBearerChangeIntent
-					.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+			if (!mApp.isWifiLost()) {
+				if (DEBUG) {
+					Log.d(TAG, "network bearer change");
+				}
+				tcpdumpStoppedBearerChangeIntent.putExtra(ARODataCollector.ERRODIALOGID,
+						ARODataCollector.BEARERCHANGEERROR);
+			} else {
+				if (DEBUG) {
+					Log.d(TAG, "writing for wifi lost");
+				}
+
+				tcpdumpStoppedBearerChangeIntent.putExtra(ARODataCollector.ERRODIALOGID,
+						ARODataCollector.WIFI_LOST_ERROR);
+			}
+
+			tcpdumpStoppedBearerChangeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 			getApplication().startActivity(tcpdumpStoppedBearerChangeIntent);
 			// Stopping the peripherals collection trace service
-			stopService(new Intent(getApplicationContext(),
-					AROCollectorTraceService.class));
+			stopService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
 			// Stopping the tcpdump/screen capture collection trace service
-			stopService(new Intent(getApplicationContext(),
-					AROCollectorService.class));
+			stopService(new Intent(getApplicationContext(), AROCollectorService.class));
 		} else if (!mApp.getDataCollectorInProgressFlag()) {
 			if (DEBUG) {
 				Log.i(TAG, "Cancle Notification Call");
 			}
 			mApp.cancleAROAlertNotification();
 			if (!mApp.getARODataCollectorStopFlag()) {
+				// Stopping the peripherals collection trace service
+				stopService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
+				// Stopping the tcpdump/screen capture collection trace service
+				stopService(new Intent(getApplicationContext(), AROCollectorService.class));
+
+				try {
+					// Motorola Atrix2 -waiting to get SD card refresh state
+					if (Build.MODEL.toString().equalsIgnoreCase("MB865")) {
+						// thread sleep for 12 sec
+						Thread.sleep(14000);
+					}
+				} catch (InterruptedException e) {
+					Log.e(TAG, "InterruptedException while sleep SD card mount" + e);
+				}
 				mApp.setTcpDumpStartFlag(false);
-				tcpdumpStoppedIntent = new Intent(getBaseContext(),
-						AROCollectorMainActivity.class);
+				tcpdumpStoppedIntent = new Intent(getBaseContext(), AROCollectorMainActivity.class);
 				if (DEBUG) {
-					Log.i(TAG,
-							"SD Card Space ="
-									+ mAroUtils.checkSDCardMemoryAvailable());
+					Log.i(TAG, "SD card space left =" + mAroUtils.checkSDCardMemoryAvailable());
 				}
 				if (mAroUtils.checkSDCardMemoryAvailable() == 0.0) {
-					tcpdumpStoppedIntent.putExtra(
-							ARODataCollector.ERRODIALOGID,
+					tcpdumpStoppedIntent.putExtra(ARODataCollector.ERRODIALOGID,
 							ARODataCollector.SDCARDMOUNTED_MIDTRACE);
 				} else if (mAroUtils.checkSDCardMemoryAvailable() < AROSDCARD_MIN_SPACEKBYTES) {
-					tcpdumpStoppedIntent.putExtra(
-							ARODataCollector.ERRODIALOGID,
+					tcpdumpStoppedIntent.putExtra(ARODataCollector.ERRODIALOGID,
 							ARODataCollector.SDCARDERROR);
 				} else {
-					tcpdumpStoppedIntent.putExtra(
-							ARODataCollector.ERRODIALOGID,
+					tcpdumpStoppedIntent.putExtra(ARODataCollector.ERRODIALOGID,
 							ARODataCollector.TCPDUMPSTOPPED);
 				}
 				tcpdumpStoppedIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 				getApplication().startActivity(tcpdumpStoppedIntent);
-				// Stopping the peripherals collection trace service
-				stopService(new Intent(getApplicationContext(),
-						AROCollectorTraceService.class));
-				// Stopping the tcpdump/screen capture collection trace service
-				stopService(new Intent(getApplicationContext(),
-						AROCollectorService.class));
 			} else if (mApp.getARODataCollectorStopFlag()) {
+				if (DEBUG) {
+					Log.i(TAG, "Trace Summary Screen to Start");
+				}
 				traceCompletedIntent = new Intent(getBaseContext(),
 						AROCollectorCompletedActivity.class);
 				traceCompletedIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 				getApplication().startActivity(traceCompletedIntent);
+				mDataCollectorService = null;
 				// Stopping the peripherals collection trace service
-				stopService(new Intent(getApplicationContext(),
-						AROCollectorTraceService.class));
+				stopService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
 				// Stopping the tcpdump/screen capture collection trace service
-				stopService(new Intent(getApplicationContext(),
-						AROCollectorService.class));
+				stopService(new Intent(getApplicationContext(), AROCollectorService.class));
 			}
 		}
 	}
@@ -398,8 +401,7 @@ public class AROCollectorService extends Service {
 	 *            value to be set -1 infinite
 	 */
 	private void setScreenTimeOut(int val) {
-		Settings.System.putInt(getContentResolver(),
-				Settings.System.SCREEN_OFF_TIMEOUT, val);
+		Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, val);
 	}
 
 	/**
@@ -426,8 +428,7 @@ public class AROCollectorService extends Service {
 			}
 			sh = Runtime.getRuntime().exec("su");
 			os = new DataOutputStream(sh.getOutputStream());
-			String Command = "cd " + ARODataCollector.INTERNAL_DATA_PATH
-					+ " \n";
+			String Command = "cd " + ARODataCollector.INTERNAL_DATA_PATH + " \n";
 			os.writeBytes(Command);
 			Command = "chmod 777 ffmpeg \n";
 			os.writeBytes(Command);
@@ -453,19 +454,16 @@ public class AROCollectorService extends Service {
 			} catch (IOException e) {
 				Log.e(TAG, "IOException in reading video start time", e);
 			} catch (NumberFormatException e) {
-				Log.e(TAG, "NumberFormatException in reading video start time",
-						e);
+				Log.e(TAG, "NumberFormatException in reading video start time", e);
 			}
 			try {
 				// Recording start time of video
-				mApp.writeVideoTraceTime(Double.toString(mApp
-						.getAROVideoCaptureStartTime()));
+				mApp.writeVideoTraceTime(Double.toString(mApp.getAROVideoCaptureStartTime()));
 				mApp.closeVideoTraceTimeFile();
 			} catch (IOException e) {
 				Log.e(TAG, "IOException in writing video start time", e);
 			}
-			if (mApp.getTcpDumpStartFlag()
-					&& !mApp.getARODataCollectorStopFlag()) {
+			if (mApp.getTcpDumpStartFlag() && !mApp.getARODataCollectorStopFlag()) {
 				mApp.setVideoCaptureFailed(true);
 			}
 			mApp.setAROVideoCaptureRunningFlag(false);
@@ -507,9 +505,7 @@ public class AROCollectorService extends Service {
 					mVideoRecording = false;
 					os.close();
 				} catch (IOException e) {
-					Log.e(TAG,
-							"exception in stopScreenVideoCapture DataOutputStream close",
-							e);
+					Log.e(TAG, "exception in stopScreenVideoCapture DataOutputStream close", e);
 				}
 				if (DEBUG) {
 					Log.i(TAG, "Stopped Video Capture");
@@ -531,18 +527,16 @@ public class AROCollectorService extends Service {
 		try {
 			String strTraceFolderName = mApp.getTcpDumpTraceFolderName();
 			Log.i(TAG, "Trace folder name is: " + strTraceFolderName);
-			File appNameFile = new File(mApp.getTcpDumpTraceFolderName()
-					+ APP_NAME_FILE);
-			appNamesFileReader = new BufferedReader(new InputStreamReader(
-					new FileInputStream(appNameFile)));
+			File appNameFile = new File(mApp.getTcpDumpTraceFolderName() + APP_NAME_FILE);
+			appNamesFileReader = new BufferedReader(new InputStreamReader(new FileInputStream(
+					appNameFile)));
 			String processName = null;
 			List<String> appNamesWithVersions = new ArrayList<String>();
 			while ((processName = appNamesFileReader.readLine()) != null) {
 
 				String versionNum = null;
 				try {
-					versionNum = getPackageManager().getPackageInfo(
-							processName, 0).versionName;
+					versionNum = getPackageManager().getPackageInfo(processName, 0).versionName;
 					appNamesWithVersions.add(processName + " " + versionNum);
 				} catch (NameNotFoundException e) {
 					appNamesWithVersions.add(processName);
@@ -551,8 +545,8 @@ public class AROCollectorService extends Service {
 					Log.e(TAG, "Unable to get version number ");
 				}
 			}
-			appNmesFileWriter = new BufferedWriter(new OutputStreamWriter(
-					new FileOutputStream(appNameFile)));
+			appNmesFileWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
+					appNameFile)));
 			final String eol = System.getProperty("line.separator");
 			for (String appNemeVersion : appNamesWithVersions) {
 				appNmesFileWriter.append(appNemeVersion + eol);
@@ -570,4 +564,3 @@ public class AROCollectorService extends Service {
 		}
 	}
 }
-

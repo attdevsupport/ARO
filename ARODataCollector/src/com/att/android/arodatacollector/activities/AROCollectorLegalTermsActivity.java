@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-
-
 package com.att.android.arodatacollector.activities;
 
 import java.io.BufferedReader;
@@ -33,25 +31,26 @@ import android.webkit.WebView;
 import android.widget.Button;
 
 /**
- * Represents the Legal Terms screen of the ARO Data Collector. A user must accept the legal terms in
- * order to continue with the application.  
+ * Represents the Legal Terms screen of the ARO Data Collector. A user must
+ * accept the legal terms in order to continue with the application.
  * 
  */
 public class AROCollectorLegalTermsActivity extends Activity {
 
 	/** Android log TAG string for ARO-Data Collector Legal Screen */
 	private static final String TAG = "ARO.LegalTermsActivity";
-	
+
 	/** Identifies that the ARO Data Collector legal terms have been accepted. */
 	public static int TERMS_ACCEPTED = 1;
-	
+
 	/** Identifies that the ARO Data Collector legal terms have been rejected. */
 	public static int TERMS_REJECTED = 2;
-	
-    /**
-     * Overriding onCreate initialize data members 
-     * @see android.app.Activity#onCreate(android.os.Bundle)
-     */
+
+	/**
+	 * Overriding onCreate initialize data members
+	 * 
+	 * @see android.app.Activity#onCreate(android.os.Bundle)
+	 */
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -62,7 +61,7 @@ public class AROCollectorLegalTermsActivity extends Activity {
 	/**
 	 * Reads the legal terms text from html file and creates the web view
 	 * 
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	private void readLegalTermsfromfile() throws IOException {
 		BufferedReader reader = null;
@@ -71,8 +70,7 @@ public class AROCollectorLegalTermsActivity extends Activity {
 			final String result;
 			final WebView legalView = (WebView) findViewById(R.id.termsWebView);
 			final InputStream input = getResources().openRawResource(R.raw.arolegal);
-			reader = new BufferedReader(new InputStreamReader(input),
-					input.available());
+			reader = new BufferedReader(new InputStreamReader(input), input.available());
 			String line;
 			while ((line = reader.readLine()) != null) {
 				legalTermsBuilder.append(line);
@@ -92,9 +90,9 @@ public class AROCollectorLegalTermsActivity extends Activity {
 			readLegalTermsfromfile();
 			setupButtons();
 		} catch (IOException e) {
-			Log.e(TAG,"exception in initializeControls :AROCollectorLegalTermsActivity ", e);
+			Log.e(TAG, "exception in initializeControls :AROCollectorLegalTermsActivity ", e);
 		}
-		
+
 	}
 
 	/**

@@ -62,7 +62,7 @@ static const char rcsid[] _U_ =
 #endif
 #include <fcntl.h>
 #include <errno.h>
-
+#include <android/log.h>
 #ifdef HAVE_OS_PROTO_H
 #include "os-proto.h"
 #endif
@@ -78,6 +78,7 @@ static const char rcsid[] _U_ =
 #include <dagapi.h>
 #endif
 
+#define DEBUG_TAG "TCPDUMP"
 extern int exitFlag;
 int 
 pcap_not_initialized(pcap_t *pcap)
@@ -418,11 +419,20 @@ pcap_loop(pcap_t *p, int cnt, pcap_handler callback, u_char *user)
 	register int n;
 
 	for (;;) {
+		// --------Code change to terminate loop---------------------------
+		if (exitFlag == 3) {pcap_breakloop(p); return;}
+		if (exitFlag == 4) {pcap_breakloop(p); return;}
+		// ----------Code change to terminate loop---------------------------
+
 		
 		if (p->sf.rfile != NULL) {
 			/*
 			 * 0 means EOF, so don't loop if we get 0.
 			 */
+			// --------Code change to terminate loop---------------------------
+			if (exitFlag == 3) {pcap_breakloop(p); return;}
+			if (exitFlag == 4) {pcap_breakloop(p); return;}
+			// ----------Code change to terminate loop---------------------------
 			n = pcap_offline_read(p, cnt, callback, user);
 		} else {
 			/*
@@ -431,8 +441,8 @@ pcap_loop(pcap_t *p, int cnt, pcap_handler callback, u_char *user)
 			 */
 			do {
 				// --------Code change to terminate loop---------------------------
-				if (exitFlag == 3) {pcap_breakloop(p);}
-				if (exitFlag == 4) {pcap_breakloop(p);}
+				if (exitFlag == 3) {pcap_breakloop(p); return;}
+				if (exitFlag == 4) {pcap_breakloop(p); return;}
 				// ----------Code change to terminate loop---------------------------
 				n = p->read_op(p, cnt, callback, user);
 			} while (n == 0);
@@ -445,6 +455,7 @@ pcap_loop(pcap_t *p, int cnt, pcap_handler callback, u_char *user)
 				return (0);
 		}
 	}
+	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "TCPDUMP:Outside Pcap_Loop");
 }
 
 /*

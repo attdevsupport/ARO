@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-
-
 package com.att.android.arodatacollector.main;
 
 import com.att.android.arodatacollector.R;
@@ -38,95 +36,131 @@ import android.widget.TextView;
 import java.io.File;
 
 /**
- * Represents a custom dialog in the ARO Data Collector which is used for confirmation
- * messages and errors.
+ * Represents a custom dialog in the ARO Data Collector which is used for
+ * confirmation messages and errors.
  */
 
 public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 
 	/** Android log TAG string for ARO-Data Collector task killer activity */
-    private static final String TAG = "AROCollectorCustomDialog";
-    
-    /** BACK_KEY_PRESSED string **/
+	private static final String TAG = "AROCollectorCustomDialog";
+
+	/** BACK_KEY_PRESSED string **/
 	private static final String BACK_KEY_PRESSED = "BACK_KEY_PRESSED";
-	
+
 	/** HOME_KEY_PRESSED string **/
 	private static final String HOME_KEY_PRESSED = "HOME_KEY_PRESSED";
-	
-	/** The Dialog_Type enumeration specifies constant values that describe the types of custom dialogs used in the ARO Data Collector. */
+
+	/**
+	 * The boolean value to enable logs depending on if production build or
+	 * debug build
+	 */
+	private static boolean mIsProduction = true;
+
+	/**
+	 * The boolean value to enable logs depending on if production build or
+	 * debug build
+	 */
+	private static boolean DEBUG = !mIsProduction;
+
+	/**
+	 * The Dialog_Type enumeration specifies constant values that describe the
+	 * types of custom dialogs used in the ARO Data Collector.
+	 */
 	public static enum Dialog_Type {
 		/**
 		 * A dialog that prompts for the trace folder name.
 		 */
-		TRACE_FOLDERNAME, 
+		TRACE_FOLDERNAME,
 		/**
-		 * A dialog indicating that the specified trace folder name already exists.
+		 * A dialog indicating that the specified trace folder name already
+		 * exists.
 		 */
-		TRACE_FOLDERNAME_EXISTS, 
+		TRACE_FOLDERNAME_EXISTS,
 		/**
-		 * A dialog that indicates that there is an error in the trace folder name.
+		 * A dialog that indicates that there is an error in the trace folder
+		 * name.
 		 */
-		TRACE_FOLDERNAME_ERRORMESSAGE, 
+		TRACE_FOLDERNAME_ERRORMESSAGE,
 		/**
 		 * A dialog indicating that rooting is not enabled.
 		 */
-		ROOT_NOT_ENABLED, 
+		ROOT_NOT_ENABLED,
 		/**
 		 * An dialog indicating that there is an SD Card error.
 		 */
-		SDCARD_ERROR, 
+		SDCARD_ERROR,
 		/**
-		 * A dialog indicating that an error occurred when the data bearer changed.
+		 * A dialog indicating that an error occurred when the data bearer
+		 * changed.
 		 */
-		BEARERCHANGE_ERROR, 
+		BEARERCHANGE_ERROR,
 		/**
 		 * A dialog indicating that the trace has stopped.
 		 */
-		TRACE_STOPPED, 
+		TRACE_STOPPED,
 		/**
-		 * An error dialog indicating that there is a special character in the specified trace folder name.
+		 * An error dialog indicating that there is a special character in the
+		 * specified trace folder name.
 		 */
-		TRACE_SPECIALCHARERROR, 
+		TRACE_SPECIALCHARERROR,
 		/**
 		 * A dialog that confirms that the trace folder name has been saved.
 		 */
-		TRACE_SAVED, 
+		TRACE_SAVED,
 		/**
-		 * An error dialog indicating that the ARO Data Collector has failed to start.
+		 * An error dialog indicating that the ARO Data Collector has failed to
+		 * start.
 		 */
 		DC_FAILED_START,
 		/**
 		 * A dialog indicating that the SD Card is mounted.
 		 */
-		SDCARD_MOUNTED, 
+		SDCARD_MOUNTED,
 		/**
 		 * A dialog indicating that the SD Card is mounted.
 		 */
-		SDCARD_MOUNTED_MIDTRACE, 
+		SDCARD_MOUNTED_MIDTRACE,
 		/**
 		 * A dialog indicating that the AIRPANCE_MODE is on.
 		 */
-		AIRPANCE_MODEON
+		AIRPANCE_MODEON,
+		/**
+		 * A dialog indicating that an error occurred when wifi is lost.
+		 */
+		WIFI_LOST_ERROR,
+		/**
+		 * A dialog indicating that both wifi and Mobile are off.
+		 */
+		WIFI_MOBILE_BOTH_OFF
 	}
 
-	/** The Dialog_CallBack_Error enumeration specifies constant values that describe the types of callback methods associated with error message dialogs. */
+	/**
+	 * The Dialog_CallBack_Error enumeration specifies constant values that
+	 * describe the types of callback methods associated with error message
+	 * dialogs.
+	 */
 	public static enum Dialog_CallBack_Error {
-		/** 
-		 * A callback method associated with the TRACE_FOLDERNAME_ERRORMESSAGE Dialog_Type. 
+		/**
+		 * A callback method associated with the TRACE_FOLDERNAME_ERRORMESSAGE
+		 * Dialog_Type.
 		 * */
-		CALLBACK_TRACEFOLDERERROR, 
+		CALLBACK_TRACEFOLDERERROR,
 		/**
-		 * A callback method associated with the TRACE_FOLDERNAME_EXISTS Dialog_Type.
+		 * A callback method associated with the TRACE_FOLDERNAME_EXISTS
+		 * Dialog_Type.
 		 */
-		CALLBACK_TRACEEXISTSERROR, 
+		CALLBACK_TRACEEXISTSERROR,
 		/**
-		 * A callback method associated with the TRACE_FOLDERNAME_ERRORMESSAGE Dialog_Type.
+		 * A callback method associated with the TRACE_FOLDERNAME_ERRORMESSAGE
+		 * Dialog_Type.
 		 */
-		CALLBACK_SHOWTRACENAMEERROR, 
+		CALLBACK_SHOWTRACENAMEERROR,
 		/**
-		 * A callback method associated with the TRACE_SPECIALCHARERROR Dialog_Type.
+		 * A callback method associated with the TRACE_SPECIALCHARERROR
+		 * Dialog_Type.
 		 */
-		CALLBACK_SPECIALCHARERROR, 
+		CALLBACK_SPECIALCHARERROR,
 		/**
 		 * A default callback method.
 		 */
@@ -135,40 +169,53 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 
 	/** ARO-Data Collector current dialog type ID **/
 	private Dialog_Type m_current_dialog = Dialog_Type.TRACE_FOLDERNAME;
-	
+
 	/** Call Back listener for Dialogs **/
 	private ReadyListener readyListener;
-	
+
 	/** Call Back listener for Dialogs **/
 	private DialogKeyListner keylistner;
-	
-	/** The Application context of the ARO-Data Collector to gets and sets the application data **/
+
+	/**
+	 * The Application context of the ARO-Data Collector to gets and sets the
+	 * application data
+	 **/
 	private ARODataCollector mApp;
-	
+
 	/** ARO Data Collector utilities class object */
 	private AROCollectorUtils mAROUtils;
-	
-	/** ARO Data Collector SD card trace folder path i.e /SDCARD/ARO/<-tracefoldername-> */
+
+	/**
+	 * ARO Data Collector SD card trace folder path i.e
+	 * /SDCARD/ARO/<-tracefoldername->
+	 */
 	private File traceFolderPath;
-	
+
 	/** ARO Data Collector trace folder name */
 	private String mTraceFolderName;
-	
+
 	/**
-	 * Initializes a new instance of the AROCollectorCustomDialog class using the following parameters:
+	 * Initializes a new instance of the AROCollectorCustomDialog class using
+	 * the following parameters:
 	 * 
-	 * @param context The application context.
-	 * @param theme The dialog theme.
-	 * @param type The dialog type.  One of the values of the AROCollectorCustomDialog.Dialog_Type enumeration.
-	 * @param readyListener The dialog call back listener on main activity.
-	 * @param listner The dialog event listener.
+	 * @param context
+	 *            The application context.
+	 * @param theme
+	 *            The dialog theme.
+	 * @param type
+	 *            The dialog type. One of the values of the
+	 *            AROCollectorCustomDialog.Dialog_Type enumeration.
+	 * @param readyListener
+	 *            The dialog call back listener on main activity.
+	 * @param listner
+	 *            The dialog event listener.
 	 * 
 	 */
 	public AROCollectorCustomDialog(Context context, int theme, Dialog_Type type,
 			ReadyListener readyListener, DialogKeyListner listner) {
-		
+
 		super(context, theme);
-		
+
 		final WindowManager.LayoutParams lp = this.getWindow().getAttributes();
 		m_current_dialog = type;
 		this.readyListener = readyListener;
@@ -182,7 +229,9 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	}
 
 	/**
-	 * Handles processing when an AROCollectorCustomDialog is created. Overrides the android.app.Dialog#onCreate method.
+	 * Handles processing when an AROCollectorCustomDialog is created. Overrides
+	 * the android.app.Dialog#onCreate method.
+	 * 
 	 * @see android.app.Dialog#onCreate(android.os.Bundle)
 	 */
 	@Override
@@ -190,7 +239,7 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		super.onCreate(savedInstanceState);
 
 		switch (m_current_dialog) {
-		
+
 		case SDCARD_MOUNTED:
 			createAROSDCardMountedErrorDialog(false);
 			break;
@@ -224,12 +273,18 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		case TRACE_SPECIALCHARERROR:
 			createSpecialCharErrorDialog();
 			break;
+		case WIFI_LOST_ERROR:
+			createAROWifiLostErrorDialog();
+			break;
+		case WIFI_MOBILE_BOTH_OFF:
+			createAROWifiMobileOffErrorDialog();
+			break;
 		}
 	}
-	
+
 	/**
-	 * Creates the error message dialog to notify SD card is mounted mid trace or 
-	 * before start of ARO Data Collector trace
+	 * Creates the error message dialog to notify SD card is mounted mid trace
+	 * or before start of ARO Data Collector trace
 	 * 
 	 */
 	private void createAROSDCardMountedErrorDialog(boolean isMidtrace) {
@@ -247,8 +302,8 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	}
 
 	/**
-	 * Creates the error dialog to notify  ARO- Data Collector failed to start within 15 seconds
-	 * after starting data collector from main screen
+	 * Creates the error dialog to notify ARO- Data Collector failed to start
+	 * within 15 seconds after starting data collector from main screen
 	 * 
 	 */
 	private void createAROFailedStartErrorDialog() {
@@ -260,7 +315,8 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	}
 
 	/**
-	 * Creates the input dialog for getting trace folder name for ARO-Data Collector.
+	 * Creates the input dialog for getting trace folder name for ARO-Data
+	 * Collector.
 	 * 
 	 */
 	private void createAROGetTraceFolderDialog() {
@@ -280,7 +336,7 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	}
 
 	/**
-	 * Creates the error dialog cases where given traces folder already exists 
+	 * Creates the error dialog cases where given traces folder already exists
 	 * on the device sd card
 	 */
 	private void createAROTraceFolderExistsDialog() {
@@ -304,7 +360,8 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	}
 
 	/**
-	 * Creates the error dialog to unexpected stops of ARO-Data Collector trace during trace cycle
+	 * Creates the error dialog to unexpected stops of ARO-Data Collector trace
+	 * during trace cycle
 	 * 
 	 */
 	private void createTraceStoppedErrorDialog() {
@@ -328,7 +385,7 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	}
 
 	/**
-	 * Creates the error dialog to air plane mode ON 
+	 * Creates the error dialog to air plane mode ON
 	 */
 	private void createAROAirPlanceModeErrorDialog() {
 		setContentView(R.layout.arocollector_errormessage);
@@ -350,8 +407,8 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	}
 
 	/**
-	 * Creates the error dialog for case when data collector is stopped due to 
-	 * bearer change 
+	 * Creates the error dialog for case when data collector is stopped due to
+	 * bearer change
 	 */
 	private void createAROBearerErrorDialog() {
 		setContentView(R.layout.arocollector_errormessage);
@@ -362,8 +419,35 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	}
 
 	/**
-	 * Handles processing when a key is pressed in an AROCollectorCustomDialog. Overrides the android.content.DialogInterface.OnKeyListener method.
-	 * @see android.content.DialogInterface.OnKeyListener#onKey(android.content.DialogInterface, int, android.view.KeyEvent)
+	 * Creates the error dialog for case when data collector is stopped due to
+	 * wifi lost
+	 */
+	private void createAROWifiLostErrorDialog() {
+		setContentView(R.layout.arocollector_errormessage);
+		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
+		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
+		mAroErrorText.setText(R.string.aro_wifi_lost_error);
+		buttonOK.setOnClickListener(new OKListener());
+	}
+
+	/**
+	 * Creates the error dialog for case when data collector should not be
+	 * started with both Mobile and Wifi OFF
+	 */
+	private void createAROWifiMobileOffErrorDialog() {
+		setContentView(R.layout.arocollector_errormessage);
+		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
+		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
+		mAroErrorText.setText(R.string.aro_wifi_mobile_both_off_error);
+		buttonOK.setOnClickListener(new OKListener());
+	}
+
+	/**
+	 * Handles processing when a key is pressed in an AROCollectorCustomDialog.
+	 * Overrides the android.content.DialogInterface.OnKeyListener method.
+	 * 
+	 * @see android.content.DialogInterface.OnKeyListener#onKey(android.content.DialogInterface,
+	 *      int, android.view.KeyEvent)
 	 */
 	@Override
 	public boolean onKey(DialogInterface arg0, int keyCode, KeyEvent arg2) {
@@ -384,8 +468,8 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		try {
 			AROCollectorCustomDialog.this.dismiss();
 		} catch (IllegalArgumentException e) {
-			Log.e(TAG,"exception in onKey", e);
-		} 
+			Log.e(TAG, "exception in onKey", e);
+		}
 		return ret;
 	}
 
@@ -405,20 +489,18 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 					break;
 				case TRACE_FOLDERNAME_EXISTS: {
 					AROCollectorCustomDialog.this.dismiss();
-					readyListener.ready(
-							Dialog_CallBack_Error.CALLBACK_SHOWTRACENAMEERROR,
-							false);
+					readyListener.ready(Dialog_CallBack_Error.CALLBACK_SHOWTRACENAMEERROR, false);
 				}
 				default: {
 					AROCollectorCustomDialog.this.dismiss();
 				}
 				}
 			} catch (IllegalArgumentException e) {
-				Log.e(TAG,"exception in IllegalArgumentException", e);
-			} 
+				Log.e(TAG, "exception in IllegalArgumentException", e);
+			}
 		}
 	}
-	
+
 	/**
 	 * ARO-Data Collector dialogs OK button event listener class
 	 * 
@@ -427,7 +509,7 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		@Override
 		public void onClick(View v) {
 			try {
-				
+
 				Dialog_CallBack_Error errrocode = Dialog_CallBack_Error.CALLBACK_DEFAULT;
 				switch (m_current_dialog) {
 				case TRACE_FOLDERNAME: {
@@ -442,19 +524,18 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 						readyListener.ready(errrocode, false);
 						break;
 					} else if (mTraceFolderName != null && !traceFolderPath.isDirectory()) {
-						//Setting the trace folder name at application context
+						// Setting the trace folder name at application context
 						mApp.setTcpDumpTraceFolderName(givenTraceFolderName.getText().toString());
 						AROCollectorCustomDialog.this.dismiss();
-						readyListener.ready(
-								Dialog_CallBack_Error.CALLBACK_DEFAULT, true);
+						readyListener.ready(Dialog_CallBack_Error.CALLBACK_DEFAULT, true);
 
 					} else {
 						mApp.setTcpDumpTraceFolderName(givenTraceFolderName.getText().toString());
 						if (mTraceFolderName.equalsIgnoreCase("") || mTraceFolderName == null) {
-							errrocode = Dialog_CallBack_Error.CALLBACK_TRACEFOLDERERROR; //"Please enter valid trace folder name";
+							errrocode = Dialog_CallBack_Error.CALLBACK_TRACEFOLDERERROR; // "Please enter valid trace folder name";
 							AROCollectorCustomDialog.this.dismiss();
 						} else if (traceFolderPath.isDirectory()) {
-							errrocode = Dialog_CallBack_Error.CALLBACK_TRACEEXISTSERROR; //"Trace folder already exists";
+							errrocode = Dialog_CallBack_Error.CALLBACK_TRACEEXISTSERROR; // "Trace folder already exists";
 							AROCollectorCustomDialog.this.dismiss();
 						}
 						readyListener.ready(errrocode, false);
@@ -465,12 +546,17 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 				case TRACE_FOLDERNAME_EXISTS:
 					if (mApp.getTcpDumpTraceFolderName() != null) {
 						mAROUtils.deleteDirectory(new File(mApp.getTcpDumpTraceFolderName()));
+						if (DEBUG) {
+							Log.i(TAG,
+									"TRACE_FOLDERNAME_EXISTS deleting directory"
+											+ mApp.getTcpDumpTraceFolderName());
+						}
 					}
-					readyListener.ready(Dialog_CallBack_Error.CALLBACK_DEFAULT,true);
+					readyListener.ready(Dialog_CallBack_Error.CALLBACK_DEFAULT, true);
 					AROCollectorCustomDialog.this.dismiss();
 					break;
 				case TRACE_FOLDERNAME_ERRORMESSAGE:
-					readyListener.ready(Dialog_CallBack_Error.CALLBACK_SHOWTRACENAMEERROR,false);
+					readyListener.ready(Dialog_CallBack_Error.CALLBACK_SHOWTRACENAMEERROR, false);
 					AROCollectorCustomDialog.this.dismiss();
 					break;
 				case DC_FAILED_START:
@@ -479,51 +565,65 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 				case SDCARD_ERROR:
 				case AIRPANCE_MODEON:
 				case BEARERCHANGE_ERROR:
+				case WIFI_LOST_ERROR:
+				case WIFI_MOBILE_BOTH_OFF:
 				case TRACE_SAVED:
 					AROCollectorCustomDialog.this.dismiss();
 					break;
 				case TRACE_STOPPED:
 					AROCollectorCustomDialog.this.dismiss();
-					readyListener.ready(
-							Dialog_CallBack_Error.CALLBACK_TRACEFOLDERERROR,
-							false);
+					readyListener.ready(Dialog_CallBack_Error.CALLBACK_TRACEFOLDERERROR, false);
 					break;
 
 				case TRACE_SPECIALCHARERROR:
-					readyListener.ready(
-							Dialog_CallBack_Error.CALLBACK_SHOWTRACENAMEERROR,
-							false);
+					readyListener.ready(Dialog_CallBack_Error.CALLBACK_SHOWTRACENAMEERROR, false);
 					AROCollectorCustomDialog.this.dismiss();
 					break;
 
 				}
 			} catch (IllegalArgumentException e) {
 				Log.e(TAG, "exception in IllegalArgumentException", e);
-			} 
+			}
 		}
 	}
 
 	/**
-	 * Exposes a method for listening to responses from AROCollectorCustomDialog.Dialog_CallBack_Error dialogs.
+	 * Exposes a method for listening to responses from
+	 * AROCollectorCustomDialog.Dialog_CallBack_Error dialogs.
 	 */
 	public interface ReadyListener {
 		/**
-		 * Handles responses to the specified AROCollectorCustomDialog.Dialog_CallBack_Error dialog.
-		 * @param errorcode The type of error dialog that handles the responses. One of the types defined in the AROCollectorCustomDialog.Dialog_CallBack_Error enumeration.
-		 * @param success A boolean value that indicates whether the error response has been handled.
+		 * Handles responses to the specified
+		 * AROCollectorCustomDialog.Dialog_CallBack_Error dialog.
+		 * 
+		 * @param errorcode
+		 *            The type of error dialog that handles the responses. One
+		 *            of the types defined in the
+		 *            AROCollectorCustomDialog.Dialog_CallBack_Error
+		 *            enumeration.
+		 * @param success
+		 *            A boolean value that indicates whether the error response
+		 *            has been handled.
 		 */
 		public void ready(Dialog_CallBack_Error errorcode, boolean success);
 
 	}
 
 	/**
-	 * Exposes a method for listening to Key events from custom ARO Data Collector dialogs.
+	 * Exposes a method for listening to Key events from custom ARO Data
+	 * Collector dialogs.
 	 */
 	public interface DialogKeyListner {
 		/**
-		 * Handles Key events for any of the AROCollectorCustomDialog.Dialog_Type dialogs.
-		 * @param str A string that is passed to the custom dialog.
-		 * @param type The type of dialog that the key events are being handled for. One of the types defined in the AROCollectorCustomDialog.Dialog_Type enumeration. 
+		 * Handles Key events for any of the
+		 * AROCollectorCustomDialog.Dialog_Type dialogs.
+		 * 
+		 * @param str
+		 *            A string that is passed to the custom dialog.
+		 * @param type
+		 *            The type of dialog that the key events are being handled
+		 *            for. One of the types defined in the
+		 *            AROCollectorCustomDialog.Dialog_Type enumeration.
 		 */
 		public void HandleKeyEvent(String str, Dialog_Type type);
 	}

@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-
-
 package com.att.android.arodatacollector.activities;
 
 import java.io.IOException;
@@ -59,7 +57,7 @@ public class AROCollectorHomeActivity extends Activity {
 	/**
 	 * The boolean value to enable logs based on production build or debug build
 	 */
-	private static boolean mIsProduction = false;
+	private static boolean mIsProduction = true;
 
 	/**
 	 * A boolean value that indicates whether or not to enable logging for this
@@ -162,8 +160,10 @@ public class AROCollectorHomeActivity extends Activity {
 					aroDCStopWatchTimer.cancel();
 					if (AROCollectorTraceService.getServiceObj() != null) {
 						if (DEBUG) {
-							Log.i(TAG,
-									"Inside Ping Connection....hideProgressDialog");
+							Log.i(TAG, "Inside Ping Connection....hideProgressDialog");
+						}
+						if (DEBUG) {
+							Log.i(TAG, "Setting Data Collector stop flag");
 						}
 						mApp.setARODataCollectorStopFlag(true);
 						try {
@@ -190,6 +190,9 @@ public class AROCollectorHomeActivity extends Activity {
 	 * shell
 	 */
 	private void stopARODataCollector() {
+		if (DEBUG) {
+			Log.i(TAG, "Inside stopARODataCollector....");
+		}
 		dataCollectorStopWatchTimer();
 		stopDataCollector.setEnabled(false);
 		hideDataCollector.setEnabled(false);
@@ -203,9 +206,7 @@ public class AROCollectorHomeActivity extends Activity {
 			AROCollectorService.getServiceObj().requestDataCollectorStop();
 			mApp.cancleAROAlertNotification();
 		}
-		if (DEBUG) {
-			Log.i(TAG, "Inside stopARODataCollector....");
-		}
+
 	}
 
 }

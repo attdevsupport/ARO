@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package com.att.android.arodatacollector.utils;
 
 import android.content.Context;
@@ -50,16 +49,27 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 
-
 /**
- * Contains utility methods that are used by the ARO Data Collector. 
+ * Contains utility methods that are used by the ARO Data Collector.
  * 
  */
 public class AROCollectorUtils {
 
 	/** Logging string for the ARO Collector Utils class. */
 	public static final String TAG = "AROCollectorUtils";
-	
+
+	/**
+	 * The boolean value to enable logs depending on if production build or
+	 * debug build
+	 */
+	private static boolean mIsProduction = true;
+
+	/**
+	 * A boolean value that indicates whether or not to enable logging for this
+	 * class in a debug build of the ARO Data Collector.
+	 */
+	public static boolean DEBUG = !mIsProduction;
+
 	/**
 	 * Gets the ARO Data Collector time stamp
 	 * 
@@ -70,19 +80,22 @@ public class AROCollectorUtils {
 	}
 
 	/**
-	 * Gets the system time value(in seconds). 
+	 * Gets the system time value(in seconds).
 	 * 
 	 * @return The system time stamp value(in seconds ).
 	 */
 	public double getSystemTimeinSeconds() {
-		return (double) System.currentTimeMillis()/1000;
+		return (double) System.currentTimeMillis() / 1000;
 	}
+
 	/**
 	 * Deletes the specified trace directory from the device.
-	 *  
-	 * @param path The trace directory path to be deleted.
 	 * 
-	 * @return A boolean value that is "true" if the trace folder was deleted successfully, and "false" if it was not.
+	 * @param path
+	 *            The trace directory path to be deleted.
+	 * 
+	 * @return A boolean value that is "true" if the trace folder was deleted
+	 *         successfully, and "false" if it was not.
 	 */
 	public boolean deleteDirectory(File path) {
 		if (path.exists()) {
@@ -95,23 +108,25 @@ public class AROCollectorUtils {
 				}
 			}
 		}
-		
+
 		return (path.delete());
 	}
 
 	/**
-	 * Indicates whether or not there are special characters in the specified trace folder name.
+	 * Indicates whether or not there are special characters in the specified
+	 * trace folder name.
 	 * 
-	 * @param tracefolername The trace folder name.
+	 * @param tracefolername
+	 *            The trace folder name.
 	 * 
-	 * @return A boolean value that is "true" if the trace folder name contains a special character and "false" if it does not.
+	 * @return A boolean value that is "true" if the trace folder name contains
+	 *         a special character and "false" if it does not.
 	 */
 	public boolean isContainsSpecialCharacterorSpace(String tracefolername) {
 		boolean isContainsSC = false;
 		if (tracefolername != null && !tracefolername.equals("")) {
 			// Pattern to include alphanumeric with "-"
-			final Matcher m = Pattern.compile("[^a-zA-Z0-9[-]]").matcher(
-					tracefolername);
+			final Matcher m = Pattern.compile("[^a-zA-Z0-9[-]]").matcher(tracefolername);
 			if (m.find()) {
 				isContainsSC = true;
 			} else {
@@ -120,33 +135,38 @@ public class AROCollectorUtils {
 		}
 		return isContainsSC;
 	}
-	
 
 	/**
-	 * Returns a value that indicates whether or not the flight mode is turned on.
+	 * Returns a value that indicates whether or not the flight mode is turned
+	 * on.
 	 * 
-	 * @param context The application context.
-	 * @return A boolean value that is "true" if the flight mode is ON and "false" if it is not.
+	 * @param context
+	 *            The application context.
+	 * @return A boolean value that is "true" if the flight mode is ON and
+	 *         "false" if it is not.
 	 */
 	public boolean isAirplaneModeOn(Context context) {
-        return Settings.System.getInt(context.getContentResolver(),
-                Settings.System.AIRPLANE_MODE_ON, 0) != 0;
+		return Settings.System.getInt(context.getContentResolver(),
+				Settings.System.AIRPLANE_MODE_ON, 0) != 0;
 
-    }
+	}
 
 	/**
-	 * Fetch the value of given field from the class dump specified using reflection.  
+	 * Fetch the value of given field from the class dump specified using
+	 * reflection.
 	 * 
-	 * @param mClass The class name.
-     * @param mInstance The object which contains the values.
-     * @param fieldName The name of the specified field.
-     * @return  The value of the specified  field from the class dump.
+	 * @param mClass
+	 *            The class name.
+	 * @param mInstance
+	 *            The object which contains the values.
+	 * @param fieldName
+	 *            The name of the specified field.
+	 * @return The value of the specified field from the class dump.
 	 */
-	public final String getSpecifiedFieldValues(Class<?> mClass,
-			Object mInstance, String fieldName) {
+	public final String getSpecifiedFieldValues(Class<?> mClass, Object mInstance, String fieldName) {
 
 		String fieldValue = "";
-		
+
 		if (mClass == null || mInstance == null || fieldName == null)
 			return fieldValue;
 
@@ -160,38 +180,36 @@ public class AROCollectorUtils {
 
 		} catch (NoSuchFieldException exp) {
 			fieldValue = "";
-			Log.e(TAG,
-					"Exception in getSpecifiedFieldValues NoSuchFieldException"
-							+ exp);
+			Log.e(TAG, "Exception in getSpecifiedFieldValues NoSuchFieldException" + exp);
 		} catch (IllegalAccessException ile) {
 			fieldValue = "";
-			Log.e(TAG,
-					"Exception in getSpecifiedFieldValues IllegalAccessException"
-							+ ile);
+			Log.e(TAG, "Exception in getSpecifiedFieldValues IllegalAccessException" + ile);
 		}
 
 		return fieldValue;
 	}
+
 	/**
-	 * Returns a value indicating whether or not the device SD card is mounted. 
+	 * Returns a value indicating whether or not the device SD card is mounted.
 	 * 
-	 * @return A boolean value that is "true" if the SD card is mounted, and "false" if it is not.
+	 * @return A boolean value that is "true" if the SD card is mounted, and
+	 *         "false" if it is not.
 	 */
-	public boolean checkSDCardMounted(){
+	public boolean checkSDCardMounted() {
 		final String state = Environment.getExternalStorageState();
-		if (state.equals(Environment.MEDIA_REMOVED) || !state.equals(Environment.MEDIA_MOUNTED) 
-				|| state.equals(Environment.MEDIA_MOUNTED_READ_ONLY) ) {
+		if (state.equals(Environment.MEDIA_REMOVED) || !state.equals(Environment.MEDIA_MOUNTED)
+				|| state.equals(Environment.MEDIA_MOUNTED_READ_ONLY)) {
 			return true;
-		}
-		else{
+		} else {
 			return false;
 		}
 	}
-	
+
 	/**
-	 * Executes the specified linux command on the device shell. 
+	 * Executes the specified linux command on the device shell.
 	 * 
-	 * @param shellCommand A linux native shell command.
+	 * @param shellCommand
+	 *            A linux native shell command.
 	 * 
 	 * @return The output from the linux native shell command.
 	 */
@@ -204,20 +222,20 @@ public class AROCollectorUtils {
 			final StringBuilder sbread = new StringBuilder();
 			final Thread tout = new Thread(new Runnable() {
 				public void run() {
-					BufferedReader bufferedReader = new BufferedReader(
-							new InputStreamReader(m_process.getInputStream()),8192);
+					BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(
+							m_process.getInputStream()), 8192);
 					String ls_1 = null;
 					try {
 						while ((ls_1 = bufferedReader.readLine()) != null) {
 							sbread.append(ls_1).append("\n");
 						}
 					} catch (IOException e) {
-						Log.e(TAG,"IOException in runCommand"+e);
+						Log.e(TAG, "IOException in runCommand" + e);
 					} finally {
 						try {
 							bufferedReader.close();
 						} catch (IOException e) {
-							Log.e(TAG,"Exception in runCommand bufferedReader.close()"+e);
+							Log.e(TAG, "Exception in runCommand bufferedReader.close()" + e);
 						}
 					}
 				}
@@ -226,21 +244,20 @@ public class AROCollectorUtils {
 			final StringBuilder sberr = new StringBuilder();
 			final Thread terr = new Thread(new Runnable() {
 				public void run() {
-					final BufferedReader bufferedReader = new BufferedReader(
-							new InputStreamReader(m_process.getErrorStream()),
-							8192);
+					final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(
+							m_process.getErrorStream()), 8192);
 					String ls_1 = null;
 					try {
 						while ((ls_1 = bufferedReader.readLine()) != null) {
 							sberr.append(ls_1).append("\n");
 						}
 					} catch (IOException e) {
-						Log.e(TAG,"Exception in runCommand"+e);
+						Log.e(TAG, "Exception in runCommand" + e);
 					} finally {
 						try {
 							bufferedReader.close();
 						} catch (IOException e) {
-							Log.e(TAG,"Exception in runCommand bufferedReader.close()"+e);
+							Log.e(TAG, "Exception in runCommand bufferedReader.close()" + e);
 						}
 					}
 				}
@@ -255,35 +272,26 @@ public class AROCollectorUtils {
 			stderr = sberr.toString();
 			sRet = stdout + stderr;
 		} catch (java.io.IOException ee) {
-			Log.e(TAG,"Exception in runCommand"+ee);
+			Log.e(TAG, "Exception in runCommand" + ee);
 			return null;
 		} catch (InterruptedException ie) {
-			Log.e(TAG,"Exception in runCommand"+ie);
+			Log.e(TAG, "Exception in runCommand" + ie);
 			return null;
-		} 
+		}
 		return sRet;
 	}
 
-	/**
-	 * Gets the process ID for the specified process name.
-	 * 
-	 * @param processName The name of the process.
-	 * 
-	 * @return The process ID.
-	 * @throws java.io.IOException 
-	 * @throws java.lang.InterruptedException 
-	 * @throws java.lang.IndexOutOfBoundsException
-	 */
-	public int getProcessID(String processName) throws IOException,IndexOutOfBoundsException,
-			InterruptedException {
-		
+	private String executePS(String processName) throws IOException, InterruptedException {
+		if (DEBUG) {
+			Log.d(TAG, "entered ps...");
+		}
+
 		final Process process = Runtime.getRuntime().exec("ps " + processName);
-		final InputStreamReader inputStream = new InputStreamReader(
-				process.getInputStream());
+		final InputStreamReader inputStream = new InputStreamReader(process.getInputStream());
 		final BufferedReader reader = new BufferedReader(inputStream);
 		try {
 			String line = null;
-			int pid = 0;
+
 			int read;
 			final char[] buffer = new char[4096];
 			final StringBuffer output = new StringBuffer();
@@ -294,25 +302,155 @@ public class AROCollectorUtils {
 			process.waitFor();
 			process.destroy();
 			line = output.toString();
-			String[] values = line.split("\\n");
-			line = null;
-			line = values[1];
-			values = line.split(" ");
-			for (int i = 1; i < values.length; i++) {
-				if (values[i].length() > 0) {
-					String temp = null;
-					temp = values[i];
-					pid = Integer.valueOf(temp);
-					return pid;
-				}
-			}
-			return pid;
+			return line;
 		} finally {
 			reader.close();
 			inputStream.close();
 			reader.close();
+			if (DEBUG) {
+				Log.d(TAG, "exiting ps...");
+			}
 		}
 	}
+
+	/**
+	 * Gets the process ID for the specified process name.
+	 * 
+	 * @param processName
+	 *            The name of the process.
+	 * 
+	 * @return The process ID.
+	 * @throws java.io.IOException
+	 * @throws java.lang.InterruptedException
+	 * @throws java.lang.IndexOutOfBoundsException
+	 */
+	public int getProcessID(String processName) throws IOException, InterruptedException {
+		String line = null;
+		int pid = 0; // default
+		line = executePS(processName);
+		String[] rows = line.split("\\n");
+		if (DEBUG) {
+			for (int rowNum = 0; rowNum < rows.length; rowNum++) {
+				Log.d(TAG, "values row " + rowNum + ": " + ">>>" + rows[rowNum] + "<<<");
+			}
+		}
+		if (rows[0].startsWith("USER")) {
+			if (DEBUG) {
+				Log.d(TAG, "PID should be in 2nd column in single row retrieved");
+			}
+			for (int rowNum = 1; rowNum < rows.length; rowNum++) {
+				String row = rows[rowNum];
+				String[] values_item = row.split("\\s+");
+
+				if (DEBUG) {
+					for (int itemNum = 0; itemNum < values_item.length; itemNum++) {
+						Log.d(TAG, "item " + itemNum + ": " + ">>>" + values_item[itemNum] + "<<<");
+					}
+				}
+				// expects second column is PID
+				// for (int itemNum = 1; itemNum < values_item.length;
+				// itemNum++) {
+				int itemNum = 1; // second column contains PID
+				if (values_item[itemNum].length() > 0) {
+					String temp = null;
+					temp = values_item[itemNum];
+					try {
+						pid = Integer.valueOf(temp);
+					} catch (NumberFormatException nfe) {
+						Log.e(TAG, nfe.getClass().getName() + " thrown trying to parse PID");
+						// will allow to return default PID of 0
+					}
+					// also check process code status
+					itemNum = 7; // eighth column contains process state code;
+									// do not want Z
+					if (values_item[itemNum].equals("Z")) {
+						continue;// look in next row
+					}
+					if (DEBUG) {
+						Log.d(TAG, "header column: " + itemNum + ">>PID returned: " + pid);
+					}
+				}
+				// }
+				return pid;
+			}
+			if (DEBUG) {
+				Log.d(TAG, "exiting if USER block with PID (without finding one): " + pid);
+			}
+		} else {
+			if (DEBUG) {
+				Log.d(TAG, "entered else-issuing ps command by itself");
+			}
+
+			line = executePS("");
+
+			rows = line.split("\\n");
+
+			if (rows != null && (rows.length > 1)) {
+				int column_num = -1; // default
+				for (int itemNumPS = 0; itemNumPS < rows.length; itemNumPS++) {
+					String row = rows[itemNumPS];
+					if (DEBUG) {
+						Log.d(TAG, "row " + itemNumPS + ": " + ">>>" + row + "<<<");
+					}
+
+					String[] value_item = row.split("\\s+"); // assumption on ps
+																// command:
+																// processname
+																// is last row,
+																// so even split
+																// by space will
+																// return
+																// correct item
+					// expect 1st row to return column header names; find column
+					// with "PID"
+					if (itemNumPS == 0) {
+						if (DEBUG) {
+							Log.d(TAG, "header row...");
+						}
+						for (int headerItemNum = 0; headerItemNum < value_item.length; headerItemNum++) {
+							Log.d(TAG, "header item " + headerItemNum + "="
+									+ value_item[headerItemNum]);
+
+							if (value_item[headerItemNum].equalsIgnoreCase("PID")) {
+								column_num = headerItemNum;
+								if (DEBUG) {
+									Log.d(TAG, "[zero-based] column number containing PID: "
+											+ column_num);
+								}
+								break;
+							}
+						}
+					} else {
+						if (DEBUG) {
+							Log.d(TAG, "rows of processes...");
+						}
+						for (int processRowNum = 0; processRowNum < value_item.length; processRowNum++) {
+							Log.d(TAG, "process row entry " + processRowNum + "= "
+									+ value_item[processRowNum]);
+							if (value_item[processRowNum].contains(processName)) {
+								pid = Integer.valueOf(value_item[column_num]);
+								if (DEBUG) {
+									// returns 1st match
+									Log.d(TAG, "for process " + processName + " found PID: " + pid);
+								}
+								return pid;
+							}
+						}
+					}
+				}
+			} else {
+				if (DEBUG) {
+					// pid is still equal to 0; nothing else to do but log
+					Log.d(TAG, "values.length: " + rows.length + "-PID: " + pid);
+				}
+			}
+		}
+		if (DEBUG) {
+			Log.d(TAG, "exiting getProcessID()-returning PID: " + pid);
+		}
+		return pid;
+	}
+
 	/**
 	 * Gets the default ARO trace folder name in the HH:MM:SS:DD:MM:YY format.
 	 * 
@@ -356,28 +494,29 @@ public class AROCollectorUtils {
 			currentSeconds = "";
 			currentSeconds = "0" + currentseconds;
 		}
-		final String folderName = now.get(Calendar.YEAR) + "-" + currentMonth + "-"
-				+ currentDate + "-" + currentHours + "-" + currentMinutes + "-"
-				+ currentSeconds;
-		
+		final String folderName = now.get(Calendar.YEAR) + "-" + currentMonth + "-" + currentDate
+				+ "-" + currentHours + "-" + currentMinutes + "-" + currentSeconds;
+
 		return folderName;
 	}
 
 	/**
-	 * Retrieves overall information about the specified application package 
+	 * Retrieves overall information about the specified application package
 	 * 
-	 * @param pm The package manager instance. 
-	 * @param name The package name.
+	 * @param pm
+	 *            The package manager instance.
+	 * @param name
+	 *            The package name.
 	 * 
-	 * @return Returns information about the package or null if the package could not be successfully parsed.
-
+	 * @return Returns information about the package or null if the package
+	 *         could not be successfully parsed.
 	 */
 	public static PackageInfo getPackageInfo(PackageManager pm, String name) {
 		PackageInfo ret = null;
 		try {
 			ret = pm.getPackageInfo(name, PackageManager.GET_ACTIVITIES);
 		} catch (NameNotFoundException e) {
-			Log.e(TAG,"Exception in getPackageInfo"+e);
+			Log.e(TAG, "Exception in getPackageInfo" + e);
 		}
 		return ret;
 	}
@@ -385,7 +524,8 @@ public class AROCollectorUtils {
 	/**
 	 * Reverts the specified source string.
 	 * 
-	 * @param from The source string.
+	 * @param from
+	 *            The source string.
 	 * @return The reverted string.
 	 */
 	public static String revert(String from) {
@@ -399,36 +539,38 @@ public class AROCollectorUtils {
 		return sb.toString();
 	}
 
-
-	
 	/**
 	 * Parses the integer value of the specified object.
 	 * 
-	 * @param s The source object.
+	 * @param s
+	 *            The source object.
 	 * @return An integer value parsed from the specified object.
 	 */
 	public static int parseInt(Object s) {
 		return parseInt(s == null ? null : s.toString(), 0);
 	}
 
-	
 	/**
 	 * Parses the integer value of the specified string.
 	 * 
-	 * @param s The string value to parse.
-	 * @param iDefault A default integer value.
+	 * @param s
+	 *            The string value to parse.
+	 * @param iDefault
+	 *            A default integer value.
 	 * 
 	 * @return An integer value parsed from the specified string.
 	 */
 	public static int parseInt(String s, int iDefault) {
 		return (int) parseLong(s, iDefault);
 	}
-	
+
 	/**
 	 * Parses the long value of the specified string.
 	 * 
-	 * @param s The string value to parse.
-	 * @param iDefault A default long value. 
+	 * @param s
+	 *            The string value to parse.
+	 * @param iDefault
+	 *            A default long value.
 	 * @return A long value parsed from the specified string.
 	 */
 	public static long parseLong(String s, long iDefault) {
@@ -444,38 +586,40 @@ public class AROCollectorUtils {
 			return iDefault;
 		}
 	}
-	
 
 	/**
-	 * Returns the IP Address of the device during the trace cycle when it is connected to the network.
+	 * Returns the IP Address of the device during the trace cycle when it is
+	 * connected to the network.
 	 * 
 	 * @return The IP Address of the device.
 	 * 
-	 * @throws java.net.SocketException 
+	 * @throws java.net.SocketException
 	 */
 	public String getLocalIpAddress() throws SocketException {
-			for (final Enumeration<NetworkInterface> en = NetworkInterface
-					.getNetworkInterfaces(); en.hasMoreElements();) {
-				final NetworkInterface intf = en.nextElement();
-				for (final Enumeration<InetAddress> enumIpAddr = intf
-						.getInetAddresses(); enumIpAddr.hasMoreElements();) {
-					final InetAddress inetAddress = enumIpAddr.nextElement();
-					if (!inetAddress.isLoopbackAddress()) {
-						return inetAddress.getHostAddress();
-					}
+		for (final Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en
+				.hasMoreElements();) {
+			final NetworkInterface intf = en.nextElement();
+			for (final Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr
+					.hasMoreElements();) {
+				final InetAddress inetAddress = enumIpAddr.nextElement();
+				if (!inetAddress.isLoopbackAddress()) {
+					return inetAddress.getHostAddress();
 				}
 			}
+		}
 		return null;
 	}
-	
+
 	/**
-	 * Deletes the specified trace folder. 
+	 * Deletes the specified trace folder.
 	 * 
-	 * @param tracefoldername The name of the trace folder to be deleted.
-	 * @return A boolean value that is "true" if the trace folder was successfully deleted and "false" if it was not.
+	 * @param tracefoldername
+	 *            The name of the trace folder to be deleted.
+	 * @return A boolean value that is "true" if the trace folder was
+	 *         successfully deleted and "false" if it was not.
 	 */
 	public boolean deleteTraceFolder(File tracefoldername) {
-		
+
 		if (tracefoldername.isDirectory()) {
 			final String[] children = tracefoldername.list();
 			for (int i = 0; i < children.length; i++) {
@@ -487,25 +631,28 @@ public class AROCollectorUtils {
 		// The directory is now empty so delete it
 		return tracefoldername.delete();
 	}
+
 	/**
-	 * Returns the amount of available memory left on the device SD Card (in bytes).
+	 * Returns the amount of available memory left on the device SD Card (in
+	 * bytes).
 	 */
 	public long checkSDCardMemoryAvailable() {
-	    final StatFs stat = new StatFs(Environment.getExternalStorageDirectory().getPath());
-	    final long bytesAvailable = (long)stat.getBlockSize() * (long)stat.getAvailableBlocks();
-	    final long kbsAvailable = bytesAvailable /1024;
-	   // float megAvailable =  (long) (bytesAvailable / (1024.f * 1024.f));
-	    return kbsAvailable;
+		final StatFs stat = new StatFs(Environment.getExternalStorageDirectory().getPath());
+		final long bytesAvailable = (long) stat.getBlockSize() * (long) stat.getAvailableBlocks();
+		final long kbsAvailable = bytesAvailable / 1024;
+		// float megAvailable = (long) (bytesAvailable / (1024.f * 1024.f));
+		return kbsAvailable;
 	}
-	
+
 	/**
-	 * Opens the http connection to http://www.google.com/, and enables the network data packet.
+	 * Opens the http connection to http://www.google.com/, and enables the
+	 * network data packet.
 	 * 
-	 * @throws java.io.IOException 
-	 * @throws ClientProtocolException 
+	 * @throws java.io.IOException
+	 * @throws ClientProtocolException
 	 */
-	public void OpenHttpConnection() throws ClientProtocolException,IOException {
-		
+	public void OpenHttpConnection() throws ClientProtocolException, IOException {
+
 		final String strUrl = "http://www.google.com";
 		final int timeoutConnection = 15000;
 		final int timeoutSocket = 15000;
@@ -515,18 +662,18 @@ public class AROCollectorUtils {
 		HttpClient client = null;
 		HttpResponse response = null;
 		HttpParams httpParameters = new BasicHttpParams();
-		HttpConnectionParams.setConnectionTimeout(httpParameters,timeoutConnection);
+		HttpConnectionParams.setConnectionTimeout(httpParameters, timeoutConnection);
 		HttpConnectionParams.setSoTimeout(httpParameters, timeoutSocket);
 		client = new DefaultHttpClient(httpParameters);
 		HttpPost post = new HttpPost(strUrl);
 		try {
 			// add headers
-			post.addHeader("Content-Type","application/x-www-form-urlencoded; charset=utf-8");
+			post.addHeader("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
 			post.addHeader("Cache-Control", "no-cache");
 			post.addHeader("Pragma", "no-cache");
 			response = client.execute(post);
 			in = response.getEntity().getContent();
-			inputstreamReader =new InputStreamReader(in);
+			inputstreamReader = new InputStreamReader(in);
 			reader = new BufferedReader(inputstreamReader);
 			final StringBuilder builder = new StringBuilder();
 			String line = null;

@@ -27,10 +27,12 @@
 	<string name="aro_failedstart">ARO Data Collector failed to start!</string>
 	<string name="aro_stopped">ARO Data Collector trace collection stopped.</string>
 	<string name="aro_flightmodeerror">ARO Data Collector trace session can\'t be started on flight mode.</string>
+	<string name="aro_wifi_mobile_both_off_error">ARO Data Collector trace session can\'t be started with both wifi and mobile turned off.</string>
 	<string name="aro_sdcarderror">SD Card memory full, stopping ARO Data Collector. </string>
 	<string name="aro_spcharerror">Trace folder name should not have special characters or space. </string>
 	<string name="aro_tracefolderexists">Trace folder already exists ! Do you want to overwrite traces ?</string>
 	<string name="aro_bearerchangeerror">ARO Data Collector trace session terminated. Changing network type automatically terminates trace session.</string>
+	<string name="aro_wifi_lost_error">WIFI Signal Lost.  Change of network type automatically terminates trace session.</string>
 	<!--  Button Text -->
 	<string name="aro_oktext">Ok</string>
 	<string name="aro_yestext">Yes</string>

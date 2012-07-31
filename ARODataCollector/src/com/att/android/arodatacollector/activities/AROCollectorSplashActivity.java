@@ -13,8 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-
 package com.att.android.arodatacollector.activities;
 
 import com.att.android.arodatacollector.R;
@@ -103,10 +101,9 @@ public class AROCollectorSplashActivity extends Activity {
 				if (!mAbortSplash) {
 					Log.i(TAG, "splash screen touched");
 					if (mInitialized) {
-						Log.i(TAG, " initialize complete - will abort");
+						Log.i(TAG, "Initialize complete - will abort");
 					} else {
-						Log.i(TAG,
-								" initialize still running - will abort when complete");
+						Log.i(TAG, "Initialize still running - will abort when complete");
 					}
 					mAbortSplash = true;
 					mMutex.notify();
@@ -140,30 +137,22 @@ public class AROCollectorSplashActivity extends Activity {
 		// like height,width
 		Display mScreenDisplay;
 		super.onCreate(savedInstanceState);
+		if (AROCollectorService.getServiceObj() != null) {
+			startAROHomeActivity();
+			return;
+		}
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
 				WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		mApp = (ARODataCollector) getApplication();
 		mScreenDisplay = getWindowManager().getDefaultDisplay();
-		if (AROCollectorService.getServiceObj() != null) {
-			startAROHomeActivity();
-			return;
-		}
+		
 		setContentView(R.layout.splash);
 		final TextView version = (TextView) findViewById(R.id.version);
 		version.setText("Version " + mApp.getVersion());
-		if (mScreenDisplay.getHeight() < SCREEN_HEIGHT_TOADJUST) { // TO Do :
-																	// For the
-																	// splash
-																	// screen
-																	// text
-																	// message
-																	// on lower
-																	// screen
-																	// size
+		if (mScreenDisplay.getHeight() < SCREEN_HEIGHT_TOADJUST) {
 			final TextView SplashMessage = (TextView) findViewById(R.id.splash_message);
-			final String splashmessagestring = SplashMessage.getText()
-					.toString();
+			final String splashmessagestring = SplashMessage.getText().toString();
 			if ((splashmessagestring.startsWith("Do"))) {
 				final LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
 						LinearLayout.LayoutParams.FILL_PARENT,
@@ -274,7 +263,6 @@ public class AROCollectorSplashActivity extends Activity {
 	private void startMainActivity() {
 		final Intent splashScreenIntent = new Intent(getBaseContext(),
 				AROCollectorMainActivity.class);
-
 		// Generic Error ID number 100 passed as an argument to navigate to Main
 		// Screen without any dialog
 		splashScreenIntent.putExtra(ARODataCollector.ERRODIALOGID, 100);
@@ -289,8 +277,8 @@ public class AROCollectorSplashActivity extends Activity {
 	 */
 	private void startAROHomeActivity() {
 		// Close the current splash activity
-		finish();
 		startActivity(new Intent(this, AROCollectorHomeActivity.class));
+		finish();
 	}
 
 }

@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-
-
 package com.att.android.arodatacollector.main;
 
 import java.util.List;
@@ -25,39 +23,45 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 
 /**
- * Represents a package of application information for the ARO Data Collector task killer.
+ * Represents a package of application information for the ARO Data Collector
+ * task killer.
  */
 
 public class AROCollectorTaskManagerPackagesInfo {
-	
-	/** ApplicationInfo applist */
-    private List<ApplicationInfo> appList;
 
-    /**
-     * Initializes a new instance of the AROCollectorTaskManagerPackagesInfo object for the specified application context.
-     * @param ctx The application context.
-     */
-    public AROCollectorTaskManagerPackagesInfo(Context ctx) {
-        final PackageManager pm = ctx.getApplicationContext().getPackageManager();
-        appList = pm.getInstalledApplications(PackageManager.GET_UNINSTALLED_PACKAGES);
-    }
-    
-    /**
-     * Gets the application information for the specified package name.
-     * 
-     * @param name The name of the application information package.
-     * @return An ApplicationInfo object containing the application information for the package.
-     */
-    public ApplicationInfo getInfo(String name) {
-        if (name == null) {
-            return null;
-        }
-        for (ApplicationInfo appinfo : appList) {
-            if (name.equals(appinfo.processName)) {
-                return appinfo;
-            }
-        }
-        return null;
-    }
+	/** ApplicationInfo applist */
+	private List<ApplicationInfo> appList;
+
+	/**
+	 * Initializes a new instance of the AROCollectorTaskManagerPackagesInfo
+	 * object for the specified application context.
+	 * 
+	 * @param ctx
+	 *            The application context.
+	 */
+	public AROCollectorTaskManagerPackagesInfo(Context ctx) {
+		final PackageManager pm = ctx.getApplicationContext().getPackageManager();
+		appList = pm.getInstalledApplications(PackageManager.GET_UNINSTALLED_PACKAGES);
+	}
+
+	/**
+	 * Gets the application information for the specified package name.
+	 * 
+	 * @param name
+	 *            The name of the application information package.
+	 * @return An ApplicationInfo object containing the application information
+	 *         for the package.
+	 */
+	public ApplicationInfo getInfo(String name) {
+		if (name == null) {
+			return null;
+		}
+		for (ApplicationInfo appinfo : appList) {
+			if (name.equals(appinfo.processName)) {
+				return appinfo;
+			}
+		}
+		return null;
+	}
 
 }

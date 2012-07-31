@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-
-
 package com.att.android.arodatacollector.activities;
 
 import java.util.ArrayList;
@@ -70,7 +68,7 @@ public class AROCollectorTaskManagerActivity extends Activity {
 	 * A boolean value that indicates whether or not to enable logging for this
 	 * class in a debug build of the ARO Data Collector.
 	 */
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 
 	/**
 	 * AROCollectorTaskManagerProcessInfo object to holds the Task Manager
@@ -111,20 +109,16 @@ public class AROCollectorTaskManagerActivity extends Activity {
 	/** List of default package name to be excluded from Task Manager listings **/
 	private String m_AROTasksFilter[] = { "system", "com.android.phone",
 			"com.android.inputmethod.latin", "com.sec.android.app.callsetting",
-			"com.sec.android.app.twlauncher",
-			"com.sec.android.inputmethod.axt9", "android.process.acore",
-			"com.sec.android.app.controlpanel", "com.android.settings",
-			"com.tecace.tetheringmanager",
-			"com.google.android.googlequicksearchbox", "com.svox.pico",
-			"com.sec.android.providers.drm", "com.smlds", "com.wssyncmldm",
-			"com.sec.android.app.dialertab", "com.jungle.app.fonts",
-			"com.noshufou.android.su", "com.nuance.android.vsuite.vsuiteapp",
-			"sys.DeviceHealth", "com.rxnetworks.pgpsdownloader",
-			"com.google.android.partnersetup", "com.google.android.location",
-			"com.google.android.gsf", "com.fd.httpd",
-			"com.matchboxmobile.wisp", "com.smithmicro.DM",
-			"de.emsys.usbmode.service", "com.lge", "com.htc", "com.motorola",
-			"com.smithmicro.DM", "com.pv", };
+			"com.sec.android.app.twlauncher", "com.sec.android.inputmethod.axt9",
+			"android.process.acore", "com.sec.android.app.controlpanel", "com.android.settings",
+			"com.tecace.tetheringmanager", "com.google.android.googlequicksearchbox",
+			"com.svox.pico", "com.sec.android.providers.drm", "com.smlds", "com.wssyncmldm",
+			"com.sec.android.app.dialertab", "com.jungle.app.fonts", "com.noshufou.android.su",
+			"com.nuance.android.vsuite.vsuiteapp", "sys.DeviceHealth",
+			"com.rxnetworks.pgpsdownloader", "com.google.android.partnersetup",
+			"com.google.android.location", "com.google.android.gsf", "com.fd.httpd",
+			"com.matchboxmobile.wisp", "com.smithmicro.DM", "de.emsys.usbmode.service", "com.lge",
+			"com.htc", "com.motorola", "com.smithmicro.DM", "com.pv", };
 
 	/**
 	 * onCreate
@@ -194,11 +188,9 @@ public class AROCollectorTaskManagerActivity extends Activity {
 	 */
 	private void selectTaskstobeKilled(boolean selectvalue) {
 		final ListView taskManagerList = getListView();
-		final RelativeLayout firstItem = (RelativeLayout) taskManagerList
-				.getChildAt(0);
+		final RelativeLayout firstItem = (RelativeLayout) taskManagerList.getChildAt(0);
 		boolean currentTask = true;
-		final TextView taskName = (TextView) firstItem
-				.findViewById(R.id.task_name);
+		final TextView taskName = (TextView) firstItem.findViewById(R.id.task_name);
 		// Checking if the first index is current application
 		if (taskName.getText().toString().contains("ARO")) {
 			currentTask = true;
@@ -219,8 +211,7 @@ public class AROCollectorTaskManagerActivity extends Activity {
 				detailProcessesList.get(index).setSelected(selectvalue);
 				final RelativeLayout itemLayout = (RelativeLayout) taskManagerList
 						.getChildAt(index);
-				final CheckBox selectTask = (CheckBox) itemLayout
-						.findViewById(R.id.task_select);
+				final CheckBox selectTask = (CheckBox) itemLayout.findViewById(R.id.task_select);
 				selectTask.setChecked(selectvalue);
 			}
 			for (int indextokill = 0; indextokill < detailProcessesList.size(); indextokill++) { // for
@@ -234,8 +225,7 @@ public class AROCollectorTaskManagerActivity extends Activity {
 																									// index++)
 				if (!detailProcessesList.get(indextokill).getPackageName()
 						.equalsIgnoreCase(this.getPackageName())) {
-					detailProcessesList.get(indextokill).setSelected(
-							selectvalue);
+					detailProcessesList.get(indextokill).setSelected(selectvalue);
 				}
 			}
 		}
@@ -291,8 +281,7 @@ public class AROCollectorTaskManagerActivity extends Activity {
 	 */
 	private void getRunningProcess() {
 		String test[] = new String[100];
-		final List<RunningAppProcessInfo> list2 = aroActivityManager
-				.getRunningAppProcesses();
+		final List<RunningAppProcessInfo> list2 = aroActivityManager.getRunningAppProcesses();
 		detailProcessesList = new ArrayList<AROCollectorTaskManagerDetailProcess>();
 		for (RunningAppProcessInfo ti : list2) {
 			for (int j = 0; j < m_AROTasksFilter.length; j++) {
@@ -314,8 +303,7 @@ public class AROCollectorTaskManagerActivity extends Activity {
 				dp.fetchPackageInfo();
 				dp.fetchPsRow(aROCollectorTaskManagerProcessInfo);
 				if (dp.isGoodProcess()) {
-					if (dp.getPackageName().equalsIgnoreCase(
-							this.getPackageName())) {
+					if (dp.getPackageName().equalsIgnoreCase(this.getPackageName())) {
 						dp.setCurrentApplication(true);
 					} else {
 						dp.setCurrentApplication(false);
@@ -323,15 +311,11 @@ public class AROCollectorTaskManagerActivity extends Activity {
 					// ignoring Google Framework Services and keyboard tasks
 					// from OEM
 					// TODO : Need to re-visit this
-					if (!dp.getPackageName().equalsIgnoreCase(
-							"com.google.android.gsf")
-							&& !dp.getPackageName().equalsIgnoreCase(
-									"com.google.android.location")) {
+					if (!dp.getPackageName().equalsIgnoreCase("com.google.android.gsf")
+							&& !dp.getPackageName().equalsIgnoreCase("com.google.android.location")) {
 						detailProcessesList.add(dp);
 						if (DEBUG) {
-							Log.i(TAG,
-									"Task Manager Tasks added:"
-											+ dp.getPackageName());
+							Log.i(TAG, "Task Manager Tasks added:" + dp.getPackageName());
 						}
 					}
 				}
@@ -350,10 +334,8 @@ public class AROCollectorTaskManagerActivity extends Activity {
 	private class LoadFinishReceiver extends BroadcastReceiver {
 		@Override
 		public void onReceive(final Context ctx, Intent intent) {
-			AROCollectorTaskManagerActivity.this
-					.setProgressBarIndeterminateVisibility(false);
-			AROCollectorTaskManagerActivity.this.getListView().setAdapter(
-					tasksAdapter);
+			AROCollectorTaskManagerActivity.this.setProgressBarIndeterminateVisibility(false);
+			AROCollectorTaskManagerActivity.this.getListView().setAdapter(tasksAdapter);
 		}
 	}
 

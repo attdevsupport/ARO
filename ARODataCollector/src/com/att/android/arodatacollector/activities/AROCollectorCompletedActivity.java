@@ -13,15 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-
-
 package com.att.android.arodatacollector.activities;
 
 import java.io.IOException;
 
 import com.att.android.arodatacollector.R;
-import com.att.android.arodatacollector.main.AROCollectorService;
 import com.att.android.arodatacollector.main.ARODataCollector;
 
 import android.app.Activity;
@@ -37,7 +33,7 @@ import android.widget.TextView;
 /**
  * Represents the Trace Completed screen of the ARO Data Collector, which
  * displays a summary of trace collection details. The summary includes the
- * duraction of the trace and the location of the trace files.
+ * duration of the trace and the location of the trace files.
  */
 
 public class AROCollectorCompletedActivity extends Activity {
@@ -49,7 +45,7 @@ public class AROCollectorCompletedActivity extends Activity {
 	 * The boolean value to enable logs depending on if production build or
 	 * debug build
 	 */
-	private static boolean mIsProduction = false;
+	private static boolean mIsProduction = true;
 
 	/**
 	 * A boolean value that indicates whether or not to enable logging for this
@@ -108,14 +104,12 @@ public class AROCollectorCompletedActivity extends Activity {
 		} catch (IOException e) {
 			// TODO: Setting default value for application up time and notify
 			// user
-			Log.e(TAG,
-					"exception in readPcapStartEndTime. Could not read trace start time",
-					e);
+			Log.e(TAG, "exception in readPcapStartEndTime. Could not read trace start time", e);
 		}
 		traceSummaryOKButton = (Button) findViewById(R.id.datasummaryok);
-		tracePath.setText(ARODataCollector.ARO_TRACE_ROOTDIR
-				+ mApp.getDumpTraceFolderName());
-		if ((mApp.getCollectVideoOption() && !mApp.isVideoFileExisting()) || mApp.getVideoCaptureFailed()) {
+		tracePath.setText(ARODataCollector.ARO_TRACE_ROOTDIR + mApp.getDumpTraceFolderName());
+		if ((mApp.getCollectVideoOption() && !mApp.isVideoFileExisting())
+				|| mApp.getVideoCaptureFailed()) {
 			videotrace.setText(getResources().getText(R.string.aro_failedvideo));
 		} else if (mApp.getCollectVideoOption()) {
 			videotrace.setText(getResources().getText(R.string.aro_yestext));
@@ -129,10 +123,7 @@ public class AROCollectorCompletedActivity extends Activity {
 	 * Starts the Data Collector Main Activity page
 	 */
 	private void startAROMainActivity() {
-		final Intent splashScreenIntent = new Intent(getBaseContext(),
-				AROCollectorMainActivity.class);
-		stopService(new Intent(getApplicationContext(),
-				AROCollectorService.class));
+		final Intent splashScreenIntent = new Intent(getBaseContext(), AROCollectorMainActivity.class);
 		// Generic Error ID number 100 passed as an argument to navigate to Main
 		// Screen without any dialog
 		splashScreenIntent.putExtra(ARODataCollector.ERRODIALOGID, 100);
@@ -182,6 +173,11 @@ public class AROCollectorCompletedActivity extends Activity {
 		traceduration.setText((appUpHours < 10 ? "0" : "") + appUpHours + ":"
 				+ (appUpMinutes < 10 ? "0" : "") + appUpMinutes + ":"
 				+ (appUpSeconds < 10 ? "0" : "") + appUpSeconds);
+		if (DEBUG) {
+			Log.i(TAG, "DataCollector up time=" + (appUpHours < 10 ? "0" : "") + appUpHours + ":"
+					+ (appUpMinutes < 10 ? "0" : "") + appUpMinutes + ":"
+					+ (appUpSeconds < 10 ? "0" : "") + appUpSeconds);
+		}
 
 	}
 

@@ -12,6 +12,7 @@
 #include "socket_server.h"
 
 extern int exitFlag;
+extern int bearerChangedvalue;
 
 void socket_error(const char *msg) {
 	perror(msg);
@@ -46,9 +47,15 @@ void* start_server_socket(void *arg) {
 	while (1) {
 		printf(" inside tcpdump server socket \n");
 		newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-		if (newsockfd < 0) {
-			__android_log_print(ANDROID_LOG_INFO, "TcpdumpSocket","Error in accept");
-			socket_error("Error in accept");
+		if (-1 == newsockfd) {
+			if (bearerChangedvalue > 0) {
+				/* Restart accept to try bearer change on socket */
+				continue; 
+			} 
+			else {
+				__android_log_print(ANDROID_LOG_INFO, "TcpdumpSocket","Error in accept");
+				socket_error("Error in accept Socket_server");
+			}
 		} else {
 			__android_log_print(ANDROID_LOG_INFO, "TcpdumpSocket","dostuff");
 			dostuff(newsockfd);
@@ -78,8 +85,6 @@ void dostuff(int sock) {
 		__android_log_print(ANDROID_LOG_INFO, "ERROR: writing message to socket","TCPDUMP STOP MESSAGE");
 	}
 	exitFlag = 4;
-	printf("\n exitFlag Value= %d ", exitFlag);
-	__android_log_print(ANDROID_LOG_DEBUG, "TcpdumpSocket", "Stop Recived");
 	__android_log_print(ANDROID_LOG_INFO, "TcpdumpSocket", "Stop Recieved: exitFlag Value = %d", exitFlag);
 
 }
