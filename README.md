@@ -60,16 +60,18 @@ Contact Us:  http://developer.att.com/developer/contact_us.jsp
 
 
 **Version:**  
-ARO Data Collector 1.3.0  
-ARO Data Analyzer  1.3.0
+ARO Data Collector 1.4.0  
+ARO Data Analyzer  1.4.0
 
 **New Features:**  
-In this release of ARO, support for collecting, analyzing and displaying trace data from LTE devices has been added. The ARO Data Analyzer has added new ways of filtering data, so that you can now view analysis for individual applications, individual IP addresses, and for a specific time range. The ARO Data Analyzer has also added a Best Practice test for screen rotation, new tables for detailed Burst analysis, and new data and statistics have been added to existing tables. 
+In this release of ARO, a WiFi device profile has been added to the ARO Data Analyzer that allows you to analyze trace data based on the WiFi energy model. Also, the ARO Data Analyzer can now analyze trace files that have been collected using the Microsoft Network Monitor.
 
 **Known Issues:**  
-This release contains the following known issue:  
 
-+  When running a trace on the Emulator using the ARO Data Collector through the ARO Data Analyzer, there have been a few cases of unexpected exceptions if the ADB daemon stops running. In these cases, the trace collection has stopped without saving the trace data.
++  When running AT&T ARO for the first time on a new machine, you must select a device profile by opening the Profile menu, selecting Load, and choosing a pre-defined profile from the Select Device Profile dialog box.
++  To analyze a trace file in the ARO Data Analyzer that was collected using Microsoft Network Monitor, you must have Microsoft Network Monitor installed on the same machine.
+
+Note:  All known issues from previous releases have been fixed in this release.
 
 
 ##Documentation:
