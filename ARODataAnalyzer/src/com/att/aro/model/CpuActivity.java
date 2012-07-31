@@ -59,9 +59,9 @@ public class CpuActivity {
 	}
 
 	/**
-	 * Sets the CPU timestamp to the specified value. 
+	 * Sets the start timestamp for the cpu event. 
 	 * 
-	 * @param timestamp - A double that specifies the CPU timestamp.
+	 * @param beginTimeStamp - The start timestamp.
 	 */
 	public void setCpuBeginTimeStamp(double beginTimeStamp) {
 		this.beginTimeStamp = beginTimeStamp;

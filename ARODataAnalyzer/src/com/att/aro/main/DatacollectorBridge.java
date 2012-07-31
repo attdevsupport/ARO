@@ -209,7 +209,7 @@ public class DatacollectorBridge {
 	 * ApplicationResourceOptimizer parent instance that is associated with this
 	 * class through the constructor.
 	 * 
-	 * @param tracefoldername
+	 * @param traceFolderName
 	 *            - The name of the folder in which the ARO Data Collector trace
 	 *            files should be stored.
 	 * 
@@ -310,7 +310,7 @@ public class DatacollectorBridge {
 					out.write(traceFolderName);
 					out.close();
 				} catch (Exception e) {// Catch exception if any
-					System.err.println("Could not create temporary file. Error: " + e.getMessage());
+					MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
 				}
 
 				this.progress = new AROProgressDialog(mAROAnalyzer,
@@ -341,7 +341,7 @@ public class DatacollectorBridge {
 								setStatus(Status.READY);
 							}
 						} catch (ExecutionException e) {
-							MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
+							MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.adbcollectorfail"));
 							setStatus(Status.READY);
 						} catch (InterruptedException e) {
 							MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
@@ -389,6 +389,7 @@ public class DatacollectorBridge {
 						stopTcpDump();
 						appendAppVersion();
 					} catch (IOException e) {
+						MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.adbcollectorfail"));
 						logger.log(Level.WARNING, "Unexpected IOException stopping tcpdump", e);
 					}
 					return null;
@@ -415,6 +416,7 @@ public class DatacollectorBridge {
 	 * displayed.
 	 */
 	public synchronized void startPullAROTraceFiles() {
+		logger.severe("status : "+status);
 		if (status == Status.STOPPED) {
 
 			setStatus(Status.PULLING);
@@ -531,14 +533,13 @@ public class DatacollectorBridge {
 							Thread.sleep(1000);
 							removeEmulatorData();
 						}catch (Exception e) {
-							MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
+							logger.log(Level.SEVERE, "Unexpected exception pulling traces", e);
+							MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.adbcollectorfail"));
 						}
 					}
 				}
 			}.execute();
 			// }
-		} else if (status == Status.PULLING) {
-			// Ignore
 		} else {
 			throw new IllegalStateException(rb.getString("Error.datacollectorpull"));
 		}
@@ -792,8 +793,7 @@ public class DatacollectorBridge {
 											mAROAnalyzer, e1);
 									logger.log(Level.SEVERE, "Error starting data collector", e1);
 								} catch (ExecutionException e1) {
-									MessageDialogFactory.showUnexpectedExceptionDialog(
-											mAROAnalyzer, e1);
+									MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.adbcollectorfail"));
 									logger.log(Level.SEVERE, "Error starting data collector", e1);
 								}
 
@@ -1105,9 +1105,11 @@ public class DatacollectorBridge {
 			verCollectingApp.delete();
 		} catch (IOException e1) {
 			String msg = rb.getString("Error.withemulatorioexecution");
+			MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.adbcollectorfail"));
 			logger.log(Level.SEVERE, msg, e1);
 		} catch (InterruptedException e) {
 			String msg = rb.getString("Error.withemulatorioexecution");
+			MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.adbcollectorfail"));
 			logger.log(Level.SEVERE, msg, e);
 		}
 	}

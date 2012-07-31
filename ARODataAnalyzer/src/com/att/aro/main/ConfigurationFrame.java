@@ -146,9 +146,6 @@ public class ConfigurationFrame extends JDialog implements Serializable {
 
 						Profile profile = tableModel.getProfile();
 						aroMain.setProfile(profile);
-						MessageDialogFactory.showMessageDialog(
-								ConfigurationFrame.this,
-								rb.getString("configuration.applied"));
 					} catch (IOException e) {
 						logger.log(Level.SEVERE,
 								"IOException applying profile", e);

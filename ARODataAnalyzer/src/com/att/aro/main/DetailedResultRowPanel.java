@@ -80,7 +80,7 @@ public abstract class DetailedResultRowPanel {
 	 * specified self-test flag, test title, test description, and url for more
 	 * information.
 	 * 
-	 * @param isSelf
+	 * @param isSelfTest
 	 *            – A boolean that indicates whether or not the test is a
 	 *            self-test. A self-test is a test that is not automatically run
 	 *            by the ARO Data Analyzer.

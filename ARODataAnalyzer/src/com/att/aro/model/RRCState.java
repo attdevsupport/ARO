@@ -76,6 +76,11 @@ public enum RRCState {
 	/**
 	 * Long part of LTE tail
 	 */
-	LTE_DRX_LONG;
+	LTE_DRX_LONG,
+
+	// TODO Add comments
+	WIFI_ACTIVE,
+	WIFI_TAIL,
+	WIFI_IDLE
 	
 }

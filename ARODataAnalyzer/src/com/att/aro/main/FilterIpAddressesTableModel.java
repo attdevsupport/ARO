@@ -93,7 +93,7 @@ public class FilterIpAddressesTableModel extends DataTableModel<AppIPAddressSele
 
 	/**
 	 * Constructor that initializes model with filter data from specified analysis.
-	 * @param analysisData The current analysis whose filter will be modified
+	 * @param filter The analysis filter to be applied.
 	 */
 	public FilterIpAddressesTableModel(AnalysisFilter filter) {
 		super(columns);
@@ -188,7 +188,7 @@ public class FilterIpAddressesTableModel extends DataTableModel<AppIPAddressSele
 	/**
 	 * Sets the value of the specified data item.
 	 * 
-	 * @param Value – The value to set for the data item.
+	 * @param aValue – The value to set for the data item.
 	 * 
 	 * @param rowIndex – The row index of the data item.
 	 * 

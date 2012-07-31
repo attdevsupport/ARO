@@ -114,7 +114,7 @@ public class AROAdvancedTabb extends JPanel {
 	/**
 	 * Sets the trace data to be displayed on the Diagnostic tab screen.
 	 * 
-	 * @param traceData
+	 * @param analysisData
 	 *            – The trace analysis data to be displayed.
 	 */
 	public synchronized void setAnalysisData(TraceData.Analysis analysisData) {

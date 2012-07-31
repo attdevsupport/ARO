@@ -121,8 +121,8 @@ public class ApplicationSelection implements Serializable {
 	}
 
 	/**
-	 * Returns all IP address selections for this app
-	 * @return
+	 * Returns all IP address selections for this application.
+	 * @return The collection of ip address selections.
 	 */
 	public Collection<IPAddressSelection> getIPAddressSelections() {
 		return ipAddressSelection.values();

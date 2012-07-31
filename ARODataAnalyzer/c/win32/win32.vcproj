@@ -115,7 +115,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\include;.\WpdPack\Include;C:\Program Files\Java\jdk1.6.0_22\include\win32;C:\Program Files\Java\jdk1.6.0_22\include"
+				AdditionalIncludeDirectories="..\include;.\WpdPack\Include;&quot;C:\Program Files\Java\jdk1.6.0_29\include\win32&quot;;&quot;C:\Program Files\Java\jdk1.6.0_29\include&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;WIN32_EXPORTS"
 				RuntimeLibrary="0"
 				WarningLevel="3"

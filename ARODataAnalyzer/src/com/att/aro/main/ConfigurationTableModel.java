@@ -30,6 +30,7 @@ import com.att.aro.model.Profile3G;
 import com.att.aro.model.ProfileException;
 import com.att.aro.model.ProfileLTE;
 import com.att.aro.model.ProfileType;
+import com.att.aro.model.ProfileWiFi;
 
 /**
  * Represents the data table model for the Configuration dialog.
@@ -89,13 +90,7 @@ public class ConfigurationTableModel extends DataTableModel<ConfigurationData> {
 		this.name = profile.getName();
 		List<ConfigurationData> data = new ArrayList<ConfigurationData>();
 
-		if (profile instanceof Profile3G) {
-			this.profileType = ProfileType.T3G;
-		} else if (profile instanceof ProfileLTE) {
-			this.profileType = ProfileType.LTE;
-		} else {
-			throw new IllegalArgumentException("Invalid Profile type");
-		}
+		this.profileType = profile.getProfileType();
 
 		data.add(new ConfigurationData(rb.getString("configuration.CARRIER"),
 				Profile.CARRIER, profile.getCarrier()));
@@ -274,6 +269,17 @@ public class ConfigurationTableModel extends DataTableModel<ConfigurationData> {
 			data.add(new ConfigurationData(rb
 					.getString("configuration.LTE_BETA"), ProfileLTE.LTE_BETA,
 					Double.toString(profileLte.getLteBeta())));
+		} else if (profile instanceof ProfileWiFi) {
+			ProfileWiFi profileWiFi = (ProfileWiFi)profile;
+			data.add(new ConfigurationData(rb
+					.getString("configuration.WIFI_TAIL_TIME"), ProfileWiFi.WIFI_TAIL_TIME,
+					Double.toString(profileWiFi.getWifiTailTime())));
+			data.add(new ConfigurationData(rb
+					.getString("configuration.POWER_WIFI_ACTIVE"), ProfileWiFi.POWER_WIFI_ACTIVE,
+					Double.toString(profileWiFi.getWifiActivePower())));
+			data.add(new ConfigurationData(rb
+					.getString("configuration.POWER_WIFI_STANDBY"), ProfileWiFi.POWER_WIFI_STANDBY,
+					Double.toString(profileWiFi.getWifiIdlePower())));
 		}
 
 		data.add(new ConfigurationData(rb.getString("configuration.BURST_TH"),
@@ -319,14 +325,6 @@ public class ConfigurationTableModel extends DataTableModel<ConfigurationData> {
 				Profile.POWER_CAMERA_ON, Double.toString(profile
 						.getPowerCameraOn())));
 		data.add(new ConfigurationData(rb
-				.getString("configuration.POWER_WIFI_ACTIVE"),
-				Profile.POWER_WIFI_ACTIVE, Double.toString(profile
-						.getPowerWifiActive())));
-		data.add(new ConfigurationData(rb
-				.getString("configuration.POWER_WIFI_STANDBY"),
-				Profile.POWER_WIFI_STANDBY, Double.toString(profile
-						.getPowerWifiStandby())));
-		data.add(new ConfigurationData(rb
 				.getString("configuration.POWER_BLUETOOTH_ACTIVE"),
 				Profile.POWER_BLUETOOTH_ACTIVE, Double.toString(profile
 						.getPowerBluetoothActive())));
@@ -358,24 +356,8 @@ public class ConfigurationTableModel extends DataTableModel<ConfigurationData> {
 			}
 		}
 
-		Profile profile = null;
-		switch (profileType) {
-		case T3G:
-			if (file != null) {
-				profile = new Profile3G(file, props);
-			} else {
-				profile = new Profile3G(name, props);
-			}
-			break;
-		case LTE:
-			if (file != null) {
-				profile = new ProfileLTE(file, props);
-			} else {
-				profile = new ProfileLTE(name, props);
-			}
-			break;
-		}
-		return profile;
+		return file != null ? Profile.create(profileType, file, props)
+				: Profile.create(profileType, name, props);
 	}
 
 	@Override
@@ -411,7 +393,7 @@ public class ConfigurationTableModel extends DataTableModel<ConfigurationData> {
 	/**
 	 * Sets the value of the specified profile data item.
 	 * 
-	 * @param Value
+	 * @param value
 	 *            – The value to set for the data item.
 	 * 
 	 * @param rowIndex

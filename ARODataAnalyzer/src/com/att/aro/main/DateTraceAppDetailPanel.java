@@ -90,7 +90,7 @@ public class DateTraceAppDetailPanel extends JPanel {
 	 * Refreshes the content of the DateTraceAppDetailPanel with the specified
 	 * trace data.
 	 * 
-	 * @param analysis
+	 * @param analysisData
 	 *            – An Analysis object containing the trace data.
 	 */
 	public void refresh(TraceData.Analysis analysisData) {

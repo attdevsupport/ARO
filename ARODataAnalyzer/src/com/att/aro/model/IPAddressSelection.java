@@ -34,8 +34,6 @@ public class IPAddressSelection implements Serializable {
 	 * Initializes an instance of the IPAddressSelection class, using the
 	 * application name and IP address.
 	 * 
-	 * @param appName
-	 *            The application name that accesses the specified IP address.
 	 * @param ipAddress
 	 *            The ip address for the packets corresponding to the selected
 	 *            IP.
@@ -46,14 +44,16 @@ public class IPAddressSelection implements Serializable {
 
 	/**
 	 * Copy constructor
-	 * @param sel object to be copied
+	 * 
+	 * @param sel
+	 *            object to be copied
 	 */
 	public IPAddressSelection(IPAddressSelection sel) {
 		this.ipAddress = sel.ipAddress;
 		this.selected = sel.selected;
 		this.color = sel.color;
 	}
-	
+
 	/**
 	 * Returns the IP address.
 	 * 
@@ -74,8 +74,8 @@ public class IPAddressSelection implements Serializable {
 	}
 
 	/**
-	 * Registers the specified selected status with the local selected status for
-	 * this IP address.
+	 * Registers the specified selected status with the local selected status
+	 * for this IP address.
 	 * 
 	 * @param selected
 	 *            – A boolean value that indicates the selected status to set

@@ -31,9 +31,6 @@ public class EnergyModel implements Serializable {
 	private double gpsStandbyEnergy;
 	private double totalGpsEnergy;
 	private double totalCameraEnergy;
-	private double wifiActiveEnergy;
-	private double wifiStandbyEnergy;
-	private double totalWifiEnergy;
 	private double bluetoothActiveEnergy;
 	private double bluetoothStandbyEnergy;
 	private double totalBluetoothEnergy;
@@ -82,29 +79,6 @@ public class EnergyModel implements Serializable {
 
 			}
 		}
-
-		// WiFi Energy
-		Iterator<WifiInfo> wifiIter = analysisData.getWifiInfos().iterator();
-		if (wifiIter.hasNext()) {
-			while (wifiIter.hasNext()) {
-				WifiInfo wifi = wifiIter.next();
-				WifiInfo.WifiState wifiState = wifi.getWifiState();
-				switch (wifiState) {
-				case WIFI_CONNECTED:
-				case WIFI_CONNECTING:
-				case WIFI_DISCONNECTING:
-					wifiActiveEnergy += profile.getPowerWifiActive()
-							* (wifi.getEndTimeStamp() - wifi.getBeginTimeStamp());
-					break;
-				case WIFI_DISCONNECTED:
-				case WIFI_SUSPENDED:
-					wifiStandbyEnergy += profile.getPowerWifiStandby()
-							* (wifi.getEndTimeStamp() - wifi.getBeginTimeStamp());
-					break;
-				}
-			}
-		}
-		this.totalWifiEnergy = wifiActiveEnergy + wifiStandbyEnergy;
 
 		// Bluetooth Energy
 		Iterator<BluetoothInfo> bluetoothIter = analysisData.getBluetoothInfos().iterator();
@@ -177,34 +151,6 @@ public class EnergyModel implements Serializable {
 	}
 
 	/**
-	 * Returns the amount of energy consumed while WiFi is active. 
-	 * 
-	 * @return The WiFi active energy consumption, in joules.
-	 */
-	public double getWifiActiveEnergy() {
-		return wifiActiveEnergy;
-	}
-
-	/**
-	 * Returns the amount of energy consumed while WiFi is in standby. 
-	 * 
-	 * @return The WiFi standby energy consumption, in joules.
-	 */
-	public double getWifiStandbyEnergy() {
-		return wifiStandbyEnergy;
-	}
-
-	/**
-	 * Returns the total amount of energy consumed by WiFi. This value is the sum of the 
-	 * energy consumption values for Wi-Fi Connected and Wi-Fi Inactive.
-	 * 
-	 * @return The total WiFi energy consumed, in joules.
-	 */
-	public double getTotalWifiEnergy() {
-		return totalWifiEnergy;
-	}
-
-	/**
 	 * Returns the amount of energy consumed while Bluetooth is in the connected state.
 	 * 
 	 * @return The amount of Bluetooth active energy, in joules.
@@ -251,7 +197,7 @@ public class EnergyModel implements Serializable {
 		double totalEnergy = getTotalBluetoothEnergy() + getTotalCameraEnergy()
 				+ getTotalGpsEnergy()
 				+ analysisData.getRrcStateMachine().getTotalRRCEnergy()
-				+ getTotalScreenEnergy() + getTotalWifiEnergy();
+				+ getTotalScreenEnergy();
 		return totalEnergy;
 	}
 

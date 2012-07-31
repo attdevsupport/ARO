@@ -30,12 +30,11 @@ public class Throughput implements Serializable {
 	 * Creates a list of throughput calculations for the time range and 
 	 * sampling window
 	 * @param startTime Start time to begin throughput calculations
-	 * @param time End time for throughput calculations
 	 * @param maxTS The sampling window for each throughput point
 	 * @param packets List of packets to calculate throughput on.  This method
 	 * assumes these packets are sorted by timestamp.  Results are undefined
 	 * for unsorted packet list.
-	 * @return
+	 * @return The list of throughput values.
 	 */
 	public static List<Throughput> calculateThroughput(double startTime,
 			double maxTS, double thStep, List<PacketInfo> packets) {

@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 package com.att.aro.model;
 
 import java.io.Serializable;
@@ -24,9 +24,9 @@ import java.util.List;
 import com.att.aro.model.PacketInfo.Direction;
 
 /**
- * Provides a runTrace method that performs Radio Resource Control (RRC) analysis by analyzing the 
- * time range between RRC states. This class also acts as a bean class that encapsulates RRC range 
- * information.
+ * Provides a runTrace method that performs Radio Resource Control (RRC)
+ * analysis by analyzing the time range between RRC states. This class also acts
+ * as a bean class that encapsulates RRC range information.
  */
 public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 	private static final long serialVersionUID = 1L;
@@ -188,15 +188,18 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 	}
 
 	/**
-	 * Performs Radio Resource Control (RRC) analysis by analyzing the time range between RRC states. 
-	 * This method contains the main algorithm for analyzing the time range between RRC states. It 
-	 * takes the specified trace data and returns a List of RrcStateRange objects.
+	 * Performs Radio Resource Control (RRC) analysis by analyzing the time
+	 * range between RRC states. This method contains the main algorithm for
+	 * analyzing the time range between RRC states. It takes the specified trace
+	 * data and returns a List of RrcStateRange objects.
 	 * 
-	 * @param analysisData – An Analysis object containing the trace data.
+	 * @param analysisData
+	 *            – An Analysis object containing the trace data.
 	 * 
 	 * @return A List of RrcStateRange objects.
 	 * 
-	 * @throws NullPointerException when analysisData is null
+	 * @throws NullPointerException
+	 *             when analysisData is null
 	 */
 	public static List<RrcStateRange> runTrace(TraceData.Analysis analysisData) {
 		Profile profile = analysisData.getProfile();
@@ -205,6 +208,8 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 			return runTrace3G(analysisData, (Profile3G) profile);
 		} else if (profile instanceof ProfileLTE) {
 			return runTraceLTE(analysisData, (ProfileLTE) profile);
+		} else if (profile instanceof ProfileWiFi) {
+			return runTraceWiFi(analysisData , (ProfileWiFi)profile);
 		} else {
 			throw new IllegalArgumentException("Invalid profile type for state machine: "
 					+ profile.getClass());
@@ -231,10 +236,10 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 		Iterator<PacketInfo> iter = analysisData.getPackets().iterator();
 		PacketInfo packet;
 		if (iter.hasNext()) {
-			
+
 			// Track time of state changes
 			double timer = 0.0;
-			
+
 			// Keep timestamp of previous packet in iteration
 			packet = iter.next();
 			packet.setStateMachine(RRCState.LTE_CONTINUOUS);
@@ -246,60 +251,130 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 				packet = iter.next();
 				packet.setStateMachine(RRCState.LTE_CONTINUOUS);
 				double curr = packet.getTimeStamp();
-				
+
 				// Check to see if we dropped to CR tail
 				if (curr - last > profile.getInactivityTimer()) {
 					timer = tailLTE(result, timer, last, curr, profile);
-					
-					// If end of tail was reached, we need to promote for new packet
+
+					// If end of tail was reached, we need to promote for new
+					// packet
 					if (timer < curr) {
 						timer = promoteLTE(result, timer, curr, profile);
 					}
 				}
-				
+
 				// Save current packet time as last packet for next iteration
 				last = curr;
 			}
-			
+
 			// Do final LTE tail
 			double traceDuration = analysisData.getTraceData().getTraceDuration();
 			timer = tailLTE(result, timer, last, traceDuration, profile);
-			
+
 			// Check for final idle time
 			if (timer < traceDuration) {
-				result.add(new RrcStateRange(timer, traceDuration, RRCState.LTE_IDLE));				
+				result.add(new RrcStateRange(timer, traceDuration, RRCState.LTE_IDLE));
 			}
 		} else {
-			
+
 			// State is idle for the entire trace
-			result.add(new RrcStateRange(0.0, analysisData.getTraceData()
-					.getTraceDuration(), RRCState.LTE_IDLE));
+			result.add(new RrcStateRange(0.0, analysisData.getTraceData().getTraceDuration(),
+					RRCState.LTE_IDLE));
 		}
 
 		return result;
 	}
 
+	private static List<RrcStateRange> runTraceWiFi(TraceData.Analysis analysisData , ProfileWiFi profile) {
+		
+
+		// Create results list
+		ArrayList<RrcStateRange> result = new ArrayList<RrcStateRange>();
+
+		// Iterate through packets in trace
+		Iterator<PacketInfo> iter = analysisData.getPackets().iterator();
+		PacketInfo packet;
+		if (iter.hasNext()) {
+
+			// Track time of state changes
+			double timer = 0.0;
+
+			// Keep timestamp of previous packet in iteration
+			packet = iter.next();
+			packet.setStateMachine(RRCState.WIFI_ACTIVE);
+			double last = packet.getTimeStamp();
+ 
+			// Idle state till first packet is received
+			result.add(new RrcStateRange(timer, last, RRCState.WIFI_IDLE));
+			timer = last;
+			 
+			while (iter.hasNext()) {
+				packet = iter.next();
+				packet.setStateMachine(RRCState.WIFI_ACTIVE);
+				double curr = packet.getTimeStamp();
+
+				// Check to see if we dropped to WiFi Active
+				if (curr - last > profile.getWifiTailTime()) {
+					timer = tailWiFi(result, timer, last, curr, profile);
+
+					// If end of tail was reached, we need to the idle time before the next packet arrives
+					if (timer < curr) {
+						result.add(new RrcStateRange(timer , curr , RRCState.WIFI_IDLE));
+						timer = curr;
+					}
+				}
+
+				// Save current packet time as last packet for next iteration
+				last = curr;
+			}
+
+			// Do final WiFi tail
+			double traceDuration = analysisData.getTraceData().getTraceDuration();
+			timer = tailWiFi(result, timer, last, traceDuration, profile);
+
+			// Check for final idle time
+			if (timer < traceDuration) {
+				result.add(new RrcStateRange(timer, traceDuration, RRCState.WIFI_IDLE));
+			}
+		} else {
+
+			// State is idle for the entire trace
+			result.add(new RrcStateRange(0.0, analysisData.getTraceData().getTraceDuration(),
+					RRCState.WIFI_IDLE));
+		}
+
+		return result;
+		
+	}
+
 	/**
 	 * Private utility method that creates RRC state range entries for promoting
-	 * between LTE idle and continuous reception.  This method will create the
-	 * IDLE and PROMOTION state ranges.  The 
-	 * @param result List where state ranges will be added
-	 * @param start Indicates time of end of last LTE long tail state or beginning
-	 * of trace  
-	 * @param end Indicates time of packet that is causing the promotion.
-	 * @param profile LTE profile being used to model state ranges
+	 * between LTE idle and continuous reception. This method will create the
+	 * IDLE and PROMOTION state ranges. The
+	 * 
+	 * @param result
+	 *            List where state ranges will be added
+	 * @param start
+	 *            Indicates time of end of last LTE long tail state or beginning
+	 *            of trace
+	 * @param end
+	 *            Indicates time of packet that is causing the promotion.
+	 * @param profile
+	 *            LTE profile being used to model state ranges
 	 * @return The time at which the promotion is complete
 	 */
-	private static double promoteLTE(List<RrcStateRange> result, double start, double end, ProfileLTE profile) {
-		
-		// Find the time that the promotion started before the packet was received
+	private static double promoteLTE(List<RrcStateRange> result, double start, double end,
+			ProfileLTE profile) {
+
+		// Find the time that the promotion started before the packet was
+		// received
 		double promoStart = Math.max(start, end - profile.getPromotionTime());
-		
+
 		// Check to see if there was some IDLE time
 		if (promoStart > start) {
 			result.add(new RrcStateRange(start, promoStart, RRCState.LTE_IDLE));
 		}
-		
+
 		// Add the promotion state range
 		result.add(new RrcStateRange(promoStart, end, RRCState.LTE_PROMOTION));
 		return end;
@@ -307,21 +382,29 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 
 	/**
 	 * Utility method that creates RRC state ranges for an LTE tail sequence.
-	 * @param result List where state ranges will be added
-	 * @param timer Time at which first packet was received for LTE continuous
-	 * reception
-	 * @param start Time at which last packet was received for LTE continuous
-	 * reception and the tail sequence begins
-	 * @param end Time at which tail sequence is stopped (either by new
-	 * continuous reception state or end of trace).
-	 * @param profile LTE profile being used to model state ranges
+	 * 
+	 * @param result
+	 *            List where state ranges will be added
+	 * @param timer
+	 *            Time at which first packet was received for LTE continuous
+	 *            reception
+	 * @param start
+	 *            Time at which last packet was received for LTE continuous
+	 *            reception and the tail sequence begins
+	 * @param end
+	 *            Time at which tail sequence is stopped (either by new
+	 *            continuous reception state or end of trace).
+	 * @param profile
+	 *            LTE profile being used to model state ranges
 	 * @return The time at which the tail sequence was completed or stopped
 	 */
-	private static double tailLTE(List<RrcStateRange> result, double timer, double start, double end, ProfileLTE profile) { ;
-	
+	private static double tailLTE(List<RrcStateRange> result, double timer, double start,
+			double end, ProfileLTE profile) {
+		;
+
 		// Add the continuous reception time
 		result.add(new RrcStateRange(timer, start, RRCState.LTE_CONTINUOUS));
-		
+
 		// Check for CR tail time
 		timer = Math.min(start + profile.getInactivityTimer(), end);
 		if (timer > start) {
@@ -332,7 +415,7 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 			timer = Math.min(start + profile.getDrxShortTime(), end);
 			if (timer > start) {
 				result.add(new RrcStateRange(start, timer, RRCState.LTE_DRX_SHORT));
-				
+
 				// Check for DRX long tail time
 				start = timer;
 				timer = Math.min(start + profile.getDrxLongTime(), end);
@@ -343,7 +426,21 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 		}
 		return timer;
 	}
+	private static double tailWiFi(List<RrcStateRange> result, double timer, double start,
+			double end, ProfileWiFi profile) {
+		;
 
+		// Add the continuous reception time
+		result.add(new RrcStateRange(timer, start, RRCState.WIFI_ACTIVE));
+
+		// Check for CR tail time
+		timer = Math.min(start + profile.getWifiTailTime(), end);
+		if (timer > start) {
+			result.add(new RrcStateRange(start, timer, RRCState.WIFI_TAIL));
+
+		}
+		return timer;
+	}
 	/**
 	 * This method contains the main algorithm for creating the List of
 	 * RrcStateRange for a 3G profile
@@ -867,16 +964,20 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 	private double beginTime;
 	private double endTime;
 	private RRCState state;
-	
+
 	/**
-	 * Initializes an instance of the RrcStateRange class with one RRC state range, using the 
-	 * specified begin time, end time, and RRC state.
+	 * Initializes an instance of the RrcStateRange class with one RRC state
+	 * range, using the specified begin time, end time, and RRC state.
 	 * 
-	 * @param beginTime – The time when the RRC state begins.
+	 * @param beginTime
+	 *            – The time when the RRC state begins.
 	 * 
-	 * @param endTime – The time when the RRC state ends.
+	 * @param endTime
+	 *            – The time when the RRC state ends.
 	 * 
-	 * @param state – The RRC state. One of the values of the RRCState enumeration.
+	 * @param state
+	 *            – The RRC state. One of the values of the RRCState
+	 *            enumeration.
 	 */
 	public RrcStateRange(double beginTime, double endTime, RRCState state) {
 		this.beginTime = beginTime;
@@ -885,8 +986,8 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 	}
 
 	/**
-	 * Compares the specified RrcStateRange object to this one. This method is used to sort 
-	 * RRCStateRanges from the earliest time to the latest time. 
+	 * Compares the specified RrcStateRange object to this one. This method is
+	 * used to sort RRCStateRanges from the earliest time to the latest time.
 	 * 
 	 * @return An int value that is the result of the comparison.
 	 */
@@ -913,9 +1014,9 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 	}
 
 	/**
-	 * Returns the RRC state. 
+	 * Returns the RRC state.
 	 * 
-	 * @return  The RRC state. One of the values of the RRCState enumeration.
+	 * @return The RRC state. One of the values of the RRCState enumeration.
 	 */
 	public RRCState getState() {
 		return state;

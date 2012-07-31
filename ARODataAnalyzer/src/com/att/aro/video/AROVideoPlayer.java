@@ -121,6 +121,7 @@ public class AROVideoPlayer extends JFrame {
 
 								@Override
 								public void run() {
+							
 									aroAdvancedTab.setTimeLineLinkedComponents(seconds + videoOffset);
 								}
 								
@@ -131,6 +132,11 @@ public class AROVideoPlayer extends JFrame {
 							logger.log(Level.SEVERE, "InvocationTargetException", e);
 						}
 					}
+				}
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					logger.log(Level.SEVERE, "InterruptedException", e);
 				}
 			} while (state == Controller.Started);
 		}

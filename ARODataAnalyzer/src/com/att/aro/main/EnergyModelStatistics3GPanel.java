@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
-import java.awt.BorderLayout;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
+import java.util.ResourceBundle;
 
 import javax.swing.JLabel;
-import javax.swing.JPanel;
 
-import com.att.aro.model.EnergyModel;
 import com.att.aro.model.RRCStateMachine;
 import com.att.aro.model.TraceData;
 
@@ -33,6 +30,9 @@ import com.att.aro.model.TraceData;
  */
 public class EnergyModelStatistics3GPanel extends EnergyModelStatisticsPanel {
 	private static final long serialVersionUID = 1L;
+
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
+	private static final String units = rb.getString("energy.units");
 
 	private JLabel dchLabel;
 	private JLabel dchValueLabel;
@@ -54,18 +54,9 @@ public class EnergyModelStatistics3GPanel extends EnergyModelStatisticsPanel {
 	private JLabel jpkbValueLabel;
 
 	/**
-	 * This is the default constructor
-	 */
-	public EnergyModelStatistics3GPanel() {
-		add(createEnergyStatisticsPanel(), BorderLayout.WEST);
-	}
-
-	/**
 	 * Creates the JPanel that contains the Energy Consumption statistics data.
-	 * 
-	 * @return energyStatisticsLeftAlligmentPanel The Energy Consumption panel.
 	 */
-	private JPanel createEnergyStatisticsPanel() {
+	protected void createRRCStatsPanel() {
 		dchLabel = new JLabel(rb.getString("energy.dch"));
 		dchLabel.setFont(TEXT_FONT);
 		dchValueLabel = new JLabel();
@@ -103,8 +94,6 @@ public class EnergyModelStatistics3GPanel extends EnergyModelStatisticsPanel {
 		jpkbValueLabel = new JLabel();
 		jpkbValueLabel.setFont(TEXT_FONT);
 
-		createPeripheralStatisticsPanel();
-
 		energyConsumptionStatsPanel.add(dchLabel);
 		energyConsumptionStatsPanel.add(dchValueLabel);
 		energyConsumptionStatsPanel.add(fachLabel);
@@ -124,8 +113,6 @@ public class EnergyModelStatistics3GPanel extends EnergyModelStatisticsPanel {
 		energyConsumptionStatsPanel.add(jpkbLabel);
 		energyConsumptionStatsPanel.add(jpkbValueLabel);
 
-		addPeripheralStatisticsPanel();
-		return energyStatisticsLeftAlligmentPanel;
 	}
 
 	/**
@@ -135,55 +122,36 @@ public class EnergyModelStatistics3GPanel extends EnergyModelStatisticsPanel {
 	 * @param analysis
 	 *            The Analysis object containing the trace data.
 	 */
-	public void refresh(TraceData.Analysis analysis) {
+	public void refreshRRCStatistic(TraceData.Analysis analysis, NumberFormat nf) {
 		if (analysis != null) {
-			NumberFormat nf = NumberFormat.getNumberInstance();
-			nf.setMaximumFractionDigits(2);
-			nf.setMinimumFractionDigits(2);
-			String units = rb.getString("energy.units");
-			EnergyModel model = analysis.getEnergyModel();
+
 			RRCStateMachine rrc = analysis.getRrcStateMachine();
 
-			dchValueLabel.setText(MessageFormat.format(units,
-					nf.format(rrc.getDchEnergy())));
-			fachValueLabel.setText(MessageFormat.format(units,
-					nf.format(rrc.getFachEnergy())));
-			idleValueLabel.setText(MessageFormat.format(units,
-					nf.format(rrc.getIdleEnergy())));
+			dchValueLabel.setText(MessageFormat.format(units, nf.format(rrc.getDchEnergy())));
+			fachValueLabel.setText(MessageFormat.format(units, nf.format(rrc.getFachEnergy())));
+			idleValueLabel.setText(MessageFormat.format(units, nf.format(rrc.getIdleEnergy())));
 			idle2dchValueLabel.setText(MessageFormat.format(units,
 					nf.format(rrc.getIdleToDchEnergy())));
 			fach2dchValueLabel.setText(MessageFormat.format(units,
 					nf.format(rrc.getFachToDchEnergy())));
-			dchTailValueLabel.setText(MessageFormat.format(units,
-					nf.format(rrc.getDchTailEnergy())));
+			dchTailValueLabel
+					.setText(MessageFormat.format(units, nf.format(rrc.getDchTailEnergy())));
 			fachTailValueLabel.setText(MessageFormat.format(units,
 					nf.format(rrc.getFachTailEnergy())));
 			rrcTotalValueLabel.setText(MessageFormat.format(units,
 					nf.format(rrc.getTotalRRCEnergy())));
 			jpkbValueLabel.setText(nf.format(rrc.getJoulesPerKilobyte()));
 
-			updatePeripheralStatistics(analysis, nf, units, model);
+			energyContent.put(rb.getString("energy.dch"), dchValueLabel.getText());
+			energyContent.put(rb.getString("energy.fach"), fachValueLabel.getText());
+			energyContent.put(rb.getString("energy.idle"), idleValueLabel.getText());
+			energyContent.put(rb.getString("energy.idle2dch"), idle2dchValueLabel.getText());
+			energyContent.put(rb.getString("energy.fach2dch"), fach2dchValueLabel.getText());
+			energyContent.put(rb.getString("energy.dchTail"), dchTailValueLabel.getText());
+			energyContent.put(rb.getString("energy.fachTail"), fachTailValueLabel.getText());
+			energyContent.put(rb.getString("energy.rrcTotal"), rrcTotalValueLabel.getText());
+			energyContent.put(rb.getString("energy.jpkb"), jpkbValueLabel.getText());
 
-			energyContent.put(rb.getString("energy.dch"),
-					dchValueLabel.getText());
-			energyContent.put(rb.getString("energy.fach"),
-					fachValueLabel.getText());
-			energyContent.put(rb.getString("energy.idle"),
-					idleValueLabel.getText());
-			energyContent.put(rb.getString("energy.idle2dch"),
-					idle2dchValueLabel.getText());
-			energyContent.put(rb.getString("energy.fach2dch"),
-					fach2dchValueLabel.getText());
-			energyContent.put(rb.getString("energy.dchTail"),
-					dchTailValueLabel.getText());
-			energyContent.put(rb.getString("energy.fachTail"),
-					fachTailValueLabel.getText());
-			energyContent.put(rb.getString("energy.rrcTotal"),
-					rrcTotalValueLabel.getText());
-			energyContent.put(rb.getString("energy.jpkb"),
-					jpkbValueLabel.getText());
-			
-			updatePeripheralStatisticsValues();
 		} else {
 			dchValueLabel.setText(null);
 			fachValueLabel.setText(null);
@@ -195,7 +163,6 @@ public class EnergyModelStatistics3GPanel extends EnergyModelStatisticsPanel {
 			rrcTotalValueLabel.setText(null);
 			jpkbValueLabel.setText(null);
 
-			updatePeripheralStatistics(null, null, null, null);
 		}
 	}
 

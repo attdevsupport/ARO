@@ -1,7 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "win32", "win32.vcproj", "{19DD83EE-19FF-4E15-84ED-54431FFEDF72}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Jpcap", "win32.vcproj", "{19DD83EE-19FF-4E15-84ED-54431FFEDF72}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Netmon", "Netmon.vcproj", "{C146886E-E41A-44BB-9AC1-268899032EBC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,6 +15,10 @@ Global
 		{19DD83EE-19FF-4E15-84ED-54431FFEDF72}.Debug|Win32.Build.0 = Debug|Win32
 		{19DD83EE-19FF-4E15-84ED-54431FFEDF72}.Release|Win32.ActiveCfg = Release|Win32
 		{19DD83EE-19FF-4E15-84ED-54431FFEDF72}.Release|Win32.Build.0 = Release|Win32
+		{C146886E-E41A-44BB-9AC1-268899032EBC}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C146886E-E41A-44BB-9AC1-268899032EBC}.Debug|Win32.Build.0 = Debug|Win32
+		{C146886E-E41A-44BB-9AC1-268899032EBC}.Release|Win32.ActiveCfg = Release|Win32
+		{C146886E-E41A-44BB-9AC1-268899032EBC}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

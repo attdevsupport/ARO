@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
@@ -35,8 +34,7 @@ import org.jfree.ui.tabbedui.VerticalLayout;
 public class AROEmulatorTraceSummary extends JPanel {
 	private static final long serialVersionUID = 1L;
 
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 	private static final Font TEXT_FONT = new Font("TEXT_FONT", Font.PLAIN, 12);
 	private static final int HEADER_DATA_SPACING = 10;
 
@@ -53,21 +51,20 @@ public class AROEmulatorTraceSummary extends JPanel {
 	/**
 	 * Constructor
 	 * 
-	 * @param parent
-	 *            The parent window.
-	 * @param message
-	 *            Status message to be displayed.
+	 * @param path
+	 *            The trace directory path.
+	 * @param videoStatus
+	 *            Whether the trace contains video or not.
+	 * @param traceDuration
+	 *            The duration for which the trace was running.
 	 */
-	public AROEmulatorTraceSummary(String path, String videoStatus,
-			String traceDuration) {
+	public AROEmulatorTraceSummary(String path, String videoStatus, String traceDuration) {
 		super(new BorderLayout(10, 10));
 		setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
-		add(createSummaryPanel(path, videoStatus, traceDuration),
-				BorderLayout.WEST);
+		add(createSummaryPanel(path, videoStatus, traceDuration), BorderLayout.WEST);
 	}
 
-	private JPanel createSummaryPanel(String path, String videoStatus,
-			String traceDuration) {
+	private JPanel createSummaryPanel(String path, String videoStatus, String traceDuration) {
 		JPanel summaryAlligmentPanel = new JPanel(new BorderLayout());
 
 		JPanel emulatorSummaryDataPanel = new JPanel();
@@ -91,8 +88,7 @@ public class AROEmulatorTraceSummary extends JPanel {
 		durationValueLabel.setFont(TEXT_FONT);
 
 		JPanel spacePanel = new JPanel();
-		spacePanel.setPreferredSize(new Dimension(this.getWidth(),
-				HEADER_DATA_SPACING));
+		spacePanel.setPreferredSize(new Dimension(this.getWidth(), HEADER_DATA_SPACING));
 
 		JPanel summaryDataPanel = new JPanel(new GridLayout(4, 2, 0, 5));
 		summaryDataPanel.add(pathLabel);

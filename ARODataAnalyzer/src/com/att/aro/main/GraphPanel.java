@@ -109,6 +109,7 @@ import com.att.aro.model.ExtensionFileFilter;
 import com.att.aro.model.GpsInfo;
 import com.att.aro.model.GpsInfo.GpsState;
 import com.att.aro.model.PacketInfo;
+import com.att.aro.model.Profile;
 import com.att.aro.model.ProfileLTE;
 import com.att.aro.model.RRCState;
 import com.att.aro.model.RadioInfo;
@@ -492,7 +493,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 	 * of the GraphPanel is preserved, along with the current zoom state. The
 	 * scroll bar is moved to position 0.
 	 * 
-	 * @param Analysis
+	 * @param analysis
 	 *            - An Analysis object containing the new trace analysis data.
 	 */
 	public synchronized void resetChart(TraceData.Analysis analysis) {
@@ -553,7 +554,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 	 * Sets the maximum number of times a user can zoom in or zoom out. Each
 	 * zoom increment doubles the precision. The default zoom value is 5.
 	 * 
-	 * @param zoomFactor
+	 * @param zoom
 	 *            - The maximum zoom value that can be set.
 	 */
 	public void setMaxZoom(int zoom) {
@@ -1969,7 +1970,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		return burstPlot;
 	}
 
-	private static void populateRrcPlot(XYPlot plot, final TraceData.Analysis analysis) {
+	private static void populateRrcPlot(XYPlot plot, TraceData.Analysis analysis) {
 
 		final XYIntervalSeriesCollection rrcDataCollection = new XYIntervalSeriesCollection();
 		if (analysis != null) {
@@ -1981,7 +1982,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 				seriesMap.put(eventType, series);
 				rrcDataCollection.addSeries(series);
 			}
-			final List<RrcStateRange> rrcStates = analysis.getRrcStateMachine().getRRcStateRanges();
+			List<RrcStateRange> rrcStates = analysis.getRrcStateMachine().getRRcStateRanges();
 			Iterator<RrcStateRange> iter = rrcStates.iterator();
 			while (iter.hasNext()) {
 				RrcStateRange currEvent = iter.next();
@@ -2022,17 +2023,21 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 					getTailPaint(dchGreen));
 
 			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.PROMO_FACH_DCH), Color.red);
+			
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.WIFI_IDLE), Color.white);
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.WIFI_ACTIVE), fachOrange);
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.WIFI_TAIL), getTailPaint(fachOrange));
 
 			// Assign ToolTip to renderer
+			final Profile profile = analysis.getProfile();
 			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
 				@Override
 				public String generateToolTip(XYDataset dataset, int series, int item) {
 					RRCState eventType = (RRCState) rrcDataCollection.getSeries(series).getKey();
 					final String PREFIX = "RRCTooltip.";
 					if (eventType == RRCState.LTE_IDLE) {
-						ProfileLTE profile = (ProfileLTE) analysis.getProfile();
 						return MessageFormat.format(rb.getString(PREFIX + eventType),
-								profile.getIdlePingPeriod());
+								((ProfileLTE) profile).getIdlePingPeriod());
 					}
 					return rb.getString(PREFIX + eventType);
 				}

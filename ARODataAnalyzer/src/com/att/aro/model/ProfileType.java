@@ -20,5 +20,6 @@ package com.att.aro.model;
  */
 public enum ProfileType {
 	T3G,
-	LTE
+	LTE,
+	WIFI
 }

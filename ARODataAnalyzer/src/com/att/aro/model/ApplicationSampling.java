@@ -314,7 +314,7 @@ public class ApplicationSampling {
 	/**
 	 * Calculates the joules/kilobyte percentile based upon the sampled trace analysis data.
 	 * 
-	 * @param Jpkb – The joules/kilobyte value to be compared to the total joules/kilobyte 
+	 * @param jpkb – The joules/kilobyte value to be compared to the total joules/kilobyte 
 	 * in the sample.
 	 * 
 	 * @return A double that is the joules/kilobyte value in percentage format.

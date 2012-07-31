@@ -34,6 +34,7 @@ import com.att.aro.model.Burst;
 import com.att.aro.model.BurstAnalysisInfo;
 import com.att.aro.model.Profile3G;
 import com.att.aro.model.ProfileLTE;
+import com.att.aro.model.ProfileWiFi;
 import com.att.aro.model.TraceData;
 
 /**
@@ -84,6 +85,8 @@ public class BurstAnalysisPanel extends JPanel {
 			tableModel.changeLTECol();
 		} else if (analysis.getProfile() instanceof Profile3G) {
 			tableModel.change3GCol();
+		} else if (analysis.getProfile() instanceof ProfileWiFi) {
+			tableModel.changeWiFiCol();
 		}
 	}
 

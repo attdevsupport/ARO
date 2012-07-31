@@ -205,9 +205,7 @@ public class CacheAnalysis implements Serializable {
 			}
 
 			// [B] Object cacheable?
-			if (response.isNoCache() || response.isNoStore()
-					|| response.isPragmaNoCache() || request.isNoCache()
-					|| request.isNoStore() || request.isPragmaNoCache()
+			if (response.isNoStore() || request.isNoStore()
 					|| HttpRequestResponseInfo.HTTP_POST.equals(requestType)
 					|| HttpRequestResponseInfo.HTTP_PUT.equals(requestType)) {
 				cacheEntries.remove(getObjFullName(request, response));
@@ -461,12 +459,17 @@ public class CacheAnalysis implements Serializable {
 		HttpRequestResponseInfo response = cacheEntry.getResponse();
 
 		/*
-		 * Cases when an object expires (t=time, s=server, c=client) (1) t >=
-		 * s.expire (2) t >= c.date + c.max_age (3) t >= s.date + s.max_age
-		 * (overrides 1) (4) s.age >= s.expire - s.date (5) s.age >= s.max_age
-		 * (overrides 4) (6) s.age >= c.max_age
+		 * Cases when an object expires (t=time, s=server, c=client) 
+		 * (1) "no-cache" header in request/response 
+		 * (2) t >= s.expire (3) t >= c.date + c.max_age (4) t >= s.date + s.max_age
+		 * (overrides 1) (5) s.age >= s.expire - s.date (6) s.age >= s.max_age
+		 * (overrides 4) (7) s.age >= c.max_age
 		 */
-		if (response.getDate() != null
+		if(request.isNoCache() || request.isPragmaNoCache() || 
+			response.isNoCache() || response.isPragmaNoCache()) {
+			return CacheExpiration.CACHE_EXPIRED;
+		} 
+		else if (response.getDate() != null
 				&& response.getMaxAge() != null
 				&& timestamp.getTime() > response.getAbsTimeStamp().getTime()
 						+ (response.getMaxAge().longValue() * 1000)) {

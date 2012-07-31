@@ -69,16 +69,6 @@ public abstract class Profile implements Serializable {
 	public static final String POWER_CAMERA_ON = "POWER_CAMERA_ON";
 
 	/**
-	 * The average amount of power (in watts) that should be used when WiFi is in the Active state. 
-	 */
-	public static final String POWER_WIFI_ACTIVE = "POWER_WIFI_ACTIVE";
-
-	/**
-	 * The average amount of power (in watts) that should be used when WiFi is in the Standby state. 
-	 */
-	public static final String POWER_WIFI_STANDBY = "POWER_WIFI_STANDBY";
-
-	/**
 	 * The minimum amount of observed samples for periodical bursts. 
 	 */
 	public static final String POWER_BLUETOOTH_ACTIVE = "POWER_BLUETOOTH_ACTIVE";
@@ -135,6 +125,52 @@ public abstract class Profile implements Serializable {
 	public static final String W_THROUGHPUT = "W_THROUGHPUT";
 
 	/**
+	 * Factory method used to create a profile of a specified type
+	 * @param profileType the profile type
+	 * @param file the file where the profile will be stored
+	 * @param props the property values for the profile
+	 * @return The profile object.
+	 * @throws ProfileException
+	 */
+	public static Profile create(ProfileType profileType, File file,
+			Properties props) throws ProfileException {
+		Profile profile = null;
+		switch (profileType) {
+		case T3G:
+			return new Profile3G(file, props);
+		case LTE:
+			return new ProfileLTE(file, props);
+		case WIFI:
+			return new ProfileWiFi(file, props);
+		}
+		return profile;
+		
+	}
+	
+	/**
+	 * Factory method used to create a profile of a specified type
+	 * @param profileType the profile type
+	 * @param name the name of the profile
+	 * @param props the property values for the profile
+	 * @return The profile object.
+	 * @throws ProfileException
+	 */
+	public static Profile create(ProfileType profileType, String name,
+			Properties props) throws ProfileException {
+		Profile profile = null;
+		switch (profileType) {
+		case T3G:
+			return new Profile3G(name, props);
+		case LTE:
+			return new ProfileLTE(name, props);
+		case WIFI:
+			return new ProfileWiFi(name, props);
+		}
+		return profile;
+		
+	}
+	
+	/**
 	 * Factory method that creates a new profile of the proper type from the
 	 * specified properties file
 	 * 
@@ -161,6 +197,8 @@ public abstract class Profile implements Serializable {
 				return new Profile3G(file, props);
 			case LTE:
 				return new ProfileLTE(file, props);
+			case WIFI:
+				return new ProfileWiFi(file, props);
 			default:
 				throw new IllegalArgumentException("Invalid profile type: "
 						+ type);
@@ -193,6 +231,8 @@ public abstract class Profile implements Serializable {
 			return new Profile3G(name, props);
 		case LTE:
 			return new ProfileLTE(name, props);
+		case WIFI:
+			return new ProfileWiFi(name, props);
 		default:
 			throw new IllegalArgumentException("Invalid profile type: " + type);
 		}
@@ -210,8 +250,6 @@ public abstract class Profile implements Serializable {
 	private double powerGpsActive = 1.0;
 	private double powerGpsStandby = 0.5;
 	private double powerCameraOn = 0.3;
-	private double powerWifiActive = 1.0;
-	private double powerWifiStandby = 0.5;
 	private double powerBluetoothActive = 1.0;
 	private double powerBluetoothStandby = 0.5;
 	private double powerScreenOn = 0.3;
@@ -229,6 +267,12 @@ public abstract class Profile implements Serializable {
 	 */
 	public Profile() {
 		super();
+
+		try {
+			init(new Properties());
+		} catch (ProfileException e) {
+			// Ignore
+		}
 	}
 
 	/**
@@ -275,7 +319,7 @@ public abstract class Profile implements Serializable {
 	 * @param packets - List of packets passed over the timeline and may be used
 	 * in determining energy used
 	 * 
-	 * @return The RRC energy value.
+	 * @return The energy consumed in the specified RRC state.
 	 */
 	public abstract double energy(double time1, double time2, RRCState state,
 			List<PacketInfo> packets);
@@ -307,8 +351,6 @@ public abstract class Profile implements Serializable {
 		props.setProperty(POWER_GPS_ACTIVE, String.valueOf(powerGpsActive));
 		props.setProperty(POWER_GPS_STANDBY, String.valueOf(powerGpsStandby));
 		props.setProperty(POWER_CAMERA_ON, String.valueOf(powerCameraOn));
-		props.setProperty(POWER_WIFI_ACTIVE, String.valueOf(powerWifiActive));
-		props.setProperty(POWER_WIFI_STANDBY, String.valueOf(powerWifiStandby));
 		props.setProperty(POWER_BLUETOOTH_ACTIVE,
 				String.valueOf(powerBluetoothActive));
 		props.setProperty(POWER_BLUETOOTH_STANDBY,
@@ -400,24 +442,6 @@ public abstract class Profile implements Serializable {
 	 */
 	public double getPowerCameraOn() {
 		return powerCameraOn;
-	}
-
-	/**
-	 * Returns the amount of energy used when WiFi is active. 
-	 * 
-	 * @return The WiFi active power value.
-	 */
-	public double getPowerWifiActive() {
-		return powerWifiActive;
-	}
-
-	/**
-	 * Returns the amount of energy used when WiFi is in standby mode. 
-	 * 
-	 * @return The WiFi standby mode power value.
-	 */
-	public double getPowerWifiStandby() {
-		return powerWifiStandby;
 	}
 
 	/**
@@ -611,10 +635,6 @@ public abstract class Profile implements Serializable {
 		powerGpsStandby = readDouble(properties, POWER_GPS_STANDBY,
 				powerGpsStandby);
 		powerCameraOn = readDouble(properties, POWER_CAMERA_ON, powerCameraOn);
-		powerWifiActive = readDouble(properties, POWER_WIFI_ACTIVE,
-				powerGpsActive);
-		powerWifiStandby = readDouble(properties, POWER_WIFI_STANDBY,
-				powerGpsStandby);
 		powerBluetoothActive = readDouble(properties, POWER_BLUETOOTH_ACTIVE,
 				powerGpsActive);
 		powerBluetoothStandby = readDouble(properties, POWER_BLUETOOTH_STANDBY,

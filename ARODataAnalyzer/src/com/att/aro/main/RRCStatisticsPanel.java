@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
@@ -38,6 +37,7 @@ import com.att.aro.commonui.AROUIManager;
 import com.att.aro.model.Profile;
 import com.att.aro.model.Profile3G;
 import com.att.aro.model.ProfileLTE;
+import com.att.aro.model.ProfileWiFi;
 import com.att.aro.model.RRCStateMachine;
 import com.att.aro.model.TraceData;
 
@@ -47,10 +47,8 @@ import com.att.aro.model.TraceData;
 public class RRCStatisticsPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
-	private static final Font HEADER_FONT = new Font("HeaderFont", Font.BOLD,
-			16);
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
+	private static final Font HEADER_FONT = new Font("HeaderFont", Font.BOLD, 16);
 	private static final Font TEXT_FONT = new Font("TEXT_FONT", Font.PLAIN, 12);
 	private static final int HEADER_DATA_SPACING = 10;
 
@@ -94,8 +92,7 @@ public class RRCStatisticsPanel extends JPanel {
 
 		JPanel rrcStatisticsPanel = new JPanel();
 		rrcStatisticsPanel.setLayout(new VerticalLayout());
-		rrcStatisticsPanel.setBackground(UIManager
-				.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
+		rrcStatisticsPanel.setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
 
 		rrcParam1Label = new JLabel(rb.getString("rrc.dch"));
 		rrcParam1Label.setFont(TEXT_FONT);
@@ -136,15 +133,12 @@ public class RRCStatisticsPanel extends JPanel {
 		rrcStatisticsPanel.add(rrcStatisticsHeaderLabel);
 
 		JPanel spacePanel = new JPanel();
-		spacePanel.setPreferredSize(new Dimension(this.getWidth(),
-				HEADER_DATA_SPACING));
-		spacePanel.setBackground(UIManager
-				.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
+		spacePanel.setPreferredSize(new Dimension(this.getWidth(), HEADER_DATA_SPACING));
+		spacePanel.setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
 		rrcStatisticsPanel.add(spacePanel);
 
 		JPanel rrcStatDataPanel = new JPanel(new GridLayout(8, 2, 5, 5));
-		rrcStatDataPanel.setBackground(UIManager
-				.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
+		rrcStatDataPanel.setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
 
 		rrcStatDataPanel.add(rrcParam1Label);
 		rrcStatDataPanel.add(rrcParam1ValueLabel);
@@ -188,6 +182,10 @@ public class RRCStatisticsPanel extends JPanel {
 			Profile profile = analysis.getProfile();
 			if (profile instanceof Profile3G) {
 				// Showing additional labels in case of 3G profile
+				rrcParam4Label.setVisible(true);
+				rrcParam4ValueLabel.setVisible(true);
+				rrcParam5Label.setVisible(true);
+				rrcParam5ValueLabel.setVisible(true);
 				rrcParam6Label.setVisible(true);
 				rrcParam6ValueLabel.setVisible(true);
 				rrcParam7Label.setVisible(true);
@@ -204,14 +202,11 @@ public class RRCStatisticsPanel extends JPanel {
 
 				valueAndPct = rb.getString("rrc.valueAndPct");
 				rrcParam1ValueLabel.setText(MessageFormat.format(valueAndPct,
-						nf.format(rrc.getDchTime()),
-						nf.format(rrc.getDchTimeRatio() * 100.0)));
+						nf.format(rrc.getDchTime()), nf.format(rrc.getDchTimeRatio() * 100.0)));
 				rrcParam2ValueLabel.setText(MessageFormat.format(valueAndPct,
-						nf.format(rrc.getFachTime()),
-						nf.format(rrc.getFachTimeRatio() * 100.0)));
+						nf.format(rrc.getFachTime()), nf.format(rrc.getFachTimeRatio() * 100.0)));
 				rrcParam3ValueLabel.setText(MessageFormat.format(valueAndPct,
-						nf.format(rrc.getIdleTime()),
-						nf.format(rrc.getIdleTimeRatio() * 100.0)));
+						nf.format(rrc.getIdleTime()), nf.format(rrc.getIdleTimeRatio() * 100.0)));
 				rrcParam4ValueLabel.setText(MessageFormat.format(valueAndPct,
 						nf.format(rrc.getIdleToDchTime()),
 						nf.format(rrc.getIdleToDchTimeRatio() * 100.0)));
@@ -222,32 +217,30 @@ public class RRCStatisticsPanel extends JPanel {
 				rrcParam7ValueLabel.setText(nf.format(rrc.getFachTailRatio()));
 				rrcParam8ValueLabel.setText(nf.format(rrc.getPromotionRatio()));
 
-				rrcContent.put(rb.getString("rrc.dch"),
-						rrcParam1ValueLabel.getText());
-				rrcContent.put(rb.getString("rrc.fach"),
-						rrcParam2ValueLabel.getText());
-				rrcContent.put(rb.getString("rrc.idle"),
-						rrcParam3ValueLabel.getText());
-				rrcContent.put(rb.getString("rrc.idle2dch"),
-						rrcParam4ValueLabel.getText());
-				rrcContent.put(rb.getString("rrc.fach2dch"),
-						rrcParam5ValueLabel.getText());
-				rrcContent.put(rb.getString("rrc.dchTailRatio"),
-						rrcParam6ValueLabel.getText());
-				rrcContent.put(rb.getString("rrc.fachTailRatio"),
-						rrcParam7ValueLabel.getText());
-				rrcContent.put(rb.getString("rrc.promotionRatio"),
-						rrcParam8ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.dch"), rrcParam1ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.fach"), rrcParam2ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.idle"), rrcParam3ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.idle2dch"), rrcParam4ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.fach2dch"), rrcParam5ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.dchTailRatio"), rrcParam6ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.fachTailRatio"), rrcParam7ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.promotionRatio"), rrcParam8ValueLabel.getText());
 			} else if (profile instanceof ProfileLTE) {
-
+                 
+				rrcParam4Label.setVisible(true);
+				rrcParam4ValueLabel.setVisible(true);
+				rrcParam5Label.setVisible(true);
+				rrcParam5ValueLabel.setVisible(true);
+				rrcParam6Label.setVisible(true);
+				rrcParam6ValueLabel.setVisible(true);
+				
 				// Hiding additional labels in case of LTE profile
 				rrcParam7Label.setVisible(false);
 				rrcParam7ValueLabel.setVisible(false);
 				rrcParam8Label.setVisible(false);
 				rrcParam8ValueLabel.setVisible(false);
 
-				rrcParam1Label.setText(rb
-						.getString("rrc.continuousReceptionIdle"));
+				rrcParam1Label.setText(rb.getString("rrc.continuousReceptionIdle"));
 				rrcParam2Label.setText(rb.getString("rrc.continuousReception"));
 				rrcParam3Label.setText(rb.getString("rrc.continuousReceptionTail"));
 				rrcParam4Label.setText(rb.getString("rrc.shortDRX"));
@@ -255,15 +248,11 @@ public class RRCStatisticsPanel extends JPanel {
 				rrcParam6Label.setText(rb.getString("rrc.idle"));
 
 				valueAndPct = rb.getString("rrc.valueAndPctLTE");
-				rrcParam1ValueLabel
-						.setText(MessageFormat.format(
-								valueAndPct,
-								nf.format(rrc.getLteIdleToCRPromotionTime()),
-								nf.format(rrc
-										.getLteIdleToCRPromotionTimeRatio() * 100.0)));
+				rrcParam1ValueLabel.setText(MessageFormat.format(valueAndPct,
+						nf.format(rrc.getLteIdleToCRPromotionTime()),
+						nf.format(rrc.getLteIdleToCRPromotionTimeRatio() * 100.0)));
 				rrcParam2ValueLabel.setText(MessageFormat.format(valueAndPct,
-						nf.format(rrc.getLteCrTime()),
-						nf.format(rrc.getLteCrTimeRatio() * 100.0)));
+						nf.format(rrc.getLteCrTime()), nf.format(rrc.getLteCrTimeRatio() * 100.0)));
 				rrcParam3ValueLabel.setText(MessageFormat.format(valueAndPct,
 						nf.format(rrc.getLteCrTailTime()),
 						nf.format(rrc.getLteCrTailTimeRatio() * 100.0)));
@@ -283,12 +272,46 @@ public class RRCStatisticsPanel extends JPanel {
 						rrcParam2ValueLabel.getText());
 				rrcContent.put(rb.getString("rrc.continuousReceptionTail"),
 						rrcParam3ValueLabel.getText());
-				rrcContent.put(rb.getString("rrc.shortDRX"),
-						rrcParam4ValueLabel.getText());
-				rrcContent.put(rb.getString("rrc.longDRX"),
-						rrcParam5ValueLabel.getText());
-				rrcContent.put(rb.getString("rrc.idle"),
-						rrcParam6ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.shortDRX"), rrcParam4ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.longDRX"), rrcParam5ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.idle"), rrcParam6ValueLabel.getText());
+			} else if (profile instanceof ProfileWiFi) {
+				
+				valueAndPct = rb.getString("rrc.valueAndPctWiFi");
+				
+				rrcParam1Label.setText(rb.getString("rrc.wifiActive"));
+				rrcParam2Label.setText(rb.getString("rrc.WifiTail"));
+				rrcParam3Label.setText(rb.getString("rrc.WiFiIdle"));
+				
+				rrcParam1ValueLabel.setText(MessageFormat.format(valueAndPct,
+						nf.format(rrc.getWifiActiveTime()),
+						nf.format(rrc.getWifiActiveRatio() * 100.0)));
+				rrcParam2ValueLabel
+						.setText(MessageFormat.format(valueAndPct,
+								nf.format(rrc.getWifiTailTime()),
+								nf.format(rrc.getWifiTailRatio() * 100.0)));
+				rrcParam3ValueLabel
+						.setText(MessageFormat.format(valueAndPct,
+								nf.format(rrc.getWifiIdleTime()),
+								nf.format(rrc.getWifiIdleRatio() * 100.0)));
+                
+				rrcParam4Label.setVisible(false);
+				rrcParam4ValueLabel.setVisible(false);
+				rrcParam5Label.setVisible(false);
+				rrcParam5ValueLabel.setVisible(false);
+				rrcParam6Label.setVisible(false);
+				rrcParam6ValueLabel.setVisible(false);
+				rrcParam7Label.setVisible(false);
+				rrcParam7ValueLabel.setVisible(false);
+				rrcParam8Label.setVisible(false);
+				rrcParam8ValueLabel.setVisible(false);
+				
+				rrcContent.put(rb.getString("rrc.wifiActive"),
+						rrcParam1ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.WifiTail"),
+						rrcParam2ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.WiFiIdle"),
+						rrcParam3ValueLabel.getText());
 			}
 		} else {
 			rrcParam1ValueLabel.setText(null);

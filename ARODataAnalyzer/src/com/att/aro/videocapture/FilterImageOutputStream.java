@@ -16,7 +16,7 @@ public class FilterImageOutputStream extends FilterOutputStream {
 	 * Initializes a new instance of the FilterImageOutputStream class using the
 	 * specified ImageOutputStream object
 	 * 
-	 * @param out
+	 * @param iOut
 	 *            The ImageOutputStream object that is used to create the new
 	 *            FilterImageOutputStream. The ImageOutputStream object that is
 	 *            used to create the new FilterImageOutputStream.

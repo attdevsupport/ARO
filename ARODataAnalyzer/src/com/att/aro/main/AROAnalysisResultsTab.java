@@ -58,6 +58,7 @@ import com.att.aro.model.IPPacketSummary;
 import com.att.aro.model.Profile;
 import com.att.aro.model.Profile3G;
 import com.att.aro.model.ProfileLTE;
+import com.att.aro.model.ProfileWiFi;
 import com.att.aro.model.TraceData;
 import com.att.aro.model.UserPreferences;
 
@@ -117,7 +118,13 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 				getEnergyModelStatistics3GPanel().refresh(analysisData);
 			} else if (profile instanceof ProfileLTE) {
 				getEnergyModelStatisticsLTEPanel().refresh(analysisData);
+			} else if (profile instanceof ProfileWiFi) {
+				getWiFiEnergyModelStatisticsPanel().refresh(analysisData);
 			}
+		} else if (energyModelStatisticsPanel != null) {
+			
+			// Make sure we clear the panel
+			energyModelStatisticsPanel.refresh(null);
 		}
 		exportBtn.setEnabled(true);
 	}
@@ -260,7 +267,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 		if (energyModelStatisticsPanel == null) {
 			energyModelStatisticsPanel = new EnergyModelStatistics3GPanel();
 		} else {
-			if (energyModelStatisticsPanel instanceof EnergyModelStatisticsLTEPanel) {
+			if (energyModelStatisticsPanel instanceof EnergyModelStatisticsLTEPanel || energyModelStatisticsPanel instanceof EnergyModelStatisticsWiFiPanel) {
 				mainPanel.remove(energyModelStatisticsPanel);
 				energyModelStatisticsPanel = null;
 				energyModelStatisticsPanel = new EnergyModelStatistics3GPanel();
@@ -277,10 +284,26 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	 */
 	private EnergyModelStatisticsPanel getEnergyModelStatisticsLTEPanel() {
 		if (energyModelStatisticsPanel != null
-				&& energyModelStatisticsPanel instanceof EnergyModelStatistics3GPanel) {
+				&& (energyModelStatisticsPanel instanceof EnergyModelStatistics3GPanel || energyModelStatisticsPanel instanceof EnergyModelStatisticsWiFiPanel)) {
 			mainPanel.remove(energyModelStatisticsPanel);
 			energyModelStatisticsPanel = null;
 			energyModelStatisticsPanel = new EnergyModelStatisticsLTEPanel();
+			mainPanel.add(energyModelStatisticsPanel, new GridBagConstraints(0, 13, 1, 3, 0.4, 0.0,
+					GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
+					new Insets(5, 20, 5, 5), 0, 0));
+		}
+		return energyModelStatisticsPanel;
+	} 
+
+	/**
+	 * Initializes and returns the LTE Energy model statistics panel
+	 */
+	private EnergyModelStatisticsPanel getWiFiEnergyModelStatisticsPanel() {
+		if (energyModelStatisticsPanel != null
+				&& (energyModelStatisticsPanel instanceof EnergyModelStatistics3GPanel || energyModelStatisticsPanel instanceof EnergyModelStatisticsLTEPanel)) {
+			mainPanel.remove(energyModelStatisticsPanel);
+			energyModelStatisticsPanel = null;
+			energyModelStatisticsPanel = new EnergyModelStatisticsWiFiPanel();
 			mainPanel.add(energyModelStatisticsPanel, new GridBagConstraints(0, 13, 1, 3, 0.4, 0.0,
 					GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
 					new Insets(5, 20, 5, 5), 0, 0));
@@ -326,7 +349,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 
 				@Override
 				public void mouseClicked(MouseEvent e) {
-					if(!exportBtn.isEnabled())
+					if (!exportBtn.isEnabled())
 						return;
 					JFileChooser chooser = new JFileChooser(UserPreferences.getInstance()
 							.getLastExportDirectory());

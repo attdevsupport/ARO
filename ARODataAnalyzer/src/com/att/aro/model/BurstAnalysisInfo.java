@@ -29,8 +29,8 @@ public class BurstAnalysisInfo implements Serializable {
 	private double payloadPct;
 	private double energy;
 	private double energyPct;
-	private double dchCr;
-	private double dchCrPct;
+	private double rrcActiveTime;
+	private double rrcActiveTimePct;
 	private Double jpkb;
 	
 	/**
@@ -38,7 +38,7 @@ public class BurstAnalysisInfo implements Serializable {
 	 * 
 	 * @param category
 	 * 
-	 * @param Payload – The burst payload.
+	 * @param payload – The burst payload.
 	 * 
 	 * @param payloadPct – The burst payload percentage.
 	 * 
@@ -46,21 +46,21 @@ public class BurstAnalysisInfo implements Serializable {
 	 * 
 	 * @param energyPct – The burst energy percentage.
 	 * 
-	 * @param dchCr – The DCH active time for the burst.
+	 * @param rrcActiveTime – The RRC active time for the burst.
 	 * 
-	 * @param dchCrPct – The DCH percentage for the burst.
+	 * @param rrcActiveTimePct – The RRC active percentage for the burst.
 	 * 
 	 * @param jpkb – The amount of energy used by the burst in joules per kilobyte.
 	 */
 	public BurstAnalysisInfo(BurstCategory category, long payload, double payloadPct,
-			double energy, double energyPct, double dchCr, double dchCrPct, Double jpkb) {
+			double energy, double energyPct, double rrcActiveTime, double rrcActiveTimePct, Double jpkb) {
 		this.category = category;
 		this.payload = payload;
 		this.payloadPct = payloadPct;
 		this.energy = energy;
 		this.energyPct = energyPct;
-		this.dchCr = dchCr;
-		this.dchCrPct = dchCrPct;
+		this.rrcActiveTime = rrcActiveTime;
+		this.rrcActiveTimePct = rrcActiveTimePct;
 		this.jpkb = jpkb;
 	}
 
@@ -113,21 +113,21 @@ public class BurstAnalysisInfo implements Serializable {
 	}
 
 	/**
-	 * Returns the amount of DCH active time for the burst. 
+	 * Returns the amount of RRC active state time for the burst. 
 	 * 
-	 * @return The DCH active time for the burst.
+	 * @return The RRC active state time for the burst.
 	 */
-	public double getDchCr() {
-		return dchCr;
+	public double getRRCActiveTime() {
+		return rrcActiveTime;
 	}
 
 	/**
-	 * Returns the DCH percentage which is the percentage of total DCH Time used by this burst.
+	 * Returns the RRC active state  percentage which is the percentage of total RRC active Time used by this burst.
 	 * 
-	 * @return The DCH percentage for the burst.
+	 * @return The RRC active percentage for the burst.
 	 */
-	public double getDchCrPct() {
-		return dchCrPct;
+	public double getRRCActivePercentage() {
+		return rrcActiveTimePct;
 	}
 	
 	/**

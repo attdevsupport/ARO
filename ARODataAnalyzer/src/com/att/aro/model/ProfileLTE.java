@@ -192,8 +192,7 @@ public class ProfileLTE extends Profile {
 	 *            The radio state.
 	 * @param packets List of packets passed over the timeline and may be used
 	 * in determining energy used
-	 * @see com.att.aro.model.Profile#energy(double, double,
-	 *      com.att.aro.model.RRCState)
+	 * @return The energy consumed for the specified RRC state.
 	 */
 	@Override
 	public double energy(double time1, double time2, RRCState state,

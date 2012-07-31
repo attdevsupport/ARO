@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
-import java.awt.BorderLayout;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
+import java.util.ResourceBundle;
 
 import javax.swing.JLabel;
-import javax.swing.JPanel;
 
-import com.att.aro.model.EnergyModel;
 import com.att.aro.model.RRCStateMachine;
 import com.att.aro.model.TraceData;
 
@@ -33,6 +30,9 @@ import com.att.aro.model.TraceData;
  */
 public class EnergyModelStatisticsLTEPanel extends EnergyModelStatisticsPanel {
 	private static final long serialVersionUID = 1L;
+
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
+	private static final String units = rb.getString("energy.units");
 
 	private JLabel idleCrPromoLabel;
 	private JLabel idleCrPromoValueLabel;
@@ -52,30 +52,18 @@ public class EnergyModelStatisticsLTEPanel extends EnergyModelStatisticsPanel {
 	private JLabel jpkbValueLabel;
 
 	/**
-	 * This is the default constructor
-	 */
-	public EnergyModelStatisticsLTEPanel() {
-		add(createEnergyStatisticsPanel(), BorderLayout.WEST);
-	}
-
-	/**
 	 * Creates the JPanel that contains the Energy Consumption statistics data.
-	 * 
-	 * @return energyStatisticsLeftAlligmentPanel The Energy Consumption panel.
 	 */
-	private JPanel createEnergyStatisticsPanel() {
-		idleCrPromoLabel = new JLabel(
-				rb.getString("rrc.continuousReceptionIdle"));
+	protected void createRRCStatsPanel() {
+		idleCrPromoLabel = new JLabel(rb.getString("rrc.continuousReceptionIdle"));
 		idleCrPromoLabel.setFont(TEXT_FONT);
 		idleCrPromoValueLabel = new JLabel();
 		idleCrPromoValueLabel.setFont(TEXT_FONT);
-		continuousReceptionLabel = new JLabel(
-				rb.getString("rrc.continuousReception"));
+		continuousReceptionLabel = new JLabel(rb.getString("rrc.continuousReception"));
 		continuousReceptionLabel.setFont(TEXT_FONT);
 		continuousReceptionValueLabel = new JLabel();
 		continuousReceptionValueLabel.setFont(TEXT_FONT);
-		continuousReceptionTailLabel = new JLabel(
-				rb.getString("rrc.continuousReceptionTail"));
+		continuousReceptionTailLabel = new JLabel(rb.getString("rrc.continuousReceptionTail"));
 		continuousReceptionTailLabel.setFont(TEXT_FONT);
 		continuousReceptionTailValueLabel = new JLabel();
 		continuousReceptionTailValueLabel.setFont(TEXT_FONT);
@@ -99,9 +87,6 @@ public class EnergyModelStatisticsLTEPanel extends EnergyModelStatisticsPanel {
 		jpkbLabel.setFont(TEXT_FONT);
 		jpkbValueLabel = new JLabel();
 		jpkbValueLabel.setFont(TEXT_FONT);
-
-		createPeripheralStatisticsPanel();
-
 		energyConsumptionStatsPanel.add(idleCrPromoLabel);
 		energyConsumptionStatsPanel.add(idleCrPromoValueLabel);
 		energyConsumptionStatsPanel.add(continuousReceptionLabel);
@@ -119,8 +104,6 @@ public class EnergyModelStatisticsLTEPanel extends EnergyModelStatisticsPanel {
 		energyConsumptionStatsPanel.add(jpkbLabel);
 		energyConsumptionStatsPanel.add(jpkbValueLabel);
 
-		addPeripheralStatisticsPanel();
-		return energyStatisticsLeftAlligmentPanel;
 	}
 
 	/**
@@ -130,32 +113,25 @@ public class EnergyModelStatisticsLTEPanel extends EnergyModelStatisticsPanel {
 	 * @param analysis
 	 *            The Analysis object containing the trace data.
 	 */
-	public void refresh(TraceData.Analysis analysis) {
+	public void refreshRRCStatistic(TraceData.Analysis analysis, NumberFormat nf) {
 		if (analysis != null) {
-			NumberFormat nf = NumberFormat.getNumberInstance();
-			nf.setMaximumFractionDigits(2);
-			nf.setMinimumFractionDigits(2);
-			String units = rb.getString("energy.units");
-			EnergyModel model = analysis.getEnergyModel();
+
 			RRCStateMachine rrc = analysis.getRrcStateMachine();
 
 			idleCrPromoValueLabel.setText(MessageFormat.format(units,
 					nf.format(rrc.getLteIdleToCRPromotionEnergy())));
 			continuousReceptionValueLabel.setText(MessageFormat.format(units,
 					nf.format(rrc.getLteCrEnergy())));
-			continuousReceptionTailValueLabel.setText(MessageFormat.format(
-					units, nf.format(rrc.getLteCrTailEnergy())));
+			continuousReceptionTailValueLabel.setText(MessageFormat.format(units,
+					nf.format(rrc.getLteCrTailEnergy())));
 			shortDRXValueLabel.setText(MessageFormat.format(units,
 					nf.format(rrc.getLteDrxShortEnergy())));
 			longDRXValueLabel.setText(MessageFormat.format(units,
 					nf.format(rrc.getLteDrxLongEnergy())));
-			idleValueLabel.setText(MessageFormat.format(units,
-					nf.format(rrc.getLteIdleEnergy())));
+			idleValueLabel.setText(MessageFormat.format(units, nf.format(rrc.getLteIdleEnergy())));
 			rrcTotalValueLabel.setText(MessageFormat.format(units,
 					nf.format(rrc.getTotalRRCEnergy())));
 			jpkbValueLabel.setText(nf.format(rrc.getJoulesPerKilobyte()));
-
-			updatePeripheralStatistics(analysis, nf, units, model);
 
 			energyContent.put(rb.getString("rrc.continuousReceptionIdle"),
 					idleCrPromoValueLabel.getText());
@@ -163,18 +139,12 @@ public class EnergyModelStatisticsLTEPanel extends EnergyModelStatisticsPanel {
 					continuousReceptionValueLabel.getText());
 			energyContent.put(rb.getString("rrc.continuousReceptionTail"),
 					continuousReceptionTailValueLabel.getText());
-			energyContent.put(rb.getString("rrc.shortDRX"),
-					shortDRXValueLabel.getText());
-			energyContent.put(rb.getString("rrc.longDRX"),
-					longDRXValueLabel.getText());
-			energyContent.put(rb.getString("energy.idle"),
-					idleValueLabel.getText());
-			energyContent.put(rb.getString("energy.rrcTotal"),
-					rrcTotalValueLabel.getText());
-			energyContent.put(rb.getString("energy.jpkb"),
-					jpkbValueLabel.getText());
-			
-			updatePeripheralStatisticsValues();
+			energyContent.put(rb.getString("rrc.shortDRX"), shortDRXValueLabel.getText());
+			energyContent.put(rb.getString("rrc.longDRX"), longDRXValueLabel.getText());
+			energyContent.put(rb.getString("energy.idle"), idleValueLabel.getText());
+			energyContent.put(rb.getString("energy.rrcTotal"), rrcTotalValueLabel.getText());
+			energyContent.put(rb.getString("energy.jpkb"), jpkbValueLabel.getText());
+
 		} else {
 			idleCrPromoValueLabel.setText(null);
 			continuousReceptionValueLabel.setText(null);
@@ -183,8 +153,6 @@ public class EnergyModelStatisticsLTEPanel extends EnergyModelStatisticsPanel {
 			longDRXValueLabel.setText(null);
 			idleValueLabel.setText(null);
 			rrcTotalValueLabel.setText(null);
-			
-			updatePeripheralStatistics(null, null, null, null);
 		}
 	}
 
@@ -259,5 +227,5 @@ public class EnergyModelStatisticsLTEPanel extends EnergyModelStatisticsPanel {
 	public JLabel getJpkbLabel() {
 		return jpkbLabel;
 	}
-	
+
 } // @jve:decl-index=0:visual-constraint="10,10"

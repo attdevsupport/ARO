@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
@@ -23,6 +22,7 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -44,6 +44,10 @@ import com.att.aro.model.TraceData;
 public abstract class EnergyModelStatisticsPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
+	protected static final Font HEADER_FONT = new Font("HeaderFont", Font.BOLD, 16);
+	protected static final Font TEXT_FONT = new Font("TEXT_FONT", Font.PLAIN, 12);
+	protected static final int HEADER_DATA_SPACING = 10;
+
 	private JLabel gpsActiveLabel;
 	private JLabel gpsActiveValueLabel;
 	private JLabel gpsStandbyLabel;
@@ -52,12 +56,6 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 	private JLabel gpsTotalValueLabel;
 	private JLabel cameraTotalLabel;
 	private JLabel cameraTotalValueLabel;
-	private JLabel wifiActiveLabel;
-	private JLabel wifiActiveValueLabel;
-	private JLabel wifiStandbyLabel;
-	private JLabel wifiStandbyValueLabel;
-	private JLabel wifiTotalLabel;
-	private JLabel wifiTotalValueLabel;
 	private JLabel bluetoothActiveLabel;
 	private JLabel bluetoothActiveValueLabel;
 	private JLabel bluetoothStandbyLabel;
@@ -67,18 +65,13 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 	private JLabel screenTotalLabel;
 	private JLabel screenTotalValueLabel;
 
-	protected static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
-	protected static final Font HEADER_FONT = new Font("HeaderFont", Font.BOLD,
-			16);
-	protected static final Font TEXT_FONT = new Font("TEXT_FONT", Font.PLAIN,
-			12);
-	protected static final int HEADER_DATA_SPACING = 10;
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
+	private static final String units = rb.getString("energy.units");
 
-	protected JPanel energyStatisticsLeftAlligmentPanel = null;
-	protected JPanel energyStatisticsPanel = null;
-	protected JLabel energyStatisticsHeaderLabel = null;
-	protected JPanel spacePanel = null;
+	private JPanel energyStatisticsLeftAlligmentPanel = null;
+	private JPanel energyStatisticsPanel = null;
+	private JLabel energyStatisticsHeaderLabel = null;
+	private JPanel spacePanel = null;
 	protected JPanel energyConsumptionStatsPanel = null;
 
 	protected Map<String, String> energyContent = new LinkedHashMap<String, String>();
@@ -90,6 +83,8 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 		super(new BorderLayout(10, 10));
 		setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
 		setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+		init();
+		add(energyStatisticsLeftAlligmentPanel, BorderLayout.WEST);
 	}
 
 	/**
@@ -99,12 +94,72 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 	 * @param analysis
 	 *            - The Analysis object containing the trace data.
 	 */
-	public abstract void refresh(TraceData.Analysis analysis);
+	public synchronized void refresh(TraceData.Analysis analysis) {
+		energyContent.clear();
+
+		NumberFormat nf = NumberFormat.getNumberInstance();
+		nf.setMaximumFractionDigits(2);
+		nf.setMinimumFractionDigits(2);
+		if (analysis != null) {
+			updatePeripheralStatistics(analysis, nf, units, analysis.getEnergyModel());
+			updatePeripheralStatisticsValues();
+
+		} else {
+			updatePeripheralStatistics(null, null, null, null);
+
+		}
+		refreshRRCStatistic(analysis, nf);
+	}
+
+	/**
+	 * Returns a Map containing key-value pairs of the energy consumption
+	 * statistics data.
+	 * 
+	 * @return A Map object containing the energy consumption statistics data.
+	 */
+	public Map<String, String> getEnergyContent() {
+		return Collections.unmodifiableMap(energyContent);
+	}
+
+	protected abstract void refreshRRCStatistic(TraceData.Analysis analysis, NumberFormat nf);
+
+	protected abstract void createRRCStatsPanel();
+
+	private void init() {
+
+		energyConsumptionStatsPanel = new JPanel(new GridLayout(17, 2, 5, 5));
+		energyStatisticsLeftAlligmentPanel = new JPanel(new BorderLayout());
+		energyConsumptionStatsPanel.setBackground(UIManager
+				.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
+		energyStatisticsLeftAlligmentPanel.setBackground(UIManager
+				.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
+
+		createRRCStatsPanel();
+		createPeripheralStatisticsPanel();
+
+		energyStatisticsPanel = new JPanel();
+		energyStatisticsPanel.setLayout(new VerticalLayout());
+		energyStatisticsPanel.setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
+		energyStatisticsHeaderLabel = new JLabel(rb.getString("energy.title"));
+		energyStatisticsHeaderLabel.setFont(HEADER_FONT);
+		energyStatisticsPanel.add(energyStatisticsHeaderLabel);
+
+		spacePanel = new JPanel();
+		spacePanel.setPreferredSize(new Dimension(this.getWidth(), HEADER_DATA_SPACING));
+		spacePanel.setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
+		energyStatisticsPanel.add(spacePanel);
+
+		energyStatisticsPanel.add(energyConsumptionStatsPanel);
+
+		energyStatisticsLeftAlligmentPanel.add(energyStatisticsPanel, BorderLayout.WEST);
+
+	}
 
 	/**
 	 * Creates the JPanel that contains the peripheral statistics data.
 	 */
-	protected void createPeripheralStatisticsPanel() {
+	private void createPeripheralStatisticsPanel() {
+
 		gpsActiveLabel = new JLabel(rb.getString("energy.gpsActive"));
 		gpsActiveLabel.setFont(TEXT_FONT);
 		gpsActiveValueLabel = new JLabel();
@@ -121,25 +176,11 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 		cameraTotalLabel.setFont(TEXT_FONT);
 		cameraTotalValueLabel = new JLabel();
 		cameraTotalValueLabel.setFont(TEXT_FONT);
-		wifiActiveLabel = new JLabel(rb.getString("energy.wifiActive"));
-		wifiActiveLabel.setFont(TEXT_FONT);
-		wifiActiveValueLabel = new JLabel();
-		wifiActiveValueLabel.setFont(TEXT_FONT);
-		wifiStandbyLabel = new JLabel(rb.getString("energy.wifiStandby"));
-		wifiStandbyLabel.setFont(TEXT_FONT);
-		wifiStandbyValueLabel = new JLabel();
-		wifiStandbyValueLabel.setFont(TEXT_FONT);
-		wifiTotalLabel = new JLabel(rb.getString("energy.wifiTotal"));
-		wifiTotalLabel.setFont(TEXT_FONT);
-		wifiTotalValueLabel = new JLabel();
-		wifiTotalValueLabel.setFont(TEXT_FONT);
-		bluetoothActiveLabel = new JLabel(
-				rb.getString("energy.bluetoothActive"));
+		bluetoothActiveLabel = new JLabel(rb.getString("energy.bluetoothActive"));
 		bluetoothActiveLabel.setFont(TEXT_FONT);
 		bluetoothActiveValueLabel = new JLabel();
 		bluetoothActiveValueLabel.setFont(TEXT_FONT);
-		bluetoothStandbyLabel = new JLabel(
-				rb.getString("energy.bluetoothStandby"));
+		bluetoothStandbyLabel = new JLabel(rb.getString("energy.bluetoothStandby"));
 		bluetoothStandbyLabel.setFont(TEXT_FONT);
 		bluetoothStandbyValueLabel = new JLabel();
 		bluetoothStandbyValueLabel.setFont(TEXT_FONT);
@@ -152,30 +193,6 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 		screenTotalValueLabel = new JLabel();
 		screenTotalValueLabel.setFont(TEXT_FONT);
 
-		energyStatisticsPanel = new JPanel();
-		energyStatisticsPanel.setLayout(new VerticalLayout());
-		energyStatisticsPanel.setBackground(UIManager
-				.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
-		energyStatisticsHeaderLabel = new JLabel(rb.getString("energy.title"));
-		energyStatisticsHeaderLabel.setFont(HEADER_FONT);
-		energyStatisticsPanel.add(energyStatisticsHeaderLabel);
-
-		spacePanel = new JPanel();
-		spacePanel.setPreferredSize(new Dimension(this.getWidth(),
-				HEADER_DATA_SPACING));
-		spacePanel.setBackground(UIManager
-				.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
-		energyStatisticsPanel.add(spacePanel);
-
-		energyConsumptionStatsPanel = new JPanel(new GridLayout(20, 2, 5, 5));
-		energyConsumptionStatsPanel.setBackground(UIManager
-				.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
-	}
-
-	/**
-	 * Adds the JPanel that contains the peripheral statistics data.
-	 */
-	protected void addPeripheralStatisticsPanel() {
 		energyConsumptionStatsPanel.add(gpsActiveLabel);
 		energyConsumptionStatsPanel.add(gpsActiveValueLabel);
 		energyConsumptionStatsPanel.add(gpsStandbyLabel);
@@ -184,12 +201,6 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 		energyConsumptionStatsPanel.add(gpsTotalValueLabel);
 		energyConsumptionStatsPanel.add(cameraTotalLabel);
 		energyConsumptionStatsPanel.add(cameraTotalValueLabel);
-		energyConsumptionStatsPanel.add(wifiActiveLabel);
-		energyConsumptionStatsPanel.add(wifiActiveValueLabel);
-		energyConsumptionStatsPanel.add(wifiStandbyLabel);
-		energyConsumptionStatsPanel.add(wifiStandbyValueLabel);
-		energyConsumptionStatsPanel.add(wifiTotalLabel);
-		energyConsumptionStatsPanel.add(wifiTotalValueLabel);
 		energyConsumptionStatsPanel.add(bluetoothActiveLabel);
 		energyConsumptionStatsPanel.add(bluetoothActiveValueLabel);
 		energyConsumptionStatsPanel.add(bluetoothStandbyLabel);
@@ -199,19 +210,13 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 		energyConsumptionStatsPanel.add(screenTotalLabel);
 		energyConsumptionStatsPanel.add(screenTotalValueLabel);
 
-		energyStatisticsPanel.add(energyConsumptionStatsPanel);
-
-		energyStatisticsLeftAlligmentPanel = new JPanel(new BorderLayout());
-		energyStatisticsLeftAlligmentPanel.setBackground(UIManager
-				.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
-		energyStatisticsLeftAlligmentPanel.add(energyStatisticsPanel,
-				BorderLayout.WEST);
 	}
 
 	/**
 	 * Updates the JPanel that contains the Energy Consumption statistics data.
-	 * @param TraceData.Analysis
-	 *            analysis data
+	 * 
+	 * @param TraceData
+	 *            .Analysis analysis data
 	 * @param NumberFormat
 	 *            The display format
 	 * @param String
@@ -219,8 +224,8 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 	 * @param EnergyModel
 	 *            The energy model
 	 */
-	protected void updatePeripheralStatistics(TraceData.Analysis analysis,
-			NumberFormat nf, String units, EnergyModel model) {
+	private void updatePeripheralStatistics(TraceData.Analysis analysis, NumberFormat nf,
+			String units, EnergyModel model) {
 		if (analysis != null) {
 			gpsActiveValueLabel.setText(MessageFormat.format(units,
 					nf.format(model.getGpsActiveEnergy())));
@@ -230,12 +235,6 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 					nf.format(model.getTotalGpsEnergy())));
 			cameraTotalValueLabel.setText(MessageFormat.format(units,
 					nf.format(model.getTotalCameraEnergy())));
-			wifiActiveValueLabel.setText(MessageFormat.format(units,
-					nf.format(model.getWifiActiveEnergy())));
-			wifiStandbyValueLabel.setText(MessageFormat.format(units,
-					nf.format(model.getWifiStandbyEnergy())));
-			wifiTotalValueLabel.setText(MessageFormat.format(units,
-					nf.format(model.getTotalWifiEnergy())));
 			bluetoothActiveValueLabel.setText(MessageFormat.format(units,
 					nf.format(model.getBluetoothActiveEnergy())));
 			bluetoothStandbyValueLabel.setText(MessageFormat.format(units,
@@ -249,42 +248,29 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 			gpsStandbyValueLabel.setText(null);
 			gpsTotalValueLabel.setText(null);
 			cameraTotalValueLabel.setText(null);
-			wifiActiveValueLabel.setText(null);
-			wifiStandbyValueLabel.setText(null);
-			wifiTotalValueLabel.setText(null);
 			bluetoothActiveValueLabel.setText(null);
 			bluetoothStandbyValueLabel.setText(null);
 			bluetoothTotalValueLabel.setText(null);
 			screenTotalValueLabel.setText(null);
-			energyContent.clear();
 		}
 	}
 
 	/**
-	 * Updates the JPanel that contains the Energy Consumption statistics data with values.
+	 * Updates the JPanel that contains the Energy Consumption statistics data
+	 * with values.
 	 */
-	protected void updatePeripheralStatisticsValues() {
+	private void updatePeripheralStatisticsValues() {
 		energyContent.put(rb.getString("energy.gpsActive"), gpsActiveValueLabel.getText());
 		energyContent.put(rb.getString("energy.gpsStandby"), gpsStandbyValueLabel.getText());
 		energyContent.put(rb.getString("energy.gpsTotal"), gpsTotalValueLabel.getText());
 		energyContent.put(rb.getString("energy.cameraTotal"), cameraTotalValueLabel.getText());
-		energyContent.put(rb.getString("energy.wifiActive"), wifiActiveValueLabel.getText());
-		energyContent.put(rb.getString("energy.wifiStandby"), wifiStandbyValueLabel.getText());
-		energyContent.put(rb.getString("energy.wifiTotal"), wifiTotalValueLabel.getText());
-		energyContent.put(rb.getString("energy.bluetoothActive"), bluetoothActiveValueLabel.getText());
-		energyContent.put(rb.getString("energy.bluetoothStandby"), bluetoothStandbyValueLabel.getText());
-		energyContent.put(rb.getString("energy.bluetoothTotal"), bluetoothTotalValueLabel.getText());
+		energyContent.put(rb.getString("energy.bluetoothActive"),
+				bluetoothActiveValueLabel.getText());
+		energyContent.put(rb.getString("energy.bluetoothStandby"),
+				bluetoothStandbyValueLabel.getText());
+		energyContent
+				.put(rb.getString("energy.bluetoothTotal"), bluetoothTotalValueLabel.getText());
 		energyContent.put(rb.getString("energy.screenTotal"), screenTotalValueLabel.getText());
-	}
-	
-	/**
-	 * Returns a Map containing key-value pairs of the energy consumption
-	 * statistics data.
-	 * 
-	 * @return A Map object containing the energy consumption statistics data.
-	 */
-	public Map<String, String> getEnergyContent() {
-		return energyContent;
 	}
 
 } // @jve:decl-index=0:visual-constraint="10,10"

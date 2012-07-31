@@ -107,9 +107,6 @@ public class ResourceBundleManager {
 	 * Returns a Map of strings that correspond to the specified enumeration
 	 * value.
 	 * 
-	 * @param T
-	 *            - An enumeration type.
-	 * 
 	 * @param c
 	 *            - The enumeration type for which the corresponding Map of
 	 *            display strings should be returned.
@@ -131,10 +128,7 @@ public class ResourceBundleManager {
 	 * one returned by the getEnumStrings() method, and is useful for converting
 	 * a user entry into an enumeration value. To get accurate results for this
 	 * Map, the String value returned for each value in the enumeration must be
-	 * unique
-	 * 
-	 * @param T
-	 *            - An enumeration type
+	 * unique.
 	 * 
 	 * @param c
 	 *            - The enumeration class for which the corresponding Map of

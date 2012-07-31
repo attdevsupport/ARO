@@ -534,6 +534,7 @@ public class HttpRequestResponseInfo implements
 				if (rrInfo.direction == null) {
 
 					// Assume HTTPS encrypted here
+					while ((line = readLine()) != null && line.length() > 0);
 					rrInfo.rawSize = counter - index;
 					switch (direction) {
 					case UPLINK:
@@ -546,7 +547,6 @@ public class HttpRequestResponseInfo implements
 						// included
 						rrInfo.contentOffsetLength = new TreeMap<Integer, Integer>();
 						rrInfo.contentOffsetLength.put(index, rrInfo.rawSize);
-						rrInfo.contentLength = rrInfo.rawSize;
 						break;
 					}
 					mapPackets(packetOffsets, index, counter - 1, direction,

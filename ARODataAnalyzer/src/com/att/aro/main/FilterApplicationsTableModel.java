@@ -122,7 +122,7 @@ public class FilterApplicationsTableModel extends DataTableModel<ApplicationSele
 	/**
 	 * Sets the value of the specified data item.
 	 * 
-	 * @param Value – The value to set for the data item.
+	 * @param aValue – The value to set for the data item.
 	 * 
 	 * @param rowIndex – The row index of the data item.
 	 * 

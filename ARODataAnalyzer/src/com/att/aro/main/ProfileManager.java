@@ -201,7 +201,7 @@ public class ProfileManager {
 		String name = profileType == ProfileType.LTE ? DEFAULT_PROFILE_LTE
 				: DEFAULT_PROFILE;
 		try {
-			result = getPredefinedProfile(name);
+			result = getPredefinedProfile(aroProfiles.getString(name));
 		} catch (ProfileException e) {
 			logger.log(Level.WARNING,
 					"Unable to load default pre-defined profile: " + name, e);

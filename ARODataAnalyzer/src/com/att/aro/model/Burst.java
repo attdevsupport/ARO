@@ -49,8 +49,9 @@ public class Burst implements Serializable {
 
 	// energy
 	private double energy;
-	private double dchTime;
-	private double crTime;
+	private double activeTime;
+	
+	
 	
 	// burst analysis
 	private Set<BurstInfo> burstInfos = new HashSet<BurstInfo>();
@@ -182,43 +183,23 @@ public class Burst implements Serializable {
 	}
 
 	/**
-	 * Returns the amount of DCH active time for this burst. 
+	 * Returns the amount of RRC active state time for this burst. 
 	 * 
-	 * @return A double that is the DCH active time.
+	 * @return A double that is the RRC active state time.
 	 */
-	public double getDchTime() {
-		return dchTime;
+	public double getActiveTime() {
+		return activeTime;
 	}
 
 	/**
-	 * Sets the amount of DCH active time for this burst. 
+	 * Sets the amount of RRC active state time for this burst. 
 	 * 
-	 * @param dchTime - A double that is the DCH active time.
+	 * @param activeTime - A double that is the RRC active state time.
 	 */
-	public void setDchTime(double dchTime) {
-		this.dchTime = dchTime;
-	}
-	
-	/**
-	 * Returns burst DCH time.
-	 * 
-	 * @return dchTime.
-	 */
-	public double getCrTime() {
-		return crTime;
+	public void setActiveTime(double activeTime) {
+		this.activeTime = activeTime;
 	}
 
-	/**
-	 * Sets burst DCH time.
-	 * 
-	 * @param dchTime
-	 *            .
-	 */
-	public void setCrTime(double crTime) {
-		this.crTime = crTime;
-	}
-
-	
 	/**
 	 * Returns the Set of burst information contained in this Burst object. 
 	 * 

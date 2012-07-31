@@ -72,8 +72,6 @@ public class GpsInfo implements Comparable<GpsInfo> {
 
 	/**
 	 * Compares the specified GpsInfo object to this object.
-	 * 
-	 * @see Comparable.compareTo(java.lang.Object)
 	 */
 	@Override
 	public int compareTo(GpsInfo o) {

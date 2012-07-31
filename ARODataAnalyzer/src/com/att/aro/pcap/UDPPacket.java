@@ -33,9 +33,9 @@ public class UDPPacket extends IPPacket implements Serializable {
 	/**
 	 * Constructor
 	 */
-	public UDPPacket(int datalink, long seconds, long microSeconds, int len,
+	public UDPPacket(long seconds, long microSeconds, int len, int datalinkHdrLen,
 			byte[] data) {
-		super(datalink, seconds, microSeconds, len, data);
+		super(seconds, microSeconds, len, datalinkHdrLen, data);
 
 		int headerOffset = super.getDataOffset();
 		dataOffset = headerOffset + 8;

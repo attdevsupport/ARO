@@ -43,9 +43,9 @@ public class IPPacket extends Packet implements Serializable {
 	/**
 	 * Creates a new instance of the IPPacket class.
 	 */
-	protected IPPacket(int datalink, long seconds, long microSeconds, int len,
+	protected IPPacket(long seconds, long microSeconds, int len, int datalinkHdrLen,
 			byte[] data) {
-		super(datalink, seconds, microSeconds, len, data);
+		super(seconds, microSeconds, len, datalinkHdrLen, data);
 
 		// Parse data
 		ByteBuffer bytes = ByteBuffer.wrap(data);

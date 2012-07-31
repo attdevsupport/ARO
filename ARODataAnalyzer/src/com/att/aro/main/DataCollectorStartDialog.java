@@ -92,11 +92,11 @@ public class DataCollectorStartDialog extends JDialog {
 	 *            - The DataCollectorBridge instance for capturing traces from a
 	 *            device emulator.
 	 * 
-	 * @param tracefoldername
+	 * @param traceFolderName
 	 *            - The name of the folder in which the ARO Data Collector trace
 	 *            files should be stored.
 	 * 
-	 * @param mRecordTraceVideo
+	 * @param recordVideo
 	 *            – A boolean value that indicates whether to record video for
 	 *            this trace or not.
 	 */

@@ -30,16 +30,21 @@ public class Packet implements Serializable {
 	private static final int DLT_RAW = 12;
 	private static final int DLT_LINUX_SLL = 113;
 
+	private static final int NETMON_ETHERNET = 1;
+	private static final int NETMON_WIFI = 6;
+	private static final int NETMON_WIRELESSWAN = 8;
+	private static final int NETMON_RAW = 9;
+
 	/**
 	 * Creates a new instance of the Packet class.
 	 */
-	public static Packet createPacket(int datalink, long seconds,
-			long microSeconds, int len, byte[] data) {
-
-		ByteBuffer bytes = ByteBuffer.wrap(data);
+	public static Packet createPacketFromPcap(int datalink, long seconds, long microSeconds, int len,
+			byte[] data) {
 
 		// Determine network protocol
 		short network = 0;
+		int hdrLen = 0;
+		ByteBuffer bytes = ByteBuffer.wrap(data);
 		try {
 			switch (datalink) {
 			case DLT_RAW: // Raw IP
@@ -47,71 +52,113 @@ public class Packet implements Serializable {
 				break;
 			case DLT_EN10MB: // Ethernet (WiFi)
 				network = bytes.getShort(12);
+				hdrLen = 14;
 				break;
 			case DLT_LINUX_SLL: // Linux cooked capture (Android)
 				network = bytes.getShort(14);
+				hdrLen = 16;
 				break;
 			}
 		} catch (IndexOutOfBoundsException e) {
 			// Truncated packet
 		}
-
-		int dataOffset = headerLength(datalink);
-
-		// Minimum IP header length is 20 bytes
-		if (network == IP && data.length >= dataOffset + 20) {
-
-			byte iphlen = (byte) ((bytes.get(dataOffset) & 0x0f) << 2);
-			if (data.length < dataOffset + iphlen) {
-
-				// Truncated packet
-				return new Packet(datalink, seconds, microSeconds, len, data);
-			}
-
-			// Determine IP protocol
-			byte protocol = bytes.get(dataOffset + 9);
-			switch (protocol) {
-			case 6: // TCP
-				if (data.length >= dataOffset + iphlen + 20) {
-					return new TCPPacket(datalink, seconds, microSeconds, len,
-							data);
-				} else {
-					return new Packet(datalink, seconds, microSeconds, len,
-							data);
-				}
-			case 17: // UDP
-				if (data.length >= dataOffset + iphlen + 6) {
-					return new UDPPacket(datalink, seconds, microSeconds, len,
-							data);
-				} else {
-					return new Packet(datalink, seconds, microSeconds, len,
-							data);
-				}
-			default:
-				return new IPPacket(datalink, seconds, microSeconds, len, data);
-			}
-		} else {
-			return new Packet(datalink, seconds, microSeconds, len, data);
-		}
-
+		
+		return createPacket(network, seconds, microSeconds, len, hdrLen, data);
 	}
 
 	/**
-	 * Returns the header length for packets with the specified datalink type.
-	 * 
-	 * @param datalink
-	 *            The datalink type
-	 * @return The header length in bytes..
+	 * Creates a new instance of the Packet class.
 	 */
-	private static int headerLength(int datalink) {
-		switch (datalink) {
-		case DLT_EN10MB: // Ethernet (WiFi)
-			return 14;
-		case DLT_LINUX_SLL: // Linux cooked capture (Android)
-			return 16;
-		default:
-			return 0;
+	public static Packet createPacketFromNetmon(int datalink, long seconds, long microSeconds, int len,
+			byte[] data) {
+
+		// Check for PCAP datalink
+		if (datalink >= 0xe000 && datalink <= 0xefff) {
+			return createPacketFromPcap(datalink - 0xe000, seconds, microSeconds, len, data);
 		}
+		
+		// Determine network protocol
+		short network = 0;
+		int hdrLen = 0;
+		ByteBuffer bytes = ByteBuffer.wrap(data);
+		try {
+			switch (datalink) {
+			case NETMON_RAW: // Raw IP
+			case NETMON_WIRELESSWAN:
+				network = IP;
+				break;
+			case NETMON_ETHERNET: // Ethernet (WiFi)
+				network = bytes.getShort(12);
+				hdrLen = 14;
+				break;
+			case NETMON_WIFI:
+				
+				// Get the NetMon 802.11 capture header length
+				hdrLen = bytes.get(1);
+				
+				// Read the IEEE 802.11 frame control flags
+				short control = bytes.get(hdrLen);
+				
+				// Check for data frame type
+				if ((control & 0x000c) == 0x0008) {
+					
+					// Check data frame sub-type
+					if ((control & 0x0080) == 0) {
+						// Data
+						hdrLen += 32;
+					} else {
+						// Data - QoS sub-type
+						hdrLen += 34;
+					}
+					network = bytes.getShort(hdrLen - 2);
+				}
+			}
+		} catch (IndexOutOfBoundsException e) {
+			// Truncated packet
+		}
+		
+		return createPacket(network, seconds, microSeconds, len, hdrLen, data);
+	}
+
+	/**
+	 * Creates a new instance of the Packet class.
+	 */
+	public static Packet createPacket(short network, long seconds, long microSeconds, int len, int datalinkHdrLen,
+			byte[] data) {
+
+		// Minimum IP header length is 20 bytes
+		ByteBuffer bytes = ByteBuffer.wrap(data);
+		if (network == IP && data.length >= datalinkHdrLen + 20) {
+
+			byte iphlen = (byte) ((bytes.get(datalinkHdrLen) & 0x0f) << 2);
+			if (data.length < datalinkHdrLen + iphlen) {
+
+				// Truncated packet
+				return new Packet(seconds, microSeconds, len, datalinkHdrLen, data);
+			}
+
+			// Determine IP protocol
+			byte protocol = bytes.get(datalinkHdrLen + 9);
+			switch (protocol) {
+			case 6: // TCP
+				if (data.length >= datalinkHdrLen + iphlen + 20) {
+					return new TCPPacket(seconds, microSeconds, len, datalinkHdrLen, data);
+				} else {
+					return new Packet(seconds, microSeconds, len, datalinkHdrLen, data);
+				}
+			case 17: // UDP
+				if (data.length >= datalinkHdrLen + iphlen + 6) {
+					return new UDPPacket(seconds, microSeconds, len, datalinkHdrLen, data);
+				} else {
+					return new Packet(seconds, microSeconds, len, datalinkHdrLen, data);
+				}
+			default:
+				return new IPPacket(seconds, microSeconds, len, datalinkHdrLen, data);
+			}
+		} else {
+			return new Packet(seconds, microSeconds, len, datalinkHdrLen, data);
+		}
+
 	}
 
 	private byte[] data;
@@ -123,9 +170,8 @@ public class Packet implements Serializable {
 	/**
 	 * Constructor
 	 */
-	protected Packet(int datalink, long seconds, long microSeconds, int len,
-			byte[] data) {
-		this.dataOffset = headerLength(datalink);
+	protected Packet(long seconds, long microSeconds, int len, int datalinkHdrLen, byte[] data) {
+		this.dataOffset = datalinkHdrLen;
 		this.seconds = seconds;
 		this.microSeconds = microSeconds;
 		this.len = len;

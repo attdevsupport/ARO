@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
@@ -49,8 +48,7 @@ import com.att.aro.model.TraceData;
 public class AROSimpleTabb extends JPanel {
 	private static final long serialVersionUID = 1L;
 
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
 	private ApplicationResourceOptimizer parent;
 
@@ -74,6 +72,7 @@ public class AROSimpleTabb extends JPanel {
 	private JPanel expandedDomainsPanel;
 	private ExpandedDomainTableModel jExtendedDomainTableModel = new ExpandedDomainTableModel();
 	private DataTable<TCPSession> jExtendedDomainTable;
+	private JSplitPane jTablesSplitPane;
 
 	/**
 	 * Initializes a new instance of the AROSimpleTabb class using the specified
@@ -88,10 +87,8 @@ public class AROSimpleTabb extends JPanel {
 		this.parent = parent;
 		JPanel traceAnalysisAndSessionTermPanel = new JPanel();
 		traceAnalysisAndSessionTermPanel.setLayout(new BorderLayout());
-		traceAnalysisAndSessionTermPanel.add(getTraceOverviewPanel(),
-				BorderLayout.NORTH);
-		traceAnalysisAndSessionTermPanel.add(getProperSessionTermChartPanel(),
-				BorderLayout.SOUTH);
+		traceAnalysisAndSessionTermPanel.add(getTraceOverviewPanel(), BorderLayout.NORTH);
+		traceAnalysisAndSessionTermPanel.add(getProperSessionTermChartPanel(), BorderLayout.SOUTH);
 
 		JPanel chartsPanel = new JPanel();
 		chartsPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -103,9 +100,27 @@ public class AROSimpleTabb extends JPanel {
 		JPanel chartAndTablePanel = new JPanel();
 		chartAndTablePanel.setLayout(new BorderLayout());
 		chartAndTablePanel.add(chartsPanel, BorderLayout.NORTH);
-		chartAndTablePanel.add(getJDuplicatesPanel(), BorderLayout.CENTER);
+		chartAndTablePanel.add(getJTablesSplitPane());
 		this.add(chartAndTablePanel, BorderLayout.CENTER);
-		this.add(createTablesPanel(), BorderLayout.SOUTH);
+
+	}
+
+	/**
+	 * Initializes and returns the Split Pane that contains the Duplicate
+	 * Contents and the Domains table so the the Duplicate contents table can be
+	 * resized on mouse drag.
+	 * 
+	 */
+	private JSplitPane getJTablesSplitPane() {
+		if (jTablesSplitPane == null) {
+			jTablesSplitPane = new JSplitPane();
+			jTablesSplitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
+			jTablesSplitPane.setResizeWeight(0.5);
+			jTablesSplitPane.setTopComponent(getJDuplicatesPanel());
+			jTablesSplitPane.setBottomComponent(createTablesPanel());
+
+		}
+		return jTablesSplitPane;
 	}
 
 	/**
@@ -130,10 +145,8 @@ public class AROSimpleTabb extends JPanel {
 	private JPanel getSimpleDomainsPanel() {
 		if (simpleDomainsPanel == null) {
 			simpleDomainsPanel = new JPanel(new BorderLayout());
-			simpleDomainsPanel.add(getJLabelAccessedDomains(),
-					BorderLayout.NORTH);
-			simpleDomainsPanel.add(getjAccessedDomainsPanel(),
-					BorderLayout.CENTER);
+			simpleDomainsPanel.add(getJLabelAccessedDomains(), BorderLayout.NORTH);
+			simpleDomainsPanel.add(getjAccessedDomainsPanel(), BorderLayout.CENTER);
 		}
 		return simpleDomainsPanel;
 	}
@@ -147,10 +160,8 @@ public class AROSimpleTabb extends JPanel {
 		if (expandedDomainsPanel == null) {
 			expandedDomainsPanel = new JPanel();
 			expandedDomainsPanel.setLayout(new BorderLayout());
-			expandedDomainsPanel.add(getJLabelAccessedExpandedDomains(),
-					BorderLayout.NORTH);
-			expandedDomainsPanel.add(getjAccessedDomainsExpandedPanel(),
-					BorderLayout.CENTER);
+			expandedDomainsPanel.add(getJLabelAccessedExpandedDomains(), BorderLayout.NORTH);
+			expandedDomainsPanel.add(getjAccessedDomainsExpandedPanel(), BorderLayout.CENTER);
 		}
 		return expandedDomainsPanel;
 	}
@@ -162,8 +173,7 @@ public class AROSimpleTabb extends JPanel {
 	 */
 	private JLabel getJLabelAccessedDomains() {
 		if (labelAccessedDomains == null) {
-			labelAccessedDomains = new JLabel(
-					rb.getString("simple.domain.title"), JLabel.CENTER);
+			labelAccessedDomains = new JLabel(rb.getString("simple.domain.title"), JLabel.CENTER);
 		}
 		return labelAccessedDomains;
 	}
@@ -173,8 +183,7 @@ public class AROSimpleTabb extends JPanel {
 	 */
 	private JLabel getJLabelAccessedExpandedDomains() {
 		if (labelAccessedExpandedDomains == null) {
-			labelAccessedExpandedDomains = new JLabel(
-					rb.getString("expanded.title"), JLabel.CENTER);
+			labelAccessedExpandedDomains = new JLabel(rb.getString("expanded.title"), JLabel.CENTER);
 		}
 		return labelAccessedExpandedDomains;
 	}
@@ -237,8 +246,7 @@ public class AROSimpleTabb extends JPanel {
 	 */
 	private JScrollPane getjAccessedDomainsExpandedPanel() {
 		if (jAccessedDomainsExpandedPanel == null) {
-			jAccessedDomainsExpandedPanel = new JScrollPane(
-					getExtendedDomainTable());
+			jAccessedDomainsExpandedPanel = new JScrollPane(getExtendedDomainTable());
 		}
 		return jAccessedDomainsExpandedPanel;
 	}
@@ -265,15 +273,13 @@ public class AROSimpleTabb extends JPanel {
 		List<CacheEntry> dupContent;
 		if (analysisData != null) {
 			tcpSession = analysisData.getTcpSessions();
-			dupContent = analysisData.getCacheAnalysis()
-					.getDuplicateContentWithOriginals();
+			dupContent = analysisData.getCacheAnalysis().getDuplicateContentWithOriginals();
 		} else {
 			tcpSession = Collections.emptyList();
 			dupContent = Collections.emptyList();
 		}
 
-		jSimpleDomainTableModel.setData(DomainTCPSessions
-				.extractDomainTCPSessions(tcpSession));
+		jSimpleDomainTableModel.setData(DomainTCPSessions.extractDomainTCPSessions(tcpSession));
 		getJDuplicatesPanel().setData(dupContent);
 		deviceNetworkProfilePanel.refresh(analysisData);
 		getFileTypesChartPanel().setAnalysisData(analysisData);
@@ -286,21 +292,17 @@ public class AROSimpleTabb extends JPanel {
 	 */
 	private JTable getSimpleDomainTable() {
 		if (jSimpleDomainTable == null) {
-			jSimpleDomainTable = new DataTable<DomainTCPSessions>(
-					jSimpleDomainTableModel);
+			jSimpleDomainTable = new DataTable<DomainTCPSessions>(jSimpleDomainTableModel);
 			jSimpleDomainTable.setAutoCreateRowSorter(true);
-			jSimpleDomainTable
-					.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+			jSimpleDomainTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 			jSimpleDomainTable.setGridColor(Color.LIGHT_GRAY);
 			jSimpleDomainTable.getSelectionModel().addListSelectionListener(
 					new ListSelectionListener() {
 						@Override
 						public void valueChanged(ListSelectionEvent arg0) {
-							DomainTCPSessions tcp = jSimpleDomainTable
-									.getSelectedItem();
+							DomainTCPSessions tcp = jSimpleDomainTable.getSelectedItem();
 							if (tcp != null) {
-								jExtendedDomainTableModel.setData(tcp
-										.getSessions());
+								jExtendedDomainTableModel.setData(tcp.getSessions());
 							} else {
 								jExtendedDomainTableModel.removeAllRows();
 							}
@@ -315,26 +317,25 @@ public class AROSimpleTabb extends JPanel {
 	 */
 	private JTable getExtendedDomainTable() {
 		if (jExtendedDomainTable == null) {
-			jExtendedDomainTable = new DataTable<TCPSession>(
-					jExtendedDomainTableModel);
+			jExtendedDomainTable = new DataTable<TCPSession>(jExtendedDomainTableModel);
 			jExtendedDomainTable.setAutoCreateRowSorter(true);
-			jExtendedDomainTable
-					.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+			jExtendedDomainTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 			jExtendedDomainTable.setGridColor(Color.LIGHT_GRAY);
 			jExtendedDomainTable.addMouseListener(new MouseAdapter() {
 				public void mouseClicked(MouseEvent e) {
 					final TCPSession tcp = jExtendedDomainTable.getSelectedItem();
 					if (e.getClickCount() == 2 && tcp != null) {
 						parent.displayAdvancedTab();
-						
-						// Make sure the tab is fully displayed before changing selection
+
+						// Make sure the tab is fully displayed before changing
+						// selection
 						SwingUtilities.invokeLater(new Runnable() {
 
 							@Override
 							public void run() {
 								parent.getAroAdvancedTab().setHighlightedTCP(tcp);
 							}
-							
+
 						});
 					}
 				}

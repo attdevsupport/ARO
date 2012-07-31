@@ -61,7 +61,7 @@ public class AnalysisFilter implements Serializable {
 	
 	/**
 	 * Gets the application selection settings for this filter
-	 * @return
+	 * @return The collection of application selctions.
 	 */
 	public Collection<ApplicationSelection> getApplicationSelections() {
 		return appSelections.values();
@@ -79,8 +79,8 @@ public class AnalysisFilter implements Serializable {
 	/**
 	 * Based upon the filter returns the color that should be used to
 	 * display the specified packet
-	 * @param packet
-	 * @return
+	 * @param packet The packet.
+	 * @return The color that is appplied to the specified packet.
 	 */
 	public Color getPacketColor(PacketInfo packet) {
 

@@ -45,8 +45,8 @@ public class PCapAdapter {
 	 * and a PacketLIstener object to create a callback for capturing packets.
 	 * This constructor initiates the WinPcap native API to loop the packets.
 	 * 
-	 * @param The
-	 *            file object to access.
+	 * @param file
+	 *            The file object to access.
 	 * @param pl
 	 *            A Packetlistener object that enables a callback to capture the
 	 *            packets.
@@ -76,7 +76,7 @@ public class PCapAdapter {
 	 */
 	private void pcapHandler(int datalink, long seconds, long microSeconds,
 			int len, byte[] data) {
-		pl.packetArrived(Packet.createPacket(datalink, seconds, microSeconds,
+		pl.packetArrived(Packet.createPacketFromPcap(datalink, seconds, microSeconds,
 				len, data));
 	}
 

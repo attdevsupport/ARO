@@ -23,6 +23,14 @@ JNIEXPORT void JNICALL Java_com_att_aro_pcap_PCapAdapter_ping
 JNIEXPORT jstring JNICALL Java_com_att_aro_pcap_PCapAdapter_loopPacket
   (JNIEnv *, jobject, jstring);
 
+/*
+ * Class:     com_att_aro_pcap_PCapAdapter
+ * Method:    parseTrace
+ * Signature: (Ljava/lang/String;)Ljava/lang/String;
+*/
+JNIEXPORT ULONG JNICALL Java_com_att_aro_pcap_PCapAdapter_parseTrace
+  (JNIEnv *env, jobject obj, jstring filename);
+
 #ifdef __cplusplus
 }
 #endif

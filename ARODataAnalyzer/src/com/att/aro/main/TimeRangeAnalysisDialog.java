@@ -201,10 +201,15 @@ public class TimeRangeAnalysisDialog extends JDialog {
 								TimeRangeAnalysis timeRangeAnalysis = analysisData
 										.performTimeRangeAnalysis(startTime,
 												endTime);
-								String msg = analysisData.getProfile()
-										.getProfileType() == ProfileType.LTE ? rb
-										.getString("timerangeanalysis.lte")
-										: rb.getString("timerangeanalysis.3g");
+								String msg = null;
+								ProfileType profileType = analysisData.getProfile().getProfileType();
+								if(profileType == ProfileType.T3G){
+									msg = rb.getString("timerangeanalysis.3g");
+								}else if(profileType == ProfileType.LTE){
+									msg = rb.getString("timerangeanalysis.lte");
+								}else if(profileType == ProfileType.WIFI){
+									msg = rb.getString("timerangeanalysis.wifi");
+								}
 								timeRangeAnalysisResultsTextArea.setText(MessageFormat.format(
 										msg, decimalFormat.format(startTime),
 										decimalFormat.format(endTime),

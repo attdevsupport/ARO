@@ -42,9 +42,9 @@ public class TCPPacket extends IPPacket implements Serializable {
 	/**
 	 * Creates a new instance of the TCPPacket class.
 	 */
-	protected TCPPacket(int datalink, long seconds, long microSeconds, int len,
+	protected TCPPacket(long seconds, long microSeconds, int len, int datalinkHdrLen,
 			byte[] data) {
-		super(datalink, seconds, microSeconds, len, data);
+		super(seconds, microSeconds, len, datalinkHdrLen, data);
 
 		int headerOffset = super.getDataOffset();
 

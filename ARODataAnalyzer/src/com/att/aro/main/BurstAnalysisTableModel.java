@@ -41,8 +41,8 @@ public class BurstAnalysisTableModel extends DataTableModel<BurstAnalysisInfo> {
 	private static final int BYTES_PCT_COL = 2;
 	private static final int ENERGY_COL = 3;
 	private static final int ENERGY_PCT_COL = 4;
-	private static final int DCH_COL = 5;
-	private static final int DCH_PCT_COL = 6;
+	private static final int RRC_ACT_COL = 5;
+	private static final int RRC_ACT_PCT_COL = 6;
 	private static final int JPKB_COL = 7;
 	private static final ResourceBundle rb = ResourceBundleManager
 			.getDefaultBundle();
@@ -81,8 +81,8 @@ public class BurstAnalysisTableModel extends DataTableModel<BurstAnalysisInfo> {
 		case BYTES_PCT_COL:
 		case ENERGY_COL:
 		case ENERGY_PCT_COL:
-		case DCH_COL:
-		case DCH_PCT_COL:
+		case RRC_ACT_COL:
+		case RRC_ACT_PCT_COL:
 		case JPKB_COL:
 			return Double.class;
 		default:
@@ -126,10 +126,10 @@ public class BurstAnalysisTableModel extends DataTableModel<BurstAnalysisInfo> {
 		col = cols.getColumn(ENERGY_PCT_COL);
 		col.setCellRenderer(pctRenderer);
 
-		col = cols.getColumn(DCH_COL);
+		col = cols.getColumn(RRC_ACT_COL);
 		col.setCellRenderer(jpkbRenderer);
 
-		col = cols.getColumn(DCH_PCT_COL);
+		col = cols.getColumn(RRC_ACT_PCT_COL);
 		col.setCellRenderer(pctRenderer);
 
 		col = cols.getColumn(JPKB_COL);
@@ -151,10 +151,10 @@ public class BurstAnalysisTableModel extends DataTableModel<BurstAnalysisInfo> {
 			return item.getEnergy();
 		case ENERGY_PCT_COL:
 			return item.getEnergyPct();
-		case DCH_COL:
-			return item.getDchCr();
-		case DCH_PCT_COL:
-			return item.getDchCrPct();
+		case RRC_ACT_COL:
+			return item.getRRCActiveTime();
+		case RRC_ACT_PCT_COL:
+			return item.getRRCActivePercentage();
 		case JPKB_COL:
 			return item.getJpkb() != null? item.getJpkb() : 0.000;
 		default:
@@ -228,15 +228,23 @@ public class BurstAnalysisTableModel extends DataTableModel<BurstAnalysisInfo> {
 	 * Changes the Columns according to LTE headers.
 	 */
 	public void changeLTECol() {
-		changeColHeader(DCH_COL, rb.getString("burstAnalysis.lteCr"));
-		changeColHeader(DCH_PCT_COL, rb.getString("burstAnalysis.lteCrPct"));
+		changeColHeader(RRC_ACT_COL, rb.getString("burstAnalysis.lteCr"));
+		changeColHeader(RRC_ACT_PCT_COL, rb.getString("burstAnalysis.lteCrPct"));
 	}
 
 	/**
 	 * Changes the Columns according to 3G headers.
 	 */
 	public void change3GCol() {
-		changeColHeader(DCH_COL, rb.getString("burstAnalysis.dch"));
-		changeColHeader(DCH_PCT_COL, rb.getString("burstAnalysis.dchPct"));
+		changeColHeader(RRC_ACT_COL, rb.getString("burstAnalysis.dch"));
+		changeColHeader(RRC_ACT_PCT_COL, rb.getString("burstAnalysis.dchPct"));
+	}
+	/**
+	 * Changes the Columns according to WiFi headers.
+	 */
+	public void changeWiFiCol() {
+		changeColHeader(RRC_ACT_COL, rb.getString("burstAnalysis.wifiActive"));
+		changeColHeader(RRC_ACT_PCT_COL, rb.getString("burstAnalysis.wifiActivePct"));
 	}
 }
+

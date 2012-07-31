@@ -40,7 +40,7 @@ public class AROBestPracticesTab extends JPanel implements Printable {
 	 * Initializes a new instance of the AROBestPracticesTab class, using the specified 
 	 * instance of the ApplicationResourceOptimizer as the parent window for the tab.
 	 * 
-	 * @param The - ApplicationResourceOptimizer instance.
+	 * @param parent The  ApplicationResourceOptimizer instance.
 	 */
 	public AROBestPracticesTab(ApplicationResourceOptimizer parent) {
 		this.parent = parent;

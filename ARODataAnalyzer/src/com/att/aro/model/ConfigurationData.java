@@ -32,7 +32,7 @@ public class ConfigurationData {
 	 * 
 	 * @param attribute – A Profile.Attribute enumeration value that specifies the device profile attribute.
 	 * 
-	 * @param Data – The data associated with the attribute.
+	 * @param data – The data associated with the attribute.
 	 */
 	public ConfigurationData(String desc, String attribute, String data) {
 

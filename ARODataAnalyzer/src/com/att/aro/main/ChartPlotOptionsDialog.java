@@ -94,7 +94,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	 * @param owner
 	 *            - The ApplicationResourceOptimizer instance.
 	 * 
-	 * @param aactionableClass
+	 * @param actionableClass
 	 *            - The AROAdvancedTabb instance.
 	 */
 	public ChartPlotOptionsDialog(Frame owner, AROAdvancedTabb actionableClass) {

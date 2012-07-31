@@ -71,7 +71,15 @@ public class RRCStateMachine implements Serializable {
 	private double traceDuration;
 
 	private double crPower;
-
+	
+	private double wifiActiveEnergy;
+	private double wifiTailEnergy;
+	private double wifiIdleEnergy;
+    
+	private double wifiActiveTime;
+	private double wifiTailTime;
+	private double wifiIdleTime;
+	
 	private List<RrcStateRange> rrc = new ArrayList<RrcStateRange>();
 
 	/**
@@ -110,6 +118,9 @@ public class RRCStateMachine implements Serializable {
 		} else if (profile instanceof ProfileLTE) {
 			// Perform analysis on LTE RRC data
 			runLTERRcStatistics(analysisData);
+		}else if (profile instanceof ProfileWiFi) {
+			// Perform analysis on LTE RRC data
+			runWiFiRRcStatistics(analysisData);
 		}
 
 		if (logger.isLoggable(Level.FINE)) {
@@ -572,6 +583,48 @@ public class RRCStateMachine implements Serializable {
 		return crPower;
 	}
 
+	public double getWifiActiveEnergy() {
+		return wifiActiveEnergy;
+	}
+
+	public double getWifiTailEnergy() {
+		return wifiTailEnergy;
+	}
+
+	public double getWifiIdleEnergy() {
+		return wifiIdleEnergy;
+	}
+	public double getWifiActiveTime() {
+		return wifiActiveTime;
+	}
+
+	public double getWifiTailTime() {
+		return wifiTailTime;
+	}
+
+
+	/**
+	 * @return the wifiIdleTime
+	 */
+	public double getWifiIdleTime() {
+		return wifiIdleTime;
+	}
+	public double getWifiActiveRatio() {
+		return traceDuration != 0.0 ? wifiActiveTime / traceDuration : 0.0;
+	}
+
+	public double getWifiTailRatio() {
+		return traceDuration != 0.0 ? wifiTailTime / traceDuration : 0.0;
+	}
+
+
+	/**
+	 * @return the wifiIdleTime
+	 */
+	public double getWifiIdleRatio() {
+		return traceDuration != 0.0 ? wifiIdleTime / traceDuration : 0.0;
+	}
+
 	/**
 	 * 3G RRC state time modification.
 	 */
@@ -665,6 +718,33 @@ public class RRCStateMachine implements Serializable {
 				break;
 			}
 		}
+		long bytes = analysisData.getTotalBytes();
+		this.joulesPerKilobyte = bytes != 0 ? totalRRCEnergy / (bytes / 1000.0) : 0.0;
+	}
+	private synchronized void runWiFiRRcStatistics(TraceData.Analysis analysisData) {
+		ProfileWiFi profile = (ProfileWiFi) analysisData.getProfile();
+		List<PacketInfo> packets = analysisData.getPackets();
+		for (RrcStateRange rrc : this.rrc) {
+			double d = rrc.getEndTime() - rrc.getBeginTime();
+			double energy = profile.energy(rrc.getBeginTime(), rrc.getEndTime(), rrc.getState() , packets);
+			this.totalRRCEnergy += energy;
+			switch (rrc.getState()) {
+			case WIFI_ACTIVE:
+				wifiActiveTime += d;
+				this.wifiActiveEnergy += energy;
+				break;
+			case WIFI_TAIL:
+				wifiActiveTime += d;
+				this.wifiActiveEnergy += energy;
+				wifiTailTime += d;
+				this.wifiTailEnergy += energy;
+				break;
+			case WIFI_IDLE:
+				wifiIdleTime += d;
+				this.wifiIdleEnergy += energy;
+				break;
+			}
+			}
 		long bytes = analysisData.getTotalBytes();
 		this.joulesPerKilobyte = bytes != 0 ? totalRRCEnergy / (bytes / 1000.0) : 0.0;
 	}
