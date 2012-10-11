@@ -125,7 +125,7 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	/**
 	 * Initializes an instance of the PacketInfo class, using the specified packet data.
 	 * 
-	 * @param packet – A com.att.aro.pcap.Packet object containing the packet data.
+	 * @param packet A com.att.aro.pcap.Packet object containing the packet data.
 	 */
 	public PacketInfo(Packet packet) {
 		this.packet = packet;
@@ -139,7 +139,7 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	/**
 	 * Sets the packet id. 
 	 * 
-	 * @param id – The packet id.
+	 * @param id The packet id.
 	 */
 	public void setId(int id) {
 		this.id = id;
@@ -192,7 +192,7 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	/**
 	 * Sets the packet timestamp. 
 	 * 
-	 * @param timestamp – The timestamp to set.
+	 * @param timestamp The timestamp to set.
 	 * 
 	 */
 	public void setTimestamp(double timestamp) {
@@ -220,7 +220,7 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	/**
 	 * Returns the remote IP address if this packet represents an IP packet and
 	 * a direction for the packet has been identified.
-	 * @return Remote IP address or null if it cannot be determined
+	 * @return The remote IP address, or null if it cannot be determined.
 	 */
 	public InetAddress getRemoteIPAddress() {
 		if (packet instanceof IPPacket && dir != null) {
@@ -238,7 +238,7 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	/**
 	 * Sets the packet direction. 
 	 * 
-	 * @param dir – A PacketInfo.Direction enumeration value that indicates the packet direction.
+	 * @param dir A PacketInfo.Direction enumeration value that indicates the packet direction.
 	 */
 	public void setDir(Direction dir) {
 		this.dir = dir;
@@ -268,7 +268,7 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	/**
 	 * Sets the TCP information for the packet. 
 	 * 
-	 * @param tcpInfo – The TCP information to set.
+	 * @param tcpInfo The TCP information to set.
 	 */
 	public void setTcpInfo(TcpInfo tcpInfo) {
 		this.tcpInfo = tcpInfo;
@@ -286,7 +286,7 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	/**
 	 * Sets the burst information for the packet burst. 
 	 * 
-	 * @param burst – The burst information to set.
+	 * @param burst The burst information to set.
 	 */
 	public void setBurst(Burst burst) {
 		this.burst = burst;
@@ -295,7 +295,7 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	/**
 	 * Returns the burst information from the packet. 
 	 * 
-	 * @return A Burst object containing the burst informaiton.
+	 * @return A Burst object containing the burst information.
 	 */
 	public Burst getBurst() {
 		return burst;
@@ -304,7 +304,7 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	/**
 	 * Sets the RRC state machine for the packet. 
 	 * 
-	 * @param stateMachine – The RRC state machine value.
+	 * @param stateMachine The RRC state machine value.
 	 */
 	public void setStateMachine(RRCState stateMachine) {
 		this.stateMachine = stateMachine;

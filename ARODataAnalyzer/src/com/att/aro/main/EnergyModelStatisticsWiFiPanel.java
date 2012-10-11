@@ -13,36 +13,55 @@ import com.att.aro.commonui.AROUIManager;
 import com.att.aro.model.RRCStateMachine;
 import com.att.aro.model.TraceData.Analysis;
 
+/**
+ * Displays the portion of the Energy Consumption Simulation section of the Statistics 
+ * Tab information page that apply to a WiFi Energy Model.
+ */
 public class EnergyModelStatisticsWiFiPanel extends EnergyModelStatisticsPanel {
 	private static final long serialVersionUID = 1L;
 
 	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 	private static final String units = rb.getString("energy.units");
 
+	private JLabel wifiActiveLabel;
+	private JLabel wifiTailLabel;
+	private JLabel wifiIdleLabel;
+	private JLabel totalRrcEnergyLabel;
 	private JLabel wifiActiveValueLabel;
 	private JLabel wifiTailValueLabel;
 	private JLabel wifiIdleValueLabel;
 	private JLabel totalRrcEnergyValueLabel;
 
+	/**
+	 * Initializes a new instance of the EnergyModelStatisticsWiFiPanel class.
+	 */
+	public EnergyModelStatisticsWiFiPanel() {
+		
+	}
+	
+	/**
+	 * Creates the JPanel that contains the RRC statistics portion of the Energy 
+	 * Consumption statistics data.
+	 */
 	protected void createRRCStatsPanel() {
 
 		energyConsumptionStatsPanel = new JPanel(new GridLayout(12, 2, 5, 5));
 		energyConsumptionStatsPanel.setBackground(UIManager
 				.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
 
-		JLabel wifiActiveLabel = new JLabel(rb.getString("rrc.wifiActive"));
+		wifiActiveLabel = new JLabel(rb.getString("rrc.wifiActive"));
 		wifiActiveLabel.setFont(TEXT_FONT);
 		wifiActiveValueLabel = new JLabel();
 		wifiActiveValueLabel.setFont(TEXT_FONT);
-		JLabel wifiTailLabel = new JLabel(rb.getString("rrc.WifiTail"));
+		wifiTailLabel = new JLabel(rb.getString("rrc.WifiTail"));
 		wifiTailLabel.setFont(TEXT_FONT);
 		wifiTailValueLabel = new JLabel();
 		wifiTailValueLabel.setFont(TEXT_FONT);
-		JLabel wifiIdleLabel = new JLabel(rb.getString("rrc.WiFiIdle"));
+		wifiIdleLabel = new JLabel(rb.getString("rrc.WiFiIdle"));
 		wifiIdleLabel.setFont(TEXT_FONT);
 		wifiIdleValueLabel = new JLabel();
 		wifiIdleValueLabel.setFont(TEXT_FONT);
-		JLabel totalRrcEnergyLabel = new JLabel(rb.getString("energy.rrcTotal"));
+		totalRrcEnergyLabel = new JLabel(rb.getString("energy.wifiTotal"));
 		totalRrcEnergyLabel.setFont(TEXT_FONT);
 		totalRrcEnergyValueLabel = new JLabel();
 		totalRrcEnergyValueLabel.setFont(TEXT_FONT);
@@ -57,7 +76,15 @@ public class EnergyModelStatisticsWiFiPanel extends EnergyModelStatisticsPanel {
 		energyConsumptionStatsPanel.add(totalRrcEnergyValueLabel);
 
 	}
-
+	
+	/**
+	 * Refreshes the RRCStatistics portion of the EnergyModelStatisticsWiFiPanel when a trace is loaded.
+	 * 
+	 * @param analysis
+	 *          - The Analysis object containing the trace data.
+	 * @param nf 
+	 *          - The number format used to display the label values.
+	 */
 	@Override
 	public void refreshRRCStatistic(Analysis analysis, NumberFormat nf) {
 		if (analysis != null) {
@@ -76,6 +103,7 @@ public class EnergyModelStatisticsWiFiPanel extends EnergyModelStatisticsPanel {
 			energyContent.put(rb.getString("rrc.wifiActive"), wifiActiveValueLabel.getText());
 			energyContent.put(rb.getString("rrc.WifiTail"), wifiTailValueLabel.getText());
 			energyContent.put(rb.getString("rrc.WiFiIdle"), wifiIdleValueLabel.getText());
+			energyContent.put(rb.getString("energy.wifiTotal"), totalRrcEnergyValueLabel.getText());
 
 		} else {
 			wifiActiveValueLabel.setText(null);
@@ -86,4 +114,31 @@ public class EnergyModelStatisticsWiFiPanel extends EnergyModelStatisticsPanel {
 
 	}
 
+	/**
+	 * @return the wifiActiveLabel
+	 */
+	public JLabel getWifiActiveLabel() {
+		return wifiActiveLabel;
+	}
+
+	/**
+	 * @return the wifiTailLabel
+	 */
+	public JLabel getWifiTailLabel() {
+		return wifiTailLabel;
+	}
+
+	/**
+	 * @return the wifiIdleLabel
+	 */
+	public JLabel getWifiIdleLabel() {
+		return wifiIdleLabel;
+	}
+
+	/**
+	 * @return the totalRrcEnergyLabel
+	 */
+	public JLabel getTotalRrcEnergyLabel() {
+		return totalRrcEnergyLabel;
+	}
 }

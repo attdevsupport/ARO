@@ -64,7 +64,7 @@ public class GraphPanelCrossHairHandle extends JPanel {
 	 * the graph.
 	 * 
 	 * @param pos
-	 *            – An int that is the new position of the cross-hair handle on
+	 *            An int that is the new position of the cross-hair handle on
 	 *            the timeline of the graph.
 	 */
 	public void setHandlePosition(int pos) {

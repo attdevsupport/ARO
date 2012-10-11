@@ -58,7 +58,7 @@ public class BurstCollectionInfoTableModel extends DataTableModel<Burst> {
 	 * primarily used to sort numeric columns.
 	 * 
 	 * @param columnIndex
-	 *            – The index of the specified column.
+	 *            The index of the specified column.
 	 * 
 	 * @return A class representing the specified column.
 	 */
@@ -112,6 +112,12 @@ public class BurstCollectionInfoTableModel extends DataTableModel<Burst> {
 
 	/**
 	 * Returns the column value for each cells. 
+	 * 
+	 * @param
+	 * 		item A Burst object containing the column information.
+	 *		columnIndex The index of the specified column.
+	 *
+	 *@return The table column value calculated for the object.
 	 */
 	@Override
 	protected Object getColumnValue(Burst item, int columnIndex) {

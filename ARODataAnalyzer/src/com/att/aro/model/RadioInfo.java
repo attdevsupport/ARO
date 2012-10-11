@@ -39,9 +39,9 @@ public class RadioInfo implements Serializable {
 	 * Initializes an instance of the RadioInfo class using the specified timestamp and signal 
 	 * strength.
 	 * 
-	 * @param radioTimeStamp – The timestamp at which the radio information is evaluated.
+	 * @param radioTimeStamp The timestamp at which the radio information is evaluated.
 	 * 
-	 * @param signalStrength – The radio signal strength, expressed in Dbm.
+	 * @param signalStrength The radio signal strength, expressed in Dbm.
 	 */
 	public RadioInfo(double radioTimeStamp, double signalStrength) {
 		this.radioTimeStamp = radioTimeStamp;
@@ -49,13 +49,13 @@ public class RadioInfo implements Serializable {
 	}
 
 	/**
-	 * Initializes an instance of RadioInfo with LTE signal parameters
-	 * @param radioTimeStamp
-	 * @param lteSignalStrength
-	 * @param lteRsrp
-	 * @param lteRsrq
-	 * @param lteRssnr
-	 * @param lteCqi
+	 * Initializes an instance of the RadioInfo class using the specified LTE signal parameters. 
+	 * @param radioTimeStamp The timestamp at which the radio information is evaluated.
+	 * @param lteSignalStrength The radio signal strength, expressed in Dbm.
+	 * @param lteRsrp The LTE Reference Signal Received Power (RSRP) value.
+	 * @param lteRsrq The LTE Reference Signal Received Quality (RSRQ) value.
+	 * @param lteRssnr The LTE Signal to Noise Ratio (SNR) value.
+	 * @param lteCqi The LTE Channel to Noise Ratio (CQI) value.
 	 */
 	public RadioInfo(double radioTimeStamp, int lteSignalStrength, int lteRsrp, int lteRsrq, int lteRssnr, int lteCqi) {
 		this.radioTimeStamp = radioTimeStamp;
@@ -87,42 +87,48 @@ public class RadioInfo implements Serializable {
 	}
 
 	/**
-	 * @return the lte
+	 * Returns a value that indicates whether this RadioInfo object contains information for an LTE signal.
+	 * @return A boolean value that is true if the RadioInfo object contains LTE information, and is false otherwise.
 	 */
 	public boolean isLte() {
 		return lte;
 	}
 
 	/**
-	 * @return the lteSignalStrength
+	 * Returns the signal strength value.
+	 * @return The LTE signal strength.
 	 */
 	public int getLteSignalStrength() {
 		return lteSignalStrength;
 	}
 
 	/**
-	 * @return the lteRsrp
+	 * Returns the Reference Signal Received Power value.
+	 * @return The LTE RSRP value.
 	 */
 	public int getLteRsrp() {
 		return lteRsrp;
 	}
 
 	/**
-	 * @return the lteRsrq
+	 * Returns the Reference Signal Received Quality value.
+	 * @return The LTE RSRQ value.
 	 */
 	public int getLteRsrq() {
 		return lteRsrq;
 	}
 
 	/**
-	 * @return the lteRssnr
+	 * Returns the RS Signal to Noise Ratio value.
+	 * @return The LTE RSSNR value.
 	 */
 	public int getLteRssnr() {
 		return lteRssnr;
 	}
 
 	/**
-	 * @return the lteCqi
+	 * Returns the LTE Channel to Noise Ratio value.
+	 * @return The LTE CQI value.
 	 */
 	public int getLteCqi() {
 		return lteCqi;

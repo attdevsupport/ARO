@@ -91,11 +91,6 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		 */
 		SDCARD_ERROR,
 		/**
-		 * A dialog indicating that an error occurred when the data bearer
-		 * changed.
-		 */
-		BEARERCHANGE_ERROR,
-		/**
 		 * A dialog indicating that the trace has stopped.
 		 */
 		TRACE_STOPPED,
@@ -126,9 +121,9 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		 */
 		AIRPANCE_MODEON,
 		/**
-		 * A dialog indicating that an error occurred when wifi is lost.
+		 * A dialog indicating that AIRPLANE Mode was enabled mid trace.
 		 */
-		WIFI_LOST_ERROR,
+		AIRPANCE_MODEON_MIDTRACE,
 		/**
 		 * A dialog indicating that both wifi and Mobile are off.
 		 */
@@ -264,17 +259,14 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		case AIRPANCE_MODEON:
 			createAROAirPlanceModeErrorDialog();
 			break;
-		case BEARERCHANGE_ERROR:
-			createAROBearerErrorDialog();
+		case AIRPANCE_MODEON_MIDTRACE:
+			createAROAirPlanceModeMidTraceErrorDialog();
 			break;
 		case TRACE_STOPPED:
 			createTraceStoppedErrorDialog();
 			break;
 		case TRACE_SPECIALCHARERROR:
 			createSpecialCharErrorDialog();
-			break;
-		case WIFI_LOST_ERROR:
-			createAROWifiLostErrorDialog();
 			break;
 		case WIFI_MOBILE_BOTH_OFF:
 			createAROWifiMobileOffErrorDialog();
@@ -394,6 +386,17 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		mAroErrorText.setText(R.string.aro_flightmodeerror);
 		buttonOK.setOnClickListener(new OKListener());
 	}
+	
+	/**
+	 * Creates the error dialog to air plane mode ON Mid Trace
+	 */
+	private void createAROAirPlanceModeMidTraceErrorDialog() {
+		setContentView(R.layout.arocollector_errormessage);
+		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
+		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
+		mAroErrorText.setText(R.string.aro_flightmodeerrormidtrace);
+		buttonOK.setOnClickListener(new OKListener());
+	}
 
 	/**
 	 * Creates the error dialog for SD card error
@@ -403,30 +406,6 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
 		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
 		mAroErrorText.setText(R.string.aro_sdcarderror);
-		buttonOK.setOnClickListener(new OKListener());
-	}
-
-	/**
-	 * Creates the error dialog for case when data collector is stopped due to
-	 * bearer change
-	 */
-	private void createAROBearerErrorDialog() {
-		setContentView(R.layout.arocollector_errormessage);
-		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
-		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
-		mAroErrorText.setText(R.string.aro_bearerchangeerror);
-		buttonOK.setOnClickListener(new OKListener());
-	}
-
-	/**
-	 * Creates the error dialog for case when data collector is stopped due to
-	 * wifi lost
-	 */
-	private void createAROWifiLostErrorDialog() {
-		setContentView(R.layout.arocollector_errormessage);
-		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
-		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
-		mAroErrorText.setText(R.string.aro_wifi_lost_error);
 		buttonOK.setOnClickListener(new OKListener());
 	}
 
@@ -564,8 +543,7 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 				case SDCARD_MOUNTED_MIDTRACE:
 				case SDCARD_ERROR:
 				case AIRPANCE_MODEON:
-				case BEARERCHANGE_ERROR:
-				case WIFI_LOST_ERROR:
+				case AIRPANCE_MODEON_MIDTRACE:
 				case WIFI_MOBILE_BOTH_OFF:
 				case TRACE_SAVED:
 					AROCollectorCustomDialog.this.dismiss();

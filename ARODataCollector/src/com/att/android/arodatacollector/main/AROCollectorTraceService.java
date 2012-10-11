@@ -16,6 +16,7 @@
 
 package com.att.android.arodatacollector.main;
 
+import com.att.android.arodatacollector.R;
 import com.att.android.arodatacollector.utils.AROCollectorUtils;
 import java.io.BufferedWriter;
 
@@ -25,6 +26,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.SocketException;
+import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
@@ -56,6 +59,7 @@ import android.telephony.PhoneStateListener;
 import android.telephony.SignalStrength;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import com.flurry.android.FlurryAgent;
 
 /**
  * An ARO Data Collector service class that captures trace data from device
@@ -91,6 +95,9 @@ public class AROCollectorTraceService extends Service {
 
 	/** screen event trace file name */
 	private static final String outScreenFileName = "screen_events";
+	
+	/** network bearer event trace file name */
+	private static final String outNetworkDetailsFileName = "network_details";
 
 	/** device ip address trace file name */
 	private static final String outDeviceInfoFileName = "device_info";
@@ -133,6 +140,9 @@ public class AROCollectorTraceService extends Service {
 
 	/** Timer value to check SD Card space during trace cycle every 5 seconds */
 	private static int SDCARD_TARCE_TIMER_REPATE_TIME = 5000;
+	
+	/** Timer value to check Airplane mode enabled during trace cycle every 1 second */
+	private static int AIRPLANE_TARCE_TIMER_REPATE_TIME = 1000;
 
 	/** AROCollectorTraceService object */
 	private static AROCollectorTraceService mDataCollectorService;
@@ -190,6 +200,11 @@ public class AROCollectorTraceService extends Service {
 	 * than 5MB to continue trace
 	 */
 	private Timer checkSDCardSpace = new Timer();
+	
+	/**
+	 * Timer to run every 1 second to check Airplane mode has not been enabled
+	 */
+	private Timer checkAirplaneModeEnabled = new Timer();
 
 	/**
 	 * Timer to run every 500 milliseconds to get screen brightness value in
@@ -214,7 +229,11 @@ public class AROCollectorTraceService extends Service {
 	private String mWifiNetworkSSID;
 	private int mWifiRssi;
 	private boolean isFirstBearerChange = true;
-
+	private int mAROPrevNetworkType;
+	
+	/**indicates whether WIFI, MOBILE, or UNKNOWN **/
+	private String mAROPrevBearer = AroTraceFileConstants.NOT_ASSIGNED_NETWORK;
+	
 	/** Output stream and Buffer Writer for peripherals traces files */
 	private OutputStream mWifiTraceOutputFile;
 	private BufferedWriter mWifiTracewriter;
@@ -238,7 +257,9 @@ public class AROCollectorTraceService extends Service {
 	private OutputStream mDeviceDetailsOutputFile;
 	private BufferedWriter mDeviceInfoWriter;
 	private BufferedWriter mDeviceDetailsWriter;
-
+	private OutputStream mNetworkDetailsOutputFile;
+	private BufferedWriter mNetworkTracewriter;
+	
 	/** ARO Data Collector utilities class object */
 	private AROCollectorUtils mAroUtils;
 
@@ -249,6 +270,7 @@ public class AROCollectorTraceService extends Service {
 	private static class AroTraceFileConstants {
 		static final String OFF = "OFF";
 		static final String ON = "ON";
+		static final String STANDBY = "STANDBY";
 		static final String CONNECTED = "CONNECTED";
 		static final String DISCONNCTED = "DISCONNECTED";
 		static final String CONNECTED_NETWORK = "CONNECTED";
@@ -259,8 +281,20 @@ public class AROCollectorTraceService extends Service {
 		static final String UNKNOWN_NETWORK = "UNKNOWN";
 		static String IMPORTANCE_BACKGROUND = "Background";
 		static String IMPORTANCE_FOREGROUND = "Foreground";
+		static final String NOT_ASSIGNED_NETWORK = "NOTASSIGNED";
 	}
-
+	
+	/** Event names, counters, maps, states for displaying and storing on Flurry Analytics*/
+	public static FlurryEvent bluetoothFlurryEvent = null;
+	public static FlurryEvent networkTypeFlurryEvent = null;
+	public static FlurryEvent networkInterfaceFlurryEvent = null;
+	public static FlurryEvent wifiFlurryEvent = null;
+	public static FlurryEvent batteryFlurryEvent = null;	
+	public static FlurryEvent gpsFlurryEvent = null;	
+	public static FlurryEvent cameraFlurryEvent = null;	
+	
+	public static FlurryEvent backgroundAppsFlurryEvent = null; //log Flurry event at end of trace
+	public static FlurryEvent makeModelEvent = null;			//log Flurry event at end of trace
 	/**
 	 * Handles processing when an AROCollectorTraceService object is created.
 	 * Overrides the android.app.Service#onCreate method.
@@ -273,8 +307,8 @@ public class AROCollectorTraceService extends Service {
 		mDataCollectorService = this;
 		mApp = (ARODataCollector) getApplication();
 		mAroUtils = new AROCollectorUtils();
+		initializeFlurryObjects();
 		startARODataTraceCollection();
-
 	}
 
 	/**
@@ -285,6 +319,9 @@ public class AROCollectorTraceService extends Service {
 	 */
 	@Override
 	public void onDestroy() {
+		if (DEBUG) {
+			Log.d(TAG, "onDestroy called");
+		}
 		super.onDestroy();
 		stopARODataTraceCollection();
 		mApp.cancleAROAlertNotification();
@@ -318,18 +355,36 @@ public class AROCollectorTraceService extends Service {
 			startCameraTrace();
 			startARODataBearerChangeNotification();
 			startARODeviceSDCardSpaceMidTrace();
+			startAROAirplaneModeMidTrace();
 			startAroScreenRotationMonitor();
 		} catch (FileNotFoundException e) {
 			Log.e(TAG, "exception in initAROTraceFile: Failed to start ARO-Data Collector Trace", e);
 		}
-
 	}
 
+	/** 
+	 * Initializes Flurry Event objects
+	 */
+	private void initializeFlurryObjects() {
+		
+		//tests need to maintain states
+		networkTypeFlurryEvent = new FlurryEvent(this.getString(R.string.flurry_networkType), -1, new HashMap<String, String>(), AROCollectorUtils.EMPTY_STRING);
+		networkInterfaceFlurryEvent = new FlurryEvent(this.getString(R.string.flurry_networkInterface), -1, new HashMap<String, String>(), AROCollectorUtils.EMPTY_STRING);
+		wifiFlurryEvent = new FlurryEvent(this.getString(R.string.flurry_wifi), -1, new HashMap<String, String>(), AROCollectorUtils.EMPTY_STRING);
+		batteryFlurryEvent = new FlurryEvent(this.getString(R.string.flurry_battery), -1, new HashMap<String, String>(), AROCollectorUtils.EMPTY_STRING);
+		gpsFlurryEvent = new FlurryEvent(this.getString(R.string.flurry_gps), -1, new HashMap<String, String>(), AROCollectorUtils.EMPTY_STRING);
+		cameraFlurryEvent= new FlurryEvent(this.getString(R.string.flurry_camera), -1, new HashMap<String, String>(), AROCollectorUtils.EMPTY_STRING);
+		bluetoothFlurryEvent = new FlurryEvent(this.getString(R.string.flurry_bluetooth), -1, new HashMap<String, String>(), AROCollectorUtils.EMPTY_STRING);
+		//log events at end; do not need states
+		backgroundAppsFlurryEvent = new FlurryEvent(this.getString(R.string.flurry_backgroundApps), 0, new HashMap<String, String>(), AROCollectorUtils.EMPTY_STRING); 
+		makeModelEvent = new FlurryEvent(this.getString(R.string.flurry_makeModel), 0, new HashMap<String, String>(), AROCollectorUtils.EMPTY_STRING); 	
+	}
+	
 	/**
 	 * Captures the device information
-	 * 
+	 * @param mCurrentNetworkType network info class object to get current network type 
 	 */
-	private void captureDeviceInfo() {
+	private void captureDeviceInfo(NetworkInfo mCurrentNetworkType) {
 		final String ipAddress;
 		final String deviceModel = Build.MODEL;
 		final String deviceMake = Build.MANUFACTURER;
@@ -347,13 +402,22 @@ public class AROCollectorTraceService extends Service {
 		writeTraceLineToAROTraceFile(mDeviceDetailsWriter,
 				getApplicationContext().getPackageName(), false);
 		writeTraceLineToAROTraceFile(mDeviceDetailsWriter, deviceModel, false);
+		
+		mApp.writeToFlurry(makeModelEvent.getMapToWrite(), makeModelEvent.getEventName(), 
+				deviceMake + "/" + deviceModel, makeModelEvent.getEventName(), 
+				AROCollectorUtils.NOT_APPLICABLE, AROCollectorUtils.EMPTY_STRING);
+	
 		writeTraceLineToAROTraceFile(mDeviceDetailsWriter, deviceMake, false);
 		writeTraceLineToAROTraceFile(mDeviceDetailsWriter, "android", false);
 		writeTraceLineToAROTraceFile(mDeviceDetailsWriter, osVersion, false);
 		writeTraceLineToAROTraceFile(mDeviceDetailsWriter, appVersion, false);
-		writeTraceLineToAROTraceFile(mDeviceDetailsWriter,
-				Integer.toString(getDeviceNetworkType()), false);
-
+		writeTraceLineToAROTraceFile(mDeviceDetailsWriter,Integer.toString(getDeviceNetworkType(mCurrentNetworkType)), false);
+		
+		final String tempNetworkTypeFlurryState = (getifCurrentBearerWifi() ? AROCollectorUtils.NOT_APPLICABLE : mCurrentNetworkType.getSubtypeName());
+		writeToFlurryAndMaintainStateAndLogEvent(networkTypeFlurryEvent, this.getString(R.string.flurry_param_status), tempNetworkTypeFlurryState, true);
+		
+		final String tempNetworkInterfaceFlurryState = getifCurrentBearerWifi() ? "WIFI" : "MOBILE";
+		writeToFlurryAndMaintainStateAndLogEvent(networkInterfaceFlurryEvent, this.getString(R.string.flurry_param_status), tempNetworkInterfaceFlurryState, true);
 	}
 
 	/**
@@ -376,24 +440,31 @@ public class AROCollectorTraceService extends Service {
 			Log.e(TAG, "exception in closeAROTraceFile", e);
 		}
 		stopARODeviceSDCardSpaceMidTrace();
+		stopAROAirplaneModeMidTrace();
 
 	}
 
 	/**
 	 * Gets the current connected data network type of device i.e 3G/LTE/Wifi
-	 * 
+	 * @param mCurrentNetworkType network info class object to get current network type 
 	 * @return mCellNetworkType Current network type
 	 */
-	private int getDeviceNetworkType() {
-
+	private int getDeviceNetworkType(NetworkInfo mCurrentNetworkType) {
+		if (DEBUG) {
+			Log.i(TAG, "getting device network type" + mCurrentNetworkType);
+		}
 		final TelephonyManager mAROtelManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 		int networkType = mAROtelManager.getNetworkType();
-		// Check if the current network is WiFi
-		if (mApp.getCurrentNetworkType() == 1) {
+				
+		// Check if the current network is WiFi *//
+		if (mCurrentNetworkType.getType() == 1) {
 			networkType = -1;
 		}
 		return networkType;
+			
 	}
+
+	 
 
 	/**
 	 * Method will initialize all the trace files Streams and open it for
@@ -418,20 +489,18 @@ public class AROCollectorTraceService extends Service {
 		mGPSTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outGPSFileName);
 		mGPSTracewriter = new BufferedWriter(new OutputStreamWriter(mGPSTraceOutputFile));
 		mScreenOutputFile = new FileOutputStream(mAroTraceDatapath + outScreenFileName);
-		mScreenRotationOutputFile = new FileOutputStream(mAroTraceDatapath
-				+ outScreenRotationFileName);
+		mNetworkDetailsOutputFile = new FileOutputStream(mAroTraceDatapath + outNetworkDetailsFileName);
+		
+		mScreenRotationOutputFile = new FileOutputStream(mAroTraceDatapath+ outScreenRotationFileName);
 		mScreenTracewriter = new BufferedWriter(new OutputStreamWriter(mScreenOutputFile));
-		mScreenRotationTracewriter = new BufferedWriter(new OutputStreamWriter(
-				mScreenRotationOutputFile));
-		mActiveProcessOutputFile = new FileOutputStream(mAroTraceDatapath
-				+ outActiveProcessFileName);
-		mActiveProcessTracewriter = new BufferedWriter(new OutputStreamWriter(
-				mActiveProcessOutputFile));
+		mNetworkTracewriter = new BufferedWriter(new OutputStreamWriter(mNetworkDetailsOutputFile));
+		mScreenRotationTracewriter = new BufferedWriter(new OutputStreamWriter(mScreenRotationOutputFile));
+		mActiveProcessOutputFile = new FileOutputStream(mAroTraceDatapath+ outActiveProcessFileName);
+		mActiveProcessTracewriter = new BufferedWriter(new OutputStreamWriter(mActiveProcessOutputFile));
 		mBluetoohTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outBluetoothFileName);
 		mBluetoothTracewriter = new BufferedWriter(new OutputStreamWriter(mBluetoohTraceOutputFile));
 		mDeviceInfoOutputFile = new FileOutputStream(mAroTraceDatapath + outDeviceInfoFileName);
-		mDeviceDetailsOutputFile = new FileOutputStream(mAroTraceDatapath
-				+ outDeviceDetailsFileName);
+		mDeviceDetailsOutputFile = new FileOutputStream(mAroTraceDatapath+ outDeviceDetailsFileName);
 		mDeviceInfoWriter = new BufferedWriter(new OutputStreamWriter(mDeviceInfoOutputFile));
 		mDeviceDetailsWriter = new BufferedWriter(new OutputStreamWriter(mDeviceDetailsOutputFile));
 
@@ -443,39 +512,68 @@ public class AROCollectorTraceService extends Service {
 	 * @throws IOException
 	 */
 	private void closeAROTraceFile() throws IOException {
-		mWifiTracewriter.close();
-		mWifiTraceOutputFile.flush();
-		mWifiTraceOutputFile.close();
-		mRadioTracewriter.close();
-		mRadioTraceOutputFile.flush();
-		mRadioTraceOutputFile.close();
-		mCameraTracewriter.close();
-		mCameraTraceOutputFile.flush();
-		mCameraTraceOutputFile.close();
-		mBluetoothTracewriter.close();
-		mBluetoohTraceOutputFile.flush();
-		mBluetoohTraceOutputFile.close();
-		mBatteryTracewriter.close();
-		mBatteryTraceOutputFile.flush();
-		mBatteryTraceOutputFile.close();
-		mGPSTracewriter.close();
-		mGPSTraceOutputFile.flush();
-		mGPSTraceOutputFile.close();
-		mScreenTracewriter.close();
-		mScreenOutputFile.flush();
-		mScreenOutputFile.close();
-		mScreenRotationTracewriter.close();
-		mScreenRotationOutputFile.flush();
-		mScreenRotationOutputFile.close();
-		mActiveProcessTracewriter.close();
-		mActiveProcessOutputFile.flush();
-		mActiveProcessOutputFile.close();
-		mDeviceInfoWriter.close();
-		mDeviceInfoOutputFile.flush();
-		mDeviceInfoOutputFile.close();
-		mDeviceDetailsWriter.close();
-		mDeviceDetailsOutputFile.flush();
-		mDeviceDetailsOutputFile.close();
+		if (mWifiTracewriter != null) {
+			mWifiTracewriter.close();
+			mWifiTraceOutputFile.flush();
+			mWifiTraceOutputFile.close();
+		}
+		if (mRadioTracewriter != null) {
+			mRadioTracewriter.close();
+			mRadioTraceOutputFile.flush();
+			mRadioTraceOutputFile.close();
+		}
+		if (mCameraTracewriter != null) {
+			mCameraTracewriter.close();
+			mCameraTraceOutputFile.flush();
+			mCameraTraceOutputFile.close();
+		}
+		if (mBluetoothTracewriter != null) {
+
+			mBluetoothTracewriter.close();
+			mBluetoohTraceOutputFile.flush();
+			mBluetoohTraceOutputFile.close();
+		}
+		if (mBatteryTracewriter != null) {
+			mBatteryTracewriter.close();
+			mBatteryTraceOutputFile.flush();
+			mBatteryTraceOutputFile.close();
+		}
+		if (mGPSTracewriter != null) {
+			mGPSTracewriter.close();
+			mGPSTraceOutputFile.flush();
+			mGPSTraceOutputFile.close();
+		}
+		if (mScreenTracewriter != null) {
+			mScreenTracewriter.close();
+			mScreenOutputFile.flush();
+			mScreenOutputFile.close();
+		}
+		if (mScreenRotationTracewriter != null) {
+			mScreenRotationTracewriter.close();
+			mScreenRotationOutputFile.flush();
+			mScreenRotationOutputFile.close();
+		}
+		if (mActiveProcessTracewriter != null) {
+			mActiveProcessTracewriter.close();
+			mActiveProcessOutputFile.flush();
+			mActiveProcessOutputFile.close();
+		}
+		if (mDeviceInfoWriter != null) {
+			mDeviceInfoWriter.close();
+			mDeviceInfoOutputFile.flush();
+			mDeviceInfoOutputFile.close();
+		}
+		if (mDeviceDetailsWriter != null) {
+			mDeviceDetailsWriter.close();
+			mDeviceDetailsOutputFile.flush();
+			mDeviceDetailsOutputFile.close();
+		}
+		if (mNetworkTracewriter != null) {
+			mNetworkTracewriter.close();
+			mNetworkDetailsOutputFile.flush();
+			mNetworkDetailsOutputFile.close();
+			
+		}
 
 	}
 
@@ -526,6 +624,7 @@ public class AROCollectorTraceService extends Service {
 			public void run() {
 				if (mAroUtils.checkSDCardMemoryAvailable() < AROSDCARD_MIN_SPACEKBYTES) {
 					aroSDCardErrorUIUpdate();
+					checkSDCardSpace.cancel();
 					if (DEBUG) {
 						Log.i(TAG,
 								"startARODeviceSDCardSpaceMidTrace="
@@ -537,7 +636,7 @@ public class AROCollectorTraceService extends Service {
 		}, SDCARD_TARCE_TIMER_REPATE_TIME, SDCARD_TARCE_TIMER_REPATE_TIME);
 
 	}
-
+	
 	/**
 	 * Stops the SD Card memory check timer during the trace
 	 */
@@ -545,6 +644,63 @@ public class AROCollectorTraceService extends Service {
 		checkSDCardSpace.cancel();
 		checkSDCardSpace = null;
 
+	}
+	
+	/**
+	 * Notify that the Airplane Mode was enabled during trace collection and displays the error
+	 * dialog by calling Main Activity
+	 */
+	private void aroAirplaneModeUIUpdate() {
+		if (AROCollectorService.getServiceObj() != null) {
+			mApp.setAirplaneModeEnabledMidAROTrace(true);
+			if (AROCollectorService.getServiceObj() != null) {
+				// Sends the STOP Command to tcpdump socket 
+				try {
+					//We will sleep for 10 seconds to give time for tcpdump bearer change before request STOP
+					//TODO: Need to find async call update here and not sleep
+					Thread.sleep(10000);
+				} catch (InterruptedException e) {
+					
+				}
+				AROCollectorService.getServiceObj().requestDataCollectorStop();
+				mApp.cancleAROAlertNotification();
+			}
+		}
+	}
+	
+	/**
+	 * Checks if Airplane mode has been turned on ever every second.
+	 * Only exists the trace if wifi mode is also off.
+	 */
+	private void startAROAirplaneModeMidTrace() {
+		
+		final ConnectivityManager mAROConnectiviyMgr;
+		mAROConnectiviyMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+		checkAirplaneModeEnabled.scheduleAtFixedRate(new TimerTask() {
+			public void run() {
+				final NetworkInfo.State wifiState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState();
+				if( mAroUtils.isAirplaneModeOn(getApplicationContext())
+						&& (wifiState == NetworkInfo.State.UNKNOWN || wifiState == NetworkInfo.State.DISCONNECTED)){
+					//We should cancel the timer here as we detected Air plane mode was turned on during trace cyle.
+					aroAirplaneModeUIUpdate();
+					checkAirplaneModeEnabled.cancel();
+					if (DEBUG) {
+						Log.i(TAG,
+								"startAROAirplaneMidMidTrace= Airplane Mode was turned on Mid Trace");
+					}
+					return;
+				}
+			}
+		}, AIRPLANE_TARCE_TIMER_REPATE_TIME, AIRPLANE_TARCE_TIMER_REPATE_TIME);
+
+	}
+	
+	/**
+	 * Stops the Airplane mode enabled check timer during the trace
+	 */
+	private void stopAROAirplaneModeMidTrace() {
+		checkAirplaneModeEnabled.cancel();
+		checkAirplaneModeEnabled = null;
 	}
 
 	/**
@@ -565,12 +721,14 @@ public class AROCollectorTraceService extends Service {
 					if (DEBUG)
 						Log.i(TAG, "Camera Turned on");
 					writeTraceLineToAROTraceFile(mCameraTracewriter, "ON", true);
+					writeToFlurryAndMaintainStateAndLogEvent(cameraFlurryEvent, getString(R.string.flurry_param_status), "ON", true);
 					mCameraOn = true;
 					mPrevCameraOn = true;
 				} else if (!mCameraOn && mPrevCameraOn) {
 					if (DEBUG)
 						Log.i(TAG, "Camera Turned Off");
-					writeTraceLineToAROTraceFile(mCameraTracewriter, "OFF", true);
+					writeTraceLineToAROTraceFile(mCameraTracewriter, AroTraceFileConstants.OFF, true);
+					writeToFlurryAndMaintainStateAndLogEvent(cameraFlurryEvent, getString(R.string.flurry_param_status), AroTraceFileConstants.OFF, true);
 					mCameraOn = false;
 					mPrevCameraOn = false;
 				}
@@ -582,8 +740,10 @@ public class AROCollectorTraceService extends Service {
 	 * Stops the camera trace collection
 	 */
 	private void stopCameraTrace() {
-		checkCameraLaunch.cancel();
-		checkCameraLaunch = null;
+		if (checkCameraLaunch != null) {
+			checkCameraLaunch.cancel();
+			checkCameraLaunch = null;
+		}
 	}
 
 	/**
@@ -619,7 +779,6 @@ public class AROCollectorTraceService extends Service {
 				Log.d(TAG, "Screen brightness: " + mScreencurBrightness);
 				Log.d(TAG, "Screen Timeout: " + mScreenTimeout);
 			}
-
 		}
 	};
 
@@ -644,76 +803,94 @@ public class AROCollectorTraceService extends Service {
 		}
 
 	}
+	
+	
+	/**
+	 * called by the mAROBearerChangeReceiver and mPhoneStateListener to record:
+	 * 		1. bearer change between Wifi-Mobile
+	 * 		2. network change between 4G-3G-2G
+	 * @param mAROActiveNetworkInfo
+	 * @param isNetworkConnected
+	 */
+	private void recordBearerAndNetworkChange(final NetworkInfo mAROActiveNetworkInfo, final boolean isNetworkConnected){
+		
+		if (DEBUG){
+			Log.d(TAG, "enter recordBearerAndNetworkChange()");
+		}
+		if (mAROActiveNetworkInfo != null && isNetworkConnected 
+				&& getDeviceNetworkType(mAROActiveNetworkInfo) != TelephonyManager.NETWORK_TYPE_UNKNOWN){
+			
+			String currentBearer = getCurrentBearer();
+			final int currentNetworkType = getDeviceNetworkType(mAROActiveNetworkInfo);
+			if (DEBUG){
+				Log.i(TAG, "mAROActiveNetworkInfo.state=" + mAROActiveNetworkInfo.getState());
+				Log.i(TAG, "mAROPrevBearer=" + mAROPrevBearer + "; currentBearer=" + currentBearer);
+				Log.i(TAG, "mAROPrevNetworkType=" + mAROPrevNetworkType + "; currentNetworkType=" + currentNetworkType);
+			}
+			if(!mAROPrevBearer.equals(currentBearer)) {
+				//bearer change, signaling a failover
+				mAROPrevBearer = currentBearer;
+				writeTraceLineToAROTraceFile(mNetworkTracewriter,Integer.toString(currentNetworkType), true);
+				if (DEBUG){
+					Log.i(TAG, "failover, wrote networkType=" + currentNetworkType + " to networkdetails completed at timestamp: " + mAroUtils.getDataCollectorEventTimeStamp());
+				}
+				mAROPrevNetworkType = currentNetworkType;
+				//Flurry logs
+				final String tempNetworkTypeFlurryState = (getifCurrentBearerWifi() ? AROCollectorUtils.NOT_APPLICABLE : mAROActiveNetworkInfo.getSubtypeName());
+				final String tempNetworkInterfaceFlurryState = getifCurrentBearerWifi() ? "WIFI" : "MOBILE";
+				
+				writeToFlurryAndMaintainStateAndLogEvent(networkTypeFlurryEvent, getString(R.string.flurry_param_status), tempNetworkTypeFlurryState, true);
+				writeToFlurryAndMaintainStateAndLogEvent(networkInterfaceFlurryEvent, getString(R.string.flurry_param_status), tempNetworkInterfaceFlurryState, true);
+			}
+			//We need to handle case when we switch between 4G-3G-2G ( This is not as handover)
+			//-1 - Wifi (We don't want to check for wifi network for 4G-3G-2G transition)
+			else if( currentNetworkType != -1 && mAROPrevNetworkType != currentNetworkType){
+				writeTraceLineToAROTraceFile(mNetworkTracewriter,Integer.toString(currentNetworkType), true);
+				if (DEBUG){
+					Log.i(TAG, "4g-3g-2g switch, wrote networkType=" + currentNetworkType + " to networkdetails completed at timestamp: " + mAroUtils.getDataCollectorEventTimeStamp());
+				}
+				//log the 4G-3G-2G network switch
+				final String tempNetworkFlurryState = mAROActiveNetworkInfo.getSubtypeName();
+				writeToFlurryAndMaintainStateAndLogEvent(networkTypeFlurryEvent, getString(R.string.flurry_param_status), tempNetworkFlurryState, true);
+				mAROPrevNetworkType = currentNetworkType;
+			}
+			// device_details trace file
+			if (isFirstBearerChange) {
+				captureDeviceInfo(mAROActiveNetworkInfo);
+				isFirstBearerChange = false;
+			}
+		}
+		else {
+			if (DEBUG){
+				Log.i(TAG, "mAROActiveNetworkInfo is null, network is not CONNECTED, or networkType is unknown...exiting recordBearerAndNetworkChange()");
+			}
+		}
+	}
+	
 
 	/**
-	 * Checks for the data connection bearer change during the life time of
-	 * trace collection
+	 * Records the data connection bearer change during the life time of
+	 * trace collection 
 	 */
 	private BroadcastReceiver mAROBearerChangeReceiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
 			if (DEBUG) {
-				Log.d(TAG, "entered mAROBearerChangeReceiver");
+				Log.d(TAG, "entered mAROBearerChangeReceiver ");
 			}
+
 			final String action = intent.getAction();
 			if (action.equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
-				final NetworkInfo mAROActiveNetworkInfo = (NetworkInfo) intent
-						.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
-				final ConnectivityManager mAROConnectiviyMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+				
+				final boolean noConnectivity = intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY , false);
+				final boolean isNetworkConnected = !noConnectivity;
+				
+				final ConnectivityManager mAROConnectivityMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+				final NetworkInfo mAROActiveNetworkInfo = mAROConnectivityMgr.getActiveNetworkInfo();
 				if (!isFirstBearerChange) {
-					boolean activeDataConnection = true;
-					if (mAROConnectiviyMgr.getNetworkInfo(0).getState() == NetworkInfo.State.DISCONNECTED) {
-						activeDataConnection = false;
-					}
-					// !mAROActiveNetworkInfo.isConnected() As this is causing
-					// issue to abnormal termination of trace mid way
-					if (mAROActiveNetworkInfo.getType() != mApp.getCurrentNetworkType()
-							&& mAROActiveNetworkInfo.getType() <= 1 || !activeDataConnection) { // To
-																								// Do:
-																								// The
-																								// Bearer
-																								// change
-																								// has
-																								// been
-																								// only
-																								// done
-																								// for
-																								// Wifi/Mobile
-																								// network.
-						mApp.setDataCollectorBearerChange(true);
-						// request stop only if it hasn't been requested already
-						if (!mApp.isRequestDataCollectorStop()) {
-							mApp.setRequestDataCollectorStop(true);
-							if (DEBUG) {
-								Log.d(TAG, "requesting tcpdump stop from Bearer");
-							}
-							AROCollectorService.getServiceObj().requestDataCollectorStop();
-						} else {
-							if (DEBUG) {
-								Log.d(TAG,
-										"stop tcpdump already requested. don't call and continue...");
-							}
-						}
-						if (DEBUG) {
-							Log.i(TAG,
-									"Bearer Change TRUE" + "Current="
-											+ mAROActiveNetworkInfo.getType() + "Previous="
-											+ mApp.getCurrentNetworkType());
-							Log.i(TAG,
-									"Network Connected" + "isConnected="
-											+ mAROActiveNetworkInfo.isConnected());
-						}
-					}
-				} else if (isFirstBearerChange) {
-					mApp.setCurrentNetworkType(mAROActiveNetworkInfo);
-					if (DEBUG) {
-						Log.d(TAG, "isFirstBearerchange-true");
-					}
+					recordBearerAndNetworkChange(mAROActiveNetworkInfo, isNetworkConnected);
 				}
-				isFirstBearerChange = false;
 			}
-			// device_details trace file
-			captureDeviceInfo();
 		}
 	};
 
@@ -734,15 +911,18 @@ public class AROCollectorTraceService extends Service {
 					}
 					writeTraceLineToAROTraceFile(mWifiTracewriter,
 							AroTraceFileConstants.DISCONNECTED_NETWORK, true);
+					
+					writeToFlurryAndMaintainStateAndLogEvent(wifiFlurryEvent, getString(R.string.flurry_param_status), 
+							AroTraceFileConstants.DISCONNECTED_NETWORK, true);
 
 				} else if (mWifiManager.getWifiState() == WifiManager.WIFI_STATE_DISABLED) {
 					if (DEBUG) {
 						Log.d(TAG, "entered WIFI_STATE_CHANGED_ACTION--OFF");
 					}
 					writeTraceLineToAROTraceFile(mWifiTracewriter, AroTraceFileConstants.OFF, true);
-
-					wifiMessageLost();
-
+					
+					writeToFlurryAndMaintainStateAndLogEvent(wifiFlurryEvent, getString(R.string.flurry_param_status), 
+							AroTraceFileConstants.OFF, true);
 				}
 			}
 			if (WifiManager.NETWORK_STATE_CHANGED_ACTION.equals(intent.getAction())) {
@@ -756,69 +936,41 @@ public class AROCollectorTraceService extends Service {
 				case CONNECTING:
 					writeTraceLineToAROTraceFile(mWifiTracewriter,
 							AroTraceFileConstants.CONNECTING_NETWORK, true);
+					writeToFlurryAndMaintainStateAndLogEvent(wifiFlurryEvent, getString(R.string.flurry_param_status), 
+							AroTraceFileConstants.CONNECTING_NETWORK, true);
 					break;
 				case CONNECTED:
-					collectWifiNetworkData();
-					writeTraceLineToAROTraceFile(mWifiTracewriter,
-							AroTraceFileConstants.CONNECTED_NETWORK + " " + mWifiMacAddress + " "
-									+ mWifiRssi + " " + mWifiNetworkSSID, true);
-
-					// set previousWifiState flag-used for Wifi Lost logic
-					mApp.setPreviousWifiState(state.name());
-
+					recordAndLogConnectedWifiDetails();					
 					break;
 				case DISCONNECTING:
 					writeTraceLineToAROTraceFile(mWifiTracewriter,
 							AroTraceFileConstants.DISCONNECTING_NETWORK, true);
+					writeToFlurryAndMaintainStateAndLogEvent(wifiFlurryEvent, getString(R.string.flurry_param_status), 
+							AroTraceFileConstants.DISCONNECTING_NETWORK, true);				
 					break;
 				case DISCONNECTED:
 					writeTraceLineToAROTraceFile(mWifiTracewriter,
 							AroTraceFileConstants.DISCONNECTED_NETWORK, true);
-
-					wifiMessageLost();
+					writeToFlurryAndMaintainStateAndLogEvent(wifiFlurryEvent, getString(R.string.flurry_param_status), 
+							AroTraceFileConstants.DISCONNECTED_NETWORK, true);
 
 					break;
 				case SUSPENDED:
 					writeTraceLineToAROTraceFile(mWifiTracewriter,
 							AroTraceFileConstants.SUSPENDED_NETWORK, true);
+					writeToFlurryAndMaintainStateAndLogEvent(wifiFlurryEvent, getString(R.string.flurry_param_status), 
+							AroTraceFileConstants.SUSPENDED_NETWORK, true);					
 					break;
 				case UNKNOWN:
 					writeTraceLineToAROTraceFile(mWifiTracewriter,
 							AroTraceFileConstants.UNKNOWN_NETWORK, true);
+					writeToFlurryAndMaintainStateAndLogEvent(wifiFlurryEvent, getString(R.string.flurry_param_status), 
+							AroTraceFileConstants.UNKNOWN_NETWORK, true);					
 					break;
 				}
 			}
 
 		}//
-
-		private void wifiMessageLost() {
-			// Wifi Lost msg logic
-			// if previous wifi state was connected, then stop Collector and
-			// display Wifi Lost msg
-			if (mApp.getPreviousWifiState().equals(AroTraceFileConstants.CONNECTED_NETWORK)
-					|| mApp.getPreviousWifiState().equals(
-							AroTraceFileConstants.DISCONNECTING_NETWORK)) {
-				if (DEBUG) {
-					Log.d(TAG, "settig wifiLost to true");
-				}
-				mApp.setWifiLost(true);
-				// if haven't request tcpdump to stop (network bearer), then
-				// request
-				if (!mApp.isRequestDataCollectorStop()) {
-					if (DEBUG) {
-						Log.d(TAG, "Wifi Lost, requesting tcpdump stop from wifi receiver");
-					}
-					mApp.setRequestDataCollectorStop(true);
-					AROCollectorService.getServiceObj().requestDataCollectorStop();
-
-				} else {
-					if (DEBUG) {
-						Log.d(TAG, "in wifi receiver-someone already requested tcpdump stop");
-					}
-				}
-			}
-
-		}
 
 	};
 
@@ -836,11 +988,15 @@ public class AROCollectorTraceService extends Service {
 				case BluetoothAdapter.STATE_ON:
 					writeTraceLineToAROTraceFile(mBluetoothTracewriter,
 							AroTraceFileConstants.DISCONNCTED, true);
+					writeToFlurryAndMaintainStateAndLogEvent(bluetoothFlurryEvent, getString(R.string.flurry_param_status), 
+							AroTraceFileConstants.DISCONNCTED, true);
 					break;
 
 				case BluetoothAdapter.STATE_OFF:
 					writeTraceLineToAROTraceFile(mBluetoothTracewriter, AroTraceFileConstants.OFF,
 							true);
+					writeToFlurryAndMaintainStateAndLogEvent(bluetoothFlurryEvent, getString(R.string.flurry_param_status), 
+							AroTraceFileConstants.OFF, true);
 					break;
 				}
 			}
@@ -853,8 +1009,12 @@ public class AROCollectorTraceService extends Service {
 				if (device.getBondState() != BluetoothDevice.BOND_BONDED) {
 					writeTraceLineToAROTraceFile(mBluetoothTracewriter,
 							AroTraceFileConstants.DISCONNCTED, true);
+					writeToFlurryAndMaintainStateAndLogEvent(bluetoothFlurryEvent, getString(R.string.flurry_param_status), 
+							AroTraceFileConstants.DISCONNCTED, true);
 				} else if (device.getBondState() == BluetoothDevice.BOND_BONDED) {
 					writeTraceLineToAROTraceFile(mBluetoothTracewriter,
+							AroTraceFileConstants.CONNECTED, true);
+					writeToFlurryAndMaintainStateAndLogEvent(bluetoothFlurryEvent, getString(R.string.flurry_param_status), 
 							AroTraceFileConstants.CONNECTED, true);
 				}
 			}
@@ -873,7 +1033,7 @@ public class AROCollectorTraceService extends Service {
 				// GSM Radio signal strength in integer value which will be
 				// converted to dDm (This is default considered network type)
 				String mRadioSignalStrength = String.valueOf(0);
-				TelephonyManager mTelphoneManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+				mTelphoneManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 				if (signalStrength.isGsm() || mTelphoneManager.getNetworkType() == 13) {
 
 					int mLteSignalStrength = 0;
@@ -923,7 +1083,7 @@ public class AROCollectorTraceService extends Service {
 							|| (mLteSignalStrength == -1 && mLteRsrp == -1 && mLteRsrq == -1 && mLteCqi == -1)) {
 
 						// No LTE parameters set. Use GSM signal strength
-						int gsmSignalStrength = signalStrength.getGsmSignalStrength();
+						final int gsmSignalStrength = signalStrength.getGsmSignalStrength();
 						if (signalStrength.isGsm() && gsmSignalStrength != 99) {
 							mRadioSignalStrength = String.valueOf(-113 + (gsmSignalStrength * 2));
 						}
@@ -959,6 +1119,23 @@ public class AROCollectorTraceService extends Service {
 				writeTraceLineToAROTraceFile(mRadioTracewriter, mRadioSignalStrength, true);
 			}
 
+			//added to listen for 4g-3g-2g transitions
+			@Override
+			public void onDataConnectionStateChanged (int state, int networkType){
+				if (DEBUG) {
+					Log.d(TAG, "entered onDataConnectionStateChanged ");
+					Log.d(TAG, "state=" + state + "; networkType=" + networkType);
+				}
+				
+				final ConnectivityManager mAROConnectivityMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+				final NetworkInfo mAROActiveNetworkInfo = mAROConnectivityMgr.getActiveNetworkInfo();
+				
+				final boolean isNetworkConnected = (state == TelephonyManager.DATA_CONNECTED);
+				if (!isFirstBearerChange) {
+					recordBearerAndNetworkChange(mAROActiveNetworkInfo, isNetworkConnected);
+				}
+				
+			}
 		};
 	}
 
@@ -974,10 +1151,12 @@ public class AROCollectorTraceService extends Service {
 			switch (event) {
 			case GpsStatus.GPS_EVENT_STARTED:
 				writeTraceLineToAROTraceFile(mGPSTracewriter, "ACTIVE", true);
+				writeToFlurryAndMaintainStateAndLogEvent(gpsFlurryEvent, getString(R.string.flurry_param_status), "ACTIVE", true);
 				mGPSActive = true;
 				break;
 			case GpsStatus.GPS_EVENT_STOPPED:
-				writeTraceLineToAROTraceFile(mGPSTracewriter, "STANDBY", true);
+				writeTraceLineToAROTraceFile(mGPSTracewriter, AroTraceFileConstants.STANDBY, true);
+				writeToFlurryAndMaintainStateAndLogEvent(gpsFlurryEvent, getString(R.string.flurry_param_status), AroTraceFileConstants.STANDBY, true);
 				mGPSActive = false;
 				break;
 			}
@@ -1019,13 +1198,18 @@ public class AROCollectorTraceService extends Service {
 						if (DEBUG) {
 							Log.d(TAG, "gps enabled: ");
 						}
-						if (!mGPSActive)
-							writeTraceLineToAROTraceFile(mGPSTracewriter, "STANDBY", true);
+						if (!mGPSActive) {
+							writeTraceLineToAROTraceFile(mGPSTracewriter, AroTraceFileConstants.STANDBY, true);
+							writeToFlurryAndMaintainStateAndLogEvent(gpsFlurryEvent, 
+									getString(R.string.flurry_param_status), AroTraceFileConstants.STANDBY, true);
+						}
 					} else {
 						if (DEBUG) {
 							Log.d(TAG, "gps Disabled: ");
 						}
-						writeTraceLineToAROTraceFile(mGPSTracewriter, "OFF", true);
+						writeTraceLineToAROTraceFile(mGPSTracewriter, AroTraceFileConstants.OFF, true);
+						writeToFlurryAndMaintainStateAndLogEvent(gpsFlurryEvent, 
+								getString(R.string.flurry_param_status), AroTraceFileConstants.OFF, true);
 					}
 				}
 				prevGpsEnabledState = currentGpsEnabledState;
@@ -1037,8 +1221,10 @@ public class AROCollectorTraceService extends Service {
 	 * Stop the GPS peripherals trace collection
 	 */
 	private void stopAROGpsTraceMonitor() {
-		mGPSStatesManager.removeGpsStatusListener(mGPSStatesListner);
-		mGPSStatesManager = null;
+		if (mGPSStatesListner != null) {
+			mGPSStatesManager.removeGpsStatusListener(mGPSStatesListner);
+			mGPSStatesManager = null;
+		}
 		checkLocationService.cancel();
 	}
 
@@ -1049,16 +1235,18 @@ public class AROCollectorTraceService extends Service {
 		mTelphoneManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 		setARORadioSignalListener();
 		mTelphoneManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS
-				| PhoneStateListener.LISTEN_CALL_STATE);
+				| PhoneStateListener.LISTEN_CALL_STATE | PhoneStateListener.LISTEN_DATA_CONNECTION_STATE);
 	}
 
 	/**
 	 * Stops the device radio trace collection
 	 */
 	private void stopARORadioTraceMonitor() {
-		mTelphoneManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
-		mTelphoneManager = null;
-		mPhoneStateListener = null;
+		if (mPhoneStateListener != null) {
+			mTelphoneManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
+			mTelphoneManager = null;
+			mPhoneStateListener = null;
+		}
 
 	}
 
@@ -1089,10 +1277,16 @@ public class AROCollectorTraceService extends Service {
 	 * Stop the device screen trace collection
 	 */
 	private void stopAROScreenTraceMonitor() {
-		unregisterReceiver(mAROScreenTraceReceiver);
-		checkScreenBrightness.cancel();
-		checkScreenBrightness = null;
-		mAROIntentFilter = null;
+		try {
+			if (mAROScreenTraceReceiver != null) {
+				unregisterReceiver(mAROScreenTraceReceiver);
+				checkScreenBrightness.cancel();
+			}
+			checkScreenBrightness = null;
+			mAROIntentFilter = null;
+		} catch (IllegalArgumentException e) {
+			Log.e(TAG, "IllegalArgumentException at unregister mAROScreenTraceReceiver");
+		}
 	}
 
 	/**
@@ -1104,14 +1298,20 @@ public class AROCollectorTraceService extends Service {
 			if (BluetoothAdapter.getDefaultAdapter().getBondedDevices().isEmpty()) {
 				writeTraceLineToAROTraceFile(mBluetoothTracewriter,
 						AroTraceFileConstants.DISCONNCTED, true);
+				writeToFlurryAndMaintainStateAndLogEvent(bluetoothFlurryEvent, this.getString(R.string.flurry_param_status), 
+						AroTraceFileConstants.DISCONNCTED, true);
 			} else {
 				writeTraceLineToAROTraceFile(mBluetoothTracewriter,
+						AroTraceFileConstants.CONNECTED, true);
+				writeToFlurryAndMaintainStateAndLogEvent(bluetoothFlurryEvent, this.getString(R.string.flurry_param_status), 
 						AroTraceFileConstants.CONNECTED, true);
 			}
 			break;
 
 		case BluetoothAdapter.STATE_OFF:
 			writeTraceLineToAROTraceFile(mBluetoothTracewriter, AroTraceFileConstants.OFF, true);
+			writeToFlurryAndMaintainStateAndLogEvent(bluetoothFlurryEvent, this.getString(R.string.flurry_param_status), 
+					AroTraceFileConstants.OFF, true);
 			break;
 		}
 
@@ -1128,8 +1328,15 @@ public class AROCollectorTraceService extends Service {
 	 * Stops the bluetooth peripherals trace collection
 	 */
 	private void stopAROBluetoothTraceMonitor() {
-		unregisterReceiver(mAROBluetoothTraceReceiver);
-		mAROBluetoothIntentFilter = null;
+		try {
+			if (mAROBluetoothTraceReceiver != null) {
+				unregisterReceiver(mAROBluetoothTraceReceiver);
+				mAROBluetoothIntentFilter = null;
+			}
+		} catch (IllegalArgumentException e) {
+			Log.e(TAG, "IllegalArgumentException at unregister mAROBluetoothTraceReceiver");
+		}
+		
 	}
 
 	/**
@@ -1156,16 +1363,31 @@ public class AROCollectorTraceService extends Service {
 			return true;
 		}
 	}
+	
+	/**
+	 * returns the value of the current bearer, either WIFI or MOBILE
+	 */
+	private String getCurrentBearer(){
+		
+		return getifCurrentBearerWifi() ? "WIFI" : "MOBILE";
+	}
 
 	/**
 	 * Collects the wifi network trace data
 	 */
 	private void collectWifiNetworkData() {
-		// Get WiFi status
-		if (mWifiManager != null && getifCurrentBearerWifi()) {
+		/* Get WiFi status
+		 * DE9556: removed getifCurrentBearerWifi() call from if condition because when this function is called, 
+		 * the wifi is already connected
+		 */
+		if (mWifiManager != null) {
 			mWifiMacAddress = mWifiManager.getConnectionInfo().getBSSID();
 			mWifiNetworkSSID = mWifiManager.getConnectionInfo().getSSID();
 			mWifiRssi = mWifiManager.getConnectionInfo().getRssi();
+			
+			if (DEBUG){
+				Log.d(TAG, "mWifiMac=" + mWifiMacAddress + ", ssid=" + mWifiNetworkSSID + ", rssi:" + mWifiRssi);
+			}
 		}
 	}
 
@@ -1176,13 +1398,19 @@ public class AROCollectorTraceService extends Service {
 		mAROIntentFilter = new IntentFilter();
 		mAROIntentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
 		registerReceiver(mAROBearerChangeReceiver, mAROIntentFilter);
+		recordInitialBearerInfo();
 	}
 
 	/**
 	 * Stops the bearer change notification broadcast
 	 */
 	private void stopARODataBearerChangeNotification() {
-		unregisterReceiver(mAROBearerChangeReceiver);
+		try {
+			unregisterReceiver(mAROBearerChangeReceiver);
+			mAROBearerChangeReceiver = null;
+		} catch (IllegalArgumentException e) {
+			Log.e(TAG, "IllegalArgumentException at unregister mAROBearerChangeReceiver");
+		}
 	}
 
 	/**
@@ -1207,9 +1435,16 @@ public class AROCollectorTraceService extends Service {
 	 * Stops the wifi trace collection
 	 */
 	private void stopAROWifiTraceMonitor() {
-		unregisterReceiver(mAROWifiTraceReceiver);
-		mWifiManager = null;
-		mConnectivityManager = null;
+		try {
+			if (mAROWifiTraceReceiver != null) {
+				unregisterReceiver(mAROWifiTraceReceiver);
+				mWifiManager = null;
+			}
+			mConnectivityManager = null;
+		} catch (IllegalArgumentException e) {
+			Log.e(TAG, "IllegalArgumentException at unregister mAROWifiTraceReceiver");
+		}
+		
 	}
 
 	/**
@@ -1259,14 +1494,21 @@ public class AROCollectorTraceService extends Service {
 						+ " State:" + AroTraceFileConstants.IMPORTANCE_BACKGROUND;
 				writeTraceLineToAROTraceFile(mActiveProcessTracewriter,
 						mActiveProcessStates[Index], true);
+
+				//Flurry only allows max of 10 parameters to an event; if exceed, event is not logged.
+				if (backgroundAppsFlurryEvent.getCounter() < 10) {
+				mApp.writeToFlurry(backgroundAppsFlurryEvent.getMapToWrite(), runningAppProcessInfo.processName, 
+						AROCollectorUtils.EMPTY_STRING + backgroundAppsFlurryEvent.incrementCounter(), 
+						backgroundAppsFlurryEvent.getEventName(), AROCollectorUtils.NOT_APPLICABLE, AROCollectorUtils.EMPTY_STRING);
+				}
+
 				Index++;
 				break;
 
 			case RunningAppProcessInfo.IMPORTANCE_FOREGROUND:
 				mActiveProcessStates[Index] = "Name:" + runningAppProcessInfo.processName
 						+ " State:" + AroTraceFileConstants.IMPORTANCE_FOREGROUND;
-				writeTraceLineToAROTraceFile(mActiveProcessTracewriter,
-						mActiveProcessStates[Index], true);
+				writeTraceLineToAROTraceFile(mActiveProcessTracewriter, mActiveProcessStates[Index], true);
 				Index++;
 				break;
 			}
@@ -1376,7 +1618,14 @@ public class AROCollectorTraceService extends Service {
 		}
 		writeTraceLineToAROTraceFile(mBatteryTracewriter, mBatteryLevel + " " + mBatteryTemp / 10
 				+ " " + mPowerSource, true);
-	}
+		
+		//write to Flurry only if the values change
+		final String tempBatteryString = "level: " + mBatteryLevel + "%" + " " + 
+				   "temp: " + mBatteryTemp / 10 + "C" + " " + 
+				   "power source: " + mPowerSource;
+		writeToFlurryAndMaintainStateAndLogEvent(batteryFlurryEvent, this.getString(R.string.flurry_param_status), 
+				tempBatteryString, true);
+	}	
 
 	/**
 	 * Starts the battery trace
@@ -1400,9 +1649,13 @@ public class AROCollectorTraceService extends Service {
 	 * Stop the battery trace
 	 */
 	private void stopAROBatteryLevelMonitor() {
-		if (mBatteryLevelReceiver != null) {
-			unregisterReceiver(mBatteryLevelReceiver);
-			mBatteryLevelReceiver = null;
+		try {
+			if (mBatteryLevelReceiver != null) {
+				unregisterReceiver(mBatteryLevelReceiver);
+				mBatteryLevelReceiver = null;
+			}
+		} catch (IllegalArgumentException e) {
+			Log.e(TAG, "IllegalArgumentException at unregister mBatteryLevelReceiver");
 		}
 	}
 
@@ -1420,10 +1673,9 @@ public class AROCollectorTraceService extends Service {
 				public void onReceive(Context context, Intent intent) {
 					if (intent.getAction().equals(Intent.ACTION_CONFIGURATION_CHANGED)) {
 
-						Configuration newConfig = getResources().getConfiguration();
+						final Configuration newConfig = getResources().getConfiguration();
 						if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-							writeTraceLineToAROTraceFile(mScreenRotationTracewriter,
-									LANDSCAPE_MODE, true);
+							writeTraceLineToAROTraceFile(mScreenRotationTracewriter,LANDSCAPE_MODE, true);
 						} else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
 							writeTraceLineToAROTraceFile(mScreenRotationTracewriter, PORTRAIT_MODE,
 									true);
@@ -1443,9 +1695,11 @@ public class AROCollectorTraceService extends Service {
 	 * Unregisters the screen rotation broadcast receiver.
 	 */
 	private void stopAroScreenRotationMonitor() {
-		if (mScreenRotationReceiver != null) {
+		try {
 			unregisterReceiver(mScreenRotationReceiver);
 			mScreenRotationReceiver = null;
+		} catch (IllegalArgumentException e) {
+			Log.e(TAG, "IllegalArgumentException at unregister mScreenRotationReceiver");
 		}
 	}
 
@@ -1460,4 +1714,89 @@ public class AROCollectorTraceService extends Service {
 		return null;
 	}
 
+	public void writeToFlurryAndMaintainState(FlurryEvent fe, String key, String currentValue) {
+		mApp.writeToFlurry(fe.getMapToWrite(), key, 
+				currentValue, fe.getEventName(), fe.getState(), currentValue );
+		if (!fe.getState().equals(currentValue)) {
+			fe.setState(currentValue);
+			if (DEBUG) {
+				Log.d(TAG, "writeToFlurryAndMaintainState()-flurry state updated to: " + fe.getState());
+			}
+		}
+	}
+	
+	/**
+	 * Used by peripheral usage devices where a change in the Flurry state tracked will trigger logging of a Flurry event.
+	 * Not used to log time.
+	 * 
+	 * @param fe Name of a Flurry event.
+	 * @param key Map key of an event.
+	 * @param currentValue Current state value of the event.  If it compares differently than the former state, 
+	 * then log the event and becomes the current state.
+	 * @param timeStamp Log time stamp as an event parameter if true.  Do not log time stamp if false.
+	 */
+	public void writeToFlurryAndMaintainStateAndLogEvent(FlurryEvent aFlurryEvent, String key, String currentValue, boolean timeStamp) {
+		if (aFlurryEvent.getMapToWrite() != null) {
+			if (timeStamp) {
+				mApp.writeToFlurry(aFlurryEvent.getMapToWrite(), getString(R.string.flurry_param_time), 
+						Calendar.getInstance().getTime().toString(), aFlurryEvent.getEventName(), AROCollectorUtils.NOT_APPLICABLE, AROCollectorUtils.EMPTY_STRING);
+			}
+			mApp.writeToFlurry(aFlurryEvent.getMapToWrite(), key, 
+					currentValue, aFlurryEvent.getEventName(), aFlurryEvent.getState(), currentValue );
+			if (!aFlurryEvent.getState().equals(currentValue)) {
+				aFlurryEvent.setState(currentValue);
+				if (DEBUG) {
+					Log.d(TAG, "writeToFlurryAndMaintainStateAndLogEvent()-flurry state updated to: " + aFlurryEvent.getState() + 
+							" and logged now");
+				}
+				FlurryAgent.logEvent(aFlurryEvent.getEventName(), aFlurryEvent.getMapToWrite());
+
+				//reset hashmap status after logging event
+				aFlurryEvent.setMapToWrite(new HashMap<String, String>());
+			}
+		} else {//hashmap is empty-new map is ready-log will be empty 
+			if (DEBUG) {
+				Log.d(TAG, "writeToFlurryAndMaintainStateAndLogEvent()-did not log-map is null-Event: " + 
+						aFlurryEvent.getEventName() + "-key: " + key + "-value: " + currentValue);
+			}
+		}
+	}
+	
+	/**
+	 * record the bearer and network info at the start
+	 */
+	private void recordInitialBearerInfo(){
+		
+		final ConnectivityManager mAROConnectivityMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+		final NetworkInfo mAROActiveNetworkInfo = mAROConnectivityMgr.getActiveNetworkInfo();
+		
+		boolean isConnected = false;
+		if (mAROActiveNetworkInfo != null){
+			isConnected = mAROActiveNetworkInfo.isConnected();
+		}
+		
+		if (DEBUG){
+			Log.d(TAG, "recordInitialBearerInfo: isConnected=" + isConnected + "; currentBearerWifi=" + getifCurrentBearerWifi());
+		}
+		//call to record the initial bearer
+		recordBearerAndNetworkChange(mAROActiveNetworkInfo, isConnected);
+		//log the wifi network details if current bearer is wifi
+		if (getifCurrentBearerWifi()){
+			recordAndLogConnectedWifiDetails();
+		}
+	}
+
+	private void recordAndLogConnectedWifiDetails() {
+		collectWifiNetworkData();
+		writeTraceLineToAROTraceFile(mWifiTracewriter,
+				AroTraceFileConstants.CONNECTED_NETWORK + " " + mWifiMacAddress + " "
+				+ mWifiRssi + " " + mWifiNetworkSSID, true);
+		
+		if (DEBUG){
+			Log.i(TAG, "connected to " + mWifiNetworkSSID + " write to mWifiTracewriter completed at timestamp: " + mAroUtils.getDataCollectorEventTimeStamp());
+		}
+		
+		writeToFlurryAndMaintainStateAndLogEvent(wifiFlurryEvent, getString(R.string.flurry_param_status), 
+				AroTraceFileConstants.CONNECTED_NETWORK, true);
+	}
 }

@@ -14,31 +14,48 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTextPane;
+import javax.swing.UIManager;
+import javax.swing.text.html.HTMLDocument;
+import javax.swing.text.html.HTMLEditorKit;
+import javax.swing.text.html.StyleSheet;
 
 import org.jfree.ui.tabbedui.VerticalLayout;
 
+import com.att.aro.bp.BestPracticeDisplay;
+import com.att.aro.bp.BestPracticeDisplayGroup;
+import com.att.aro.commonui.AROUIManager;
 import com.att.aro.commonui.HyperlinkLabel;
 import com.att.aro.commonui.ImagePanel;
 import com.att.aro.commonui.RoundedBorder;
 import com.att.aro.images.Images;
-import com.att.aro.model.BestPractices;
 import com.att.aro.model.TraceData;
 
 /**
@@ -51,321 +68,97 @@ public class AROBpOverallResulsPanel extends JPanel {
 	private static Font headerFont = new Font("HeaderFont", Font.BOLD, 14);
 	private static Font summaryFont = new Font("HeaderFont", Font.BOLD, 18);
 	private static Font boldTextFont = new Font("BoldTextFont", Font.BOLD, 12);
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
-
-	private BPResultRowPanel duplicateContentPanel;
-	private BPResultRowPanel usingCachePanel;
-	private BPResultRowPanel cacheControlPanel;
-	private BPResultRowPanel prefetchingPanel;
-	private BPResultRowPanel connectionOpeningPanel;
-	private BPResultRowPanel unnecessaryConnectionsPanel;
-	private BPResultRowPanel periodicTransferPanel;
-	private BPResultRowPanel screenRotationPanel;
-	private BPResultRowPanel connectionClosingPanel;
-	private BPResultRowPanel wifiOffloadingPanel;
-	private BPResultRowPanel accessingPeripheralsPanel;
-	private BPResultRowPanel http10UsagePanel;
+	private static final int HEADER_DATA_SPACING = 10;
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
 	private DateTraceAppDetailPanel dateTraceAppDetailPanel;
 
 	private JLabel durationValueLabel;
 	private JLabel totalDataValueLabel;
 	private JLabel energyConsumedValueLabel;
+	private JTextPane causesScoreValueLabel;
+	private JTextPane effectsScoreValueLabel;
+	private JTextPane totalAppScoreValueLabel;
+
+	private ApplicationResourceOptimizer parent;
+	private Map<BestPracticeDisplayGroup, List<BPResultRowPanel>> panelMap = new HashMap<BestPracticeDisplayGroup, List<BPResultRowPanel>>();
+	private List<BPResultRowPanel> panels = new ArrayList<BPResultRowPanel>();
 
 	/**
 	 * Initializes a new instance of the AROBpOverallResulsPanel class.
 	 */
-	public AROBpOverallResulsPanel() {
+	public AROBpOverallResulsPanel(ApplicationResourceOptimizer parent,
+			Collection<BestPracticeDisplayGroup> bpGroups) {
 
+		// Main panel settings
+		this.parent = parent;
 		setLayout(new GridBagLayout());
 		setOpaque(false);
 		setBorder(new RoundedBorder(new Insets(20, 20, 20, 20), Color.WHITE));
 
+		int y = 0;
+
+		// Add date panel
 		Insets insets = new Insets(0, 0, 0, 0);
 		dateTraceAppDetailPanel = new DateTraceAppDetailPanel();
-		add(dateTraceAppDetailPanel, new GridBagConstraints(0, 0, 3, 1, 1.0,
-				0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				insets, 0, 0));
-		add(createTestStatisticsPanel(), new GridBagConstraints(0, 1, 3, 1,
-				0.0, 0.0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
+		add(dateTraceAppDetailPanel, new GridBagConstraints(0, y++, 3, 1, 1.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insets, 0, 0));
+		add(createTestStatisticsPanel(), new GridBagConstraints(0, y++, 3, 1, 0.0, 0.0,
+				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insets, 0, 0));
 
 		JLabel testConductedHeaderLabel = new JLabel(
 				rb.getString("bestPractices.header.testsConducted"));
 		testConductedHeaderLabel.setBackground(Color.WHITE);
 		testConductedHeaderLabel.setFont(headerFont);
-		add(new ImagePanel(Images.DIVIDER.getImage(), true, Color.WHITE),
-				new GridBagConstraints(0, 2, 3, 1, 0.0, 0.0,
-						GridBagConstraints.CENTER,
-						GridBagConstraints.HORIZONTAL,
-						new Insets(10, 0, 10, 0), 0, 0));
-		add(testConductedHeaderLabel, new GridBagConstraints(0, 3, 3, 1, 0.0,
-				0.0, GridBagConstraints.WEST, GridBagConstraints.NONE, insets,
-				0, 0));
+		add(new ImagePanel(Images.DIVIDER.getImage(), true, Color.WHITE), new GridBagConstraints(0,
+				y++, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				new Insets(10, 0, 10, 0), 0, 0));
+		add(testConductedHeaderLabel, new GridBagConstraints(0, y++, 3, 1, 0.0, 0.0,
+				GridBagConstraints.WEST, GridBagConstraints.NONE, insets, 0, 0));
 
-		String cacheRefer = MessageFormat.format(
-				rb.getString("bestPractice.referSection"),
-				rb.getString("bestPractice.referSection.caching"));
-		String connRefer = MessageFormat.format(
-				rb.getString("bestPractice.referSection"),
-				rb.getString("bestPractice.referSection.connections"));
-		String otherRefer = MessageFormat.format(
-				rb.getString("bestPractice.referSection"),
-				rb.getString("bestPractice.referSection.others"));
-		String selfTest = rb.getString("bestPractices.selfTest");
-		duplicateContentPanel = new BPResultRowPanel(false,
-				rb.getString("caching.duplicateContent.title"), cacheRefer);
-		usingCachePanel = new BPResultRowPanel(false,
-				rb.getString("caching.usingCache.title"), cacheRefer);
-		cacheControlPanel = new BPResultRowPanel(false,
-				rb.getString("caching.cacheControl.title"), cacheRefer);
-		prefetchingPanel = new BPResultRowPanel(false,
-				rb.getString("caching.prefetching.title"), cacheRefer);
-		connectionOpeningPanel = new BPResultRowPanel(true,
-				rb.getString("connections.connectionOpening.title"), selfTest);
-		unnecessaryConnectionsPanel = new BPResultRowPanel(false,
-				rb.getString("connections.unnecssaryConn.title"), connRefer);
-		periodicTransferPanel = new BPResultRowPanel(false,
-				rb.getString("connections.periodic.title"), connRefer);
-		screenRotationPanel = new BPResultRowPanel(false,
-				rb.getString("connections.screenRotation.title"), connRefer);
-		connectionClosingPanel = new BPResultRowPanel(false,
-				rb.getString("connections.connClosing.title"), connRefer);
-		wifiOffloadingPanel = new BPResultRowPanel(false,
-				rb.getString("connections.offloadingToWifi.title"), connRefer);
-		accessingPeripheralsPanel = new BPResultRowPanel(false,
-				rb.getString("other.accessingPeripherals.title"), otherRefer);
-		http10UsagePanel = new BPResultRowPanel(false,
-				rb.getString("other.httpUsage.title"), otherRefer);
+		// Add the best practice overviews
 		insets = new Insets(10, 20, 10, 10);
-		// adding the 12 best practices
-		add(duplicateContentPanel.getIconLabel(), new GridBagConstraints(0, 4,
-				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(duplicateContentPanel.getTitleLabel(), new GridBagConstraints(1, 4,
-				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(duplicateContentPanel.getReferSectionLabel(),
-				new GridBagConstraints(2, 4, 1, 1, 0.0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-						insets, 0, 0));
-		add(usingCachePanel.getIconLabel(), new GridBagConstraints(0, 5, 1, 1,
-				0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(usingCachePanel.getTitleLabel(), new GridBagConstraints(1, 5, 1, 1,
-				0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(usingCachePanel.getReferSectionLabel(), new GridBagConstraints(2,
-				5, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(cacheControlPanel.getIconLabel(), new GridBagConstraints(0, 6, 1,
-				1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(cacheControlPanel.getTitleLabel(), new GridBagConstraints(1, 6, 1,
-				1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(cacheControlPanel.getReferSectionLabel(), new GridBagConstraints(2,
-				6, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(prefetchingPanel.getIconLabel(), new GridBagConstraints(0, 7, 1, 1,
-				0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(prefetchingPanel.getTitleLabel(), new GridBagConstraints(1, 7, 1,
-				1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(prefetchingPanel.getReferSectionLabel(), new GridBagConstraints(2,
-				7, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(connectionOpeningPanel.getIconLabel(), new GridBagConstraints(0, 8,
-				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(connectionOpeningPanel.getTitleLabel(), new GridBagConstraints(1,
-				8, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(connectionOpeningPanel.getReferSectionLabel(),
-				new GridBagConstraints(2, 8, 1, 1, 0.0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-						insets, 0, 0));
-		add(unnecessaryConnectionsPanel.getIconLabel(), new GridBagConstraints(
-				0, 9, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(unnecessaryConnectionsPanel.getTitleLabel(),
-				new GridBagConstraints(1, 9, 1, 1, 0.0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-						insets, 0, 0));
-		add(unnecessaryConnectionsPanel.getReferSectionLabel(),
-				new GridBagConstraints(2, 9, 1, 1, 0.0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-						insets, 0, 0));
-		add(periodicTransferPanel.getIconLabel(), new GridBagConstraints(0, 10,
-				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(periodicTransferPanel.getTitleLabel(), new GridBagConstraints(1,
-				10, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(periodicTransferPanel.getReferSectionLabel(),
-				new GridBagConstraints(2, 10, 1, 1, 0.0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-						insets, 0, 0));
-		add(screenRotationPanel.getIconLabel(), new GridBagConstraints(0, 11,
-				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(screenRotationPanel.getTitleLabel(), new GridBagConstraints(1, 11,
-				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(screenRotationPanel.getReferSectionLabel(), new GridBagConstraints(
-				2, 11, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(connectionClosingPanel.getIconLabel(), new GridBagConstraints(0,
-				12, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(connectionClosingPanel.getTitleLabel(), new GridBagConstraints(1,
-				12, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(connectionClosingPanel.getReferSectionLabel(),
-				new GridBagConstraints(2, 12, 1, 1, 0.0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-						insets, 0, 0));
-		add(wifiOffloadingPanel.getIconLabel(), new GridBagConstraints(0, 13,
-				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(wifiOffloadingPanel.getTitleLabel(), new GridBagConstraints(1, 13,
-				1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(wifiOffloadingPanel.getReferSectionLabel(), new GridBagConstraints(
-				2, 13, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(accessingPeripheralsPanel.getIconLabel(), new GridBagConstraints(0,
-				14, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(accessingPeripheralsPanel.getTitleLabel(), new GridBagConstraints(
-				1, 14, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(accessingPeripheralsPanel.getReferSectionLabel(),
-				new GridBagConstraints(2, 14, 1, 1, 0.0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-						insets, 0, 0));
-		add(http10UsagePanel.getIconLabel(), new GridBagConstraints(0, 15, 1,
-				1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(http10UsagePanel.getTitleLabel(), new GridBagConstraints(1, 15, 1,
-				1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(http10UsagePanel.getReferSectionLabel(), new GridBagConstraints(2,
-				15, 1, 1, 0.0, 0.0, GridBagConstraints.WEST,
-				GridBagConstraints.HORIZONTAL, insets, 0, 0));
+		for (BestPracticeDisplayGroup bpGroup : bpGroups) {
+			String refer = MessageFormat.format(rb.getString("bestPractice.referSection"),
+					bpGroup.getReferSectionName());
+			Collection<BestPracticeDisplay> bps = bpGroup.getBestPractices();
+			List<BPResultRowPanel> list = new ArrayList<BPResultRowPanel>(bps.size());
+			for (BestPracticeDisplay bp : bps) {
+				BPResultRowPanel bpp = new BPResultRowPanel(bp, refer);
+				add(bpp.getIconLabel(), new GridBagConstraints(0, y, 1, 1, 0.0, 0.0,
+						GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insets, 0, 0));
+				add(bpp.getTitleLabel(), new GridBagConstraints(1, y, 1, 1, 0.0, 0.0,
+						GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insets, 0, 0));
+				add(bpp.getReferSectionLabel(), new GridBagConstraints(2, y, 1, 1, 0.0, 0.0,
+						GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insets, 0, 0));
+				panels.add(bpp);
+				list.add(bpp);
+				++y;
+			}
+			panelMap.put(bpGroup, Collections.unmodifiableList(list));
+		}
 	}
 
 	/**
-	 * Returns the results panel for the Duplicate Content Best Practices test.
+	 * Returns the date, trace and application detail panel Best Practices test.
 	 * 
-	 * @return BPResultRowPanel The Duplicate Content result panel.
+	 * @return DateTraceAppDetailPanel
 	 */
-	public BPResultRowPanel getDuplicateContentPanel() {
-		return duplicateContentPanel;
+	public DateTraceAppDetailPanel getDateTraceAppDetailPanel() {
+		return dateTraceAppDetailPanel;
 	}
 
 	/**
-	 * Returns the results panel for the Using Cache Best Practices test.
+	 * Returns the list of result row panels contained in the overall results
+	 * for the specified best practice group.
 	 * 
-	 * @return BPResultRowPanel The Using Cache results panel.
+	 * @param bpGroup
+	 *            The group whose panels are to be returned or null to get all.
+	 * @return The resulting list of row panels or null if an invalid bpGroup is
+	 *         specified
 	 */
-	public BPResultRowPanel getUsingCachePanel() {
-		return usingCachePanel;
-	}
-
-	/**
-	 * Returns the results panel for the Cache Control Best Practices test.
-	 * 
-	 * @return BPResultRowPanel The Cache Control results panel.
-	 */
-	public BPResultRowPanel getCacheControlPanel() {
-		return cacheControlPanel;
-	}
-
-	/**
-	 * Returns the results panel for the Prefetching Best Practices test.
-	 * 
-	 * @return BPResultRowPanel The Prefetching results panel.
-	 */
-	public BPResultRowPanel getPrefetchingPanel() {
-		return prefetchingPanel;
-	}
-
-	/**
-	 * Returns the results panel for the Connection Opening Best Practices test.
-	 * 
-	 * @return BPResultRowPanel The Connection Opening result panel.
-	 */
-	public BPResultRowPanel getConnectionOpeningPanel() {
-		return connectionOpeningPanel;
-	}
-
-	/**
-	 * Returns the results panel for the Unnecessary Connections Best Practices
-	 * test.
-	 * 
-	 * @return BPResultRowPanel The Unnecessary Connections results panel.
-	 */
-	public BPResultRowPanel getUnnecessaryConnectionsPanel() {
-		return unnecessaryConnectionsPanel;
-	}
-
-	/**
-	 * Returns the results panel for the Periodic Transfer Best Practices test.
-	 * 
-	 * @return BPResultRowPanel The Periodic Transfer results panel.
-	 */
-	public BPResultRowPanel getPeriodicTransferPanel() {
-		return periodicTransferPanel;
-	}
-
-	/**
-	 * Returns the results panel for the Screen Rotation Best Practices test.
-	 * 
-	 * @return BPResultRowPanel The Screen Rotation results panel.
-	 */
-	public BPResultRowPanel getScreenRotationPanel() {
-		return screenRotationPanel;
-	}
-
-	/**
-	 * Returns the results panel for the Connection Closing Best Practices test.
-	 * 
-	 * @return BPResultRowPanel The Connection Closing results panel.
-	 */
-	public BPResultRowPanel getConnectionClosingPanel() {
-		return connectionClosingPanel;
-	}
-
-	/**
-	 * Returns the results panel for the WiFi Offloading Best Practices test.
-	 * 
-	 * @return BPResultRowPanel The WiFi Offloading results panel.
-	 */
-	public BPResultRowPanel getWifiOffloadingPanel() {
-		return wifiOffloadingPanel;
-	}
-
-	/**
-	 * Returns the results panel for the Accessing Peripherals Best Practices
-	 * test.
-	 * 
-	 * @return BPResultRowPanel The Accessing Peripherals result Panel.
-	 */
-	public BPResultRowPanel getAccessingPeripheralsPanel() {
-		return accessingPeripheralsPanel;
-	}
-
-	/**
-	 * Returns the Http1.0 Usage results panel for the Accessing Peripherals
-	 * Best Practices test.
-	 * 
-	 * @return BPResultRowPanel The Accessing Peripherals results panel.
-	 */
-	public BPResultRowPanel getHttp10UsagePanel() {
-		return http10UsagePanel;
+	public List<BPResultRowPanel> getResultRowPanels(BestPracticeDisplayGroup bpGroup) {
+		return bpGroup != null ? panelMap.get(bpGroup) : panels;
 	}
 
 	/**
@@ -384,53 +177,43 @@ public class AROBpOverallResulsPanel extends JPanel {
 			nf.setMaximumFractionDigits(1);
 			nf.setMinimumFractionDigits(1);
 			nf.setMinimumIntegerDigits(1);
-			durationValueLabel
-					.setText(MessageFormat.format(rb
-							.getString("bestPractices.durationValue"), nf
-							.format(analysisData.getTraceData()
-									.getTraceDuration() / 60)));
-			energyConsumedValueLabel.setText(MessageFormat.format(rb
-					.getString("bestPractices.energyConsumedValue"), nf
-					.format(analysisData.getEnergyModel()
-							.getTotalEnergyConsumed())));
+			durationValueLabel.setText(MessageFormat.format(
+					rb.getString("bestPractices.durationValue"),
+					nf.format(analysisData.getTraceData().getTraceDuration() / 60)));
+			energyConsumedValueLabel.setText(MessageFormat.format(
+					rb.getString("bestPractices.energyConsumedValue"),
+					nf.format(analysisData.getEnergyModel().getTotalEnergyConsumed())));
+			causesScoreValueLabel.setText(MessageFormat.format(rb
+					.getString("bestPractices.scoreref"), analysisData.getApplicationScore()
+					.getCausesScore())
+					+ " " + rb.getString("bestPractices.outofscrore1"));
+			effectsScoreValueLabel.setText(MessageFormat.format(rb
+					.getString("bestPractices.scoreref"), analysisData.getApplicationScore()
+					.getEffectScore())
+					+ " " + rb.getString("bestPractices.outofscrore1"));
+			totalAppScoreValueLabel.setText(MessageFormat.format(rb
+					.getString("bestPractices.scoreref"), analysisData.getApplicationScore()
+					.getTotalApplicationScore())
+					+ " " + rb.getString("bestPractices.outofscrore2"));
 			NumberFormat intf = NumberFormat.getIntegerInstance();
 			totalDataValueLabel.setText(MessageFormat.format(
 					rb.getString("bestPractices.totalDataTransferedValue"),
 					intf.format(analysisData.getTotalBytes())));
 
-			BestPractices bp = analysisData.getBestPractice();
-
-			duplicateContentPanel.refreshFields(bp.getDuplicateContent());
-			usingCachePanel.refreshFields(bp.isUsingCache());
-			cacheControlPanel.refreshFields(bp.isCacheControl());
-			prefetchingPanel.refreshFields(bp.getPrefetching());
-			unnecessaryConnectionsPanel.refreshFields(bp.getMultipleTcpCon());
-			periodicTransferPanel.refreshFields(bp.getPeriodicTransfer());
-			connectionClosingPanel.refreshFields(bp
-					.getConnectionClosingProblem());
-			wifiOffloadingPanel.refreshFields(bp.getOffloadingToWiFi());
-			accessingPeripheralsPanel.refreshFields(bp
-					.getAccessingPeripherals());
-			http10UsagePanel.refreshFields(bp.getHttp10Usage());
-			connectionOpeningPanel.refreshFields(true);
-			screenRotationPanel.refreshFields(bp.getScreenRotationProblem());
+			for (BPResultRowPanel bpp : panels) {
+				bpp.refreshFields(analysisData);
+			}
 		} else {
 			durationValueLabel.setText(null);
 			energyConsumedValueLabel.setText(null);
 			totalDataValueLabel.setText(null);
+			causesScoreValueLabel.setText(null);
+			effectsScoreValueLabel.setText(null);
+			totalAppScoreValueLabel.setText(null);
 
-			duplicateContentPanel.refreshFields(null);
-			usingCachePanel.refreshFields(null);
-			cacheControlPanel.refreshFields(null);
-			prefetchingPanel.refreshFields(null);
-			unnecessaryConnectionsPanel.refreshFields(null);
-			periodicTransferPanel.refreshFields(null);
-			connectionClosingPanel.refreshFields(null);
-			wifiOffloadingPanel.refreshFields(null);
-			accessingPeripheralsPanel.refreshFields(null);
-			http10UsagePanel.refreshFields(null);
-			connectionOpeningPanel.refreshFields(null);
-			screenRotationPanel.refreshFields(null);
+			for (BPResultRowPanel bpp : panels) {
+				bpp.refreshFields(null);
+			}
 		}
 	}
 
@@ -445,20 +228,17 @@ public class AROBpOverallResulsPanel extends JPanel {
 		statisticsPanel.setLayout(new VerticalLayout());
 		statisticsPanel.setBackground(Color.WHITE);
 
-		JLabel summaryHeaderLabel = new JLabel(
-				rb.getString("bestPractices.header.summary"));
+		JLabel summaryHeaderLabel = new JLabel(rb.getString("bestPractices.header.summary"));
 		summaryHeaderLabel.setBackground(Color.WHITE);
 		summaryHeaderLabel.setFont(summaryFont);
 
-		JLabel statisticsHeaderLabel = new JLabel(
-				rb.getString("bestPractices.header.statistics"));
+		JLabel statisticsHeaderLabel = new JLabel(rb.getString("bestPractices.header.statistics"));
 		statisticsHeaderLabel.setBackground(Color.WHITE);
 		statisticsHeaderLabel.setFont(headerFont);
 
 		JPanel durationPanel = new JPanel(new GridLayout(1, 2));
 		durationPanel.setBackground(Color.WHITE);
-		JLabel durationLabel = new JLabel(
-				rb.getString("bestPractices.duration"));
+		JLabel durationLabel = new JLabel(rb.getString("bestPractices.duration"));
 		durationLabel.setFont(textFont);
 		durationValueLabel = new JLabel();
 		durationValueLabel.setFont(textFont);
@@ -467,8 +247,7 @@ public class AROBpOverallResulsPanel extends JPanel {
 
 		JPanel totalDataPanel = new JPanel(new GridLayout(1, 2));
 		totalDataPanel.setBackground(Color.WHITE);
-		JLabel totalDataLabel = new JLabel(
-				rb.getString("bestPractices.totalDataTransfered"));
+		JLabel totalDataLabel = new JLabel(rb.getString("bestPractices.totalDataTransfered"));
 		totalDataLabel.setFont(textFont);
 		totalDataValueLabel = new JLabel();
 		totalDataValueLabel.setFont(textFont);
@@ -477,13 +256,58 @@ public class AROBpOverallResulsPanel extends JPanel {
 
 		JPanel energyConsumedPanel = new JPanel(new GridLayout(1, 2));
 		energyConsumedPanel.setBackground(Color.WHITE);
-		JLabel energyConsumedLabel = new JLabel(
-				rb.getString("bestPractices.energyConsumed"));
+		JLabel energyConsumedLabel = new JLabel(rb.getString("bestPractices.energyConsumed"));
 		energyConsumedLabel.setFont(textFont);
 		energyConsumedValueLabel = new JLabel();
 		energyConsumedValueLabel.setFont(textFont);
 		energyConsumedPanel.add(energyConsumedLabel);
 		energyConsumedPanel.add(energyConsumedValueLabel);
+
+		final MouseAdapter appScoreMouseAdapter = new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (parent.getTraceData() != null) {
+					parent.displayResultTab();
+					parent.getAnalysisResultsPanel().getVerticalScrollBar().setValue(550);
+				}
+			}
+		};
+
+		JPanel appScoreTitlePanel = new JPanel(new GridLayout(1, 2));
+		appScoreTitlePanel.setBackground(Color.WHITE);
+		JLabel appScoreLabel = new JLabel(rb.getString("appscore.title"));
+		appScoreLabel.setFont(headerFont);
+		appScoreTitlePanel.add(appScoreLabel);
+
+		JPanel causesScorePanel = new JPanel(new GridLayout(1, 2));
+		causesScorePanel.setBackground(Color.WHITE);
+		JLabel causesScoreLabel = new JLabel(rb.getString("bestPractices.causesScore"));
+		causesScoreLabel.setFont(textFont);
+		causesScorePanel.add(causesScoreLabel);
+		causesScoreValueLabel = createJTextPane();
+		causesScoreValueLabel.setFont(textFont);
+		causesScorePanel.add(causesScoreValueLabel);
+		causesScoreValueLabel.addMouseListener(appScoreMouseAdapter);
+
+		JPanel effectsScorePanel = new JPanel(new GridLayout(1, 2));
+		effectsScorePanel.setBackground(Color.WHITE);
+		JLabel effectsScoreLabel = new JLabel(rb.getString("bestPractices.effectsScore"));
+		effectsScoreLabel.setFont(textFont);
+		effectsScorePanel.add(effectsScoreLabel);
+		effectsScoreValueLabel = createJTextPane();
+		effectsScoreValueLabel.setFont(textFont);
+		effectsScorePanel.add(effectsScoreValueLabel);
+		effectsScoreValueLabel.addMouseListener(appScoreMouseAdapter);
+
+		JPanel totalScorePanel = new JPanel(new GridLayout(1, 2));
+		totalScorePanel.setBackground(Color.WHITE);
+		JLabel totalAppScoreLabel = new JLabel(rb.getString("bestPractices.totalAppScore"));
+		totalAppScoreLabel.setFont(textFont);
+		totalScorePanel.add(totalAppScoreLabel);
+		totalAppScoreValueLabel = createJTextPane();
+		totalAppScoreValueLabel.setFont(textFont);
+		totalScorePanel.add(totalAppScoreValueLabel);
+		totalAppScoreValueLabel.addMouseListener(appScoreMouseAdapter);
 
 		JLabel summaryFillerHeaderLabel = new JLabel(" ");
 		JLabel testFillerHeaderLabel = new JLabel(" ");
@@ -504,6 +328,11 @@ public class AROBpOverallResulsPanel extends JPanel {
 		titlePanel.add(durationPanel);
 		titlePanel.add(totalDataPanel);
 		titlePanel.add(energyConsumedPanel);
+		titlePanel.add(getSpacePanel());
+		titlePanel.add(appScoreTitlePanel);
+		titlePanel.add(causesScorePanel);
+		titlePanel.add(effectsScorePanel);
+		titlePanel.add(totalScorePanel);
 		titlePanel.add(testFillerHeaderLabel);
 		subContentPanel.add(titlePanel, BorderLayout.CENTER);
 		statisticsPanel.add(subContentPanel);
@@ -513,24 +342,50 @@ public class AROBpOverallResulsPanel extends JPanel {
 
 	}
 
+	private JTextPane createJTextPane() {
+		HTMLDocument doc = new HTMLDocument();
+		StyleSheet style = doc.getStyleSheet();
+		style.addRule("body { font-family: " + textFont.getFamily() + "; " + "font-size: "
+				+ textFont.getSize() + "pt; }");
+		style.addRule("a { text-decoration: underline; font-weight:bold; }");
+		JTextPane jTextArea = new JTextPane(doc);
+		jTextArea.setEditable(false);
+		jTextArea.setEditorKit(new HTMLEditorKit());
+		jTextArea.setStyledDocument(doc);
+		jTextArea.setMargin(new Insets(0, 0, 0, 0));
+		jTextArea.setPreferredSize(new Dimension(50, 16));
+		return jTextArea;
+	}
+
+	/**
+	 * Creates a space panel
+	 * 
+	 * @return
+	 */
+	private JPanel getSpacePanel() {
+		JPanel spacePanel = new JPanel();
+		spacePanel.setPreferredSize(new Dimension(this.getWidth(), HEADER_DATA_SPACING));
+		spacePanel.setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
+		return spacePanel;
+	}
+
 	/**
 	 * Represents a row of Best Practice information containing 3 icons and the
 	 * Best Practice Label.
 	 * 
 	 */
 	public static class BPResultRowPanel {
-		private static final long serialVersionUID = 1L;
 
 		private static ImageIcon passIcon = Images.BP_PASS_DARK.getIcon();
 		private static ImageIcon failIcon = Images.BP_FAIL_DARK.getIcon();
-		private static ImageIcon notRunIcon = Images.BP_SELFTEST_TRIGGERED
-				.getIcon();
+		private static ImageIcon notRunIcon = Images.BP_SELFTEST_TRIGGERED.getIcon();
 		private static ImageIcon manualIcon = Images.BP_MANUAL.getIcon();
-		private String PASS = rb.getString("bestPractice.tooltip.pass");
-		private String FAIL = rb.getString("bestPractice.tooltip.fail");
-		private String MANUAL = rb.getString("bestPractice.tooltip.manual");
+		private static String PASS = rb.getString("bestPractice.tooltip.pass");
+		private static String FAIL = rb.getString("bestPractice.tooltip.fail");
+		private static String MANUAL = rb.getString("bestPractice.tooltip.manual");
+		private static String SELFTEST = rb.getString("bestPractices.selfTest");
 
-		private boolean selfTest;
+		private BestPracticeDisplay bp;
 		private JLabel titleLabel;
 		private JLabel iconLabel;
 		private HyperlinkLabel referSectionLabel;
@@ -539,23 +394,19 @@ public class AROBpOverallResulsPanel extends JPanel {
 		 * Initializes a new instance of the
 		 * AROBpOverallResulsPanel.BPResultRowPanel class.
 		 * 
-		 * @param selfTest
-		 *            - A boolean value that indicates whether this Best
-		 *            Practice test is a “self test”.
-		 * @param bpTitle
-		 *            - The title of the Best Practice test.
+		 * @param bp
+		 *            Data for the best practice to be displayed
 		 * @param referMsg
-		 *            - A message that refers users to more information about
-		 *            the Best Practice test.
+		 *            A message that refers users to more information about the
+		 *            Best Practice test.
 		 */
-		public BPResultRowPanel(boolean selfTest, String bpTitle,
-				String referMsg) {
-			this.selfTest = selfTest;
+		public BPResultRowPanel(BestPracticeDisplay bp, String referMsg) {
+			this.bp = bp;
 
 			this.iconLabel = new JLabel(notRunIcon);
-			this.titleLabel = new JLabel(bpTitle);
+			this.titleLabel = new JLabel(bp.getOverviewTitle());
 			titleLabel.setFont(textFont);
-			this.referSectionLabel = new HyperlinkLabel(referMsg);
+			this.referSectionLabel = new HyperlinkLabel(bp.isSelfTest() ? SELFTEST : referMsg);
 			referSectionLabel.setFont(boldTextFont);
 			referSectionLabel.setVisible(false);
 		}
@@ -564,29 +415,39 @@ public class AROBpOverallResulsPanel extends JPanel {
 		 * Refreshes the icons and adds the refer section label when a trace
 		 * file is loaded.
 		 * 
-		 * @param isPass
-		 *            - A boolean value that indicates whether the Best Practice
-		 *            tests has passed or failed.
+		 * @param analysisData
+		 *            The current analysis data used to refresh the fields in
+		 *            the panel
 		 */
-		public void refreshFields(Boolean isPass) {
-			if (isPass == null) {
+		public void refreshFields(TraceData.Analysis analysis) {
+			if (analysis == null) {
 				iconLabel.setIcon(notRunIcon);
 				iconLabel.setToolTipText(null);
 				referSectionLabel.setVisible(false);
-			} else if (selfTest) {
+			} else if (bp.isSelfTest()) {
 				iconLabel.setIcon(manualIcon);
 				iconLabel.setToolTipText(MANUAL);
 				referSectionLabel.setVisible(true);
 			} else {
-				if (isPass.booleanValue()) {
+				boolean isPass = bp.isPass(analysis);
+				if (isPass) {
 					iconLabel.setIcon(passIcon);
 					iconLabel.setToolTipText(PASS);
 				} else {
 					iconLabel.setIcon(failIcon);
 					iconLabel.setToolTipText(FAIL);
 				}
-				referSectionLabel.setVisible(!isPass.booleanValue());
+				referSectionLabel.setVisible(!isPass);
 			}
+		}
+
+		/**
+		 * Returns the best practice display element used by this row panel
+		 * 
+		 * @return the bp
+		 */
+		public BestPracticeDisplay getBp() {
+			return bp;
 		}
 
 		/**
@@ -618,5 +479,73 @@ public class AROBpOverallResulsPanel extends JPanel {
 			return referSectionLabel;
 		}
 
+	}
+
+	/**
+	 * Method to add the Trace information content in the csv file.
+	 * 
+	 * @throws IOException
+	 */
+	public FileWriter addBpOverallContent(FileWriter writer, TraceData.Analysis analysisData)
+			throws IOException {
+		final String lineSep = System.getProperty(rb.getString("statics.csvLine.seperator"));
+		NumberFormat nf = NumberFormat.getNumberInstance();
+		nf.setMaximumFractionDigits(1);
+		nf.setMinimumFractionDigits(1);
+		nf.setMinimumIntegerDigits(1);
+
+		writer = addKeyValue(writer, rb.getString("bestPractices.duration"),
+				String.valueOf(nf.format(analysisData.getTraceData().getTraceDuration() / 60)));
+
+		writer.append(rb.getString("statics.csvCell.seperator"));
+		writer.append(rb.getString("statics.csvUnits.minutes"));
+		writer.append(lineSep);
+
+		writer = addKeyValue(writer, rb.getString("bestPractices.totalDataTransfered"),
+				String.valueOf(analysisData.getTotalBytes()));
+		writer.append(rb.getString("statics.csvCell.seperator"));
+		writer.append(rb.getString("statics.csvUnits.bytes"));
+		writer.append(lineSep);
+
+		writer = addKeyValue(writer, rb.getString("bestPractices.energyConsumed"),
+				String.valueOf(nf.format(analysisData.getEnergyModel().getTotalEnergyConsumed()))
+						.replace(rb.getString("statics.csvCell.seperator"), ""));
+
+		writer.append(rb.getString("statics.csvCell.seperator"));
+		writer.append(rb.getString("statics.csvUnits.joules"));
+		writer.append(lineSep);
+
+		writer = addKeyValue(writer, rb.getString("appscore.title"), String.valueOf(""));
+		writer.append(lineSep);
+
+		writer = addKeyValue(writer, rb.getString("exportall.causesScore"),
+				String.valueOf(analysisData.getApplicationScore().getCausesScore()));
+		writer.append(lineSep);
+
+		writer = addKeyValue(writer, rb.getString("exportall.effectsScore"),
+				String.valueOf(analysisData.getApplicationScore().getEffectScore()));
+		writer.append(lineSep);
+
+		writer = addKeyValue(writer, rb.getString("exportall.totalAppScore"),
+				String.valueOf(analysisData.getApplicationScore().getTotalApplicationScore()));
+		writer.append(lineSep);
+
+		return writer;
+	}
+
+	/**
+	 * Writes a provided key and value in the file writer.
+	 * 
+	 * @param writer
+	 * @param key
+	 * @param value
+	 * @return
+	 * @throws IOException
+	 */
+	private FileWriter addKeyValue(FileWriter writer, String key, String value) throws IOException {
+		writer.append(key);
+		writer.append(rb.getString("statics.csvCell.seperator"));
+		writer.append(value);
+		return writer;
 	}
 }

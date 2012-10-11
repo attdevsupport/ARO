@@ -36,7 +36,9 @@ import com.att.aro.model.ApplicationSelection;
 import com.att.aro.model.IPAddressSelection;
 
 /**
- * Represents the table model for the Filter IP address dialog. 
+ * Represents the table model for the Select Applications/IPs dialog 
+ * (accessed from the View menu) that allows the user to filter the trace information 
+ * based on application name or IP address.  
  */
 public class FilterIpAddressesTableModel extends DataTableModel<AppIPAddressSelection> {
 	private static final long serialVersionUID = 1L;
@@ -77,12 +79,12 @@ public class FilterIpAddressesTableModel extends DataTableModel<AppIPAddressSele
 	public static final int APP_COL = 1;
 
 	/**
-	 * An integer that identifies the IP address column.
+	 * An integer that identifies the color for an IP address.
 	 */
 	public static final int IP_COL = 2;
 
 	/**
-	 * An integer that identifies the color column.
+	 * An integer that identifies the color for an application.
 	 */
 	public static final int COLOR_COL = 3;
 
@@ -92,7 +94,9 @@ public class FilterIpAddressesTableModel extends DataTableModel<AppIPAddressSele
 			rb.getString("filter.color") };
 
 	/**
-	 * Constructor that initializes model with filter data from specified analysis.
+	 * Constructor that creates and initializes initializes the FilterIpAddressesTableModel 
+	 * with the specified filter data from the analysis.
+	 * 
 	 * @param filter The analysis filter to be applied.
 	 */
 	public FilterIpAddressesTableModel(AnalysisFilter filter) {
@@ -108,6 +112,17 @@ public class FilterIpAddressesTableModel extends DataTableModel<AppIPAddressSele
 		setData(data);
 	}
 
+	/**
+	 * This is the one method that must be implemented by subclasses. This method defines how 
+	 * the data object managed by this table model is mapped to its columns when displayed 
+	 * in a row of the table. The getValueAt() method uses this method to retrieve table cell data.
+	 * 
+	 * @param
+	 * 		item A object containing the column information.
+			columnIndex The index of the specified column.
+	 *		
+	 * @return An object containing the table column value. 
+	 */
 	@Override
 	protected Object getColumnValue(AppIPAddressSelection item, int columnIndex) {
 		switch (columnIndex) {
@@ -128,7 +143,7 @@ public class FilterIpAddressesTableModel extends DataTableModel<AppIPAddressSele
 	 * primarily used to sort numeric columns.
 	 * 
 	 * @param columnIndex
-	 *            – The index of the specified column.
+	 *            The index of the specified column.
 	 * 
 	 * @return A class representing the specified column.
 	 * 
@@ -144,13 +159,13 @@ public class FilterIpAddressesTableModel extends DataTableModel<AppIPAddressSele
 		}
 	}
 	/**
-	 * Returns a value that Indicates if the specified data cell is editable.
+	 * Returns a value that indicates if the specified data cell is editable.
 	 * 
-	 * @param row – The row number of the cell.
+	 * @param row The row number of the cell.
 	 * 
-	 * @param col – The column number of the cell.
+	 * @param col The column number of the cell.
 	 * 
-	 * @return A boolean value that is “true” if the cell is editable, and “false” if not.
+	 * @return A boolean value that is "true" if the cell is editable, and "false" if not.
 	 */
 	@Override
 	public boolean isCellEditable(int row, int col) {
@@ -188,9 +203,9 @@ public class FilterIpAddressesTableModel extends DataTableModel<AppIPAddressSele
 	/**
 	 * Sets the value of the specified data item.
 	 * 
-	 * @param aValue – The value to set for the data item.
+	 * @param aValue The value to set for the data item.
 	 * 
-	 * @param rowIndex – The row index of the data item.
+	 * @param rowIndex The row index of the data item.
 	 * 
 	 * @param columnIndex The column index of the data item.
 	 * 

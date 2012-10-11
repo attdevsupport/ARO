@@ -20,6 +20,8 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
 import java.util.Collections;
@@ -39,13 +41,19 @@ import com.att.aro.model.EnergyModel;
 import com.att.aro.model.TraceData;
 
 /**
- * Represents a panel that displays the Energy Model statistics about the trace.
+ * Represents a panel that displays the Energy Consumption Simulation section of 
+ * the Statistics Tab information page.
  */
 public abstract class EnergyModelStatisticsPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
+	//Returns the font used for the header portion of the panel.
 	protected static final Font HEADER_FONT = new Font("HeaderFont", Font.BOLD, 16);
+	
+	//Returns the font used for the data portion of the panel.
 	protected static final Font TEXT_FONT = new Font("TEXT_FONT", Font.PLAIN, 12);
+	
+	//Returns a constant value for header data spacing.
 	protected static final int HEADER_DATA_SPACING = 10;
 
 	private JLabel gpsActiveLabel;
@@ -72,8 +80,11 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 	private JPanel energyStatisticsPanel = null;
 	private JLabel energyStatisticsHeaderLabel = null;
 	private JPanel spacePanel = null;
+	
+	//Returns the JPanel object encapsulated by this class.
 	protected JPanel energyConsumptionStatsPanel = null;
 
+	//Returns a map of strings that contain the energy statistics column in the panel.
 	protected Map<String, String> energyContent = new LinkedHashMap<String, String>();
 
 	/**
@@ -100,15 +111,13 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 		NumberFormat nf = NumberFormat.getNumberInstance();
 		nf.setMaximumFractionDigits(2);
 		nf.setMinimumFractionDigits(2);
+		refreshRRCStatistic(analysis, nf);
 		if (analysis != null) {
 			updatePeripheralStatistics(analysis, nf, units, analysis.getEnergyModel());
 			updatePeripheralStatisticsValues();
-
 		} else {
 			updatePeripheralStatistics(null, null, null, null);
-
 		}
-		refreshRRCStatistic(analysis, nf);
 	}
 
 	/**
@@ -121,8 +130,19 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 		return Collections.unmodifiableMap(energyContent);
 	}
 
+	/**
+	 * Refreshes the JPanel that contains the RRC portion of the Energy Consumption statistics data.
+	 * 
+	 * @param analysis
+	 *          - The Analysis object containing the trace data.
+	 * @param nf 
+	 *          - The number format used to display the label values.
+	 */
 	protected abstract void refreshRRCStatistic(TraceData.Analysis analysis, NumberFormat nf);
 
+	/**
+	* Creates the JPanel that contains the RRC statistics data.
+	*/
 	protected abstract void createRRCStatsPanel();
 
 	private void init() {
@@ -271,6 +291,32 @@ public abstract class EnergyModelStatisticsPanel extends JPanel {
 		energyContent
 				.put(rb.getString("energy.bluetoothTotal"), bluetoothTotalValueLabel.getText());
 		energyContent.put(rb.getString("energy.screenTotal"), screenTotalValueLabel.getText());
+	}
+
+	/**
+	 * Method to add the energy statistics content in the csv file
+	 * 
+	 * @throws IOException
+	 */
+	public FileWriter addEnergyContent(FileWriter writer)
+			throws IOException {
+		final String lineSep = System.getProperty(rb.getString("statics.csvLine.seperator"));
+		for (Map.Entry<String, String> iter : energyContent.entrySet()) {
+			String individualVal = iter.getValue().replace(
+					rb.getString("statics.csvCell.seperator"), "");
+			writer.append(iter.getKey());
+			writer.append(rb.getString("statics.csvCell.seperator"));
+			if (individualVal.contains(rb.getString("statics.csvUnits.j"))) {
+				writer.append(individualVal.substring(0,
+						individualVal.indexOf(rb.getString("statics.csvUnits.j"))));
+				writer.append(rb.getString("statics.csvCell.seperator"));
+				writer.append(rb.getString("statics.csvUnits.j"));
+			} else {
+				writer.append(individualVal);
+			}
+			writer.append(lineSep);
+		}
+		return writer;
 	}
 
 } // @jve:decl-index=0:visual-constraint="10,10"

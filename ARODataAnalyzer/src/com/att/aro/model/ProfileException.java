@@ -40,13 +40,14 @@ public class ProfileException extends Exception {
 			message.append(entry.getKey());
 			message.append("=");
 			message.append(entry.getValue());
-			message.append("; ");
+			message.append("\n");
 		}
+		message.deleteCharAt(message.length() - 2);
 		return message.toString();
 	}
 
 	/**
-	 * Default constructor for invalid profile
+	 * Initializes an instance of the ProfileException class. This is the default constructor for an invalid profile.
 	 */
 	public ProfileException() {
 		super(rb.getString("Exception.ProfileException"));
@@ -55,7 +56,7 @@ public class ProfileException extends Exception {
 	/**
 	 * Initializes an instance of the ProfileException class using the specified error log.
 	 * 
-	 * @param errorLog – A Map of Profile.Attribute objects and strings that form an error 
+	 * @param errorLog A Map of Profile.Attribute objects and strings that form an error 
 	 * log of device profile attribute information.
 	 */
 	public ProfileException(Map<String, String> errorLog) {

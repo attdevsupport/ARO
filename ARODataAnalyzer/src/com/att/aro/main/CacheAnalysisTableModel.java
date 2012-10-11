@@ -84,7 +84,7 @@ public class CacheAnalysisTableModel extends DataTableModel<CacheEntry> {
 	 * primarily used to sort numeric columns.
 	 * 
 	 * @param columnIndex
-	 *            – The index of the specified column.
+	 *            The index of the specified column.
 	 * 
 	 * @return A class representing the specified column.
 	 * 
@@ -101,6 +101,18 @@ public class CacheAnalysisTableModel extends DataTableModel<CacheEntry> {
 		}
 	}
 
+	/**
+	 * This is the one method that must be implemented by subclasses. This method defines 
+	 * how the data object managed by this table model is mapped to its columns when 
+	 * displayed in a row of the table. The getValueAt() method uses this method to 
+	 * retrieve table cell data.
+	 * 
+	 * @param
+	 * 		item An object containing the column information.
+	 *		columnIndex The index of the specified column.
+	 *		
+	 * @return The table column value calculated for the object.
+	 */
 	@Override
 	protected Object getColumnValue(CacheEntry item, int columnIndex) {
 		switch (columnIndex) {

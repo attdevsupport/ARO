@@ -24,7 +24,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Used to filter specific information in a trace from the analysis
+ * Represents a filter used for filtering information from a trace analysis
+ * based on a specified time range and set of ApplicationSelection objects.
  */
 public class AnalysisFilter implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -33,8 +34,9 @@ public class AnalysisFilter implements Serializable {
 	private TimeRange timeRange;
 
 	/**
-	 * Constructs default analysis filter for specified trace
-	 * @param trace the trace.  Cannot be null
+	 * Initializes an instance of the AnalysisFilter class using the specified trace data.
+	 * @param trace 
+	 * 			- A TraceData object. This parameter cannot be null.
 	 */
 	public AnalysisFilter(TraceData trace) {
 		
@@ -48,8 +50,10 @@ public class AnalysisFilter implements Serializable {
 	}
 
 	/**
-	 * Copy constructor
-	 * @param filter filter to be copied.  Cannot be null
+	 * Initializes an instance of the AnalysisFilter class, using another AnalysisFilter object.
+	 * @param filter 
+	 * 			- The AnalysisFilter object to be copied to the new object. 
+	 * 			  This parameter cannot be null.
 	 */
 	public AnalysisFilter(AnalysisFilter filter) {
 		this.timeRange = filter.timeRange;
@@ -60,27 +64,27 @@ public class AnalysisFilter implements Serializable {
 	}
 	
 	/**
-	 * Gets the application selection settings for this filter
-	 * @return The collection of application selctions.
+	 * Returns all of the ApplicationSelection objects for this filter.
+	 * @return A collection of ApplicationSelection objects.
 	 */
 	public Collection<ApplicationSelection> getApplicationSelections() {
 		return appSelections.values();
 	}
 
 	/**
-	 * Gets the application selection setting for the specified app
-	 * @param appName The name of the application
-	 * @return The application selection setting or null if app not found
+	 * Returns the ApplicationSelection containing selection settings for the specified application name.
+	 * @param appName - The application name.
+	 * @return The ApplicationSelection object or null if the application name is not found.
 	 */
 	public ApplicationSelection getApplicationSelection(String appName) {
 		return appSelections.get(appName);
 	}
 
 	/**
-	 * Based upon the filter returns the color that should be used to
-	 * display the specified packet
-	 * @param packet The packet.
-	 * @return The color that is appplied to the specified packet.
+	 * Returns the color used to display the specified packet based on 
+	 * the settings in this filter.
+	 * @param packet - A PacketInfo object that specifies the packet.
+	 * @return The color used to display the specified packet.
 	 */
 	public Color getPacketColor(PacketInfo packet) {
 
@@ -102,14 +106,16 @@ public class AnalysisFilter implements Serializable {
 	}
 	
 	/**
-	 * @return the timeRange
+	 * Returns a TimeRange object defining the time range setting for the filter.
+	 * @return The time range
 	 */
 	public TimeRange getTimeRange() {
 		return timeRange;
 	}
 
 	/**
-	 * @param timeRange the timeRange to set
+	 * Sets the time range for the filter.
+	 * @param timeRange - The time range to set
 	 */
 	public void setTimeRange(TimeRange timeRange) {
 		this.timeRange = timeRange;

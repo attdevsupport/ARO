@@ -86,18 +86,18 @@ public class DataCollectorStartDialog extends JDialog {
 	 * DatacollectorBridge, trace folder name, and video flag.
 	 * 
 	 * @param owner
-	 *            - The ApplicationResourceOptimizer instance.
+	 *            The ApplicationResourceOptimizer instance.
 	 * 
 	 * @param aroDataCollectorBridge
-	 *            - The DataCollectorBridge instance for capturing traces from a
+	 *            The DataCollectorBridge instance for capturing traces from a
 	 *            device emulator.
 	 * 
 	 * @param traceFolderName
-	 *            - The name of the folder in which the ARO Data Collector trace
+	 *            The name of the folder in which the ARO Data Collector trace
 	 *            files should be stored.
 	 * 
 	 * @param recordVideo
-	 *            – A boolean value that indicates whether to record video for
+	 *            A boolean value that indicates whether to record video for
 	 *            this trace or not.
 	 */
 	public DataCollectorStartDialog(Frame owner, DatacollectorBridge aroDataCollectorBridge,

@@ -33,7 +33,7 @@ public abstract class Profile implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	/**
-	 * Carrier/Network provider name.
+	 * The Carrier/Network provider name.
 	 */
 	public static final String CARRIER = "CARRIER";
 
@@ -43,17 +43,17 @@ public abstract class Profile implements Serializable {
 	public static final String DEVICE = "DEVICE";
 
 	/**
-	 * Profile network type
+	 * The network type (i.e. 3G or LTE) of the Profile.
 	 */
 	public static final String PROFILE_TYPE = "PROFILE_TYPE";
 
 	/**
-	 * Threshold for user input window (seconds).
+	 * The threshold for the user input window (in seconds).
 	 */
 	public static final String USER_INPUT_TH = "USER_INPUT_TH";
 
 	/**
-	 * The average amount of power (in watts) that should be used when the camera is on. 
+	 * The average amount of power (in watts) that should be used when GPS is in the Active state. 
 	 */
 	public static final String POWER_GPS_ACTIVE = "POWER_GPS_ACTIVE";
 
@@ -69,12 +69,12 @@ public abstract class Profile implements Serializable {
 	public static final String POWER_CAMERA_ON = "POWER_CAMERA_ON";
 
 	/**
-	 * The minimum amount of observed samples for periodical bursts. 
+	 * The average amount of power (in watts) that should be used when Bluetooth is in the Active state. 
 	 */
 	public static final String POWER_BLUETOOTH_ACTIVE = "POWER_BLUETOOTH_ACTIVE";
 
 	/**
-	 * The average amount of power (in watts) that should be used (in watts) when 
+	 * The average amount of power that should be used (in watts) when 
 	 * Bluetooth is in the Standby state.
 	 */
 	public static final String POWER_BLUETOOTH_STANDBY = "POWER_BLUETOOTH_STANDBY";
@@ -90,7 +90,7 @@ public abstract class Profile implements Serializable {
 	public static final String BURST_TH = "BURST_TH";
 
 	/**
-	 * Threshold for defining a long burst (seconds).
+	 * The threshold for defining a long burst (in seconds).
 	 */
 	public static final String LONG_BURST_TH = "LONG_BURST_TH";
 
@@ -110,26 +110,26 @@ public abstract class Profile implements Serializable {
 	public static final String PERIOD_MIN_SAMPLES = "PERIOD_MIN_SAMPLES";
 
 	/**
-	 * Threshold for duration of a large burst (seconds).
+	 * The threshold for duration of a large burst (in seconds).
 	 */
 	public static final String LARGE_BURST_DURATION = "LARGE_BURST_DURATION";
 
 	/**
-	 * Threshold for size of a large burst (bytes).
+	 * The threshold for the size of a large burst (in bytes).
 	 */
 	public static final String LARGE_BURST_SIZE = "LARGE_BURST_SIZE";
 
 	/**
-	 * Time delta for throughput calculations.
+	 * The time delta for throughput calculations.
 	 */
 	public static final String W_THROUGHPUT = "W_THROUGHPUT";
 
 	/**
-	 * Factory method used to create a profile of a specified type
-	 * @param profileType the profile type
-	 * @param file the file where the profile will be stored
-	 * @param props the property values for the profile
-	 * @return The profile object.
+	 * Factory method used to create a profile of the specified type.
+	 * @param profileType - The profile type. One of the values of the ProfileType enumeration. 
+	 * @param file - The file where the profile will be stored.
+	 * @param props - The property values for the profile.
+	 * @return The Profile object.
 	 * @throws ProfileException
 	 */
 	public static Profile create(ProfileType profileType, File file,
@@ -148,11 +148,11 @@ public abstract class Profile implements Serializable {
 	}
 	
 	/**
-	 * Factory method used to create a profile of a specified type
-	 * @param profileType the profile type
-	 * @param name the name of the profile
-	 * @param props the property values for the profile
-	 * @return The profile object.
+	 * Factory method used to create a profile of the specified type with the specified name.
+	 * @param profileType - The profile type. One of the values of the ProfileType enumeration.
+	 * @param name - The name of the profile. 
+	 * @param props - The property values for the profile.
+	 * @return The Profile object.
 	 * @throws ProfileException
 	 */
 	public static Profile create(ProfileType profileType, String name,
@@ -171,12 +171,12 @@ public abstract class Profile implements Serializable {
 	}
 	
 	/**
-	 * Factory method that creates a new profile of the proper type from the
+	 * A factory method that creates a new profile of the proper type from the
 	 * specified properties file
 	 * 
 	 * @param file
-	 *            Properties file
-	 * @return The result profile object
+	 *            The properties file.
+	 * @return The resulting profile object
 	 * @throws IOException
 	 *             when an error occurs accessing the file
 	 * @throws ProfileException
@@ -209,13 +209,14 @@ public abstract class Profile implements Serializable {
 	}
 
 	/**
-	 * Factory method that creates a new profile of the proper type from the
+	 * A factory method that creates a new profile of the proper type from the
 	 * properties read from the specified InputStream.
 	 * 
 	 * @param name
+	 * 			  The name of the profile to create.
 	 * @param input
 	 *            The input stream to be read.
-	 * @return The profile that is created.
+	 * @return The newly created profile.
 	 * @throws IOException
 	 * @throws ProfileException
 	 */
@@ -278,9 +279,9 @@ public abstract class Profile implements Serializable {
 	/**
 	 * Initializes an instance of the Profile class, using the specified properties.
 	 * 
-	 * @param file - A file where the profile can be saved. This argument can be null. 
+	 * @param file A file where the profile can be saved. This argument can be null. 
 	 * 
-	 * @param properties – A Properties object containing the profile properties.
+	 * @param properties A Properties object containing the profile properties.
 	 * 
 	 * @throws ProfileException
 	 */
@@ -298,7 +299,7 @@ public abstract class Profile implements Serializable {
 	 * @param name - The name of the profile. The name is either an absolute path to the file that 
 	 * holds this profile, or the name of a pre-defined profile .
 	 * 
-	 * @param properties - A Properties object containing the profile properties.
+	 * @param properties A Properties object containing the profile properties.
 	 * 
 	 * @throws ProfileException
 	 */
@@ -310,14 +311,14 @@ public abstract class Profile implements Serializable {
 	/**
 	 * A utility method for calculating RRC energy.
 	 * 
-	 * @param time1 – A beginning time value.
+	 * @param time1 A beginning time value.
 	 * 
-	 * @param time2 – An ending time value.
+	 * @param time2 An ending time value.
 	 * 
-	 * @param state – An RRCState enumeration value that indicates the RRC energy state.
+	 * @param state An RRCState enumeration value that indicates the RRC energy state.
 	 * 
-	 * @param packets - List of packets passed over the timeline and may be used
-	 * in determining energy used
+	 * @param packets A List of packets that were passed during the specified time period. 
+	 * The packet information may be used in determining the amount of energy used. 
 	 * 
 	 * @return The energy consumed in the specified RRC state.
 	 */
@@ -325,16 +326,16 @@ public abstract class Profile implements Serializable {
 			List<PacketInfo> packets);
 
 	/**
-	 * Subclasses must identify profile type
+	 * Returns the type of profile. Subclasses of this class must identify the profile type.
 	 * 
-	 * @return The profile type
+	 * @return The profile type. One of the values of the ProfileType enumeration.
 	 */
 	public abstract ProfileType getProfileType();
 
 	/**
 	 * Stores the current profile values contained in this object, in the specified file. 
 	 * 
-	 * @param file – The absolute path to the location where the profile values should be stored. 
+	 * @param file The absolute path to the location where the profile values should be stored. 
 	 * 
 	 * @throws IOException
 	 */
@@ -535,28 +536,31 @@ public abstract class Profile implements Serializable {
 	}
 
 	/**
-	 * @return the throughputWindow
+	 * Returns the throughput window.
+	 * @return The throughput window value.
 	 */
 	public double getThroughputWindow() {
 		return throughputWindow;
 	}
 
 	/**
+	 * Sets the throughput window to the specified value.
 	 * @param throughputWindow
-	 *            the throughputWindow to set
+	 *            - The throughput window value to set.
 	 */
 	public void setThroughputWindow(double throughputWindow) {
 		this.throughputWindow = throughputWindow;
 	}
 
 	/**
+	 * Reads the specified profile properties and returns a double value for the specified attribute.
 	 * @param properties
 	 *            The profile properties to be read.
 	 * @param attribute
 	 *            The attribute name whose value is to be read.
 	 * @param defaultVal
 	 *            The default value for the attribute.
-	 * @return The value of the specified attribute for the profile.
+	 * @return The double alue of the specified attribute for the profile.
 	 */
 	protected double readDouble(Properties properties, String attribute,
 			double defaultVal) {
@@ -575,14 +579,14 @@ public abstract class Profile implements Serializable {
 	}
 
 	/**
-	 * 
+	 * Reads the specified profile properties and returns an int value for the specified attribute.
 	 * @param properties
 	 *            The profile properties to be read.
 	 * @param attribute
 	 *            The attribute name whose value is to be read.
 	 * @param defaultVal
 	 *            The default value for the attribute.
-	 * @return The value of the specified attribute for the profile.
+	 * @return The int value of the specified attribute for the profile.
 	 */
 	protected int readInt(Properties properties, String attribute,
 			int defaultVal) {
@@ -601,19 +605,19 @@ public abstract class Profile implements Serializable {
 	}
 
 	/**
-	 * Sub-classes override this method to initialize class members from a
-	 * properties object
+	 * Initializes Profile class members using the specified Properties object. 
+	 * This method is overridden by Sub-classes to initialize properties in a Profile object. 
 	 * 
 	 * @param properties
-	 *            contains property values to set
+	 *            The properties object containing the property values to set.
 	 */
 	protected abstract void setProperties(Properties properties);
 
 	/**
-	 * Allows sub-classes to save member values to properties object for
-	 * persistence.
+	 * Saves the current profile values in the specified  Properties object. This method 
+	 * is used by sub-classes to save member values to a properties object for persistence.
 	 * 
-	 * @param properties
+	 * @param properties - The properties object in which to store the values.
 	 */
 	protected abstract void saveProperties(Properties properties);
 

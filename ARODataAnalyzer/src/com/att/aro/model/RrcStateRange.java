@@ -194,7 +194,7 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 	 * data and returns a List of RrcStateRange objects.
 	 * 
 	 * @param analysisData
-	 *            – An Analysis object containing the trace data.
+	 *            An Analysis object containing the trace data.
 	 * 
 	 * @return A List of RrcStateRange objects.
 	 * 
@@ -400,7 +400,6 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 	 */
 	private static double tailLTE(List<RrcStateRange> result, double timer, double start,
 			double end, ProfileLTE profile) {
-		;
 
 		// Add the continuous reception time
 		result.add(new RrcStateRange(timer, start, RRCState.LTE_CONTINUOUS));
@@ -409,20 +408,21 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 		timer = Math.min(start + profile.getInactivityTimer(), end);
 		if (timer > start) {
 			result.add(new RrcStateRange(start, timer, RRCState.LTE_CR_TAIL));
-
-			// Check for DRX short tail time
 			start = timer;
-			timer = Math.min(start + profile.getDrxShortTime(), end);
-			if (timer > start) {
-				result.add(new RrcStateRange(start, timer, RRCState.LTE_DRX_SHORT));
+		}
 
-				// Check for DRX long tail time
-				start = timer;
-				timer = Math.min(start + profile.getDrxLongTime(), end);
-				if (timer > start) {
-					result.add(new RrcStateRange(start, timer, RRCState.LTE_DRX_LONG));
-				}
-			}
+		// Check for DRX short tail time
+		timer = Math.min(start + profile.getDrxShortTime(), end);
+		if (timer > start) {
+			result.add(new RrcStateRange(start, timer, RRCState.LTE_DRX_SHORT));
+			start = timer;
+		}
+
+		// Check for DRX long tail time
+		timer = Math.min(start + profile.getDrxLongTime(), end);
+		if (timer > start) {
+			result.add(new RrcStateRange(start, timer, RRCState.LTE_DRX_LONG));
+			start = timer;
 		}
 		return timer;
 	}
@@ -970,13 +970,13 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 	 * range, using the specified begin time, end time, and RRC state.
 	 * 
 	 * @param beginTime
-	 *            – The time when the RRC state begins.
+	 *            The time when the RRC state begins.
 	 * 
 	 * @param endTime
-	 *            – The time when the RRC state ends.
+	 *            The time when the RRC state ends.
 	 * 
 	 * @param state
-	 *            – The RRC state. One of the values of the RRCState
+	 *            The RRC state. One of the values of the RRCState
 	 *            enumeration.
 	 */
 	public RrcStateRange(double beginTime, double endTime, RRCState state) {

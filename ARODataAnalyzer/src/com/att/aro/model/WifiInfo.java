@@ -73,25 +73,25 @@ public class WifiInfo implements Comparable<WifiInfo> {
 
 	/**
 	 * Initializes an instance of the WifiInfo class using the specified
-	 * timestamp, WiFi state, Mac address, rssi, and ssid.
+	 * timestamps, WiFi state, Mac address, rssi, and ssid.
 	 * 
 	 * @param beginTimeStamp
-	 *            The start timestamp for the wifi event.
+	 *            The beginning timestamp for the WiFi event.
 	 * @param endTimeStamp
-	 *            The end timestamp for the wifi event.
+	 *            The ending timestamp for the WiFi event.
 	 * 
 	 * @param wifiState
-	 *            – One of the values of the WiFiState enumeration that
+	 *            One of the values of the WiFiState enumeration that
 	 *            indicates the state of the WiFi connection.
 	 * 
 	 * @param macAddress
-	 *            – The WiFi Mac address.
+	 *            The WiFi Mac address.
 	 * 
 	 * @param rssi
-	 *            – The RSSI value.
+	 *            The RSSI value.
 	 * 
 	 * @param ssid
-	 *            – The SSID value.
+	 *            The SSID value.
 	 */
 	public WifiInfo(double beginTimeStamp, double endTimeStamp,
 			WifiState wifiState, String macAddress, String rssi, String ssid) {
@@ -115,18 +115,18 @@ public class WifiInfo implements Comparable<WifiInfo> {
 	}
 
 	/**
-	 * Returns the start timestamp for the wifi state.
+	 * Returns the timestamp at which the WiFi state begins. 
 	 * 
-	 * @return The start timestamp.
+	 * @return The beginning timestamp.
 	 */
 	public double getBeginTimeStamp() {
 		return beginTimeStamp;
 	}
 
 	/**
-	 * Returns the end timestamp for the wifi state.
+	 * Returns the timestamp at which the WiFi state ends.
 	 * 
-	 * @return The end timestamp.
+	 * @return The ending timestamp.
 	 */
 	public double getEndTimeStamp() {
 		return endTimeStamp;

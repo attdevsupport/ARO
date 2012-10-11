@@ -29,7 +29,8 @@ import javax.swing.JPanel;
 import org.jfree.ui.tabbedui.VerticalLayout;
 
 /**
- * Progress dialog displayed during data collector start/stop/pull
+ * Represents a progress dialog that is displayed when the ARO 
+ * Data Collector is starting, stopping, or pulling a trace file.
  */
 public class AROEmulatorTraceSummary extends JPanel {
 	private static final long serialVersionUID = 1L;
@@ -49,14 +50,15 @@ public class AROEmulatorTraceSummary extends JPanel {
 	private JLabel durationValueLabel;
 
 	/**
-	 * Constructor
+	 * Initializes a new instance of the AROEmulatorTraceSummary class, using 
+	 * the specified trace directory path, video status string, and the trace duration.
 	 * 
 	 * @param path
-	 *            The trace directory path.
+	 *            The path to the trace directory. 
 	 * @param videoStatus
-	 *            Whether the trace contains video or not.
+	 *            A string indicating the video status.
 	 * @param traceDuration
-	 *            The duration for which the trace was running.
+	 *            The duration of the trace.
 	 */
 	public AROEmulatorTraceSummary(String path, String videoStatus, String traceDuration) {
 		super(new BorderLayout(10, 10));

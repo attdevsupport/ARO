@@ -39,8 +39,9 @@ import com.att.aro.model.TimeRange;
 import com.att.aro.model.TraceData;
 
 /**
- * Represents the Exclude Time Range Analysis Dialog that allows the user to set
- * a time range that delineates the section of the trace data to be analyzed.
+ * Represents the Select Time Range Dialog Dialog (accessed through the View menu) 
+ * that allows the user to set a time range that delineates a section of the 
+ * trace data to be analyzed. 
  */
 public class ExcludeTimeRangeAnalysisDialog extends JDialog {
 	private static final long serialVersionUID = 1L;
@@ -73,10 +74,10 @@ public class ExcludeTimeRangeAnalysisDialog extends JDialog {
 	 * owner.
 	 * 
 	 * @param owner
-	 *            - The ApplicationResourceOptimizer instance.
+	 *            The ApplicationResourceOptimizer instance.
 	 * 
 	 * @param analysisData
-	 *            – An Analysis object containing the trace data.
+	 *            An Analysis object containing the trace data.
 	 */
 	public ExcludeTimeRangeAnalysisDialog(ApplicationResourceOptimizer owner,
 			TraceData.Analysis analysisData) {
@@ -330,7 +331,7 @@ public class ExcludeTimeRangeAnalysisDialog extends JDialog {
 	 * dialog box.
 	 * 
 	 * @param b
-	 *            –A boolean value that indicates whether the TimeRangeAnalysis
+	 *            A boolean value that indicates whether the TimeRangeAnalysis
 	 *            dialog box is visible.
 	 * 
 	 * @see java.awt.Dialog#setVisible(boolean)

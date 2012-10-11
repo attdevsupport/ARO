@@ -21,20 +21,21 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Class used to manage data throughput calculations
+ * Encapsulates methods for calculating data throughput.
  */
 public class Throughput implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	/**
-	 * Creates a list of throughput calculations for the time range and 
-	 * sampling window
-	 * @param startTime Start time to begin throughput calculations
-	 * @param maxTS The sampling window for each throughput point
-	 * @param packets List of packets to calculate throughput on.  This method
-	 * assumes these packets are sorted by timestamp.  Results are undefined
-	 * for unsorted packet list.
-	 * @return The list of throughput values.
+	 * Creates a list of throughput calculations for the specified time range,  
+	 * sampling window, and list of packets. 
+	 * @param startTime The starting time in the trace to begin throughput calculations.
+	 * @param maxTS The sampling window for each throughput point.
+	 * @param thStep The ending time in the trace for throughput calculations.
+	 * @param packets A List of packets to calculate throughput on. This method assumes that 
+	 * these packets are sorted by timestamp. The results of this method are undefined for an unsorted packet list.
+	 *  
+	 * @return A List of Throughput objects containing the results of the calculations.
 	 */
 	public static List<Throughput> calculateThroughput(double startTime,
 			double maxTS, double thStep, List<PacketInfo> packets) {
@@ -156,56 +157,64 @@ public class Throughput implements Serializable {
 	}
 
 	/**
-	 * @return the sample time
+	 * Returns the sample time.
+	 * @return The sample time (in seconds).
 	 */
 	public double getTime() {
 		return time;
 	}
 
 	/**
-	 * @return the kbps
+	 * The throughput, in kilobits per second (Kbps).
+	 * @return  The throughput (in Kbps).
 	 */
 	public double getKbps() {
 		return (uploadBytes + downloadBytes) * 8 / 1000.0 / samplePeriod;
 	}
 
 	/**
-	 * @return the upload kbps
+	 * Returns the upload rate, in kilobits per second (Kbps).
+	 * @return The upload rate (in kbps).
 	 */
 	public double getUploadKbps() {
 		return uploadBytes * 8 / 1000.0 / samplePeriod;
 	}
 
 	/**
-	 * @return the download kbps
+	 * Returns the download rate, in kilobits per second (Kbps).
+	 * @return The download rate (in Kbps).
 	 */
 	public double getDownloadKbps() {
 		return downloadBytes * 8 / 1000.0 / samplePeriod;
 	}
 
 	/**
-	 * @return the mbps
+	 * The throughput, in megabits per second (Mbps).
+	 * @return The throughput (in Mbps).
 	 */
 	public double getMbps() {
 		return getKbps() / 1000.0;
 	}
 
 	/**
-	 * @return the upload mbps
+	 * Returns the upload rate, in megabits per second (Mbps).
+	 * @return The upload rate (in Mbps).
 	 */
 	public double getUploadMbps() {
 		return getUploadKbps() / 1000.0;
 	}
 
 	/**
-	 * @return the download mbps
+	 * Returns the download rate, in megabits per second (Mbps).
+	 * @return The download rate (in Mbps).
 	 */
 	public double getDownloadMbps() {
 		return getDownloadKbps() / 1000.0;
 	}
 
 	/**
-	 * @return the samplePeriod
+	 * Returns the sample period for the throughput calculation.
+	 * @return the The sample period (in seconds).
 	 */
 	public double getSamplePeriod() {
 		return samplePeriod;

@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 package com.att.aro.model;
 
 import java.io.Serializable;
@@ -29,8 +29,8 @@ import java.util.Set;
 import com.att.aro.main.ResourceBundleManager;
 
 /**
- * A bean class that contains the Burst information that appears on the Diagnostics View 
- * Chart and the Burst Analysis panel of the Statistics tab.
+ * A bean class that contains the Burst information that appears on the
+ * Diagnostics View Chart and the Burst Analysis panel of the Statistics tab.
  */
 public class Burst implements Serializable {
 
@@ -50,16 +50,17 @@ public class Burst implements Serializable {
 	// energy
 	private double energy;
 	private double activeTime;
-	
-	
-	
+
 	// burst analysis
 	private Set<BurstInfo> burstInfos = new HashSet<BurstInfo>();
 
 	/**
-	 * Initializes an instance of the Burst class, using the specified packet information.
+	 * Initializes an instance of the Burst class, using the specified packet
+	 * information.
 	 * 
-	 * @param packets – A collection of PacketInfo objects that MUST be sorted by time.
+	 * @param packets
+	 *            A collection of PacketInfo objects that MUST be sorted by
+	 *            time.
 	 */
 	public Burst(Collection<PacketInfo> packets) {
 		if (packets == null || packets.size() == 0) {
@@ -74,9 +75,10 @@ public class Burst implements Serializable {
 	}
 
 	/**
-	 * Merges the specified burst into this burst. 
+	 * Merges the specified burst into this burst.
 	 * 
-	 * @param b – The Burst object to be merged.
+	 * @param b
+	 *            The Burst object to be merged.
 	 */
 	public synchronized void merge(Burst b) {
 		this.packets.addAll(b.packets);
@@ -91,16 +93,17 @@ public class Burst implements Serializable {
 	}
 
 	/**
-	 * Returns all of the packets in this burst. 
+	 * Returns all of the packets in this burst.
 	 * 
-	 * @return A List of PacketInfo objects containing all the packets in this burst.
+	 * @return A List of PacketInfo objects containing all the packets in this
+	 *         burst.
 	 */
 	public List<PacketInfo> getPackets() {
 		return packets;
 	}
 
 	/**
-	 * Returns the beginTime of the burst. 
+	 * Returns the beginTime of the burst.
 	 * 
 	 * @return A double that is the beginTime of the burst.
 	 */
@@ -109,7 +112,7 @@ public class Burst implements Serializable {
 	}
 
 	/**
-	 * Returns the ending time of the burst. 
+	 * Returns the ending time of the burst.
 	 * 
 	 * @return A double that is the ending time.
 	 */
@@ -118,7 +121,7 @@ public class Burst implements Serializable {
 	}
 
 	/**
-	 * Returns the beginning Packet of the burst. 
+	 * Returns the beginning Packet of the burst.
 	 * 
 	 * @return A PacketInfo object that is the beginning Packet.
 	 */
@@ -127,7 +130,7 @@ public class Burst implements Serializable {
 	}
 
 	/**
-	 * Returns the ending Packet of the burst. 
+	 * Returns the ending Packet of the burst.
 	 * 
 	 * @return A PacketInfo object that is the ending Packet.
 	 */
@@ -136,7 +139,7 @@ public class Burst implements Serializable {
 	}
 
 	/**
-	 * Returns the first uplink data packet of the burst. 
+	 * Returns the first uplink data packet of the burst.
 	 * 
 	 * @return A PacketInfo object that is the first uplink data packet.
 	 */
@@ -147,8 +150,8 @@ public class Burst implements Serializable {
 	/**
 	 * Returns a value that indicates whether the burst is a long burst.
 	 * 
-	 * @return A booolean value that is true if the burst is a long burst, and is false 
-	 * otherwise.
+	 * @return A booolean value that is true if the burst is a long burst, and
+	 *         is false otherwise.
 	 */
 	public boolean isbLong() {
 		return bLong;
@@ -165,7 +168,7 @@ public class Burst implements Serializable {
 	}
 
 	/**
-	 * Returns the amount of energy used by the burst. 
+	 * Returns the amount of energy used by the burst.
 	 * 
 	 * @return A double that is the amount of burst energy.
 	 */
@@ -174,16 +177,17 @@ public class Burst implements Serializable {
 	}
 
 	/**
-	 * Sets the amount energy for this burst to the specified value. 
+	 * Sets the amount energy for this burst to the specified value.
 	 * 
-	 * @param energy – A double that is the amount of energy for this burst.
+	 * @param energy
+	 *            A double that is the amount of energy for this burst.
 	 */
 	public void setEnergy(double energy) {
 		this.energy = energy;
 	}
 
 	/**
-	 * Returns the amount of RRC active state time for this burst. 
+	 * Returns the amount of RRC active state time for this burst.
 	 * 
 	 * @return A double that is the RRC active state time.
 	 */
@@ -192,16 +196,17 @@ public class Burst implements Serializable {
 	}
 
 	/**
-	 * Sets the amount of RRC active state time for this burst. 
+	 * Sets the amount of RRC active state time for this burst.
 	 * 
-	 * @param activeTime - A double that is the RRC active state time.
+	 * @param activeTime
+	 *            - A double that is the RRC active state time.
 	 */
 	public void setActiveTime(double activeTime) {
 		this.activeTime = activeTime;
 	}
 
 	/**
-	 * Returns the Set of burst information contained in this Burst object. 
+	 * Returns the Set of burst information contained in this Burst object.
 	 * 
 	 * @return A Set of BurstInfo objects containing the burst information.
 	 */
@@ -210,36 +215,43 @@ public class Burst implements Serializable {
 	}
 
 	/**
-	 * Adds a burst information object (BurstInfo) into a list. 
+	 * Adds a burst information object (BurstInfo) into a list.
 	 * 
-	 * @param burstInfo – The burst information to add.
+	 * @param burstInfo
+	 *            The burst information to add.
 	 */
 	public void addBurstInfo(BurstInfo burstInfo) {
 		this.burstInfos.add(burstInfo);
 	}
 
 	/**
-	 * Sets the burst information for this burst, using the specified BurstInfo object. 
+	 * Sets the burst information for this burst, using the specified BurstInfo
+	 * object.
 	 * 
-	 * @param burstInfo - A BurstInfo object containing the burst information to be set.
+	 * @param burstInfo
+	 *            - A BurstInfo object containing the burst information to be
+	 *            set.
 	 */
 	public void setBurstInfo(BurstInfo burstInfo) {
 		this.burstInfos = new HashSet<BurstInfo>(Arrays.asList(burstInfo));
 	}
 
 	/**
-	 * Sets the first uplink data packet for the burst to the specified packet. 
+	 * Sets the first uplink data packet for the burst to the specified packet.
 	 * 
-	 * @param p - A PacketInfo object containing the first uplink data packet to be set.
+	 * @param p
+	 *            - A PacketInfo object containing the first uplink data packet
+	 *            to be set.
 	 */
 	public void setFirstUplinkDataPacket(PacketInfo p) {
 		firstUplinkDataPacket = p;
 	}
 
 	/**
-	 * Returns the category of the burst. 
+	 * Returns the category of the burst.
 	 * 
-	 * @return A BurstCategory enumeration value that specifies the category of the burst.
+	 * @return A BurstCategory enumeration value that specifies the category of
+	 *         the burst.
 	 */
 	public BurstCategory getBurstCategory() {
 		boolean multipleCategories = (burstInfos.size() > 1);
@@ -299,35 +311,42 @@ public class Burst implements Serializable {
 		}
 		return BurstCategory.BURSTCAT_PROTOCOL;
 	}
-	
+
 	/**
-	 * Returns the bytes transferred in current Burst.
-	 * @return long Burst bytes. 
+	 * Returns the number of bytes transferred in the Burst.
+	 * 
+	 * @return A long that is the number of bytes transferred.
 	 */
-	public long getBurstBytes(){
+	public long getBurstBytes() {
 		long bytes = 0;
-		for(PacketInfo pI : packets){
+		for (PacketInfo pI : packets) {
 			bytes += pI.getPayloadLen();
 		}
 		return bytes;
 	}
-	
+
 	/**
-	 * Returns the throughput current Burst.
-	 * @return String throughput
+	 * Returns the amount of throughput for this Burst.
+	 * 
+	 * @return A string that is the amount of throughput.
 	 */
-	public String getBurstThroughPut(){
+	public String getBurstThroughPut() {
 		double throughtput = 0;
-		if((endTime - beginTime) > 0) 
-			throughtput  = getBurstBytes() * 8 / 1000.0 / (endTime - beginTime);
+		//Handling time differences more then one millisecond.
+		if ((endTime - beginTime) > 0.001) {
+			throughtput = getBurstBytes() * 8 / 1000.0 / (endTime - beginTime);
+		} else {
+			throughtput = getBurstBytes() * 8 / 1000.0;
+		}
 		return MessageFormat.format(rb.getString("throughput.tooltip"), throughtput);
 	}
-	
+
 	/**
-	 * Returns the Burst Elapsed Time.
-	 * @return double elapsed time.
+	 * Returns the amount of time elapsed during the burst.
+	 * 
+	 * @return A double that is the elapsed time, in seconds.
 	 */
-	public double getElapsedTime(){
+	public double getElapsedTime() {
 		return endTime - beginTime;
 	}
 

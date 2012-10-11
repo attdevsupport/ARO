@@ -30,7 +30,7 @@ public class AROUIManager extends UIManager {
 	private static final long serialVersionUID = 1L;
 
 	/**
-	 * The Key that is used to map the iitle title font style in the underlying
+	 * The Key that is used to map the title font style in the underlying
 	 * UIManager class.
 	 */
 	public static final String TITLE_FONT_KEY = "TITLEFont";

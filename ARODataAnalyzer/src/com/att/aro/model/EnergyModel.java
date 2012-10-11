@@ -21,7 +21,7 @@ import java.util.Iterator;
 import com.att.aro.model.GpsInfo.GpsState;
 
 /**
- * Contains methods for generating energy statistics from race analysis data. 
+ * Contains methods for generating energy statistics from trace analysis data. 
  */
 public class EnergyModel implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -39,7 +39,7 @@ public class EnergyModel implements Serializable {
 	/**
 	 * Initializes an instance of the EnergyModel class using the specified analysis data.
 	 * 
-	 * @param analysisData – The analysis data.
+	 * @param analysisData The analysis data.
 	 */
 	public EnergyModel(TraceData.Analysis analysisData) {
 		this.analysisData = analysisData;
@@ -142,7 +142,7 @@ public class EnergyModel implements Serializable {
 	}
 
 	/**
-	 * Returns the total amount of energy consumed while the camera state is ON. 
+	 * Returns the total amount of energy consumed while the Camera state is ON. 
 	 * 
 	 * @return The total amount of Camera energy in joules.
 	 */

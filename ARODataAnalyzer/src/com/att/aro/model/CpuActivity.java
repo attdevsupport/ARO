@@ -16,7 +16,7 @@
 package com.att.aro.model;
 
 /**
- * Encapsulates information about the actrivity of the CPU.
+ * Encapsulates information about the activity of the CPU.
  */
 public class CpuActivity {
 
@@ -26,14 +26,14 @@ public class CpuActivity {
 	private double cpuUsage;
 
 	/**
-	 * Initializes an instance of the CpuActivity class using the specified timestamp and 
+	 * Initializes an instance of the CpuActivity class using the specified timestamps and 
 	 * CPU usage value.
 	 * 
 	  
-	 * @param beginTimeStamp The start timestamp for the cpu event.
-	 * @param endTimeStamp The end  timestamp for the cpu event.
+	 * @param beginTimeStamp The starting timestamp for the cpu event.
+	 * @param endTimeStamp The ending timestamp for the cpu event.
 	 * 
-	 * @param dCpuUsage – The CPU usage value.
+	 * @param dCpuUsage The CPU usage value.
 	 */
 	public CpuActivity(double beginTimeStamp , double endTimeStamp, double dCpuUsage) {
 		this.beginTimeStamp = beginTimeStamp;
@@ -42,17 +42,17 @@ public class CpuActivity {
 	}
 
 	/**
-	 * Returns the start timestamp for the cpu event. 
+	 * Returns the starting timestamp for the CPU activity event. 
 	 * 
-	 * @return The start timestamp.
+	 * @return The starting timestamp.
 	 */
 	public double getBeginTimeStamp() {
 		return beginTimeStamp;
 	}
 	
-	 /** Returns the end timestamp for the cpu event.  
+	 /** Returns the ending timestamp for the CPU activity event.  
 	 * 
-	 * @return The end timestamp.
+	 * @return The ending timestamp.
 	 */
 	public double getEndTimeStamp() {
 		return endTimeStamp;

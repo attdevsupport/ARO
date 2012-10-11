@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
-import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.GridLayout;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -29,6 +29,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.BorderFactory;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JMenu;
@@ -47,7 +48,7 @@ import com.att.aro.model.UserPreferences;
 
 /**
  * Represents the configuration dialog that is displayed when the Customize menu
- * item in the Profile menu.
+ * item in the Profile menu is selected.
  */
 public class ConfigurationFrame extends JDialog implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -56,8 +57,9 @@ public class ConfigurationFrame extends JDialog implements Serializable {
 	private static final Logger logger = Logger
 			.getLogger(ApplicationResourceOptimizer.class.getName());
 
-	private JTable table;
-	private ConfigurationTableModel tableModel = new ConfigurationTableModel();
+	private JTable deviceAttributesTable;
+	private JTable networkAttributesTable;
+	
 	private JMenuBar menuBar = null;
 	private JMenu fileMenu = null;
 	private JMenuItem applyAction = null;
@@ -66,6 +68,8 @@ public class ConfigurationFrame extends JDialog implements Serializable {
 	private JMenuItem exitAction = null;
 
 	private ApplicationResourceOptimizer aroMain;
+	
+	ConfigurationTableModel tableModel = new ConfigurationTableModel();
 
 	/**
 	 * Initializes a new instance of the ConfigurationFrame class using the
@@ -82,14 +86,15 @@ public class ConfigurationFrame extends JDialog implements Serializable {
 	}
 
 	/**
-	 * Initializes a new instance of ConfigurationFrame.
+	 * Initializes a new instance of ConfigurationFrame using the specified
+	 * parent window, ARO instance, and profile.
 	 * 
 	 * @param parent
 	 *            The parent window that invokes the Configuration dialog.
 	 * @param aroMain
 	 *            The ApplicationResourceOptimizer instance.
 	 * @param profile
-	 *            The profile for which the details are to displayed in the
+	 *            The profile for which the details are to be displayed in the
 	 *            customization table.
 	 */
 	public ConfigurationFrame(Window parent,
@@ -139,9 +144,15 @@ public class ConfigurationFrame extends JDialog implements Serializable {
 				public void actionPerformed(ActionEvent arg0) {
 					try {
 						// Make sure current editor is closed
-						TableCellEditor editor = table.getCellEditor();
-						if (editor != null) {
-							editor.stopCellEditing();
+						TableCellEditor networkAttrEditor = networkAttributesTable
+								.getCellEditor();
+						TableCellEditor deviceAttrEditor = deviceAttributesTable
+								.getCellEditor();
+						if (networkAttrEditor != null) {
+							networkAttrEditor.stopCellEditing();
+						}
+						if (deviceAttrEditor != null) {
+							deviceAttrEditor.stopCellEditing();
 						}
 
 						Profile profile = tableModel.getProfile();
@@ -227,27 +238,44 @@ public class ConfigurationFrame extends JDialog implements Serializable {
 	 * Initializes the table which shows the profile details on the dialog.
 	 */
 	private void initialize(Profile profile) {
+		setPreferredSize(new Dimension(475, 600));
 		setLocationRelativeTo(getOwner());
 		setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-		setResizable(false);
 
 		// Create and set up the content pane.
-		table = new JTable(tableModel);
-		table.getTableHeader().setReorderingAllowed(false);
-		table.setCellSelectionEnabled(true);
-		table.setColumnSelectionAllowed(true);
-		table.setRowSelectionAllowed(true);
-		setJMenuBar(getConfigMenuBar());
+		networkAttributesTable = new JTable(tableModel.getNetworkAttributesTableModel());
+		networkAttributesTable.getTableHeader().setReorderingAllowed(false);
+		networkAttributesTable.setCellSelectionEnabled(true);
+		networkAttributesTable.setColumnSelectionAllowed(true);
+		networkAttributesTable.setRowSelectionAllowed(true);
+		networkAttributesTable.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 5));
 
 		// Set up column sizes.
-		table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+		networkAttributesTable
+				.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+
+		// Create and set up the content pane.
+		deviceAttributesTable = new JTable(tableModel.getDeviceAttributesTableModel());
+		deviceAttributesTable.getTableHeader().setReorderingAllowed(false);
+		deviceAttributesTable.setCellSelectionEnabled(true);
+		deviceAttributesTable.setColumnSelectionAllowed(true);
+		deviceAttributesTable.setRowSelectionAllowed(true);
+		deviceAttributesTable.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 5));
+
+		// Set up column sizes.
+		deviceAttributesTable
+				.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+
+		setJMenuBar(getConfigMenuBar());
 
 		// Create the scroll pane and add the table to it.
-		JScrollPane scrollPane = new JScrollPane(table);
+		JScrollPane networkAttributesScrollPane = new JScrollPane(networkAttributesTable);
+		JScrollPane deviceAttributesScrollPane = new JScrollPane(deviceAttributesTable);
 
 		// Add the scroll pane to this panel.
-		setLayout(new BorderLayout());
-		add(scrollPane, BorderLayout.CENTER);
+		setLayout(new GridLayout(2,1));
+		add(networkAttributesScrollPane );
+		add(deviceAttributesScrollPane);
 
 		// Display the window.
 		pack();
@@ -283,9 +311,15 @@ public class ConfigurationFrame extends JDialog implements Serializable {
 			if (profile.getFile() != null) {
 
 				// Make sure current editor is closed
-				TableCellEditor editor = table.getCellEditor();
-				if (editor != null) {
-					editor.stopCellEditing();
+				TableCellEditor networkAttrEditor = networkAttributesTable
+						.getCellEditor();
+				TableCellEditor deviceAttrEditor = deviceAttributesTable
+						.getCellEditor();
+				if (networkAttrEditor != null) {
+					networkAttrEditor.stopCellEditing();
+				}
+				if (deviceAttrEditor != null) {
+					deviceAttrEditor.stopCellEditing();
 				}
 
 				profile.saveToFile(profile.getFile());
@@ -308,7 +342,7 @@ public class ConfigurationFrame extends JDialog implements Serializable {
 		JFileChooser fc = new JFileChooser(UserPreferences.getInstance()
 				.getLastProfileDirectory());
 		fc.setDialogTitle(rb.getString("configuration.savefile"));
-		fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+		fc.setMultiSelectionEnabled(false);
 		int returnVal = fc.showSaveDialog(this);
 		if (returnVal == JFileChooser.APPROVE_OPTION) {
 			try {
@@ -323,9 +357,15 @@ public class ConfigurationFrame extends JDialog implements Serializable {
 				}
 
 				// Make sure current editor is closed
-				TableCellEditor editor = table.getCellEditor();
-				if (editor != null) {
-					editor.stopCellEditing();
+				TableCellEditor networkAttrEditor = networkAttributesTable
+						.getCellEditor();
+				TableCellEditor deviceAttrEditor = deviceAttributesTable
+						.getCellEditor();
+				if (networkAttrEditor != null) {
+					networkAttrEditor.stopCellEditing();
+				}
+				if (deviceAttrEditor != null) {
+					deviceAttrEditor.stopCellEditing();
 				}
 
 				Profile profile = tableModel.getProfile();

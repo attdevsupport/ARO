@@ -191,7 +191,7 @@ public class DataTable<T> extends JTable {
 	@Override
 	/**
 	 * Sets the column model for the DataTable to the specified TableColumnModel.
-	 * @param columnModel The new TableColumnModel.
+	 * @param columnModel - The new TableColumnModel.
 	 */
 	public void setColumnModel(TableColumnModel columnModel) {
 		super.setColumnModel(columnModel);
@@ -211,7 +211,7 @@ public class DataTable<T> extends JTable {
 	@Override
 	/**
 	 * Sets the data model for the table.
-	 * @param dataModel A TableModel object that is the new table model..
+	 * @param dataModel A TableModel object that is the new data model.
 	 */
 	public void setModel(TableModel dataModel) {
 		super.setModel(dataModel);

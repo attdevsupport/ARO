@@ -19,28 +19,35 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * 
+ * Encapsulates the logic used for parsing data from a Microsoft Network Monitor trace file 
+ * and adapting it for use with the ARO Data Analyzer.
  *
  */
 public class NetmonAdapter {
 
 	/**
-	 * Microsoft Network Monitor related error.
+	 * A code that identifies a Microsoft Network Monitor related error.
 	 */
 	public static final int NETMON_ERROR = -100;
 
 	/**
-	 * Indicates that Microsoft Network Monitor trace file could not be loaded.
+	 * An error code that iIndicates that the Microsoft Network Monitor trace file could not be loaded. 
 	 */
 	public static final int NETMON_TRACE_FILE_LOAD_ERROR = -101;
 
 	/**
-	 * Indicates that parsing successful with Microsoft Network Monitor API.
+	 * Indicates that parsing of the Microsoft Network Monitor trace file was successful.
 	 */
 	public static final int NETMON_PARSING_SUCCESS = 0;
 
 	private PacketListener pl;
 
+	/**
+	 * Creates a new instance of the NetmonAdapter class using the specified file name and packet listener.
+	 * @param file
+	 * @param pl
+	 * @throws IOException
+	 */
 	public NetmonAdapter(File file, final PacketListener pl) throws IOException {
 		if (pl == null) {
 			throw new IllegalArgumentException("PacketListener cannot be null");

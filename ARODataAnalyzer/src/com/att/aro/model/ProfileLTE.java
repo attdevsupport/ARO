@@ -21,98 +21,99 @@ import java.util.List;
 import java.util.Properties;
 
 /**
- * Represents an LTE device profile used in analysis modeling.
+ * Represents a device profile that is used as a model of an  LTE device when analyzing trace data.
  */
 public class ProfileLTE extends Profile {
 	private static final long serialVersionUID = 1L;
 
 	/**
-	 * Time from Idle to CR (sec).
+	 * The amount of time (in seconds) spent in promotion from the Idle state to the CR state. 
 	 */
 	public static final String T_PROMOTION = "T_PROMOTION";
 
 	/**
-	 * Time of inactivity from CR before DRX (sec).
+	 * The amount of inactive time (in seconds) spent in the CR state before changing to the DRX state. 
 	 */
 	public static final String INACTIVITY_TIMER = "INACTIVITY_TIMER";
 
 	/**
-	 * Time in short DRX (sec).
+	 * The amount of time (in seconds) spent in the short DRX state. 
 	 */
 	public static final String T_SHORT_DRX = "T_SHORT_DRX";
 
 	/**
-	 * How long ping is during DRX (sec).
+	 * The length of a ping (in seconds) during the DRX state. 
 	 */
 	public static final String T_DRX_PING = "T_DRX_PING";
 
 	/**
-	 * Time in Long DRX (sec).
+	 * The amount of time (in seconds) spent in the Long DRX state. 
 	 */
 	public static final String T_LONG_DRX = "T_LONG_DRX";
 
 	/**
-	 * Ping length in IDLE (sec).
+	 * The length of a ping (in seconds) during the IDLE state. 
 	 */
 	public static final String T_IDLE_PING = "T_IDLE_PING";
 
 	/**
-	 * Period between pings DRX Short (sec).
+	 * The length of the period between pings (in seconds) spent in the Short DRX state.
 	 */
 	public static final String T_SHORT_DRX_PING_PERIOD = "T_SHORT_DRX_PING_PERIOD";
 
 	/**
-	 * Period between pings DRX Long (sec).
+	 * The length of the period between pings (in seconds) spent in the Long DRX state. 
 	 */
 	public static final String T_LONG_DRX_PING_PERIOD = "T_LONG_DRX_PING_PERIOD";
 
 	/**
-	 * Period between pings IDLE (sec).
+	 * The length of the period between pings (in seconds) during the IDLE state. 
 	 */
 	public static final String T_IDLE_PING_PERIOD = "T_IDLE_PING_PERIOD";
 
 	/**
-	 * Average power during promotion (W).
+	 * The average power (in watts) during promotion.
 	 */
 	public static final String P_PROMOTION = "P_PROMOTION";
 
 	/**
-	 * Average power of ping during short DRX (W).
+	 * The average power (in watts) of a ping during the short DRX state. 
 	 */
 	public static final String P_SHORT_DRX_PING = "P_SHORT_DRX_PING";
 
 	/**
-	 * Average power of ping during long DRX (W).
+	 * The average power (in watts) of a ping during the long DRX state. 
 	 */
 	public static final String P_LONG_DRX_PING = "P_LONG_DRX_PING";
 
 	/**
-	 * Average power during tail (baseline) (W).
+	 * The average power (in watts) during a tail state. 
 	 */
 	public static final String P_TAIL = "P_TAIL";
 
 	/**
-	 * Average power of ping in idle (W).
+	 * The average power (in watts) of a ping in IDLE state. 
 	 */
 	public static final String P_IDLE_PING = "P_IDLE_PING";
 
 	/**
-	 * Average power during idle (W).
+	 * The average power (in watts) during the IDLE state.
 	 */
 	public static final String P_IDLE = "P_IDLE";
 
 	/**
-	 * Multiplier for throughput upload energy calc (mW/Mbps).
+	 * The multiplier used for calculating throughput upload energy (expressed as mW/Mbps).
 	 */
 	public static final String LTE_ALPHA_UP = "LTE_ALPHA_UP";
 
 	/**
-	 * Multiplier for throughput download energy calc (mW/Mbps).
+	 * The multiplier used for calculating throughput download energy (expressed in mW/Mbps).
 	 */
 	public static final String LTE_ALPHA_DOWN = "LTE_ALPHA_DOWN";
 
 	/**
-	 * Baseline for CR energy (before throughput modifiers added) (W).
+	 * The baseline value (in watts) for CR state energy before throughput modifiers 
+	 * (ALPHA_DOWN and ALPHA_UP) are added.
 	 */
 	public static final String LTE_BETA = "LTE_BETA";
 
@@ -138,20 +139,21 @@ public class ProfileLTE extends Profile {
 	private double lteBeta;
 
 	/**
-	 * Default constructor
+	 * Initializes an instance of the ProfileLTE class.
 	 */
 	public ProfileLTE() {
 		super();
 	}
 
 	/**
-	 * Initializes a new instace of LTE Profile with the specified profile file
-	 * and and profile properties.
+	 * Initializes a new instance of the ProfileLTE class using the specified properties. 
+	 * This constructor also allows you to specify a file where profile properties can be 
+	 * saved for persistence.
 	 * 
 	 * @param file
-	 *            The file where profile properties can be saved. Can be null.
+	 *            A file where the profile can be saved. This argument can be null.
 	 * @param properties
-	 *            The profile properties that are to be set to the profile.
+	 *            The properties to be set in the profile. 
 	 * @throws ProfileException
 	 */
 	public ProfileLTE(File file, Properties properties) throws ProfileException {
@@ -159,12 +161,12 @@ public class ProfileLTE extends Profile {
 	}
 
 	/**
-	 * Initializes a new instace of LTE Profile with the specified profile name
+	 * Initializes a new instance of the ProfileLTE class, using the specified profile name and properties. 
 	 * 
 	 * @param name
 	 *            The name of the profile.
 	 * @param properties
-	 *            the properties that are to be set to the profile.
+	 *            The properties to be set in the profile. 
 	 * @throws ProfileException
 	 */
 	public ProfileLTE(String name, Properties properties)
@@ -173,7 +175,10 @@ public class ProfileLTE extends Profile {
 	}
 
 	/**
+	 * Returns the type of profile. Subclasses of this class must identify the profile type. 
 	 * @see com.att.aro.model.Profile#getProfileType()
+	 * 
+	 * @return The profile type. One of the values of the ProfileType enumeration.
 	 */
 	@Override
 	public ProfileType getProfileType() {
@@ -181,17 +186,18 @@ public class ProfileLTE extends Profile {
 	}
 
 	/**
-	 * Calculates the energy used by the specific RRC state over a period of
-	 * time using this LTE profile
+	 * Calculates the energy used by the specified RRC state over a period of
+	 * time using this LTE profile.
 	 * 
 	 * @param time1
 	 *            The begin time.
 	 * @param time2
 	 *            The end time.
 	 * @param state
-	 *            The radio state.
-	 * @param packets List of packets passed over the timeline and may be used
-	 * in determining energy used
+	 *            The RRC state. An RRCState enumeration value that indicates the RRC energy state.
+	 * @param packets 
+	 * 			  A List of packets passed during the specified timeline that may be 
+	 * 			  used in determining the amount of energy used. 
 	 * @return The energy consumed for the specified RRC state.
 	 */
 	@Override
@@ -237,10 +243,10 @@ public class ProfileLTE extends Profile {
 	}
 
 	/**
-	 * Initialize the Profile values from the provided Properties object.
+	 * Initializes Profile class members using values from the specified Properties object.
 	 * 
 	 * @param properties
-	 *            Object that contains profile values.
+	 *            The profile values to be set.
 	 * @throws ProfileException
 	 */
 	@Override
@@ -275,11 +281,11 @@ public class ProfileLTE extends Profile {
 	}
 
 	/**
-	 * Sets the specified properties
+	 * Saves the current profile values in the specified Properties object. This method is used 
+	 * by sub-classes to save member values to a properties object for persistence.
 	 * 
 	 * @param props
-	 *            The properties associated with yhe profile that are to be
-	 *            saved.
+	 *             The properties object in which to store the values.
 	 * @throws IOException
 	 */
 	@Override
@@ -309,270 +315,312 @@ public class ProfileLTE extends Profile {
 	}
 
 	/**
-	 * @return the tPromotionTimer
+	 * Returns the amount of time spent in promotion from an IDLE or low power RRC state 
+	 * to an active or high power RRC state.
+	 * @return The promotion time, in seconds.
 	 */
 	public double getPromotionTime() {
 		return promotionTime;
 	}
 
 	/**
+	 * Sets the amount of time (in seconds) spent in promotion from IDLE or low power RRC 
+	 * state to an active or high power RRC state.
 	 * @param tPromotionTimer
-	 *            the tPromotionTimer to set
+	 *           The promotion time to set.
 	 */
 	public void setPromotionTime(double tPromotionTimer) {
 		this.promotionTime = tPromotionTimer;
 	}
 
 	/**
-	 * @return the inactivityTimer
+	 * Returns the amount of time spent in an Inactive state.
+	 * @return The total inactive time, in seconds.
 	 */
 	public double getInactivityTimer() {
 		return inactivityTimer;
 	}
 
 	/**
+	 * Sets the amount of time (in seconds) spent in an Inactive state.
 	 * @param inactivityTimer
-	 *            the inactivityTimer to set
+	 *            The total inactive time to set.
 	 */
 	public void setInactivityTimer(double inactivityTimer) {
 		this.inactivityTimer = inactivityTimer;
 	}
 
 	/**
-	 * @return the shortDRXTimer
+	 * Returns the amount of time spent in the Short DRX state.
+	 * @return The Short DRX timer, in seconds.
 	 */
 	public double getDrxShortTime() {
 		return drxShortTime;
 	}
 
 	/**
+	 * Sets the amount of time (in seconds) spent in the Short DRX state.
 	 * @param shortDRXTimer
-	 *            the shortDRXTimer to set
+	 *           The Short DRX timer to set.
 	 */
 	public void setDrxShortTime(double shortDRXTimer) {
 		this.drxShortTime = shortDRXTimer;
 	}
 
 	/**
-	 * @return the pingDurationDRXTimer
+	 * Returns the amount of time used by pings in the Long DRX state.
+	 * @return The Long DRX ping duration time, in seconds.
 	 */
 	public double getDrxPingTime() {
 		return drxPingTime;
 	}
 
 	/**
+	 * Sets the amount of time (in seconds) used by pings in the Long DRX state.
 	 * @param pingDurationDRXTimer
-	 *            the pingDurationDRXTimer to set
+	 *            The Long DRX ping duration time to set.
 	 */
 	public void setDrxPingTime(double pingDurationDRXTimer) {
 		this.drxPingTime = pingDurationDRXTimer;
 	}
 
 	/**
-	 * @return the longTailDRXTimer
+	 * Returns the amount of time spent in the Long DRX tail state.
+	 * @return The Long DRX tail timer, in seconds.
 	 */
 	public double getDrxLongTime() {
 		return drxLongTime;
 	}
 
 	/**
+	 * Sets the amount of time (in seconds) spent in the Long DRX tail state.
 	 * @param longTailDRXTimer
-	 *            the longTailDRXTimer to set
+	 *           The long DRX tail timer to set.
 	 */
 	public void setDrxLongTime(double longTailDRXTimer) {
 		this.drxLongTime = longTailDRXTimer;
 	}
 
 	/**
-	 * @return the pingLengthTimer
+	 * Returns the amount of time used by pings in the IDLE state.
+	 * @return The IDLE ping duration time, in seconds.
 	 */
 	public double getIdlePingTime() {
 		return idlePingTime;
 	}
 
 	/**
+	 * Sets the amount of time (in seconds) used by pings in the IDLE state.
 	 * @param pingLengthTimer
-	 *            the pingLengthTimer to set
+	 *           The IDLE ping time to set.
 	 */
 	public void setIdlePingTime(double pingLengthTimer) {
 		this.idlePingTime = pingLengthTimer;
 	}
 
 	/**
-	 * @return the shortPingsTimer
+	 * Returns the period of time spent between pings in the Short DRX state.
+	 * @return The Short DRX ping period, in seconds.
 	 */
 	public double getDrxShortPingPeriod() {
 		return drxShortPingPeriod;
 	}
 
 	/**
+	 * Sets the period of time (in seconds) spent between pings in the Short DRX state.
 	 * @param shortPingsTimer
-	 *            the shortPingsTimer to set
+	 *           The Short DRX ping period to set.
 	 */
 	public void setDrxShortPingPeriod(double shortPingsTimer) {
 		this.drxShortPingPeriod = shortPingsTimer;
 	}
 
 	/**
-	 * @return the longPingsTimer
+	 * Returns the period of time spent between pings in the Long DRX state.
+	 * @return The Long DRX ping period, in seconds.
 	 */
 	public double getDrxLongPingPeriod() {
 		return drxLongPingPeriod;
 	}
 
 	/**
+	 * Sets the period of time (in seconds ) spent between pings in the Long DRX state.
 	 * @param longPingsTimer
-	 *            the longPingsTimer to set
+	 *           The Long DRX ping period to set.
 	 */
 	public void setDrxLongPingPeriod(double longPingsTimer) {
 		this.drxLongPingPeriod = longPingsTimer;
 	}
 
 	/**
-	 * @return the idlePingsTimer
+	 * Returns the period of time spent between pings in the IDLE state.
+	 * @return The IDLE pings period, in seconds.
 	 */
 	public double getIdlePingPeriod() {
 		return idlePingPeriod;
 	}
 
 	/**
+	 * Sets the period of time (in seconds) spent between pings in the IDLE state.
 	 * @param idlePingsTimer
-	 *            the idlePingsTimer to set
+	 *           idlePingsTimer - The IDLE pings period to set
 	 */
 	public void setIdlePingPeriod(double idlePingsTimer) {
 		this.idlePingPeriod = idlePingsTimer;
 	}
 
 	/**
-	 * @return the ltePromotionPower
+	 * Returns the average power used during promotion from an IDLE or low power 
+	 * RRC state to an active or high power RRC state.
+	 * @return The LTE promotion power, in watts.
 	 */
 	public double getLtePromotionPower() {
 		return ltePromotionPower;
 	}
 
 	/**
+	 * Sets the average power (in watts) used during promotion from an IDLE or 
+	 * low power RRC state to an active or high power RRC state.
 	 * @param ltePromotionPower
-	 *            the ltePromotionPower to set
+	 *            The LTE promotion power to set.
 	 */
 	public void setLtePromotionPower(double ltePromotionPower) {
 		this.ltePromotionPower = ltePromotionPower;
 	}
 
 	/**
-	 * @return the lteShortDRXPower
+	 * Returns the amount of power used by pings in the Short DRX state.
+	 * @return  The Short DRX ping power, in watts.
 	 */
 	public double getDrxShortPingPower() {
 		return drxShortPingPower;
 	}
 
 	/**
+	 * Sets the amount of power (in watts) used by pings in the Short DRX state.
 	 * @param lteShortDRXPower
-	 *            the lteShortDRXPower to set
+	 *           The Short DRX ping power to set.
 	 */
 	public void setDrxShortPingPower(double lteShortDRXPower) {
 		this.drxShortPingPower = lteShortDRXPower;
 	}
 
 	/**
-	 * @return the lteLongDRXPower
+	 * Returns the amount of power used by pings in the Long DRX state.
+	 * @return The Long DRX ping power, in watts.
 	 */
 	public double getDrxLongPingPower() {
 		return drxLongPingPower;
 	}
 
 	/**
+	 * Sets the amount of power (in watts) used by pings in the Long DRX state.
 	 * @param lteLongDRXPower
-	 *            the lteLongDRXPower to set
+	 *            The Long DRX ping power to set.
 	 */
 	public void setDrxLongPingPower(double lteLongDRXPower) {
 		this.drxLongPingPower = lteLongDRXPower;
 	}
 
 	/**
-	 * @return the lteTailPower
+	 * Returns the average power used during a tail state.
+	 * @return The LTE tail power, in watts.
 	 */
 	public double getLteTailPower() {
 		return lteTailPower;
 	}
 
 	/**
+	 * Sets the average power (in watts) used during a tail state.
 	 * @param lteTailPower
-	 *            the lteTailPower to set
+	 *            The LTE tail power to set.
 	 */
 	public void setLteTailPower(double lteTailPower) {
 		this.lteTailPower = lteTailPower;
 	}
 
 	/**
-	 * @return the lteIDLEPower
+	 * Returns, the average power of a ping in the IDLE state.
+	 * @return The LTE IDLE ping power, in watts.
 	 */
 	public double getLteIdlePingPower() {
 		return lteIdlePingPower;
 	}
 
 	/**
+	 * Sets the average power (in watts) of a ping in the IDLE state.
 	 * @param lteIDLEPower
-	 *            the lteIDLEPower to set
+	 *            The LTE IDLE ping power to set.
 	 */
 	public void setLteIdlePingPower(double lteIDLEPower) {
 		this.lteIdlePingPower = lteIDLEPower;
 	}
 
 	/**
-	 * @return the lteIdlePower
+	 * Returns the average power used during the IDLE state.
+	 * @return The LTE IDLE power, in watts.
 	 */
 	public double getLteIdlePower() {
 		return lteIdlePower;
 	}
 
 	/**
+	 * Sets the average power (in watts) used during the IDLE state.
 	 * @param lteIdlePower
-	 *            the lteIdlePower to set
+	 *            The LTE IDLE power to set.
 	 */
 	public void setLteIdlePower(double lteIdlePower) {
 		this.lteIdlePower = lteIdlePower;
 	}
 
 	/**
-	 * @return the alphaUpConstant
+	 * Returns the constant multiplier used for calculating throughput upload energy.
+	 * @return The LTE Alpha Up constant, in mW/Mbps.
 	 */
 	public double getLteAlphaUp() {
 		return lteAlphaUp;
 	}
 
 	/**
+	 * Sets the constant multiplier, expressed in mW/Mbps, used for calculating throughput upload energy.
 	 * @param alphaUpConstant
-	 *            the alphaUpConstant to set
+	 *           The LTE Alpha Up constant to set.
 	 */
 	public void setLteAlphaUp(double alphaUpConstant) {
 		this.lteAlphaUp = alphaUpConstant;
 	}
 
 	/**
-	 * @return the alphaDownConstant
+	 * Returns the constant multiplier used for calculating throughput download energy.
+	 * @return The LTE Alpha Down constant, in mW/Mbps.
 	 */
 	public double getLteAlphaDown() {
 		return lteAlphaDown;
 	}
 
 	/**
+	 * Sets the constant multiplier, expressed in mW/Mbps, used for calculating throughput download energy.
 	 * @param alphaDownConstant
-	 *            the alphaDownConstant to set
+	 *            The LTE Alpha Down constant to set.
 	 */
 	public void setLteAlphaDown(double alphaDownConstant) {
 		this.lteAlphaDown = alphaDownConstant;
 	}
 
 	/**
-	 * @return the betaConstant
+	 * Returns the constant baseline value for CR state energy before the throughput 
+	 * modifiers(ALPHA_DOWN and ALPHA_UP) are added.
+	 * @return The LTE Beta constant, in watts.
 	 */
 	public double getLteBeta() {
 		return lteBeta;
 	}
 
 	/**
+	 * Sets the constant baseline value, expressed in watts, for CR state energy before the throughput 
+	 * modifiers(ALPHA_DOWN and ALPHA_UP) are added.
 	 * @param betaConstant
-	 *            the betaConstant to set
+	 *           The LTE Beta constant to set.
 	 */
 	public void setLteBeta(double betaConstant) {
 		this.lteBeta = betaConstant;

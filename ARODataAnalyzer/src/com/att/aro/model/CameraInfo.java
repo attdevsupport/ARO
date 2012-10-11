@@ -52,11 +52,11 @@ public class CameraInfo {
 	 * timestamp, and camera state.
 	 * 
 	 * @param beginTimeStamp
-	 *            The start timestamp for the camera state.
+	 *            The starting timestamp for the camera state.
 	 * @param endTimeStamp
-	 *            The end timestamp for the camera state.
+	 *            The ending timestamp for the camera state.
 	 * @param cameraState
-	 *            – A CameraState enumeration value that indicates the state of
+	 *            A CameraState enumeration value that indicates the state of
 	 *            the camera.
 	 */
 	public CameraInfo(double beginTimeStamp, double endTimeStamp,
@@ -67,18 +67,18 @@ public class CameraInfo {
 	}
 
 	/**
-	 * Returns the start timestamp for the Camera state.
+	 * Returns the starting timestamp for the Camera state.
 	 * 
-	 * @return The start timestamp.
+	 * @return The starting timestamp.
 	 */
 	public double getBeginTimeStamp() {
 		return beginTimeStamp;
 	}
 
 	/**
-	 * Returns the end timestamp for the Camera state.
+	 * Returns the ending timestamp for the Camera state.
 	 * 
-	 * @return The end timestamp..
+	 * @return The ending timestamp..
 	 */
 	public double getEndTimeStamp() {
 		return endTimeStamp;

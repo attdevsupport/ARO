@@ -31,7 +31,7 @@ import com.att.aro.main.ResourceBundleManager;
  */
 public enum Images {
 	/**
-	 * Icon image key.
+	 * The Icon image key.
 	 */
 	ICON("icon"),
 	/**
@@ -53,7 +53,7 @@ public enum Images {
 	 */
 	AROLOGO("arologo"),
 	/**
-	 * Brand image.
+	 * The Brand image key.
 	 */
 	BRAND("brand"),
 	/**
@@ -72,7 +72,7 @@ public enum Images {
 	 */
 	BP_MANUAL("bpManual"),
 	/**
-	 * The Pass image key. The associated image is used to identify when a Best
+	 * The Self Test image key. The associated image is used to identify when a Best
 	 * Practices test has passed.
 	 */
 	BP_SELFTEST_TRIGGERED("bpSeftTestTriggered"),
@@ -81,23 +81,23 @@ public enum Images {
 	 */
 	NO_VIDEO_AVAILABLE("noVideoAvailable"),
 	/**
-	 * Header image key.
+	 * The Header image key.
 	 */
 	HEADER_ICON("headerIcon"),
 	/**
-	 * Blue header image key.
+	 * The Blue header image key.
 	 */
 	BLUE_HEADER("blueHeader"),
 	/**
-	 * Grey header image key.
+	 * The Grey header image key indicating that a test has not been run.
 	 */
 	TEST_NOT_RUN_HEADER("greyHeader"),
 	/**
-	 * Green header image key.
+	 * The Green header image key indicating that a test has passed.
 	 */
 	TEST_PASS_HEADER("greenHeader"),
 	/**
-	 * Red header image key.
+	 * The Red header image key indicating that a test has failed.
 	 */
 	TEST_FAIL_HEADER("redHeader"),
 	/**
@@ -105,7 +105,7 @@ public enum Images {
 	 */
 	BACKGROUND("background"),
 	/**
-	 * Divider image key.
+	 * The Divider image key.
 	 */
 	DIVIDER("divider"),
 	/**

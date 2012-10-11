@@ -27,7 +27,7 @@ import javax.swing.table.TableColumnModel;
 
 /**
  * Represents a base implementation for a table model that is used to display
- * data in JTables. The DataTableModel its table data as a collection of generic
+ * data in JTables. The DataTableModel class manages its table data as a collection of generic
  * objects whose type is defined when the class is used.
  */
 public abstract class DataTableModel<T> extends AbstractTableModel {
@@ -238,7 +238,7 @@ public abstract class DataTableModel<T> extends AbstractTableModel {
 	 * table column model for the DataTableModel class. The
 	 * TableColumnModelcolumn model returned by this method has the same number
 	 * of columns in the same order and structure as the table column model in
-	 * the DataTableMod. When a DataTable object is created, this method is used
+	 * the DataTableModel. When a DataTable object is created, this method is used
 	 * to create the TableColumnModel if one is not specified. This method may
 	 * be overridden in order to provide customizations to the default column
 	 * model, such as providing a default column width and/or adding column
@@ -258,13 +258,14 @@ public abstract class DataTableModel<T> extends AbstractTableModel {
 	}
 
 	/**
-	 * This is the one method that must be implemented by subclasses. This
-	 * method defines how the data object managed by this table model is mapped
+	 * Defines how the data object managed by this table model is mapped
 	 * to its columns when displayed in a row of the table. The getValueAt()
 	 * method uses this method to retrieve table cell data.
 	 * 
-	 * @param item
-	 * @param columnIndex
+	 * Note: This method must be implemented by subclasses.
+	 * 
+	 * @param item The item to retrieve the value for.
+	 * @param columnIndex The index of the column.
 	 * @return The table column value calculated for the object
 	 */
 	protected abstract Object getColumnValue(T item, int columnIndex);

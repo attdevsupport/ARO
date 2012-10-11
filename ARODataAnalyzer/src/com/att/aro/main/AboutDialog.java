@@ -52,7 +52,7 @@ public class AboutDialog extends JDialog {
 	 * frame for the dialog.
 	 * 
 	 * @param owner
-	 *            – An instance of an ApplicationResourceOptimizer object that
+	 *            An instance of an ApplicationResourceOptimizer object that
 	 *            defines the main window of the application.
 	 */
 	public AboutDialog(Frame owner) {

@@ -77,7 +77,7 @@ public class DomainTCPSessions implements Serializable {
 	 * A factory method that returns a Collection of DomainTCPSessions objects extracted 
 	 * from a collection of TCPSession objects.
 	 * 
-	 * @param sessions – A Collection of TCPSession objects from which to extract the data.
+	 * @param sessions A Collection of TCPSession objects from which to extract the data.
 	 * 
 	 * @return A Collection of DomainTCPSessions objects.
 	 */

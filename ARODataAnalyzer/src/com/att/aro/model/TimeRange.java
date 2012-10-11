@@ -18,7 +18,7 @@ package com.att.aro.model;
 import java.io.Serializable;
 
 /**
- * Used to select a specific time range for analysis
+ * Encapsulates a specific time range of trace data for analysis.
  */
 public class TimeRange implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -27,9 +27,9 @@ public class TimeRange implements Serializable {
 	private double endTime;
 
 	/**
-	 * Constructs time range object
-	 * @param beginTime beginning of time range
-	 * @param endTime end of time range
+	 * Initializes an instance of the TimeRange class, using the specified beginning and ending times.
+	 * @param beginTime - The beginning of the time range.
+	 * @param endTime - The ending of the time range.
 	 */
 	public TimeRange(double beginTime, double endTime) {
 		this.beginTime = beginTime;
@@ -37,13 +37,15 @@ public class TimeRange implements Serializable {
 	}
 	
 	/**
-	 * @return the beginTime
+	 * Returns the beginning time of the time range.
+	 * @return The beginning time.
 	 */
 	public double getBeginTime() {
 		return beginTime;
 	}
 	/**
-	 * @return the endTime
+	 * Returns the ending time of the time range.
+	 * @return The ending time.
 	 */
 	public double getEndTime() {
 		return endTime;

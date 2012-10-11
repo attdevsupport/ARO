@@ -40,7 +40,7 @@ import com.att.aro.pcap.Packet;
  * trace data.
  * <p>
  * The BurstCollectionAnalysis class contains functionality for collecting the
- * bursts from the trace data and storeing them in a collection of Burst
+ * bursts from the trace data, storing them in a collection of Burst
  * objects, analyzing each burst and categorizing them, and performing analysis
  * on the bursts.
  */
@@ -1106,5 +1106,18 @@ public class BurstCollectionAnalysis implements Serializable {
 		if (minimumRepeatTime != Double.MAX_VALUE) {
 			minimumPeriodicRepeatTime = minimumRepeatTime;
 		}
+	}
+	
+	/**
+	 * 
+	 * @return energy used by periodic bursts
+	 */
+	public double getPeriodicEnergy(){
+		for(BurstAnalysisInfo burstInfo : getBurstAnalysisInfo()){
+			if(burstInfo.getCategory() == BurstCategory.BURSTCAT_PERIODICAL){
+				return burstInfo.getEnergyPct();
+			}
+		}
+		return 0;
 	}
 }

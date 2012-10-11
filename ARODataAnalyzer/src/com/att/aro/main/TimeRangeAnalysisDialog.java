@@ -71,10 +71,10 @@ public class TimeRangeAnalysisDialog extends JDialog {
 	 * specified instance of the ApplicationResourceOptimizer as the owner.
 	 * 
 	 * @param owner
-	 *            - The ApplicationResourceOptimizer instance.
+	 *            The ApplicationResourceOptimizer instance.
 	 * 
 	 * @param analysisData
-	 *            – An Analysis object containing the trace data.
+	 *            An Analysis object containing the trace data.
 	 */
 	public TimeRangeAnalysisDialog(Window owner, TraceData.Analysis analysisData) {
 		super(owner);
@@ -153,6 +153,8 @@ public class TimeRangeAnalysisDialog extends JDialog {
 				timeRangeAnalysisResultsTextArea = new JTextArea("\n"
 						+ strTextArea);
 			}
+			timeRangeAnalysisResultsTextArea.setEditable(false);
+			timeRangeAnalysisResultsTextArea.setFocusable(false);
 			timeRangeAnalysisResultsTextArea.setLineWrap(true);
 			timeRangeAnalysisResultsTextArea.setWrapStyleWord(true);
 			Border padding = BorderFactory
@@ -312,7 +314,7 @@ public class TimeRangeAnalysisDialog extends JDialog {
 	 * dialog box.
 	 * 
 	 * @param b
-	 *            –A boolean value that indicates whether the TimeRangeAnalysis
+	 *            A boolean value that indicates whether the TimeRangeAnalysis
 	 *            dialog box is visible.
 	 * 
 	 * @see java.awt.Dialog#setVisible(boolean)

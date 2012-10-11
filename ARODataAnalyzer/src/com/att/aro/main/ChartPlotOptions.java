@@ -20,6 +20,7 @@ package com.att.aro.main;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * The ChartPlotOptions enumeration defines constant values that specify the
@@ -85,11 +86,17 @@ public enum ChartPlotOptions {
 	 */
 	THROUGHPUT,
 	/**
+	 * 
+	 */
+	NETWORK_TYPE,
+	/**
 	 * The Default View checkbox option in the View Options dialog box.
 	 */
 	DEFAULT_VIEW;
 
 	private static final String DELIM = ";";
+	
+	private static final Logger logger = Logger.getLogger(ChartPlotOptions.class.getName());
 
 	/**
 	 * Returns a String containing the chart plot options selected by the user
@@ -134,9 +141,13 @@ public enum ChartPlotOptions {
 		String[] tokens = delimitedPrefsString.split(DELIM);
 		for (String s : tokens) {
 			if (s != null && !"".equals(s.trim())) {
-				ChartPlotOptions cpo = ChartPlotOptions.valueOf(s);
-				if (cpo != null) {
-					list.add(cpo);
+				try {
+					ChartPlotOptions cpo = ChartPlotOptions.valueOf(s);
+					if (cpo != null) {
+						list.add(cpo);
+					}
+				} catch (IllegalArgumentException e) {
+					logger.warning("Unrecognized chart plot option in preferences: " + s);
 				}
 			}
 		}

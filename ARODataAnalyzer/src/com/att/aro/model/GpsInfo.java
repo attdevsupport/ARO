@@ -53,15 +53,15 @@ public class GpsInfo implements Comparable<GpsInfo> {
 
 	/**
 	 * Initializes an instance of the GpsInfo class using the specified
-	 * timestamp, and GPS state.
+	 * timestamps, and GPS state.
 	 * 
 	 * @param beginTimeStamp
-	 *            The start timestamp for the gps event.
+	 *            The starting timestamp for the GPS event.
 	 * @param endTimeStamp
-	 *            The end timestamp for the gps event.
+	 *            The ending timestamp for the GPS event.
 	 * 
 	 * @param gpsState
-	 *            – A GpsInfo.GpsState enumeration value that specifies the GPS
+	 *            A GpsInfo.GpsState enumeration value that specifies the GPS
 	 *            state.
 	 */
 	public GpsInfo(double beginTimeStamp, double endTimeStamp, GpsState gpsState) {
@@ -79,18 +79,18 @@ public class GpsInfo implements Comparable<GpsInfo> {
 	}
 
 	/**
-	 * Returns the start timestamp for the GPS state.
+	 * Returns the starting timestamp for the GPS state.
 	 * 
-	 * @return The start timestamp.
+	 * @return The starting timestamp.
 	 */
 	public double getBeginTimeStamp() {
 		return beginTimeStamp;
 	}
 
 	/**
-	 * Returns the end timestamp for the GPS state.
+	 * Returns the ending timestamp for the GPS state.
 	 * 
-	 * @return The end timestamp.
+	 * @return The ending timestamp.
 	 */
 	public double getEndTimeStamp() {
 		return endTimeStamp;

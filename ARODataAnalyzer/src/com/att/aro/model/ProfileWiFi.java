@@ -19,14 +19,14 @@ import java.io.File;
 import java.util.List;
 import java.util.Properties;
 /**
- * Encapsulates the analysis attributes related to the WiFi profile.
+ * Represents a device profile for modeling WiFi energy states when analyzing trace data.
  */
 public class ProfileWiFi extends Profile {
 	
 	private static final long serialVersionUID = 1L;
 
 	/**
-	 * WiFi tail time for the profile.
+	 * The amount of time spent in the WiFi Tail state.
 	 */
 	public static final String WIFI_TAIL_TIME = "WIFI_TAIL_TIME";
 
@@ -61,11 +61,11 @@ public class ProfileWiFi extends Profile {
 	}
 
 	/**
-	 * Initializes a new instance of WiFi Profile with the specified profile file
-	 * and and profile properties.
+	 * Initializes a new instance of the WiFi Profile class with the specified location for the 
+	 * profile file and profile properties. 
 	 * 
 	 * @param file
-	 *            The file where profile properties can be saved. Can be null.
+	 *            The file where profile properties can be saved. This parameter can be null.
 	 * @param properties
 	 *            The profile properties that are to be set to the profile.
 	 * @throws ProfileException
@@ -75,12 +75,12 @@ public class ProfileWiFi extends Profile {
 	}
 
 	/**
-	 * Initializes a new instance of WiFi Profile with the specified profile name
+	 * Initializes a new instance of the WiFi Profile class with the specified profile name, and properties. 
 	 * 
 	 * @param name
 	 *            The name of the profile.
 	 * @param properties
-	 *            the properties that are to be set to the profile.
+	 *            The properties that are to be set to the profile.
 	 * @throws ProfileException
 	 */
 	public ProfileWiFi(String name, Properties properties)
@@ -88,6 +88,16 @@ public class ProfileWiFi extends Profile {
 		super(name, properties);
 	}
 
+	/**
+	* A utility method for calculating RRC energy for WiFi. Implements the energy method in the 
+	* Profile base class. 
+	* 
+	* @param time1 A beginning time value. 
+	* @param time2 An ending time value. 
+	* @param state An RRCState enumeration value that indicates the RRC energy state. 
+	* @param packets A List of packets that were passed during the specified time period. 
+	* The packet information may be used in determining the amount of energy used.
+	*/
 	@Override
 	public double energy(double time1, double time2, RRCState state , List<PacketInfo> packets) {
 		
@@ -104,6 +114,10 @@ public class ProfileWiFi extends Profile {
 		return 0;
 	}
 
+	/**
+	* Returns the type of profile. Subclasses of this class must identify the profile type.
+	* @return The profile type. One of the values of the ProfileType enumeration.
+	*/
 	@Override
 	public ProfileType getProfileType() { 
 		
@@ -111,29 +125,34 @@ public class ProfileWiFi extends Profile {
 	}
 
 	/**
-	 * Returns the WiFi tail time for the profile.
-	 * @return The WiFi tail time.
+	 * Returns the amount of time that WiFi was in the Tail state. 
+	 * @return The amount of WiFi tail time.
 	 */
 	public double getWifiTailTime() {
 		return wifiTailTime;
 	}
 
 	/**
-	 * Returns the energy consumed when WiFi is in active state.
-	 * @return The WiFi active energy.
+	 * Returns the amount of energy consumed when WiFi is in the Active state. 
+	 * @return The amount of WiFi Active energy.
 	 */
 	public double getWifiActivePower() {
 		return wifiActivePower;
 	}
 
 	/**
-	 * Returns the energy consumed when WiFi is in idle state.
-	 * @return The WiFi idle energy.
+	 * Returns the amount of energy consumed when WiFi is in the Idle state. 
+	 * @return The amount of WiFi Idle energy.
 	 */
 	public double getWifiIdlePower() {
 		return wifiIdlePower;
 	}
 
+	/**
+	 * Initializes Profile class members using values from the specified Properties object. 
+	 * 
+	 * @param properties - The profile values to be set.
+	 */
 	@Override
 	protected void setProperties(Properties properties) {
 		
@@ -143,6 +162,12 @@ public class ProfileWiFi extends Profile {
 		
 	}
 
+	/**
+	* Saves the current profile values in the specified Properties object. This method 
+	* is used by sub-classes to save member values to a properties object for persistence.
+	* 
+	* @param properties - The properties object in which to store the values.
+	*/
 	@Override
 	protected void saveProperties(Properties properties) {
 		

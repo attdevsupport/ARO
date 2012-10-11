@@ -102,17 +102,23 @@ public class TraceData implements Serializable {
 		private List<TCPSession> tcpSessions;
 		private RRCStateMachine rrcStateMachine;
 		private CacheAnalysis cacheAnalysis;
+		private CacheInfoParser cacheInfoParser;
 		private BestPractices bestPractice;
+		private ApplicationScore applicationScore;
 		private EnergyModel energyModel;
-		
+		private static final double SESSION_TERMINATION_THRESHOLD = 1.0;
+
 		// List of Burst Collection Info
 		private BurstCollectionAnalysis bcAnalysis;
-
+		
 		// CPU activity info
 		private List<CpuActivity> cpuActivityList = new ArrayList<CpuActivity>();
 
 		// Gps Info
 		private List<GpsInfo> gpsInfos = new ArrayList<GpsInfo>();
+
+		// Bearer Info
+		private List<NetworkBearerTypeInfo> networkTypeInfos = new ArrayList<NetworkBearerTypeInfo>();
 
 		// Bluetooth Info
 		private List<BluetoothInfo> bluetoothInfos = new ArrayList<BluetoothInfo>();
@@ -134,10 +140,13 @@ public class TraceData implements Serializable {
 
 		// List of User Event Info
 		private List<UserEvent> userEvents = new ArrayList<UserEvent>();
+
 		private double gpsActiveDuration;
 		private double wifiActiveDuration;
 		private double bluetoothActiveDuration;
 		private double cameraActiveDuration;
+
+		private static final int MAX_LIMIT_FILETYPES = 8;
 
 		/**
 		 * Constructor
@@ -175,6 +184,8 @@ public class TraceData implements Serializable {
 						TraceData.this.screenStateInfos, beginTime, endTime);
 				this.userEvents = getUserEventsForTheTimeRange(TraceData.this.userEvents,
 						beginTime, endTime);
+				this.networkTypeInfos = getNetworkInfosForTheTimeRange(
+						TraceData.this.networkTypeInfos, beginTime, endTime);
 
 			} else {
 				this.cpuActivityList = TraceData.this.cpuActivityList;
@@ -190,6 +201,7 @@ public class TraceData implements Serializable {
 				this.gpsActiveDuration = TraceData.this.gpsActiveDuration;
 				this.cameraActiveDuration = TraceData.this.cameraActiveDuration;
 				this.wifiActiveDuration = TraceData.this.wifiActiveDuration;
+				this.networkTypeInfos = TraceData.this.networkTypeInfos;
 			}
 
 			if (filter != null) {
@@ -292,6 +304,198 @@ public class TraceData implements Serializable {
 		}
 
 		/**
+		 * Creates the FilTypes list to be plotted on the chart.
+		 */
+		public List<FileTypeSummary> constructContent(TraceData.Analysis analysisData) {
+			Map<String, FileTypeSummary> content = new HashMap<String, FileTypeSummary>();
+			int totalContentLength = 0;
+			if (analysisData != null) {
+				for (TCPSession tcp : analysisData.getTcpSessions()) {
+					for (HttpRequestResponseInfo info : tcp.getRequestResponseInfo()) {
+						if (com.att.aro.model.HttpRequestResponseInfo.Direction.RESPONSE
+								.equals(info.getDirection())) {
+							long contentLength = info.getActualByteCount();
+							if (contentLength > 0) {
+								String contentType = info.getContentType();
+								if (contentType == null || contentType.trim().length() == 0) {
+									contentType = rb.getString("chart.filetype.unknown");
+								}
+								FileTypeSummary summary = content.get(contentType);
+								if (summary == null) {
+									summary = new FileTypeSummary(contentType);
+									content.put(contentType, summary);
+								}
+								// summary.bytes += contentLength;
+								summary.setBytes(summary.getBytes() + contentLength);
+								totalContentLength += contentLength;
+							}
+						}
+					}
+				}
+			}
+
+			List<FileTypeSummary> result = new ArrayList<FileTypeSummary>(content.values());
+			Collections.sort(result);
+
+			if (result.size() > MAX_LIMIT_FILETYPES) {
+				long otherValuesTotal = 0;
+
+				Iterator<FileTypeSummary> iterator = result.iterator();
+				for (int index = 0; index < (MAX_LIMIT_FILETYPES - 1); index++) {
+					iterator.next();
+				}
+				while (iterator.hasNext()) {
+					otherValuesTotal += iterator.next().getBytes();
+					iterator.remove();
+				}
+
+				FileTypeSummary other = new FileTypeSummary(rb.getString("chart.filetype.others"));
+				other.setBytes(otherValuesTotal);
+				result.add(other);
+
+				// Sort again
+				Collections.sort(result);
+			}
+
+			for (FileTypeSummary summary : result) {
+				summary.setPct((double) summary.getBytes() / totalContentLength * 100.0);
+			}
+
+			return result;
+		}
+		
+		/**
+		 * Calculates the idle->dch and fach->dch promotion ratio for the trace.
+		 * 
+		 * @param analysis
+		 *            The analysis data for the trace.
+		 * @return double The idle->dch and fach->dch promotion ratio.
+		 */
+		public double calculatePromotionRatioPercentage(TraceData.Analysis analysis) {
+			if (analysis == null) {
+				return 0;
+			}
+			double promotionRatio = analysis.getRrcStateMachine().getPromotionRatio();
+			return ApplicationSampling.getInstance().getPromoRatioPercentile(promotionRatio);
+		}
+
+		/**
+		 * Returns the throughput percentage for the trace based upon the sampling.
+		 * 
+		 * @param analysis
+		 *            The analysis data for the trace.
+		 * @return double The throughput percentage.
+		 */
+		public double calculateThroughputPercentage(TraceData.Analysis analysis) {
+			if (analysis == null) {
+				return 0;
+			}
+			double kbps = analysis.getAvgKbps();
+			return ApplicationSampling.getInstance().getThroughputPercentile(kbps);
+		}
+
+		/**
+		 * Returns the joules/kilobyte percentage for the trace based upon the
+		 * sampling.
+		 * 
+		 * @param analysis
+		 *            The analysis data for the trace.
+		 * @return double The joules/kilobyte percentage.
+		 */
+		public double calculateJpkbPercentage(TraceData.Analysis analysis) {
+			if (analysis == null) {
+				return 0;
+			}
+			return ApplicationSampling.getInstance().getJpkbPercentile(analysis.getRrcStateMachine().getJoulesPerKilobyte());
+		}
+		
+		/**
+		 * Returns the percentage of proper session terminations found in the trace
+		 * analysis.
+		 * 
+		 * @param analysis
+		 *            The trace analysis data.
+		 * @return The percentage of the proper session terminations.
+		 */
+		public double calculateSessionTermPercentage(TraceData.Analysis analysis) {
+			if (analysis == null) {
+				return 0;
+			}
+			int termSessions = 0;
+			int properTermSessions = 0;
+			for (TCPSession session : analysis.getTcpSessions()) {
+				TCPSession.Termination termination = session.getSessionTermination();
+				if (termination != null) {
+					++termSessions;
+					if (termination.getSessionTerminationDelay() <= SESSION_TERMINATION_THRESHOLD) {
+						++properTermSessions;
+					}
+				}
+			}
+			double sessionTermPct = termSessions > 0 ? 100.0 * properTermSessions / termSessions : 0.0;
+			return sessionTermPct;
+		}
+
+		/**
+		 * Returns the percentage of the large bursts found in the trace analysis.
+		 * 
+		 * @param analysis
+		 *            The trace analysis data.
+		 * @return The percentage of the large bursts.
+		 */
+		public double calculateLargeBurstConnection(TraceData.Analysis analysis) {
+			if (analysis == null) {
+				return 0;
+			}
+			int size = analysis.getBurstInfos().size();
+			return size > 0 ? 100.0 * analysis.getBcAnalysis().getLongBurstCount() / size : 0.0;
+		}
+
+		/**
+		 * Returns the percentage of the non periodic bursts found in the trace
+		 * analysis.
+		 * 
+		 * @param analysis
+		 *            The trace analysis data.
+		 * @return The percentage of the non periodic bursts.
+		 */
+		public double calculateNonPeriodicConnection(TraceData.Analysis analysis) {
+			if (analysis == null) {
+				return 0;
+			}
+			List<Burst> burstInfos = analysis.getBurstInfos();
+			if (burstInfos != null && burstInfos.size() > 0) {
+				int periodicBurstCount = 0;
+				for (int i = 0; i < burstInfos.size(); i++) {
+					BurstCategory bCategory = burstInfos.get(i).getBurstCategory();
+					if (bCategory == BurstCategory.BURSTCAT_PERIODICAL) {
+						periodicBurstCount += 1;
+					}
+				}
+				return 100 - 100.0 * periodicBurstCount / burstInfos.size();
+			} else {
+				return 0.0;
+			}
+		}
+		
+		/**
+		 * This method returns the percentage of the tightly coupled bursts found in
+		 * the trace analysis.
+		 * 
+		 * @param analysis
+		 *            The trace analysis data.
+		 * @return The percentage of tightly coupled bursts.
+		 */
+		public double calculateTightlyCoupledConnection(TraceData.Analysis analysis) {
+			if (analysis == null) {
+				return 0;
+			}
+			int size = analysis.getBurstInfos().size();
+			return size > 0 ? 100.0 * analysis.getBcAnalysis().getTightlyCoupledBurstCount() / size
+					: 0.0;
+		}
+
+		/**
 		 * Returns the GPS information.
 		 * 
 		 * @return A List of GPSInfo objects containing the information.
@@ -371,6 +575,16 @@ public class TraceData implements Serializable {
 		 */
 		public List<CpuActivity> getCpuActivityList() {
 			return Collections.unmodifiableList(cpuActivityList);
+		}
+
+		/**
+		 * Returns the Network Bearer type information.
+		 * 
+		 * @return A List of NetworkBearerTypeInfo objects containing the
+		 *         information.
+		 */
+		public List<NetworkBearerTypeInfo> getNetworTypeInfos() {
+			return Collections.unmodifiableList(networkTypeInfos);
 		}
 
 		/**
@@ -461,12 +675,26 @@ public class TraceData implements Serializable {
 		public CacheAnalysis getCacheAnalysis() {
 			return cacheAnalysis;
 		}
+		
+		/**
+		 * @return The cacheAnalysis
+		 */
+		public CacheInfoParser getCacheInfoParser() {
+			return cacheInfoParser;
+		}
 
 		/**
 		 * @return The bestPractice
 		 */
 		public BestPractices getBestPractice() {
 			return bestPractice;
+		}
+
+		/**
+		 * @return The ApplicationScore
+		 */
+		public ApplicationScore getApplicationScore() {
+			return applicationScore;
 		}
 
 		/**
@@ -598,6 +826,7 @@ public class TraceData implements Serializable {
 					logger.fine("");
 				}
 			}
+
 			// Analyze packets for TCP sessions
 			this.tcpSessions = TCPSession.extractTCPSessions(packets);
 
@@ -615,12 +844,18 @@ public class TraceData implements Serializable {
 
 			// Creates BestPractices object
 			this.bestPractice = new BestPractices(this);
+
+			// Calculate score
+			this.applicationScore = new ApplicationScore(this);
+			
+			// Do cache analysis
+			this.cacheInfoParser = new CacheInfoParser(cacheAnalysis);
+
 		}
 
 		/**
 		 * Returns the list of user events filtered based on the time range.
 		 */
-
 		private List<UserEvent> getUserEventsForTheTimeRange(List<UserEvent> userEvents,
 				double beginTime, double endTime) {
 			List<UserEvent> filteredUserEvents = new ArrayList<UserEvent>();
@@ -636,7 +871,6 @@ public class TraceData implements Serializable {
 		/**
 		 * Returns the list of screen events filtered based on the time range.
 		 */
-
 		private List<ScreenStateInfo> getScreenInfosForTheTimeRange(
 				List<ScreenStateInfo> screenStateInfos, double beginTime, double endTime) {
 
@@ -934,6 +1168,38 @@ public class TraceData implements Serializable {
 		}
 
 		/**
+		 * Returns the list of network bearers found in the trace filtered based
+		 * on the time range.
+		 */
+		private List<NetworkBearerTypeInfo> getNetworkInfosForTheTimeRange(
+				List<NetworkBearerTypeInfo> bearerInfos, double beginTime, double endTime) {
+
+			List<NetworkBearerTypeInfo> filteredBearerInfos = new ArrayList<NetworkBearerTypeInfo>();
+			for (NetworkBearerTypeInfo bearerInfo : bearerInfos) {
+
+				if (bearerInfo.getBeginTimestamp() >= beginTime
+						&& bearerInfo.getEndTimestamp() <= endTime) {
+					filteredBearerInfos.add(bearerInfo);
+				} else if (bearerInfo.getBeginTimestamp() <= beginTime
+						&& bearerInfo.getEndTimestamp() <= endTime
+						&& bearerInfo.getEndTimestamp() > beginTime) {
+					filteredBearerInfos.add(new NetworkBearerTypeInfo(beginTime, bearerInfo
+							.getEndTimestamp(), bearerInfo.getNetworkType()));
+				} else if (bearerInfo.getBeginTimestamp() <= beginTime
+						&& bearerInfo.getEndTimestamp() >= endTime) {
+					filteredBearerInfos.add(new NetworkBearerTypeInfo(beginTime, endTime,
+							bearerInfo.getNetworkType()));
+				} else if (bearerInfo.getBeginTimestamp() >= beginTime
+						&& bearerInfo.getBeginTimestamp() < endTime
+						&& bearerInfo.getEndTimestamp() >= endTime) {
+					filteredBearerInfos.add(new NetworkBearerTypeInfo(bearerInfo
+							.getBeginTimestamp(), endTime, bearerInfo.getNetworkType()));
+				}
+			}
+			return filteredBearerInfos;
+		}
+
+		/**
 		 * Returns the total amount of time that the GPS peripheral was in an
 		 * active state.
 		 * 
@@ -972,11 +1238,11 @@ public class TraceData implements Serializable {
 		public double getCameraActiveDuration() {
 			return cameraActiveDuration;
 		}
-
 	}
 
 	/**
-	 * Private utility class
+	 * A Private utility class used for storing and returning trace time
+	 * information from the TraceData.readTimes method.
 	 */
 	public static class Times {
 		private Double startTime;
@@ -984,21 +1250,34 @@ public class TraceData implements Serializable {
 		private Double duration;
 
 		/**
-		 * @return the startTime
+		 * Initializes an instance of the TraceData.Times class.
+		 */
+		Times() {
+
+		}
+
+		/**
+		 * Returns the start time.
+		 * 
+		 * @return The start time.
 		 */
 		public Double getStartTime() {
 			return startTime;
 		}
 
 		/**
-		 * @return the eventTime
+		 * Returns the time of an event.
+		 * 
+		 * @return The event Time.
 		 */
 		public Double getEventTime() {
 			return eventTime;
 		}
 
 		/**
-		 * @return the duration
+		 * Returns the duration.
+		 * 
+		 * @return The duration value (in seconds).
 		 */
 		public Double getDuration() {
 			return duration;
@@ -1036,10 +1315,17 @@ public class TraceData implements Serializable {
 	 */
 	public static final String PCAP_FILE = "traffic.cap";
 
+	public static final String TRAFFIC = "traffic";
+	public static final String CAP_EXT = ".cap";
+
 	/**
 	 * The name of the device_info file
 	 */
 	public static final String DEVICEINFO_FILE = "device_info";
+	/**
+	 * The name of the network_details file
+	 */
+	public static final String NETWORKINFO_FILE = "network_details";
 
 	/**
 	 * The name of the device_info file
@@ -1072,7 +1358,7 @@ public class TraceData implements Serializable {
 	public static final String BATTERY_FILE = "battery_events";
 
 	/**
-	 * The name of the Wifi file
+	 * The name of the WiFi file
 	 */
 	public static final String WIFI_FILE = "wifi_events";
 
@@ -1164,14 +1450,23 @@ public class TraceData implements Serializable {
 	private static final int LTE = 13;
 
 	private int screenRotationCounter = 0;
-	
+
 	/**
-	 * Utility method that will just read the trace time file info for the
-	 * specified trace directory
+	 * Score detection
+	 */
+	public enum Severity {
+		SEVERITY_1, SEVERITY_2, SEVERITY_3, VAMPIRE;
+	}
+
+	/**
+	 * Utility method for reading the trace time file information for the
+	 * specified trace directory.
 	 * 
 	 * @param traceDirectory
-	 *            The trace directory
-	 * @return Times read from the TIME file
+	 *            The trace directory.
+	 * 
+	 * @return A TraceData.Times object containing the times read from the TIME
+	 *         file in the specified trace directory.
 	 * @throws IOException
 	 */
 	public static Times readTimes(File traceDirectory) throws IOException {
@@ -1246,6 +1541,9 @@ public class TraceData implements Serializable {
 	// List of User Event Info
 	private List<UserEvent> userEvents = new ArrayList<UserEvent>();
 
+	private List<NetworkBearerTypeInfo> networkTypeInfos = new ArrayList<NetworkBearerTypeInfo>();
+	private NetworkType networkType;
+
 	// time
 	private String collectorName;
 	private String deviceModel;
@@ -1253,7 +1551,6 @@ public class TraceData implements Serializable {
 	private String osType;
 	private String osVersion;
 	private String collectorVersion;
-	private NetworkType networkType;
 	private double pcapTime0;
 	private Date traceDateTime;
 	private double eventTime0;
@@ -1269,10 +1566,10 @@ public class TraceData implements Serializable {
 	private File pcapFile;
 	private List<PacketInfo> allPackets = new ArrayList<PacketInfo>(1000);
 	private Map<InetAddress, Integer> ipCountMap = new HashMap<InetAddress, Integer>();
-
 	// private WhatIf whatIf = new WhatIf(WhatIf.WhatIfType.WHATIF_NO) ;
 	private Set<String> allAppNames = new HashSet<String>();
 	private Map<String, Set<InetAddress>> appIps = new HashMap<String, Set<InetAddress>>();
+	private List<NetworkType> networkTypesList = new ArrayList<NetworkType>();
 
 	/**
 	 * Pcap packet listener
@@ -1420,10 +1717,40 @@ public class TraceData implements Serializable {
 	}
 
 	/**
-	 * @return The networkType
+	 * Returns the list of network types found in the trace.
+	 * 
+	 * @return The NetworkType List.
+	 */
+	public List<NetworkType> getNetworkTypes() {
+		return networkTypesList;
+	}
+
+	/**
+	 * Returns the network type (i.e. 3G or LTE).
+	 * 
+	 * @return The network type. One of the values of the NetworkType
+	 *         enumeration.
 	 */
 	public NetworkType getNetworkType() {
 		return networkType;
+	}
+
+	/**
+	 * Returns the comma separated list of network types found in the trace.
+	 * 
+	 * @return The string that lists the networ types.
+	 */
+	public String getNetworkTypesList() {
+		if (getNetworkTypes() != null && getNetworkTypes().size() > 0) {
+			StringBuffer networksList = new StringBuffer();
+			for (NetworkType networkType : networkTypesList) {
+
+				networksList.append(ResourceBundleManager.getEnumString(networkType) + " , ");
+			}
+			return networksList.toString().substring(0, networksList.toString().lastIndexOf(","));
+		} else {
+			return "";
+		}
 	}
 
 	/**
@@ -1437,16 +1764,19 @@ public class TraceData implements Serializable {
 	}
 
 	/**
-	 * Returns the Application version map.
+	 * Returns a Map object containing application names and application
+	 * versions.
 	 * 
-	 * @return The application versions.
+	 * @return The application version map.
 	 */
 	public Map<String, String> getAppVersionMap() {
 		return appVersionMap;
 	}
 
 	/**
-	 * @return the appIps
+	 * Returns a Map object containing application names and IP addresses.
+	 * 
+	 * @return The application IP addresses.
 	 */
 	public Map<String, Set<InetAddress>> getAppIps() {
 		return Collections.unmodifiableMap(appIps);
@@ -1487,7 +1817,7 @@ public class TraceData implements Serializable {
 	 *            The device profile settings.
 	 * 
 	 * @param filter
-	 *            An optional analysis filter that would filter out info from
+	 *            An optional analysis filter that filters out information from
 	 *            the trace during analysis.
 	 * 
 	 * @return An Analysis object containing the trace analysis.
@@ -1577,9 +1907,18 @@ public class TraceData implements Serializable {
 			this.missingFiles.add(TIME_FILE);
 		}
 
-		// Read the pcap file to get default times
+		// Read the pcap files to get default times
 		File pcap = new File(traceDir, PCAP_FILE);
-		readPcapTrace(pcap, readAppIDs(), startTime, duration, false);
+		List<Integer> appIds = readAppIDs();
+		readPcapTrace(pcap, appIds, startTime, duration, false);
+		for (int i = 1;; i++) {
+			File pcapFile = new File(traceDir, TRAFFIC + i + CAP_EXT);
+			if (pcapFile.exists()) {
+				readPcapTrace(pcapFile, appIds, startTime, duration, false);
+			} else {
+				break;
+			}
+		}
 	}
 
 	/**
@@ -1621,6 +1960,7 @@ public class TraceData implements Serializable {
 			this.missingFiles.add(DEVICEDETAILS_FILE);
 		}
 		BufferedReader br = new BufferedReader(new FileReader(file));
+
 		try {
 			this.collectorName = br.readLine();
 			this.deviceModel = br.readLine();
@@ -1631,42 +1971,62 @@ public class TraceData implements Serializable {
 
 			try {
 				String networkTypeStr = br.readLine();
-				int networkType = networkTypeStr != null ? Integer.parseInt(networkTypeStr.trim())
-						: 0;
-				switch (networkType) {
-				case WIFI:
-					this.networkType = NetworkType.WIFI;
-					break;
-				case GPRS:
-					this.networkType = NetworkType.GPRS;
-					break;
-				case UMTS:
-					this.networkType = NetworkType.UMTS;
-					break;
-				case HSDPA:
-					this.networkType = NetworkType.HSDPA;
-					break;
-				case HSUPA:
-					this.networkType = NetworkType.HSUPA;
-					break;
-				case HSPA:
-					this.networkType = NetworkType.HSPA;
-					break;
-				case HSPAP:
-					this.networkType = NetworkType.HSPAP;
-					break;
-				case LTE:
-					this.networkType = NetworkType.LTE;
-					break;
-				default:
-					this.networkType = NetworkType.UNKNOWN;
-					break;
+				if (networkTypeStr != null && networkTypeStr.length() > 0) {
+
+					int networkTypeCode = networkTypeStr != null ? Integer.parseInt(networkTypeStr
+							.trim()) : 0;
+					this.networkType = getNetworkTypeFromCode(networkTypeCode);
+
 				}
+
 			} catch (NumberFormatException e) {
-				this.networkType = NetworkType.UNKNOWN;
+				networkType = NetworkType.UNKNOWN;
+			}
+			if (networkType != null) {
+				networkTypeInfos.add(new NetworkBearerTypeInfo(0, traceDuration, networkType));
 			}
 		} finally {
 			br.close();
+		}
+	}
+
+	private void readNetworkDetails() throws IOException {
+
+		File netwokDetailsFile = new File(traceDir, NETWORKINFO_FILE);
+
+		BufferedReader reader = new BufferedReader(new FileReader(netwokDetailsFile));
+		String line = reader.readLine();
+		if (line != null && line.trim().length() > 0) {
+
+			// Clear any data that may have been added by device_details
+			networkTypeInfos.clear();
+
+			NetworkType networkType;
+			double beginTime;
+			double endTime;
+			String[] fields = line.split(" ");
+			if (fields.length == 2) {
+				beginTime = normalizeTime(Double.parseDouble(fields[0]));
+				networkType = getNetworkTypeFromCode(Integer.parseInt(fields[1]));
+				networkTypesList.add(networkType);
+				while ((line = reader.readLine()) != null) {
+					fields = line.split(" ");
+					if (fields.length == 2) {
+						endTime = normalizeTime(Double.parseDouble(fields[0]));
+						networkTypeInfos.add(new NetworkBearerTypeInfo(beginTime, endTime,
+								networkType));
+						networkType = getNetworkTypeFromCode(Integer.parseInt(fields[1]));
+						beginTime = endTime;
+						if (!networkTypesList.contains(networkType)) {
+							networkTypesList.add(networkType);
+						}
+					}
+
+				}
+				networkTypeInfos.add(new NetworkBearerTypeInfo(beginTime, traceDuration,
+						networkType));
+
+			}
 		}
 
 	}
@@ -1698,17 +2058,12 @@ public class TraceData implements Serializable {
 				try {
 					new NetmonAdapter(pcapFile, packetListener);
 				} catch (UnsatisfiedLinkError er) {
-					// TODO This indicates that NetMon is not installed on user PC
+					// TODO This indicates that NetMon is not installed on user
+					// PC
 					throw er;
 				} catch (IOException io) {
 					// Throw the original IOException
 					throw e;
-				} catch (Exception ex) {
-					// Throw the original IOException
-					throw e;
-				} catch (Error e2) {
-					// TODO: handle exception
-					throw new UnsatisfiedLinkError();
 				}
 			}
 		}
@@ -1723,9 +2078,9 @@ public class TraceData implements Serializable {
 			int i = 0;
 			final String pcapAppName = "";
 			this.pcapTime0 = startTime != null ? startTime.doubleValue() : allPackets.get(0)
-					.getTimeStamp();
-			this.traceDuration = duration != null ? duration.doubleValue() : allPackets.get(
-					allPackets.size() - 1).getTimeStamp()
+					.getPacket().getTimeStamp();
+			this.traceDuration = duration != null ? duration.doubleValue() : allPackets
+					.get(allPackets.size() - 1).getPacket().getTimeStamp()
 					- this.pcapTime0;
 			if (appIds == null) {
 				appIds = Collections.emptyList();
@@ -1925,7 +2280,7 @@ public class TraceData implements Serializable {
 				}
 
 				screenRotationCounter++;
-				
+
 				userEvents.add(new UserEvent(eventType, dTimeStamp, dTimeStamp + 0.5));
 			}
 
@@ -1968,6 +2323,12 @@ public class TraceData implements Serializable {
 			readDeviceDetails();
 		} catch (IOException e) {
 			logger.warning("*** Warning: no device detail information found ***");
+		}
+
+		try {
+			readNetworkDetails();
+		} catch (IOException e) {
+			logger.warning("*** Warning: no network detail information found ***");
 		}
 
 		try {
@@ -2877,5 +3238,39 @@ public class TraceData implements Serializable {
 	public int getScreenRotationCounter() {
 		return screenRotationCounter;
 	}
-	
+
+	private NetworkType getNetworkTypeFromCode(int networkTypeCode) {
+		NetworkType networkType;
+		switch (networkTypeCode) {
+		case WIFI:
+			networkType = NetworkType.WIFI;
+			break;
+		case GPRS:
+			networkType = NetworkType.GPRS;
+			break;
+		case UMTS:
+			networkType = NetworkType.UMTS;
+			break;
+		case HSDPA:
+			networkType = NetworkType.HSDPA;
+			break;
+		case HSUPA:
+			networkType = NetworkType.HSUPA;
+			break;
+		case HSPA:
+			networkType = NetworkType.HSPA;
+			break;
+		case HSPAP:
+			networkType = NetworkType.HSPAP;
+			break;
+		case LTE:
+			networkType = NetworkType.LTE;
+			break;
+		default:
+			networkType = NetworkType.UNKNOWN;
+			break;
+		}
+		return networkType;
+
+	}
 }

@@ -38,19 +38,19 @@ public class BurstAnalysisInfo implements Serializable {
 	 * 
 	 * @param category
 	 * 
-	 * @param payload – The burst payload.
+	 * @param payload The burst payload.
 	 * 
-	 * @param payloadPct – The burst payload percentage.
+	 * @param payloadPct The burst payload percentage.
 	 * 
-	 * @param energy – The burst energy.
+	 * @param energy The burst energy.
 	 * 
-	 * @param energyPct – The burst energy percentage.
+	 * @param energyPct The burst energy percentage.
 	 * 
-	 * @param rrcActiveTime – The RRC active time for the burst.
+	 * @param rrcActiveTime The RRC active time for the burst.
 	 * 
-	 * @param rrcActiveTimePct – The RRC active percentage for the burst.
+	 * @param rrcActiveTimePct The RRC active percentage for the burst.
 	 * 
-	 * @param jpkb – The amount of energy used by the burst in joules per kilobyte.
+	 * @param jpkb The amount of energy used by the burst in joules per kilobyte.
 	 */
 	public BurstAnalysisInfo(BurstCategory category, long payload, double payloadPct,
 			double energy, double energyPct, double rrcActiveTime, double rrcActiveTimePct, Double jpkb) {

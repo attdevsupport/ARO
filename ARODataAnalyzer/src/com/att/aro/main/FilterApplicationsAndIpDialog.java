@@ -40,8 +40,8 @@ import com.att.aro.model.TraceData;
 
 /**
  * Represents the Filter Applications Dialog that appears when the user chooses
- * the Select Applications menu item under the View menu. This dialog prompts
- * the user to select applications from the list of applications found in the
+ * the Select Applications/IPs menu item under the View menu. This dialog prompts
+ * the user to select applications and IP addresses that are found in the
  * trace data.
  */
 public class FilterApplicationsAndIpDialog extends JDialog {
@@ -62,7 +62,7 @@ public class FilterApplicationsAndIpDialog extends JDialog {
 	private AnalysisFilter filter;
 
 	/**
-	 * Initializes a new instance of the FilterApplicationsDialog( class using
+	 * Initializes a new instance of the FilterApplicationsAndIpDialog class using
 	 * the specified instance of the ApplicationResourceOptimizer as the owner.
 	 * 
 	 * @param owner

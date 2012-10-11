@@ -26,7 +26,8 @@ import com.att.aro.model.RRCStateMachine;
 import com.att.aro.model.TraceData;
 
 /**
- * Displays the 3G Energy Model statistics about the trace
+ * Displays the portion of the Energy Consumption Simulation section on the Statistics Tab 
+ * information page that apply to a 3G Energy Model. 
  */
 public class EnergyModelStatistics3GPanel extends EnergyModelStatisticsPanel {
 	private static final long serialVersionUID = 1L;
@@ -53,6 +54,13 @@ public class EnergyModelStatistics3GPanel extends EnergyModelStatisticsPanel {
 	private JLabel jpkbLabel;
 	private JLabel jpkbValueLabel;
 
+	/**
+	 * Initializes a new instance of the EnergyModelStatistics3GPanel class.
+	 */
+	public EnergyModelStatistics3GPanel() {
+		
+	}
+	
 	/**
 	 * Creates the JPanel that contains the Energy Consumption statistics data.
 	 */
@@ -116,11 +124,13 @@ public class EnergyModelStatistics3GPanel extends EnergyModelStatisticsPanel {
 	}
 
 	/**
-	 * Refreshes various label values in the EnergyModelStatisticsPanel when a
+	 * Refreshes various label values in the EnergyModelStatistics3GPanel when a
 	 * trace is loaded.
 	 * 
 	 * @param analysis
-	 *            The Analysis object containing the trace data.
+	 *          - The Analysis object containing the trace data.
+	 * @param nf 
+	 * 			- The number format used to display the label values.
 	 */
 	public void refreshRRCStatistic(TraceData.Analysis analysis, NumberFormat nf) {
 		if (analysis != null) {

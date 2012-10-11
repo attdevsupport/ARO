@@ -112,8 +112,9 @@ public class AROCollectorMainActivity extends Activity {
 	private Dialog_Type m_dialog;
 
 	/**
-	 * Overriding onCreate initialize data members
-	 * 
+	 * Initializes data members with a saved instance of an AROCollectorMainActivity 
+	 * object. Overrides the android.app.Activity#onCreate method. 
+	 * @param savedInstanceState – A saved instance of an AROCollectorMainActivity object.
 	 * @see android.app.Activity#onCreate(android.os.Bundle)
 	 */
 	@Override
@@ -160,19 +161,25 @@ public class AROCollectorMainActivity extends Activity {
 			@Override
 			public void onClick(View v) {
 				final String state = Environment.getExternalStorageState();
+				
+				final NetworkInfo.State wifiState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState();
+				final NetworkInfo.State mobileState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState();
+				if (DEBUG){
+					Log.d(TAG, "wifiState=" + wifiState + "; mobileState=" + mobileState);
+				}
+				
 				// Check to validate is SD card is available for writing trace
 				// data
 				if (!state.equals(Environment.MEDIA_MOUNTED)) {
 					showSDCardMountedError(false);
 					return;
 				} else if (mAroUtils.isAirplaneModeOn(getApplicationContext())
-				// Check if Airplane mode is on or Wifi network is enabled
-				// during Flight mode
-						&& (mAROConnectiviyMgr.getNetworkInfo(1).getState() == NetworkInfo.State.DISCONNECTED)) {
-					showARODataCollectorErrorDialog(Dialog_Type.AIRPANCE_MODEON);
+						&& (wifiState == NetworkInfo.State.UNKNOWN || wifiState == NetworkInfo.State.DISCONNECTED)) {
+					// Check if Airplane mode is on AND Wifi network is disconnected
+					showAirplaneModeEnabledError(false);
 					return;
-				} else if (mAROConnectiviyMgr.getNetworkInfo(0).getState() == NetworkInfo.State.DISCONNECTED
-						&& mAROConnectiviyMgr.getNetworkInfo(1).getState() == NetworkInfo.State.DISCONNECTED) {
+				} else if ((wifiState == NetworkInfo.State.DISCONNECTED || wifiState == NetworkInfo.State.UNKNOWN)
+						&& (mobileState == NetworkInfo.State.DISCONNECTED || mobileState == NetworkInfo.State.UNKNOWN)) {
 					// do not allow DC to start with both Mobile and Wifi off
 					showARODataCollectorErrorDialog(Dialog_Type.WIFI_MOBILE_BOTH_OFF);
 					return;
@@ -217,16 +224,15 @@ public class AROCollectorMainActivity extends Activity {
 		mApp.setARODataCollectorStopFlag(false);
 		mApp.setDataCollectorInProgressFlag(true);
 		mApp.setRequestDataCollectorStop(false);
-		mApp.setWifiLost(false);
-		mApp.setPreviousWifiState("NONE");
 		mApp.setVideoCaptureFailed(false);
 		startDataCollector.setEnabled(false);
 		createAROTraceDirectory();
-		// Starting the ARO Data collector service before tcpdump to record
-		// >=t(0)
-		startService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
-		// Starting the tcpdump service and starts the video capture
-		startService(new Intent(getApplicationContext(), AROCollectorService.class));
+		if (mApp.getDumpTraceFolderName() != null) {
+			// Starting the ARO Data collector service before tcpdump to record
+			// >=t(0)
+			startService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
+			// Starting the tcpdump service and starts the video capture
+			startService(new Intent(getApplicationContext(), AROCollectorService.class));
 		collectScreenVideo.setEnabled(false);
 		if (collectScreenVideo.isChecked()) {
 			mApp.setCollectVideoOption(true);
@@ -272,7 +278,7 @@ public class AROCollectorMainActivity extends Activity {
 				}
 			}
 		}, ARO_START_TICK_TIME, ARO_START_TICK_TIME);
-
+	   }
 	}
 
 	/**
@@ -349,9 +355,28 @@ public class AROCollectorMainActivity extends Activity {
 				new OnTraceFolderListener(), null);
 		myDialog.show();
 	}
+	
+	/**
+	 * Display the error messages when Airplane Mode is enabled and Wifi is off
+	 * 
+	 * @param mMidtraceflag
+	 *            : Boolean value to check if the error has triggered mid of
+	 *            trace cycle or before start
+	 */
+	private void showAirplaneModeEnabledError(boolean midtraceflag) {
+		if (midtraceflag) {
+			m_dialog = Dialog_Type.AIRPANCE_MODEON_MIDTRACE;
+		} else {
+			m_dialog = Dialog_Type.AIRPANCE_MODEON;
+		}
+		final AROCollectorCustomDialog myDialog = new AROCollectorCustomDialog(
+				AROCollectorMainActivity.this, android.R.style.Theme_Translucent, m_dialog,
+				new OnTraceFolderListener(), null);
+		myDialog.show();
+	}
 
 	/**
-	 * Overriding onPause
+	 * Overrides the android.app.Activity#onPause method. 
 	 * 
 	 * @see android.app.Activity#onPause()
 	 */
@@ -365,8 +390,11 @@ public class AROCollectorMainActivity extends Activity {
 	}
 
 	/**
-	 * Overriding onActivityResult
-	 * 
+	 * Handles the result of an activity performed on the UI of the Landing screen. 
+	 * Overrides the android.app.Activity# onActivityResult method.
+	 * @param requestCode – A code representing a request to the UI of the Landing screen.
+	 * @param resultCode – A code representing the result of an activity performed on the UI of the Landing screen.
+	 * @param data – An Intent object that contains data associated with the result of the activity
 	 * @see android.app.Activity#onActivityResult(int, int,
 	 *      android.content.Intent)
 	 */
@@ -456,10 +484,6 @@ public class AROCollectorMainActivity extends Activity {
 			m_dialog = Dialog_Type.SDCARD_ERROR;
 			showARODataCollectorStopErrorDialog(Dialog_Type.SDCARD_ERROR);
 			break;
-		case ARODataCollector.BEARERCHANGEERROR:
-			m_dialog = Dialog_Type.BEARERCHANGE_ERROR;
-			showARODataCollectorStopErrorDialog(Dialog_Type.BEARERCHANGE_ERROR);
-			break;
 		case ARODataCollector.SDCARDMOUNTED:
 			m_dialog = Dialog_Type.SDCARD_MOUNTED;
 			showSDCardMountedError(false);
@@ -468,10 +492,9 @@ public class AROCollectorMainActivity extends Activity {
 			m_dialog = Dialog_Type.SDCARD_MOUNTED_MIDTRACE;
 			showSDCardMountedError(true);
 			break;
-
-		case ARODataCollector.WIFI_LOST_ERROR:
-			m_dialog = Dialog_Type.WIFI_LOST_ERROR;
-			showARODataCollectorStopErrorDialog(Dialog_Type.WIFI_LOST_ERROR);
+		case ARODataCollector.AIRPLANEMODEENABLED_MIDTRACE:
+			m_dialog = Dialog_Type.AIRPANCE_MODEON_MIDTRACE;
+			showAirplaneModeEnabledError(true);
 			break;
 		}
 		if (DEBUG) {

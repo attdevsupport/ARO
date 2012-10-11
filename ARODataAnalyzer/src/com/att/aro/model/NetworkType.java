@@ -16,16 +16,52 @@
 package com.att.aro.model;
 
 /**
- * Identifies recognized network types
+ * The NetworkType Enumeration specifies constant values that identify recognized network types.
  */
 public enum NetworkType {
+	
+	/**
+	 * Identifies an unknown network type.
+	 */
 	UNKNOWN,
+	
+	/**
+	 * Identifies the Wireless Fidelity (Wi-Fi) network.
+	 */
 	WIFI,
+
+	/**
+	 * Identifies the General Packet Radio Service (GPRS) network.
+	 */
 	GPRS,
+	
+	/**
+	 * Identifies the Universal Mobile Telecommunications System (UMTS) network.
+	 */
 	UMTS,
+	
+	/**
+	 * Identifies the High-Speed Downlink Packet Access (HSDPA) network.
+	 */
 	HSDPA,
+	
+	/**
+	 * Identifies the High-Speed Packet Access (HSPA) network.
+	 */
 	HSPA,
+	
+	/**
+	 * Identifies the High-Speed Packet Access Plus (HSPA+) network.
+	 */
 	HSPAP,
+	
+	/**
+	 * Identifies the High-Speed Uplink Packet Access (HSUPA) network.
+	 */
 	HSUPA,
+	
+	/**
+	 * Identifies the Long Term Evolution (LTE) network.
+	 */
 	LTE
 }

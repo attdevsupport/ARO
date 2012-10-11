@@ -127,8 +127,9 @@ public class AROCollectorSplashActivity extends Activity {
 	}
 
 	/**
-	 * Overriding onCreate initialize data members
-	 * 
+	 * Initializes data members with a saved instance of an AROCollectorMainActivity object. 
+	 * Overrides the android.app.Activity#onCreate method. 
+	 * @param savedInstanceState – A saved instance of an AROCollectorSplashActivity object.
 	 * @see android.app.Activity#onCreate(android.os.Bundle)
 	 */
 	@Override
@@ -234,15 +235,16 @@ public class AROCollectorSplashActivity extends Activity {
 	}
 
 	/**
-	 * Handles the call backs when calling activity from current instance has
-	 * finished and released memory
+	 * Handles the result of an activity performed on the UI of the Splash screen 
+	 * when calling activity from the current instance has finished and released memory. 
+	 * Overrides the android.app.Activity# onActivityResult method.
 	 * 
 	 * @param requestCode
-	 *            requestCode
+	 *            A code representing a request to the UI of the Splash screen.
 	 * @param resultCode
-	 *            resultCode
+	 *            A code representing the result of an activity performed on the UI of the Splash screen.
 	 * @param data
-	 *            data
+	 *            An Intent object that contains data associated with the result of the activity.
 	 * 
 	 */
 	@Override

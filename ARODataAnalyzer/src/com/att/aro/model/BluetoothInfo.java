@@ -57,9 +57,9 @@ public class BluetoothInfo {
 	 * and Bluetooth state.
 	 * 
 	 *  @param beginTimeStamp
-	 *            The start timestamp for the bluetooth state.
+	 *            The starting timestamp for the Bluetooth state.
 	 * @param endTimeStamp
-	 *            The end timestamp for the bluetooth state.
+	 *            The ending timestamp for the Bluetooth state.
 	 * @param bluetoothState - The activation state of Bluetooth on the device.
 	 */
 	public BluetoothInfo(double beginTimeStamp , double endTimeStamp , BluetoothState bluetoothState) {
@@ -69,17 +69,17 @@ public class BluetoothInfo {
 	}
 
 	/**
-	 * Returns the start timestamp for the bluetooth state. 
+	 * Returns the starting timestamp for the Bluetooth activation state. 
 	 * 
-	 * @return The start timestamp.
+	 * @return The starting timestamp.
 	 */
 	public double getBeginTimeStamp() {
 		return beginTimeStamp;
 	}
 	
-	 /** Returns the end timestamp for the bluetooth state.  
+	 /** Returns the ending timestamp for the Bluetooth activation state.  
 	 * 
-	 * @return The end timestamp.
+	 * @return The ending timestamp.
 	 */
 	public double getEndTimeStamp() {
 		return endTimeStamp;

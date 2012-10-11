@@ -115,7 +115,7 @@ public class AROAdvancedTabb extends JPanel {
 	 * Sets the trace data to be displayed on the Diagnostic tab screen.
 	 * 
 	 * @param analysisData
-	 *            – The trace analysis data to be displayed.
+	 *            The trace analysis data to be displayed.
 	 */
 	public synchronized void setAnalysisData(TraceData.Analysis analysisData) {
 		this.analysisData = analysisData;
@@ -136,7 +136,7 @@ public class AROAdvancedTabb extends JPanel {
 	 * chart.
 	 * 
 	 * @param videoPlayer
-	 *            – An AROVideoPlayer object representing the video player to be
+	 *            An AROVideoPlayer object representing the video player to be
 	 *            used with this AROAdvancedTabb.
 	 */
 	public void setVideoPlayer(AROVideoPlayer videoPlayer) {
@@ -148,7 +148,7 @@ public class AROAdvancedTabb extends JPanel {
 	 * ChartPlotOptions.
 	 * 
 	 * @param optionsSelected
-	 *            – A List containing the chart plot options. Typically, these
+	 *            A List containing the chart plot options. Typically, these
 	 *            are the options selected using the ChartPlotOptions dialog in
 	 *            the View menu.
 	 */
@@ -199,7 +199,9 @@ public class AROAdvancedTabb extends JPanel {
 	}
 	
 	/**
-	 * Returns the AROVideoPlayer object.
+	 * Returns the video player associated with this instance.
+	 * 
+	 * @return An AROVideoPlayer object.
 	 */
 	public AROVideoPlayer getVideoPlayer() {
 		return aroVideoPlayer;
@@ -540,7 +542,7 @@ public class AROAdvancedTabb extends JPanel {
 	 * Highlights the specified packet in the Packet view table.
 	 * 
 	 * @param packetInfo
-	 *            – The PacketInfo object representing the packet to be
+	 *            The PacketInfo object representing the packet to be
 	 *            highlighted.
 	 **/
 	public void setHighlightedPacketView(PacketInfo packetInfo) {
@@ -579,8 +581,7 @@ public class AROAdvancedTabb extends JPanel {
 	/**
 	 * Returns the currently displayed graph panel.
 	 * 
-	 * @return GraphPanel An object containing the currently displayed graph
-	 *         panel.
+	 * @return An object containing the currently displayed graph panel.
 	 */
 	public GraphPanel getDisplayedGraphPanel() {
 		return this.graphPanel;

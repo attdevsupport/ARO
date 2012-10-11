@@ -32,7 +32,6 @@ import javax.swing.JComponent;
  */
 public class AROPrintablePanel implements Printable {
 
-	private static final long serialVersionUID = 1L;
 	private JComponent printablePanel;
 
 	/**
@@ -40,7 +39,7 @@ public class AROPrintablePanel implements Printable {
 	 * specified JComponent printable panel object.
 	 * 
 	 * @param printablePanel
-	 *            – The JComponent printable panel object.
+	 *            The JComponent printable panel object.
 	 */
 	public AROPrintablePanel(JComponent printablePanel) {
 		this.printablePanel = printablePanel;
@@ -89,8 +88,7 @@ public class AROPrintablePanel implements Printable {
 	/**
 	 * Returns the number of pages that the printable panel contains.
 	 * 
-	 * @param pf
-	 *            - The page format to use for printing.
+	 * @param pf - The page format to use for printing.
 	 * 
 	 * @return The number of pages that the printable panel contains.
 	 */

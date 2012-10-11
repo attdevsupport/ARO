@@ -42,7 +42,7 @@ import com.att.aro.model.UserPreferences;
  */
 public class ProfileManager {
 
-	private static final String DEFAULT_PROFILE = "imap";
+	private static final String DEFAULT_PROFILE = "i997";
 	private static final String DEFAULT_PROFILE_LTE = "lte";
 	private static final Logger logger = Logger.getLogger(ProfileManager.class
 			.getName());
@@ -87,7 +87,7 @@ public class ProfileManager {
 	 * Loads the pre-defined profile with the specified name.
 	 * 
 	 * @param name
-	 *            – The name of a pre-defined profile returned by the
+	 *            The name of a pre-defined profile returned by the
 	 *            getPredefinedProfileNames() method.
 	 * 
 	 * @return The pre-defined profile, or null, if the profile is not found.
@@ -120,13 +120,13 @@ public class ProfileManager {
 	 * Loads the profile that is stored in the specified file.
 	 * 
 	 * @param file
-	 *            – The profile file to load.
+	 *            The profile file to load.
 	 * 
 	 * @return A Profile object containing the profile, or null, if the profile
 	 *         file is not found.
 	 * 
 	 * @throws java.io.IOException
-	 *             - An unexpected exception that occurs when there is an error
+	 *             An unexpected exception that occurs when there is an error
 	 *             reading the profile.
 	 * 
 	 * @throws ProfileException
@@ -186,10 +186,10 @@ public class ProfileManager {
 	}
 
 	/**
-	 * Returns the application default profile for the specified profile type
+	 * Returns the default device profile for the specified profile type (i.e. 3G or LTE)
 	 * 
 	 * @param profileType
-	 *            specifies type of profile to get
+	 *            The device profile type. One of the values of the Profiletype enumeration.
 	 * 
 	 * @return Profile The default profile.
 	 */
@@ -241,7 +241,7 @@ public class ProfileManager {
 	}
 
 	/**
-	 * Returns the default profile for the application.
+	 * Returns the default device profile.
 	 * 
 	 * @return The default profile.
 	 */

@@ -40,7 +40,12 @@ public class TCPPacket extends IPPacket implements Serializable {
 	private int payloadLen;
 
 	/**
-	 * Creates a new instance of the TCPPacket class.
+	 * Creates a new instance of the TCPPacket class using the specified parameters.
+	 * @param seconds The number of seconds for the TCP packet.
+	 * @param microSeconds The number of microseconds for the TCP packet.
+	 * @param len The length of the data portion of the TCP packet (in bytes).
+	 * @param datalinkHdrLen The length of the header portion of the TCP packet (in bytes).
+	 * @param data An array of bytes that is the data portion of the TCP packet.
 	 */
 	protected TCPPacket(long seconds, long microSeconds, int len, int datalinkHdrLen,
 			byte[] data) {
@@ -68,6 +73,7 @@ public class TCPPacket extends IPPacket implements Serializable {
 	}
 
 	/**
+	 * @return The offset within the data array of the packet data excluding the header information.
 	 * @see com.att.aro.pcap.IPPacket#getDataOffset()
 	 */
 	@Override
@@ -132,8 +138,8 @@ public class TCPPacket extends IPPacket implements Serializable {
 	/**
 	 * Gets the Acknowledge Flag.
 	 * 
-	 * @return A boolean value that is “true if data is prioritized within the
-	 *         packet, and is “false” otherwise.
+	 * @return A boolean value that is "true" if data is prioritized within the
+	 *         packet, and is "false" otherwise.
 	 */
 	public boolean isACK() {
 		return ACK;
@@ -144,8 +150,8 @@ public class TCPPacket extends IPPacket implements Serializable {
 	 * host that the data should be pushed up to the receiving application
 	 * immediately.
 	 * 
-	 * @return A boolean value that is “true” if the data should be pushed to
-	 *         the receiving application immediately, and is “false” if a push
+	 * @return A boolean value that is "true" if the data should be pushed to
+	 *         the receiving application immediately, and is "false" if a push
 	 *         is not required.
 	 */
 	public boolean isPSH() {
@@ -156,7 +162,7 @@ public class TCPPacket extends IPPacket implements Serializable {
 	 * Gets the RST flag. The RST flag indicates whether a connection should be
 	 * aborted in response to an error.
 	 * 
-	 * @return A boolean value that is “true” if the connection should be closed
+	 * @return A boolean value that is "true" if the connection should be closed
 	 *         in response to an error, and is false if it should not.
 	 */
 	public boolean isRST() {
@@ -167,7 +173,7 @@ public class TCPPacket extends IPPacket implements Serializable {
 	 * Gets a flag that indicates whether a connection should be initiated.
 	 * 
 	 * @return A boolean value that is true if a connection should be initiated,
-	 *         and is “false if a connection won’t be initiated.
+	 *         and is "false" if a connection won't be initiated.
 	 */
 	public boolean isSYN() {
 		return SYN;
@@ -176,8 +182,8 @@ public class TCPPacket extends IPPacket implements Serializable {
 	/**
 	 * Gets the FIN Flag.
 	 * 
-	 * @return A boolean value that is “true” if the connection should be
-	 *         closed, and is “false” if the connection should remain the same.
+	 * @return A boolean value that is "true" if the connection should be
+	 *         closed, and is "false" if the connection should remain the same.
 	 */
 	public boolean isFIN() {
 		return FIN;

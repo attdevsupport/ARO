@@ -17,6 +17,7 @@ package com.att.aro.pcap;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -76,8 +77,14 @@ public class PCapAdapter {
 	 */
 	private void pcapHandler(int datalink, long seconds, long microSeconds,
 			int len, byte[] data) {
-		pl.packetArrived(Packet.createPacketFromPcap(datalink, seconds, microSeconds,
-				len, data));
+		try {
+			pl.packetArrived(Packet.createPacketFromPcap(datalink, seconds, microSeconds,
+					len, data));
+		} catch (Throwable t) {
+
+			// Log exceptions before they are returned to native code
+			logger.log(Level.SEVERE, "Unexpected exception parsing packet", t);
+		}
 	}
 
 	/**

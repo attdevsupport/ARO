@@ -31,15 +31,15 @@ public class TimeRangeAnalysis implements Serializable {
 	private double energy;
 
 	/**
-	 * Initializes an instance of the TimeRangeAnalysis class, using the specified payload 
-	 * length, DCH time, and energy value.
+	 * Initializes an instance of the TimeRangeAnalysis class, using the specified start and 
+	 * end times, total number of bytes transferred, payload length, active state time, and energy value. 
 	 * 
-	 * @param startTime start of time range in seconds
-	 * @param endTime end of time range in seconds
-	 * @param totalBytes total bytes transferred including all packet headers
-	 * @param payloadLen – The length of the payload in bytes.
-	 * @param activeTime time of high energy radio time
-	 * @param energy – The amount of energy used to deliver the payload.
+	 * @param startTime The start of the time range (in seconds). 
+	 * @param endTime The end of the time range (in seconds). 
+	 * @param totalBytes The total bytes transferred, including all packet headers. 
+	 * @param payloadLen The length of the payload in bytes.
+	 * @param activeTime The total amount of high energy radio time. 
+	 * @param energy The amount of energy used to deliver the payload.
 	 */
 	public TimeRangeAnalysis(double startTime, double endTime, long totalBytes,
 			long payloadLen, double activeTime, double energy) {
@@ -52,26 +52,26 @@ public class TimeRangeAnalysis implements Serializable {
 	}
 
 	/**
-	 * Returns the total bytes transferred including packet headers
-	 * @return the totalBytes
+	 * Returns the total number of bytes transferred, including packet headers.
+	 * @return The total bytes transferred.
 	 */
 	public long getTotalBytes() {
 		return totalBytes;
 	}
 
 	/**
-	 *  Returns the length of the payload, in bytes. 
+	 *  Returns the length of the payload. 
 	 * 
-	 * @return The payload length.
+	 * @return The payload length, in bytes.
 	 */
 	public long getPayloadLen() {
 		return payloadLen;
 	}
 
 	/**
-	 * Returns the time of high energy radio active time.
+	 * Returns the total amount of time that the radio was in a high energy active state.
 	 * 
-	 * @return activeTime.
+	 * @return The active time value, in seconds.
 	 */
 	public double getActiveTime() {
 		return activeTime;
@@ -88,7 +88,7 @@ public class TimeRangeAnalysis implements Serializable {
 
 	/**
 	 * Returns the average throughput for the time range
-	 * @return throughput in kilobits per second
+	 * @return The throughput value, in kilobits per second.
 	 */
 	public double getKbps() {
 		return (totalBytes * 8 / 1000) / (endTime - startTime);

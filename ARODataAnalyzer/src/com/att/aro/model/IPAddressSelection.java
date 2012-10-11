@@ -20,8 +20,8 @@ import java.io.Serializable;
 import java.net.InetAddress;
 
 /**
- * Manages the setting applied to each IP address listed in the Application/IP
- * Selection dialog.
+ * Contains methods for managing the settings applied to each IP address listed in the SelectApplications/IPs
+ * dialog.
  */
 public class IPAddressSelection implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -32,21 +32,21 @@ public class IPAddressSelection implements Serializable {
 
 	/**
 	 * Initializes an instance of the IPAddressSelection class, using the
-	 * application name and IP address.
+	 * specified IP address.
 	 * 
 	 * @param ipAddress
-	 *            The ip address for the packets corresponding to the selected
-	 *            IP.
+	 *            The IP address to manage the settings.
 	 */
 	public IPAddressSelection(InetAddress ipAddress) {
 		this.ipAddress = ipAddress;
 	}
 
 	/**
-	 * Copy constructor
+	 * Initializes an instance of the IPAddressSelection class, using another instance 
+	 * of the IPAddressSelection class.
 	 * 
 	 * @param sel
-	 *            object to be copied
+	 *            An IPAddressSelection object to be copied to a new object.
 	 */
 	public IPAddressSelection(IPAddressSelection sel) {
 		this.ipAddress = sel.ipAddress;
@@ -78,7 +78,7 @@ public class IPAddressSelection implements Serializable {
 	 * for this IP address.
 	 * 
 	 * @param selected
-	 *            – A boolean value that indicates the selected status to set
+	 *            A boolean value that indicates the selected status to set
 	 *            for this IP address.
 	 */
 	public void setSelected(boolean selected) {
@@ -99,7 +99,7 @@ public class IPAddressSelection implements Serializable {
 	 * address.
 	 * 
 	 * @param color
-	 *            - The Color to set for this IP address.
+	 *            The Color to set for this IP address.
 	 */
 	public void setColor(Color color) {
 		this.color = color;

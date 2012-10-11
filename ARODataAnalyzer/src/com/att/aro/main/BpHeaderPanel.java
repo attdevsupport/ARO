@@ -83,7 +83,7 @@ public class BpHeaderPanel extends ImagePanel {
 	 * Sets the Pass/Fail label on the right side of the header in a Detailed
 	 * Results section. If any of the tests in a Best Practices category (
 	 * Caching, Connections, and Other) fails, the Detailed Results section for
-	 * that category is labeled as “Fail”.
+	 * that category is labeled as "Fail".
 	 * 
 	 * @param pass
 	 *            - A boolean value that indicates whether any of the best

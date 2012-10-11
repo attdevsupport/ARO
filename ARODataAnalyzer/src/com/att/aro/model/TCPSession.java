@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,9 @@ import java.util.TreeMap;
 import java.util.logging.Logger;
 
 import com.att.aro.model.PacketInfo.TcpInfo;
+import com.att.aro.pcap.DomainNameSystem;
 import com.att.aro.pcap.TCPPacket;
+import com.att.aro.pcap.UDPPacket;
 
 /**
  * Represents a TCP session, acting as a bean class for session information. Provides methods for 
@@ -96,6 +99,8 @@ public class TCPSession implements Serializable {
 	 * request in the session or the referrer domain that caused this session to
 	 * be opened
 	 */
+	private PacketInfo dnsRequestPacket;
+	private PacketInfo dnsResponsePacket;
 	private String domainName;
 	private int fileDownloadCount;
 	private long bytesTransferred;
@@ -144,11 +149,11 @@ public class TCPSession implements Serializable {
 	 * Initializes an instance of the TCPSession class, using the specified remote IP, remote port, 
 	 * and local port.
 	 * 
-	 * @param remoteIP – The remove IP address.
+	 * @param remoteIP The remove IP address.
 	 * 
-	 * @param remotePort – The remote port.
+	 * @param remotePort The remote port.
 	 * 
-	 * @param localPort – The local port.
+	 * @param localPort The local port.
 	 */
 	public TCPSession(InetAddress remoteIP, int remotePort, int localPort) {
 		this.remoteIP = remoteIP;
@@ -159,7 +164,7 @@ public class TCPSession implements Serializable {
 	/**
 	 * Creates a List of TCP sessions using the specified Collection of packets.
 	 * 
-	 * @param packets – A collection of PacketInfo objects holding the packet information.
+	 * @param packets A collection of PacketInfo objects holding the packet information.
 	 * 
 	 * @return The collection of tcp sessions that are found from the packets
 	 *         data.
@@ -168,9 +173,19 @@ public class TCPSession implements Serializable {
 	public static List<TCPSession> extractTCPSessions(
 			Collection<PacketInfo> packets) throws IOException {
 		Map<String, TCPSession> sess = new LinkedHashMap<String, TCPSession>();
+		List<PacketInfo> dnsPackets = new ArrayList<PacketInfo>();
 		for (PacketInfo packet : packets) {
 
 			if (!(packet.getPacket() instanceof TCPPacket)) {
+				
+				// Check for DNS packets
+				if (packet.getPacket() instanceof UDPPacket) {
+					UDPPacket udp = (UDPPacket) packet.getPacket();
+					if (udp.isDNSPacket()) {
+						// Add packets to beginning of list so that they are in reverse order
+						dnsPackets.add(0, packet);
+					}
+				}
 				continue;
 			}
 
@@ -205,6 +220,36 @@ public class TCPSession implements Serializable {
 			TCPSession s = sess.get(key);
 			if (s == null) {
 				s = new TCPSession(remoteIP, remotePort, localPort);
+				
+				// Search for DNS request/response
+				Iterator<PacketInfo> iter = dnsPackets.iterator();
+				DomainNameSystem dns = null;
+				while (iter.hasNext()) {
+					PacketInfo p = iter.next();
+					UDPPacket udp = ((UDPPacket) p.getPacket());
+					dns = udp.getDns();
+					if (dns.isResponse() && dns.getIpAddresses().contains(remoteIP)) {
+						s.dnsResponsePacket = p;
+						iter.remove();
+						break;
+					}
+					dns = null;
+				}
+				if (dns != null) {
+					String domainName = dns.getDomainName();
+					while (iter.hasNext()) {
+						PacketInfo p = iter.next();
+						UDPPacket udp = ((UDPPacket) p.getPacket());
+						dns = udp.getDns();
+						if (!dns.isResponse() && domainName.equals(dns.getDomainName())) {
+							s.remoteHostName = domainName;
+							s.dnsRequestPacket = p;
+							iter.remove();
+							break;
+						}
+					}
+				}
+				
 				sess.put(key, s);
 			}
 			s.packets.add(packet);
@@ -462,7 +507,7 @@ public class TCPSession implements Serializable {
 				}
 			}
 			if (s.domainName == null) {
-				s.domainName = s.remoteIP.getHostAddress();
+				s.domainName = s.remoteHostName != null ? s.remoteHostName : s.remoteIP.getHostAddress();
 			}
 		}
 		ul.clear();
@@ -513,6 +558,20 @@ public class TCPSession implements Serializable {
 	 */
 	public String getRemoteHostName() {
 		return remoteHostName;
+	}
+
+	/**
+	 * @return the dnsRequestPacket
+	 */
+	public PacketInfo getDnsRequestPacket() {
+		return dnsRequestPacket;
+	}
+
+	/**
+	 * @return the dnsResponsePacket
+	 */
+	public PacketInfo getDnsResponsePacket() {
+		return dnsResponsePacket;
 	}
 
 	/**

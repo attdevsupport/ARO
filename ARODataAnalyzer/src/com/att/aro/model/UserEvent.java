@@ -78,15 +78,15 @@ public class UserEvent implements Serializable {
 		 */
 		KEY_RED,
 		/**
-		 * Generic key press
+		 * A generic key press.
 		 */
 		KEY_KEY,
 		/**
-		 * Landscape screen orientation
+		 * The screen orientation was changed to Landscape.
 		 */
 		SCREEN_LANDSCAPE,
 		/**
-		 * Portrait screen orientation
+		 * The screen orientation was changed to Portrait.
 		 */
 		SCREEN_PORTRAIT
 	}
@@ -99,9 +99,9 @@ public class UserEvent implements Serializable {
 	 * Initializes an instance of the UserEvent class, using the specified event type, 
 	 * press time, and release time.
 	 * 
-	 * @param eventType – The event type. One of the values of the UserEventType enumeration.
-	 * @param pressTime – The time at which the event was initiated (such as a key being pressed down).
-	 * @param releaseTime - The time at which the event was ended (such as a key being released).
+	 * @param eventType The event type. One of the values of the UserEventType enumeration.
+	 * @param pressTime The time at which the event was initiated (such as a key being pressed down).
+	 * @param releaseTime The time at which the event was ended (such as a key being released).
 	 */
 	public UserEvent(UserEventType eventType, double pressTime, double releaseTime) {
 		this.eventType = eventType;
@@ -139,7 +139,7 @@ public class UserEvent implements Serializable {
 	/**
 	 * Sets the press time of the event. 
 	 * 
-	 * @param dPressTime – The time at which the event was initiated.
+	 * @param dPressTime The time at which the event was initiated.
 	 * 
 	 */
 	public void setPressTime(double dPressTime) {
@@ -149,7 +149,7 @@ public class UserEvent implements Serializable {
 	/**
 	 * Sets the release time of therelease event. 
 	 * 
-	 * @param dReleaseTime – The time at which the event was ended.
+	 * @param dReleaseTime The time at which the event was ended.
 	 * 
 	 */
 	public void setReleaseTime(double dReleaseTime) {

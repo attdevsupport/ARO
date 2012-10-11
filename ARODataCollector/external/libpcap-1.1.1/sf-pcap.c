@@ -121,6 +121,7 @@ static const char rcsid[] _U_ =
 #define LT_LINKTYPE_EXT(x)	((x) & 0xFC000000)
 
 static int pcap_next_packet(pcap_t *p, struct pcap_pkthdr *hdr, u_char **datap);
+
 /*
  * Check whether this is a pcap savefile and, if it is, extract the
  * relevant information from the header.
@@ -515,10 +516,12 @@ pcap_setup_dump(pcap_t *p, int linktype, FILE *f, const char *fname)
 /*
  * Initialize so that sf_write() will output to the file named 'fname'.
  */
-pcap_dumper_t *pcap_dump_open(pcap_t *p, const char *fname)
+pcap_dumper_t *
+pcap_dump_open(pcap_t *p, const char *fname)
 {
 	FILE *f;
 	int linktype;
+
 	/*
 	 * If this pcap_t hasn't been activated, it doesn't have a
 	 * link-layer type, so we can't use it.
@@ -555,9 +558,6 @@ pcap_dumper_t *pcap_dump_open(pcap_t *p, const char *fname)
 	}
 	return (pcap_setup_dump(p, linktype, f, fname));
 }
-
-
-
 
 /*
  * Initialize so that sf_write() will output to the given stream.

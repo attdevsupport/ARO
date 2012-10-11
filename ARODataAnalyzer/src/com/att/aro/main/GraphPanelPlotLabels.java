@@ -36,14 +36,14 @@ public class GraphPanelPlotLabels {
 	 * specified label, chart plot object, and weight.
 	 * 
 	 * @param label
-	 *            - The label for the plot on the graph, such as "GPS" , or
+	 *            The label for the plot on the graph, such as "GPS" , or
 	 *            "Radio".
 	 * 
 	 * @param plot
-	 *            - The plot object to be displayed in the Diagnostic chart.
+	 *            The plot object to be displayed in the Diagnostic chart.
 	 * 
 	 * @param weight
-	 *            – An int that is the weight of the plot.
+	 *            An int that is the weight of the plot.
 	 */
 	public GraphPanelPlotLabels(String label, XYPlot plot, int weight) {
 		this.label = new JLabel(label);

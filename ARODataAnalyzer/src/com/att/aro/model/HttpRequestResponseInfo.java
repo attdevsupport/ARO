@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 package com.att.aro.model;
 
 import java.io.ByteArrayInputStream;
@@ -20,6 +20,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.DateFormat;
@@ -28,10 +29,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -40,8 +43,8 @@ import java.util.zip.GZIPInputStream;
 import com.att.aro.pcap.TCPPacket;
 
 /**
- * Encapsulates information about an HTTP request or response. Converted from
- * struct HTTP_REQUEST_RESPONSE
+ * Encapsulates information about an HTTP request or response. This class was
+ * converted from struct HTTP_REQUEST_RESPONSE
  */
 public class HttpRequestResponseInfo implements
 		Comparable<HttpRequestResponseInfo> {
@@ -62,7 +65,7 @@ public class HttpRequestResponseInfo implements
 	public static final String HTTP_GET = "GET";
 
 	/**
-	 * PReturns the PUT HTTP type.pe.
+	 * Returns the PUT HTTP type.pe.
 	 */
 	public static final String HTTP_PUT = "PUT";
 
@@ -75,10 +78,19 @@ public class HttpRequestResponseInfo implements
 
 	private static final Logger logger = Logger
 			.getLogger(HttpRequestResponseInfo.class.getName());
+	
+	private static final Map<String, Integer> wellKnownPorts = new HashMap<String, Integer>(5);
+	static {
+		wellKnownPorts.put("http", 80);
+		wellKnownPorts.put("https", 443);
+		wellKnownPorts.put("rtsp", 554);
+	}
 
 	private PacketInfo.Direction packetDirection;
 	private TCPSession session;
 	private Direction direction; // REQUEST or RESPONSE
+	private String scheme;
+	private int port;
 	private String version;
 	private String requestType; // e.g., HTTP_POST, HTTP_GET
 	private int statusCode; // e.g., 200
@@ -87,6 +99,7 @@ public class HttpRequestResponseInfo implements
 	private String charset;
 	private String objName; // e.g., /static/managed/img/.../JoePerry640.jpg
 	private String objNameWithoutParams;
+	private String fileName;
 	private URI objUri;
 	private String responseResult;
 	private boolean chunked;
@@ -101,13 +114,14 @@ public class HttpRequestResponseInfo implements
 	private String contentEncoding;
 	private int rrStart;
 	private int rawSize; // Includes headers
+	private boolean encrypted;
 
 	// Map of the content offset/
 	private SortedMap<Integer, Integer> contentOffsetLength;
 
 	// packets
 	private PacketInfo firstDataPacket;
-	private List<PacketInfo> packets;
+	private PacketInfo lastDataPacket;
 
 	// Cache info
 	private Date date;
@@ -131,16 +145,18 @@ public class HttpRequestResponseInfo implements
 	private Long maxStale;
 
 	private HttpRequestResponseInfo assocReqResp;
+	private RequestResponseTimeline waterfallInfos;
 
 	/**
-	 * The HttpRequestResponseInfo.Direction Enumeration specifies constant values that 
-	 * describe the direction of an HTTP request/response. The direction indicates whether 
-	 * an HttpRequestResponseInfo object contains a request (up link) or a response 
-	 * (downlink). This enumeration is part of the HttpRequestResponseInfo class. 
+	 * The HttpRequestResponseInfo.Direction Enumeration specifies constant
+	 * values that describe the direction of an HTTP request/response. The
+	 * direction indicates whether an HttpRequestResponseInfo object contains a
+	 * request (up link) or a response (downlink). This enumeration is part of
+	 * the HttpRequestResponseInfo class.
 	 */
 	public enum Direction {
 		/**
-		 * A Request traveling in the up link direction. 
+		 * A Request traveling in the up link direction.
 		 */
 		REQUEST,
 		/**
@@ -246,17 +262,90 @@ public class HttpRequestResponseInfo implements
 			Collections.sort(result);
 			result.trimToSize();
 
-			// Associate requests/responses
-			List<HttpRequestResponseInfo> reqs = new ArrayList<HttpRequestResponseInfo>(
-					result.size());
-			for (HttpRequestResponseInfo rr : result) {
-				if (rr.direction == Direction.REQUEST) {
-					reqs.add(rr);
-				} else if (rr.direction == Direction.RESPONSE) {
-					if (!reqs.isEmpty()) {
-						rr.assocReqResp = reqs.remove(0);
-						rr.assocReqResp.assocReqResp = rr;
+			if (result.size() > 0) {
+				
+				// Get DNS info for waterfall
+				Double dns = null;
+				if (session.getDnsRequestPacket() != null && session.getDnsResponsePacket() != null) {
+					dns = session.getDnsRequestPacket().getTimeStamp();
+				}
+
+				// Find syn and ack packets for session
+				Double synTime = null;
+				for (PacketInfo p : session.getPackets()) {
+					if (p.getPacket() instanceof TCPPacket) {
+						TCPPacket tcp = (TCPPacket) p.getPacket();
+						if (tcp.isSYN()) {
+							synTime = p.getTimeStamp();
+							break;
+						}
 					}
+				}
+				
+				// TODO Figure out SSL negotiation for SSL support
+
+				// Associate requests/responses
+				List<HttpRequestResponseInfo> reqs = new ArrayList<HttpRequestResponseInfo>(
+						result.size());
+				for (HttpRequestResponseInfo rr : result) {
+					if (rr.direction == Direction.REQUEST) {
+						reqs.add(rr);
+					} else if (rr.direction == Direction.RESPONSE) {
+						if (!reqs.isEmpty()) {
+							rr.assocReqResp = reqs.remove(0);
+							rr.assocReqResp.assocReqResp = rr;
+						}
+					}
+				}
+
+				// Build waterfall for each request/response pair
+				for (HttpRequestResponseInfo rr : result) {
+					if (rr.getDirection() != Direction.REQUEST || rr.getAssocReqResp() == null || rr.encrypted) {
+						// Only process non-HTTPS request/response pairs
+						continue;
+					}
+					
+					double startTime = -1;
+					double firstReqPacket = rr.firstDataPacket.getTimeStamp();
+					double lastReqPacket = rr.lastDataPacket.getTimeStamp();
+					
+					HttpRequestResponseInfo resp = rr.getAssocReqResp();
+					double firstRespPacket = resp.firstDataPacket.getTimeStamp();
+					double lastRespPacket = resp.lastDataPacket.getTimeStamp();
+
+					// Add DNS and initial connect to fist req/resp pair only
+					Double dnsDuration = null;
+					if (dns != null) {
+						startTime = dns.doubleValue();
+						if (synTime != null) {
+							dnsDuration = synTime.doubleValue() - dns.doubleValue();
+						} else {
+							logger.warning("Found DNS connection with no initial session connection");
+							dnsDuration = firstReqPacket - dns.doubleValue();
+						}
+						
+						// Prevent from being added again
+						dns = null;
+					}
+					
+					Double initConnDuration = null;
+					if (synTime != null) {
+						initConnDuration = firstReqPacket - synTime;
+						if (startTime < 0.0) {
+							startTime = synTime.doubleValue();
+						}
+						
+						// Prevent from being added again
+						synTime = null;
+					}
+
+					// Calculate request time
+					if (startTime < 0.0) {
+						startTime = firstReqPacket;
+					}
+					
+					// Store waterfall in request/response
+					rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, null, initConnDuration, lastReqPacket - firstReqPacket, firstRespPacket - lastReqPacket, lastRespPacket - firstRespPacket);
 				}
 			}
 		}
@@ -272,13 +361,15 @@ public class HttpRequestResponseInfo implements
 		}
 
 		/**
-		 * Returns a list of HTTP requests and responses from the specified TCP session. 
+		 * Returns a list of HTTP requests and responses from the specified TCP
+		 * session.
 		 * 
 		 * @param direction
 		 *            The direction i.e. uplink/downlink.
 		 * @throws IOException
 		 * 
-		 * @return A List of HttpRequestResponseInfo objects that contain the request/response data from a TCP session.
+		 * @return A List of HttpRequestResponseInfo objects that contain the
+		 *         request/response data from a TCP session.
 		 */
 		public synchronized void extractHttpRequestResponseInfo(
 				PacketInfo.Direction direction) throws IOException {
@@ -359,6 +450,18 @@ public class HttpRequestResponseInfo implements
 					mapPackets(packetOffsets, rrInfo.rrStart, counter - 1,
 							direction, rrInfo);
 					rrInfo.rawSize = counter - rrInfo.rrStart;
+					
+					// Build an absolute URI if possible
+					if (rrInfo.objUri != null && !rrInfo.objUri.isAbsolute()) {
+						try {
+							int port = Integer.valueOf(rrInfo.port).equals(wellKnownPorts.get(rrInfo.scheme)) ? -1 : rrInfo.port;
+							rrInfo.objUri = new URI(rrInfo.scheme, null, rrInfo.hostName, port, rrInfo.objUri.getPath(), rrInfo.objUri.getQuery(), rrInfo.objUri.getFragment());
+						} catch (URISyntaxException e) {
+							// Just log warning
+							logger.log(Level.WARNING, "Unexpected exception creating URI for request", e);
+						}
+					}
+					
 					result.add(rrInfo);
 					if (rrInfo.getDirection() == null) {
 						logger.warning("Request/response object has unknown direction");
@@ -392,27 +495,27 @@ public class HttpRequestResponseInfo implements
 			rrInfo.firstDataPacket = determineDataPacketAtIndex(packetOffsets,
 					start);
 
-			PacketInfo lastDataPacket = determineDataPacketAtIndex(
+			rrInfo.lastDataPacket = determineDataPacketAtIndex(
 					packetOffsets, counter - 1);
-
-			long startSeq = ((TCPPacket) rrInfo.firstDataPacket.getPacket())
-					.getSequenceNumber();
-			long endSeq = ((TCPPacket) lastDataPacket.getPacket())
-					.getSequenceNumber();
-			ArrayList<PacketInfo> rrPackets = new ArrayList<PacketInfo>();
-			for (PacketInfo p : session.getPackets()) {
-				if (p.getDir() == direction) {
-					TCPPacket tcp = (TCPPacket) p.getPacket();
-					if (tcp.getSequenceNumber() >= startSeq
-							&& tcp.getSequenceNumber() <= endSeq
-									+ lastDataPacket.getPayloadLen()) {
-						rrPackets.add(p);
-						p.setRequestResponseInfo(rrInfo);
-					}
-				}
-			}
-			rrPackets.trimToSize();
-			rrInfo.packets = rrPackets;
+// Removed because this logic is not totally correct and is currently not needed
+//			long startSeq = ((TCPPacket) rrInfo.firstDataPacket.getPacket())
+//					.getSequenceNumber();
+//			long endSeq = ((TCPPacket) lastDataPacket.getPacket())
+//					.getSequenceNumber();
+//			ArrayList<PacketInfo> rrPackets = new ArrayList<PacketInfo>();
+//			for (PacketInfo p : session.getPackets()) {
+//				TCPPacket tcp = (TCPPacket) p.getPacket();
+//				if (p.getDir() == direction) {
+//					if (tcp.getSequenceNumber() >= startSeq
+//							&& tcp.getSequenceNumber() <= endSeq
+//									+ lastDataPacket.getPayloadLen()) {
+//						rrPackets.add(p);
+//						p.setRequestResponseInfo(rrInfo);
+//					}
+//				}
+//			}
+//			rrPackets.trimToSize();
+//			rrInfo.packets = rrPackets;
 		}
 
 		/**
@@ -519,7 +622,21 @@ public class HttpRequestResponseInfo implements
 					} catch (URISyntaxException e) {
 						// Ignore since value does not have to be a URI
 					}
+					if (rrInfo.hostName == null) {
+						rrInfo.hostName = session.getRemoteHostName();
+					}
 					rrInfo.version = matcher.group(3);
+					rrInfo.scheme = rrInfo.version.split("/")[0].toLowerCase();
+					
+					switch (direction) {
+					case UPLINK:
+						rrInfo.port = session.getRemotePort();
+						break;
+					case DOWNLINK:
+						rrInfo.port = session.getLocalPort();
+						break;
+					}
+
 				}
 
 				// Get response
@@ -534,7 +651,9 @@ public class HttpRequestResponseInfo implements
 				if (rrInfo.direction == null) {
 
 					// Assume HTTPS encrypted here
-					while ((line = readLine()) != null && line.length() > 0);
+					rrInfo.encrypted = true;
+					while ((line = readLine()) != null && line.length() > 0)
+						;
 					rrInfo.rawSize = counter - index;
 					switch (direction) {
 					case UPLINK:
@@ -572,7 +691,14 @@ public class HttpRequestResponseInfo implements
 			// Get request host
 			matcher = strReRequestHost.matcher(line);
 			if (matcher.lookingAt()) {
-				rrInfo.hostName = line.substring(matcher.end()).trim();
+				String hostName = line.substring(matcher.end()).trim();
+				
+				// Strip port info if included
+				int i = hostName.indexOf(':');
+				if (i >= 0) {
+					hostName = hostName.substring(0, i);
+				}
+				rrInfo.hostName = hostName;
 				return;
 			}
 
@@ -858,7 +984,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the TCP session. 
+	 * Returns the TCP session.
 	 * 
 	 * @return A TCPSession object containing the TCP session.
 	 */
@@ -867,31 +993,46 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the associated HTTP request/response. For instance, if this object contains an HTTP 
-	 * request, then this method will return the HTTP response associated with that request.
+	 * Returns the associated HTTP request/response. For instance, if this
+	 * object contains an HTTP request, then this method will return the HTTP
+	 * response associated with that request.
 	 * 
-	 * @return An HttpRequestResponseInfo object containing the associated request/response.
+	 * @return An HttpRequestResponseInfo object containing the associated
+	 *         request/response.
 	 */
 	public HttpRequestResponseInfo getAssocReqResp() {
 		return assocReqResp;
 	}
 
 	/**
-	 * Returns the timestamp of the first packet associated with this HttpRequestResponseInfo . This 
-	 * is the offset of the request/response within the current trace. 
+	 * Returns the waterfall information for this request/response pair.  This
+	 * is only set when the direction is "REQUEST" and there is an associated
+	 * response.
+	 * @return
+	 */
+	public RequestResponseTimeline getWaterfallInfos() {
+		return waterfallInfos;
+	}
+
+	/**
+	 * Returns the timestamp of the first packet associated with this
+	 * HttpRequestResponseInfo . This is the offset of the request/response
+	 * within the current trace.
 	 * 
-	 * @return A double that is the first packet timestamp associated with this 
-	 * HttpRequestResponseInfo. If the first packet is null, then this method returns 0.
+	 * @return A double that is the first packet timestamp associated with this
+	 *         HttpRequestResponseInfo. If the first packet is null, then this
+	 *         method returns 0.
 	 */
 	public double getTimeStamp() {
 		return firstDataPacket != null ? firstDataPacket.getTimeStamp() : 0.0;
 	}
 
 	/**
-	 * Gets the real Date (the first packet Date) for the request/response. 
+	 * Gets the real Date (the first packet Date) for the request/response.
 	 * 
-	 * @return The first packet Date associated with the HttpRequestResponseInfo. If the first 
-	 * packet is null, then this method returns null.
+	 * @return The first packet Date associated with the
+	 *         HttpRequestResponseInfo. If the first packet is null, then this
+	 *         method returns null.
 	 */
 	public Date getAbsTimeStamp() {
 		return firstDataPacket != null ? new Date(Math.round(firstDataPacket
@@ -899,16 +1040,17 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the direction (request or response). 
+	 * Returns the direction (request or response).
 	 * 
-	 * @return An HttpRequestResponseInfo.Direction enumeration value that indicates the direction.
+	 * @return An HttpRequestResponseInfo.Direction enumeration value that
+	 *         indicates the direction.
 	 */
 	public Direction getDirection() {
 		return direction;
 	}
 
 	/**
-	 * The HTTP requestType. 
+	 * The HTTP requestType.
 	 * 
 	 * @return A string containing the HTTP requestType.
 	 */
@@ -917,7 +1059,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP object name. 
+	 * Returns the HTTP object name.
 	 * 
 	 * @return A string containing the object name.
 	 */
@@ -926,7 +1068,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP object URL. 
+	 * Returns the HTTP object URL.
 	 * 
 	 * @return The HTTP object URL.
 	 */
@@ -935,7 +1077,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP object name without parameters. 
+	 * Returns the HTTP object name without parameters.
 	 * 
 	 * @return A string containing the object name without parameters.
 	 */
@@ -952,7 +1094,23 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the host name. 
+	 * Returns the file name that was accessed by this request
+	 * @return
+	 */
+	public String getFileName() {
+		if (objName != null && fileName == null) {
+			String s = getObjNameWithoutParams();
+			int index = s.lastIndexOf('/');
+			if (index == s.length() - 1) {
+				--index;
+			}
+			fileName = index >= 0 ? s.substring(index + 1) : s;
+		}
+		return fileName;
+	}
+
+	/**
+	 * Returns the host name.
 	 * 
 	 * @return A string containing the host name.
 	 */
@@ -961,7 +1119,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the status code. 
+	 * Returns the status code.
 	 * 
 	 * @return An int that is the status code.
 	 */
@@ -970,7 +1128,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the content type. 
+	 * Returns the content type.
 	 * 
 	 * @return A string that describes the content type.
 	 */
@@ -979,7 +1137,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the content length. 
+	 * Returns the content length.
 	 * 
 	 * @return The content length in bytes.
 	 */
@@ -988,7 +1146,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the raw size in bytes. 
+	 * Returns the raw size in bytes.
 	 * 
 	 * @return The raw size in bytes.
 	 */
@@ -997,7 +1155,16 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response version. 
+	 * Returns the raw size in kilobytes.
+	 * 
+	 * @return The raw size in kilobytes.
+	 */
+	public double getRawSizeInKB() {
+		return (double) rawSize / 1024;
+	}
+
+	/**
+	 * Returns the HTTP request/response version.
 	 * 
 	 * @return A string that is the HTTP request/response version.
 	 */
@@ -1006,7 +1173,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP response result. 
+	 * Returns the HTTP response result.
 	 * 
 	 * @return A string containing the HTTP response result.
 	 */
@@ -1015,7 +1182,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response ContentEncoding. 
+	 * Returns the HTTP request/response ContentEncoding.
 	 * 
 	 * @return A string containing the ContentEncoding.
 	 */
@@ -1024,7 +1191,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the first data packet associated with the request/response. 
+	 * Returns the first data packet associated with the request/response.
 	 * 
 	 * @return A PacketInfo object containing the first data packet.
 	 */
@@ -1033,16 +1200,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns all of the packets in the HTTP request/response. 
-	 * 
-	 * @return A List of PacketInfo objects containing the packets.
-	 */
-	public List<PacketInfo> getPackets() {
-		return Collections.unmodifiableList(packets);
-	}
-
-	/**
-	 * Returns the HTTP request/response date. 
+	 * Returns the HTTP request/response date.
 	 * 
 	 * @return The date.
 	 */
@@ -1051,97 +1209,97 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP CacheHeaders state. 
+	 * Returns the HTTP CacheHeaders state.
 	 * 
-	 * @return A boolean value that is true if the request/response has CacheHeaders, and is false 
-	 * otherwise.
+	 * @return A boolean value that is true if the request/response has
+	 *         CacheHeaders, and is false otherwise.
 	 */
 	public boolean isHasCacheHeaders() {
 		return hasCacheHeaders;
 	}
 
 	/**
-	 * Returns the HTTP PragmaNoCache state. 
+	 * Returns the HTTP PragmaNoCache state.
 	 * 
-	 * @return A boolean value that is true if the request/response has PragmaNoCache, and is false 
-	 * otherwise.
+	 * @return A boolean value that is true if the request/response has
+	 *         PragmaNoCache, and is false otherwise.
 	 */
 	public boolean isPragmaNoCache() {
 		return pragmaNoCache;
 	}
 
 	/**
-	 * Returns the HTTP NoCache state. 
+	 * Returns the HTTP NoCache state.
 	 * 
-	 * @return A boolean value that is true if the request/response has NoCache, and is false 
-	 * otherwise.
+	 * @return A boolean value that is true if the request/response has NoCache,
+	 *         and is false otherwise.
 	 */
 	public boolean isNoCache() {
 		return noCache;
 	}
 
 	/**
-	 * Returns the HTTP NoStore state. 
+	 * Returns the HTTP NoStore state.
 	 * 
-	 * @return A boolean value that is true if the request/response has NoStore, and is false 
-	 * otherwise.
+	 * @return A boolean value that is true if the request/response has NoStore,
+	 *         and is false otherwise.
 	 */
 	public boolean isNoStore() {
 		return noStore;
 	}
 
 	/**
-	 * Returns the HTTP PublicCache state. 
+	 * Returns the HTTP PublicCache state.
 	 * 
-	 * @return A boolean value that is true if the request/response has PublicCache, and is false 
-	 * otherwise.
+	 * @return A boolean value that is true if the request/response has
+	 *         PublicCache, and is false otherwise.
 	 */
 	public boolean isPublicCache() {
 		return publicCache;
 	}
 
 	/**
-	 * Returns the HTTP PrivateCache state. 
+	 * Returns the HTTP PrivateCache state.
 	 * 
-	 * @return A boolean value that is true if the request/response has PrivateCache, and is false 
-	 * otherwise.
+	 * @return A boolean value that is true if the request/response has
+	 *         PrivateCache, and is false otherwise.
 	 */
 	public boolean isPrivateCache() {
 		return privateCache;
 	}
 
 	/**
-	 * Returns the HTTP MustRevalidate state. 
+	 * Returns the HTTP MustRevalidate state.
 	 * 
-	 * @return A boolean value that is true if the request/response has MustRevalidate, and is 
-	 * false otherwise.
+	 * @return A boolean value that is true if the request/response has
+	 *         MustRevalidate, and is false otherwise.
 	 */
 	public boolean isMustRevalidate() {
 		return mustRevalidate;
 	}
 
 	/**
-	 * Returns the HTTP ProxyRevalidate state. 
+	 * Returns the HTTP ProxyRevalidate state.
 	 * 
-	 * @return A boolean value that is true if the request/response has ProxyRevalidate, and is 
-	 * false otherwise.
+	 * @return A boolean value that is true if the request/response has
+	 *         ProxyRevalidate, and is false otherwise.
 	 */
 	public boolean isProxyRevalidate() {
 		return proxyRevalidate;
 	}
 
 	/**
-	 * Returns the HTTP OnlyIfCached state. 
+	 * Returns the HTTP OnlyIfCached state.
 	 * 
-	 * @return A boolean value that is true if the request/response has OnlyIfCached, and is false 
-	 * otherwise.
+	 * @return A boolean value that is true if the request/response has
+	 *         OnlyIfCached, and is false otherwise.
 	 */
 	public boolean isOnlyIfCached() {
 		return onlyIfCached;
 	}
 
 	/**
-	 * Returns the HTTP etag. 
+	 * Returns the HTTP etag.
 	 * 
 	 * @return A string containing the HTTP etag.
 	 */
@@ -1150,7 +1308,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response age. 
+	 * Returns the HTTP request/response age.
 	 * 
 	 * @return The HTTP request/response age.
 	 */
@@ -1159,7 +1317,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response expire date. 
+	 * Returns the HTTP request/response expire date.
 	 * 
 	 * @return The HTTP request/response expire date.
 	 */
@@ -1168,7 +1326,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the URI referrer. 
+	 * Returns the URI referrer.
 	 * 
 	 * @return The URI referrer.
 	 */
@@ -1177,7 +1335,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response LastModified date. 
+	 * Returns the HTTP request/response LastModified date.
 	 * 
 	 * @return The HTTP request/response LastModified date.
 	 */
@@ -1186,7 +1344,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response MaxAge. 
+	 * Returns the HTTP request/response MaxAge.
 	 * 
 	 * @return The HTTP request/response MaxAge.
 	 */
@@ -1195,7 +1353,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response sMaxAge. 
+	 * Returns the HTTP request/response sMaxAge.
 	 * 
 	 * @return The HTTP request/response sMaxAge.
 	 */
@@ -1204,7 +1362,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response minFresh. 
+	 * Returns the HTTP request/response minFresh.
 	 * 
 	 * @return The HTTP request/response minFresh.
 	 */
@@ -1213,7 +1371,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response maxStale. 
+	 * Returns the HTTP request/response maxStale.
 	 * 
 	 * @return The HTTP request/response maxStale.
 	 */
@@ -1222,12 +1380,13 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the binary content of the request/response body. 
+	 * Returns the binary content of the request/response body.
 	 * 
-	 * @return An array of bytes containing the binary content of the request/response body, or Null 
-	 * if no content is found. 
+	 * @return An array of bytes containing the binary content of the
+	 *         request/response body, or Null if no content is found.
 	 * 
-	 * @throws ContentException - When part of the content is not available.
+	 * @throws ContentException
+	 *             - When part of the content is not available.
 	 */
 	public byte[] getContent() throws ContentException, IOException {
 		if (contentOffsetLength != null) {
@@ -1275,9 +1434,11 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Saves the binary content of the request/response body to the specified file. 
+	 * Saves the binary content of the request/response body to the specified
+	 * file.
 	 * 
-	 * @throws ContentException - When part of content is not available. 
+	 * @throws ContentException
+	 *             - When part of content is not available.
 	 */
 	public void saveContentToFile(File file) throws IOException {
 
@@ -1313,10 +1474,11 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Gets the number of bytes in the request/response body. The actual byte count.
+	 * Gets the number of bytes in the request/response body. The actual byte
+	 * count.
 	 * 
-	 * @return The total number of bytes in the request/response body. If contentOffsetLength is 
-	 * null, then this method returns 0.
+	 * @return The total number of bytes in the request/response body. If
+	 *         contentOffsetLength is null, then this method returns 0.
 	 */
 	public long getActualByteCount() {
 		if (contentOffsetLength != null) {
@@ -1352,17 +1514,17 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP rangeResponse state. 
+	 * Returns the HTTP rangeResponse state.
 	 * 
-	 * @return A boolean value that is true if the request/response has rangeResponse, and is false 
-	 * otherwise.
+	 * @return A boolean value that is true if the request/response has
+	 *         rangeResponse, and is false otherwise.
 	 */
 	public boolean isRangeResponse() {
 		return rangeResponse;
 	}
 
 	/**
-	 * Returns the HTTP request/response rangeFirst value. 
+	 * Returns the HTTP request/response rangeFirst value.
 	 * 
 	 * @return An int that is the HTTP request/response rangeFirst value.
 	 */
@@ -1371,7 +1533,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response rangeLast value. 
+	 * Returns the HTTP request/response rangeLast value.
 	 * 
 	 * @return An int that is the HTTP request/response rangeLast value.
 	 */
@@ -1380,7 +1542,7 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response rangeFull value. 
+	 * Returns the HTTP request/response rangeFull value.
 	 * 
 	 * @return The HTTP request/response rangeFull.
 	 */
@@ -1389,51 +1551,54 @@ public class HttpRequestResponseInfo implements
 	}
 
 	/**
-	 * Returns the HTTP request/response IfModifiedSince state. 
+	 * Returns the HTTP request/response IfModifiedSince state.
 	 * 
-	 * @return A boolean value that is true if the request/response has IfModifiedSince, and is 
-	 * false otherwise
+	 * @return A boolean value that is true if the request/response has
+	 *         IfModifiedSince, and is false otherwise
 	 */
 	public boolean isIfModifiedSince() {
 		return ifModifiedSince;
 	}
 
 	/**
-	 * Returns the HTTP request/response ifNoneMatch state. 
+	 * Returns the HTTP request/response ifNoneMatch state.
 	 * 
-	 * @return A boolean value that is true if the request/response has ifNoneMatch, and is false 
-	 * otherwise.
+	 * @return A boolean value that is true if the request/response has
+	 *         ifNoneMatch, and is false otherwise.
 	 */
 	public boolean isIfNoneMatch() {
 		return ifNoneMatch;
 	}
 
 	/**
-	 * Returns the HTTP request/response chunked state. 
+	 * Returns the HTTP request/response chunked state.
 	 * 
-	 * @return A boolean value that is true if the request/response is chunked, and is false otherwise.
+	 * @return A boolean value that is true if the request/response is chunked,
+	 *         and is false otherwise.
 	 */
 	public boolean isChunked() {
 		return chunked;
 	}
 
 	/**
-	 * Returns the HTTP request/response chunkModeFinished state. 
+	 * Returns the HTTP request/response chunkModeFinished state.
 	 * 
-	 * @return A boolean value that is true if the request/response has chunkModeFinished, and is 
-	 * false otherwise.
+	 * @return A boolean value that is true if the request/response has
+	 *         chunkModeFinished, and is false otherwise.
 	 */
 	public boolean isChunkModeFinished() {
 		return chunkModeFinished;
 	}
 
 	/**
-	 * Returns the request/response body as a text string. The returned text may not be readable. 
+	 * Returns the request/response body as a text string. The returned text may
+	 * not be readable.
 	 * 
-	 * @return The content of the request/response body as a string, or null if the method does not 
-	 * execute successfully. 
+	 * @return The content of the request/response body as a string, or null if
+	 *         the method does not execute successfully.
 	 * 
-	 * @throws ContentException - When part of the content is not available. 
+	 * @throws ContentException
+	 *             - When part of the content is not available.
 	 */
 	public String getContentString() throws ContentException, IOException {
 		byte[] content = getContent();
@@ -1441,4 +1606,34 @@ public class HttpRequestResponseInfo implements
 				: "UTF-8") : null;
 	}
 
+	/**
+	 * Returns the entire request/response including headers as a UTF-8 string.
+	 * No decompression of the content is done.
+	 * @return UTF-8 string or null if an error occurred
+	 */
+	public String getRequestResponseText() {
+		byte[] storage;
+		switch (packetDirection) {
+		case DOWNLINK:
+			storage = session.getStorageDl();
+			break;
+		case UPLINK:
+			storage = session.getStorageUl();
+			break;
+		default:
+
+			// This should not happen because value is checked on construction
+			logger.severe("Packet direction for request/response is has unexpected value");
+			return null;
+		}
+
+		try {
+			return new String(storage, rrStart, rawSize, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+
+			// This should not happen because UTF-8 is valid encoding
+			logger.log(Level.SEVERE, "Unexpected error creating request/response string", e);
+			return null;
+		}
+	}
 }

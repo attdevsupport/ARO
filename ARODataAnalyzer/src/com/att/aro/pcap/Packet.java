@@ -36,7 +36,15 @@ public class Packet implements Serializable {
 	private static final int NETMON_RAW = 9;
 
 	/**
-	 * Creates a new instance of the Packet class.
+	 * Returns a new instance of the Packet class, using a datalink to a Pcap file and the specified 
+	 * parameters to initialize the class members.
+	 * @param datalink The datalink to a Pcap file.
+	 * @param seconds The number of seconds for the packet.
+	 * @param microSeconds The number of microseconds for the packet.
+	 * @param len The length of the packet (in bytes) including both the header and the data.
+	 * @param data An array of bytes that is the data portion of the packet.
+	 * 
+	 * @return The newly created packet.
 	 */
 	public static Packet createPacketFromPcap(int datalink, long seconds, long microSeconds, int len,
 			byte[] data) {
@@ -67,7 +75,15 @@ public class Packet implements Serializable {
 	}
 
 	/**
-	 * Creates a new instance of the Packet class.
+	 * Returns a new instance of the Packet class, using a datalink to the Microsoft Network Monitor 
+	 * and the specified parameters to initialize the class members.
+	 * @param datalink The datalink to the Microsoft Network Monitor.
+	 * @param seconds The number of seconds for the packet.
+	 * @param microSeconds The number of microseconds for the packet.
+	 * @param len The length of the packet (in bytes) including both the header and the data.
+	 * @param data An array of bytes that is the data portion of the packet.
+	 * 
+	 * @return The newly created packet.
 	 */
 	public static Packet createPacketFromNetmon(int datalink, long seconds, long microSeconds, int len,
 			byte[] data) {
@@ -121,7 +137,15 @@ public class Packet implements Serializable {
 	}
 
 	/**
-	 * Creates a new instance of the Packet class.
+	 * Returns a new instance of the Packet class, using the specified parameters to initialize the class members.
+	 * @param network The datalink to the network.
+	 * @param seconds The number of seconds for the packet.
+	 * @param microSeconds The number of microseconds for the packet.
+	 * @param len The length of the data portion of the packet (in bytes).
+	 * @param datalinkHdrLen The length of the header portion of the packet (in bytes).
+	 * @param data An array of bytes that is the data portion of the packet.
+	 * 
+	 * @return The newly created packet.
 	 */
 	public static Packet createPacket(short network, long seconds, long microSeconds, int len, int datalinkHdrLen,
 			byte[] data) {
@@ -168,7 +192,12 @@ public class Packet implements Serializable {
 	private int dataOffset;
 
 	/**
-	 * Constructor
+	 *  Initializes  a new instance of the Packet class, using the specified parameters.
+	 *  @param datalinkHdrLen The datalink for the packet.
+	 *  @param seconds The number of seconds for the packet.
+	 *  @param microSeconds The number of microseconds for the packet.
+	 *  @param len The length of the packet (in bytes) including both the header and the data.
+	 *  @param data An array of bytes that is the data portion of the packet.
 	 */
 	protected Packet(long seconds, long microSeconds, int len, int datalinkHdrLen, byte[] data) {
 		this.dataOffset = datalinkHdrLen;
@@ -238,12 +267,11 @@ public class Packet implements Serializable {
 	}
 
 	/**
-	 * This method returns the offset into the data array where the payload of
+	 * Returns the offset into the data array where the payload of
 	 * the packet starts. Subclasses should override this to give proper data
 	 * offset excluding enclosed headers.
 	 * 
-	 * @return The offset within the data array of the packet data excluding the
-	 *         header info
+	 * @return The offset within the data array of the packet data, excluding the header information.
 	 */
 	public int getDataOffset() {
 		return dataOffset;

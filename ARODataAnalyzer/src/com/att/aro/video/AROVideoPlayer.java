@@ -298,7 +298,7 @@ public class AROVideoPlayer extends JFrame {
 	}
 
 	/**
-	 * Method to clear the video player and its components
+	 * Clears the video player and its components.
 	 * 
 	 */
 	public synchronized void clear() {

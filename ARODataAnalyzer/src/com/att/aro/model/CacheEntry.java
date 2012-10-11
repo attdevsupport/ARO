@@ -97,43 +97,48 @@ public class CacheEntry implements Serializable, Comparable<CacheEntry> {
 	private long rawBytes;
 	private long bytesInCache;
 	private long bytesNotInCache;
+	private PacketInfo sessionFirstPacket;
 
 	/**
 	 * Initializes an instance of the CacheEntry class using the specified HTTP request 
 	 * and response information, and cache diagnosis value.
 	 * 
-	 * @param request – An HttpRequestResponseInfo object containing the request. This parameter 
+	 * @param request An HttpRequestResponseInfo object containing the request. This parameter 
 	 * can be null if the response is not matched to the request.
 	 * 
-	 * @param response - An HttpRequestResponseInfo object containing the response. This 
+	 * @param response An HttpRequestResponseInfo object containing the response. This 
 	 * parameter cannot be null. 
 	 * 
-	 * @param diagnosis – A CacheEntry.Diagnosis enumeration value that identifies the 
+	 * @param diagnosis A CacheEntry.Diagnosis enumeration value that identifies the 
 	 * diagnosis (or category) of this cache entry.
+	 * 
+	 * @param sessionFirstPacket The first packet of session.
 	 */
 	public CacheEntry(HttpRequestResponseInfo request, HttpRequestResponseInfo response,
-			Diagnosis diagnosis) {
-		this(request, response, diagnosis, Long.MAX_VALUE);
+			Diagnosis diagnosis, PacketInfo sessionFirstPacket) {
+		this(request, response, diagnosis, Long.MAX_VALUE, sessionFirstPacket);
 	}
 
 	/**
 	 * Initializes an instance of the CacheEntry class using the specified HTTP request 
 	 * and response information, cache diagnosis value, and number of bytes in the cache.
 	 * 
-	 * @param request - An HttpRequestResponseInfo object containing the request. This parameter 
+	 * @param request An HttpRequestResponseInfo object containing the request. This parameter 
 	 * can be null if the response is not matched to the request.
 	 * 
-	 * @param response - An HttpRequestResponseInfo object containing the response. This 
+	 * @param response An HttpRequestResponseInfo object containing the response. This 
 	 * parameter cannot be null 
 	 * 
-	 * @param diagnosis - A CacheEntry.Diagnosis enumeration value that identifies the 
+	 * @param diagnosis A CacheEntry.Diagnosis enumeration value that identifies the 
 	 * diagnosis (or category) of this cache entry.
 	 * 
-	 * @param bytesInCache – The number of bytes in the cache. This parameter is used for 
+	 * @param bytesInCache The number of bytes in the cache. This parameter is used for 
 	 * responses with data partially in the cache.
+	 * 
+	 * @param sessionFirstPacket The first packet of session.
 	 */
 	public CacheEntry(HttpRequestResponseInfo request, HttpRequestResponseInfo response,
-			Diagnosis diagnosis, long bytesInCache) {
+			Diagnosis diagnosis, long bytesInCache, PacketInfo sessionFirstPacket) {
 		if (request != null) {
 			this.request = request;
 			this.rawBytes += request.getRawSize();
@@ -146,6 +151,7 @@ public class CacheEntry implements Serializable, Comparable<CacheEntry> {
 		this.diagnosis = diagnosis;
 		this.bytesInCache = Math.min(bytesInCache, rawBytes);
 		this.bytesNotInCache = Math.max(0, rawBytes - bytesInCache);
+		this.sessionFirstPacket = sessionFirstPacket;
 	}
 
 	/**
@@ -221,11 +227,20 @@ public class CacheEntry implements Serializable, Comparable<CacheEntry> {
 	public CacheEntry getCacheHit() {
 		return cacheHit;
 	}
+	
+	/**
+	 * Returns the first packet of session. 
+	 * 
+	 * @return first packet of session.
+	 */
+	public PacketInfo getSessionFirstPacket() {
+		return sessionFirstPacket;
+	}
 
 	/**
 	 * Sets the HTTP cacheHit to the specified cacheHit.
 	 * 
-	 * @param cacheHit – A CacheEntry object containing the cacheHit to set.
+	 * @param cacheHit A CacheEntry object containing the cacheHit to set.
 	 */
 	public void setCacheHit(CacheEntry cacheHit) {
 		this.cacheHit = cacheHit;

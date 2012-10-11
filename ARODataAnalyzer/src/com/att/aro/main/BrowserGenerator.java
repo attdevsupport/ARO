@@ -27,7 +27,7 @@ import java.net.URI;
 public class BrowserGenerator {
 
 	/**
-	 * Opens the browser and displays the page specified by the urlURL.
+	 * Opens the browser and displays the page specified by the URL.
 	 * 
 	 * @param url
 	 *            - The URL for the page to be displayed in the browser.
@@ -36,5 +36,17 @@ public class BrowserGenerator {
 	 */
 	public static void openBrowser(String url) throws IOException {
 		Desktop.getDesktop().browse(URI.create(url));
+	}
+
+	/**
+	 * Opens the browser and displays the page specified by the URL.
+	 * 
+	 * @param url
+	 *            - The URI for the page to be displayed in the browser.
+	 * 
+	 * @throws IOException
+	 */
+	public static void openBrowser(URI url) throws IOException {
+		Desktop.getDesktop().browse(url);
 	}
 }

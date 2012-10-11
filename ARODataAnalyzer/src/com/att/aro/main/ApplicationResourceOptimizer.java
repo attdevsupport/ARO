@@ -28,6 +28,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.awt.event.WindowStateListener;
 import java.awt.print.Printable;
 import java.awt.print.PrinterException;
@@ -38,6 +39,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -61,6 +63,7 @@ import javax.swing.filechooser.FileFilter;
 
 import com.att.aro.commonui.AROProgressDialog;
 import com.att.aro.commonui.MessageDialogFactory;
+import com.att.aro.datadump.DataDump;
 import com.att.aro.images.Images;
 import com.att.aro.model.AnalysisFilter;
 import com.att.aro.model.NetworkType;
@@ -104,6 +107,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private JMenu jToolMenu;
 	private JMenuItem wiresharkMenuItem;
 	private JMenuItem timeRangeAnalysisMenuItem;
+	private JMenuItem dataDumpMenuItem;
 
 	// View menu
 	private JMenu jViewMenu;
@@ -129,6 +133,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private AROSimpleTabb aroSimpleTab = new AROSimpleTabb(this);
 	private AROAdvancedTabb aroAdvancedTab = new AROAdvancedTabb();
 	private AROAnalysisResultsTab analyisResultsPanel = new AROAnalysisResultsTab(this);
+	private AROWaterfallTabb aroWaterfallTab = new AROWaterfallTabb(this);
 	private AROVideoPlayer aroVideoPlayer;
 	private AROBestPracticesTab aroBestPracticesPanel = new AROBestPracticesTab(this);
 	private ChartPlotOptionsDialog chartPlotOptionsDialog;
@@ -148,6 +153,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private DatacollectorBridge aroDataCollectorBridge;
 
 	private Profile profile;
+	private boolean isCancel = false;
 
 	/**
 	 * Initializes a new instance of the ApplicationResourceOptimizer class.
@@ -188,21 +194,21 @@ public class ApplicationResourceOptimizer extends JFrame {
 	/**
 	 * Displays the Overview tab screen.
 	 */
-	protected void displaySimpleTab() {
+	public void displaySimpleTab() {
 		getJTabbedPane().setSelectedComponent(aroSimpleTab);
 	}
 
 	/**
 	 * Displays the Diagnostic tab screen.
 	 */
-	protected void displayAdvancedTab() {
+	public void displayAdvancedTab() {
 		getJTabbedPane().setSelectedComponent(aroAdvancedTab);
 	}
 
 	/**
 	 * Displays the Statistics tab screen.
 	 */
-	protected void displayResultTab() {
+	public void displayResultTab() {
 		getJTabbedPane().setSelectedComponent(analyisResultsPanel);
 	}
 
@@ -232,7 +238,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * ApplicationResourceOptimizer window.
 	 * 
 	 * @param b
-	 *            – A boolean value that indicates whether the
+	 *            A boolean value that indicates whether the
 	 *            ApplicationResourceOptimizer window is visible.
 	 * 
 	 * @see java.awt.Window#setVisible(boolean)
@@ -256,9 +262,10 @@ public class ApplicationResourceOptimizer extends JFrame {
 	}
 
 	/**
-	 * Implements opening of selected trace directory.
+	 * Opens the specified trace directory.
 	 * 
 	 * @param dir
+	 *            - The trace directory to open.
 	 * @throws IOException
 	 */
 	public synchronized void openTrace(File dir) throws IOException {
@@ -279,6 +286,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 		// Make sure profile type matches network type of trace
 		try {
+
 			if (traceData.getNetworkType() == NetworkType.LTE) {
 				if (!(profile instanceof ProfileLTE)) {
 					this.profile = ProfileManager.getInstance().getLastUserProfile(ProfileType.LTE);
@@ -827,6 +835,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 				jToolMenu.add(getWiresharkMenuItem());
 			}
 			jToolMenu.add(getTimeRangeAnalysisMenuItem());
+			jToolMenu.add(getDataDump());
 		}
 		return jToolMenu;
 	}
@@ -864,6 +873,33 @@ public class ApplicationResourceOptimizer extends JFrame {
 			});
 		}
 		return timeRangeAnalysisMenuItem;
+	}
+
+	/**
+	 * Initializes and returns the Pcap File Analysis menu item under the Tools
+	 * menu.
+	 */
+	private JMenuItem getDataDump() {
+		if (dataDumpMenuItem == null) {
+			dataDumpMenuItem = new JMenuItem(rb.getString("menu.tools.dataDump"));
+			dataDumpMenuItem.addActionListener(new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					JFileChooser fc = new JFileChooser(traceDirectory);
+					fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+					if (fc.showOpenDialog(ApplicationResourceOptimizer.this) == JFileChooser.APPROVE_OPTION) {
+						try {
+							startDataDump(fc.getSelectedFile());
+						} catch (IOException e1) {
+							MessageDialogFactory.showInvalidTraceDialog(fc.getSelectedFile()
+									.getPath(), ApplicationResourceOptimizer.this, e1);
+						}
+					}
+				}
+			});
+		}
+		return dataDumpMenuItem;
 	}
 
 	/**
@@ -1155,14 +1191,51 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 		chartPlotOptionsDialog = new ChartPlotOptionsDialog(ApplicationResourceOptimizer.this,
 				aroAdvancedTab);
+
+		// Commented out because I think this is causing an error on JNLP
+		// startup
+		// this.getContentPane().addHierarchyBoundsListener(
+		// new HierarchyBoundsListener() {
+		// @Override
+		// public void ancestorMoved(HierarchyEvent e) {
+		// // do nothing
+		// }
+		//
+		// @Override
+		// public void ancestorResized(HierarchyEvent e) {
+		// boolean isStatsTabSelected = false;
+		// boolean isWaterFallTabSelected = false;
+		// if(getJTabbedPane().getSelectedComponent() == analyisResultsPanel){
+		// isStatsTabSelected = true;
+		// }else if(getJTabbedPane().getSelectedComponent() == aroWaterfallTab){
+		// isWaterFallTabSelected = true;
+		// }
+		// jMainTabbedPane.remove(analyisResultsPanel);
+		// jMainTabbedPane.remove(aroWaterfallTab);
+		// analyisResultsPanel = new
+		// AROAnalysisResultsTab(ApplicationResourceOptimizer.this);
+		// jMainTabbedPane.addTab(rb.getString("aro.tab.analysis"), null,
+		// analyisResultsPanel, null);
+		// jMainTabbedPane.addTab(rb.getString("aro.tab.waterfall"), null,
+		// aroWaterfallTab, null);
+		// if(isStatsTabSelected){
+		// jMainTabbedPane.setSelectedComponent(analyisResultsPanel);
+		// }else if(isWaterFallTabSelected){
+		// jMainTabbedPane.setSelectedComponent(aroWaterfallTab);
+		// }
+		// analyisResultsPanel.refresh(analysisData);
+		// //aroWaterfallTab.refresh(analysisData);
+		//
+		// }
+		// });
 	}
 
 	/**
-	 * Enables/Disables the chart options menu item under the view menu.
+	 * Enables or disables the Chart Options menu item in the View menu.
 	 * 
 	 * @param enable
-	 *            If true , makes the chart options menu item visible else
-	 *            invisible.
+	 *            When this boolean value is true, the Chart Options menu item
+	 *            is visible, when it is false, the menu item is invisible.
 	 */
 	protected void enableChartOptionsMenuItem(boolean enable) {
 		this.viewOptionsMenuItem.setEnabled(enable);
@@ -1183,6 +1256,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 					null);
 			jMainTabbedPane.addTab(rb.getString("aro.tab.analysis"), null,
 					getAnalysisResultsPanel(), null);
+			jMainTabbedPane.addTab(rb.getString("aro.tab.waterfall"), null, getWaterfallPanel(),
+					null);
 		}
 		return jMainTabbedPane;
 	}
@@ -1209,9 +1284,20 @@ public class ApplicationResourceOptimizer extends JFrame {
 	}
 
 	/**
+	 * Returns an instance of the Waterfall tab.
+	 * 
+	 * @return An AROWaterfallTabb object containing the Waterfall tab instance.
+	 */
+	public AROWaterfallTabb getWaterfallPanel() {
+		return aroWaterfallTab;
+	}
+
+	/**
 	 * Refreshes the analysis using a new filter
 	 * 
 	 * @param filter
+	 *            - An AnalysisFilter object that defines the filter to be used
+	 *            on the trace data.
 	 * @throws IOException
 	 */
 	public void refresh(AnalysisFilter filter) throws IOException {
@@ -1221,7 +1307,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	/**
 	 * Returns the Best Practices tab screen.
 	 */
-	private AROBestPracticesTab getBestPracticesPanel() {
+	public AROBestPracticesTab getBestPracticesPanel() {
 		return this.aroBestPracticesPanel;
 	}
 
@@ -1236,7 +1322,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 			final AROProgressDialog dialog = new AROProgressDialog(this,
 					rb.getString("progress.loadingTrace"));
 			dialog.setVisible(true);
-			new SwingWorker<TraceData.Analysis, Object>() {
+			final SwingWorker<TraceData.Analysis, Object> mySwingWorker = new SwingWorker<TraceData.Analysis, Object>() {
 
 				@Override
 				protected TraceData.Analysis doInBackground() throws IOException {
@@ -1246,7 +1332,12 @@ public class ApplicationResourceOptimizer extends JFrame {
 				@Override
 				protected void done() {
 					try {
-						displayAnalysis(get(), profile, filter, msg);
+						if (!this.isCancelled()) {
+							displayAnalysis(get(), profile, filter, msg);
+						} else {
+							return;
+						}
+
 					} catch (IOException e) {
 						logger.log(Level.SEVERE, "Unexpected IOException analyzing trace", e);
 						MessageDialogFactory.showUnexpectedExceptionDialog(
@@ -1266,11 +1357,56 @@ public class ApplicationResourceOptimizer extends JFrame {
 									ApplicationResourceOptimizer.this, e);
 						}
 					} finally {
-						dialog.dispose();
+						if (!this.isCancelled()) {
+							dialog.dispose();
+						}
 					}
 
 				}
-			}.execute();
+			};
+			mySwingWorker.execute();
+			dialog.addWindowListener(new WindowListener() {
+
+				@Override
+				public void windowOpened(WindowEvent arg0) {
+				}
+
+				@Override
+				public void windowIconified(WindowEvent arg0) {
+				}
+
+				@Override
+				public void windowDeiconified(WindowEvent arg0) {
+
+				}
+
+				@Override
+				public void windowDeactivated(WindowEvent arg0) {
+				}
+
+				@Override
+				public void windowClosing(WindowEvent arg0) {
+					dialog.setVisible(false);
+					try {
+						isCancel = true;
+						mySwingWorker.cancel(true);
+						clearTrace();
+					} catch (CancellationException cE) {
+						cE.printStackTrace();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+
+				@Override
+				public void windowClosed(WindowEvent arg0) {
+				}
+
+				@Override
+				public void windowActivated(WindowEvent arg0) {
+				}
+			});
 
 		} else {
 			displayAnalysis(null, profile, filter, msg);
@@ -1282,9 +1418,9 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * time range dialog.
 	 * 
 	 * @param beginTime
-	 *            The start time for the analysis.
+	 *            The start of the time range to be used for the analysis.
 	 * @param endTime
-	 *            The end time for the analysis.
+	 *            The end of the time range to be used for the analysis.
 	 * @throws IOException
 	 */
 	public void performExcludeTimeRangeAnalysis(double beginTime, double endTime)
@@ -1323,6 +1459,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 		getAroSimpleTab().refresh(analysisData);
 		getBestPracticesPanel().refresh(analysisData);
 		getAnalysisResultsPanel().refresh(analysisData);
+		getWaterfallPanel().refresh(analysis);
 
 		this.profile = profile;
 		UserPreferences.getInstance().setLastProfile(profile);
@@ -1333,17 +1470,17 @@ public class ApplicationResourceOptimizer extends JFrame {
 	}
 
 	/**
-	 * Sets the chosen option's 'selected' status on the ChartPlotOptions and
-	 * saves to the UserPreferences, notifies the chartPlotOptions dialog of the
-	 * change.
+	 * Sets the 'selected' status of the specified chart plot option, saves that
+	 * selection to the UserPreferences, and notifies the chartPlotOptions
+	 * dialog of the change.
 	 * 
 	 * @param option
 	 *            The chart plot option to be set.
 	 * @param selected
-	 *            The boolean that indicates whether the chart plot option was
-	 *            selected or not in the dialog.
+	 *            A boolean value that indicates whether or not the chart plot
+	 *            option was selected in the dialog.
 	 */
-	protected void setExternalChartPlotSelection(ChartPlotOptions option, boolean selected) {
+	public void setExternalChartPlotSelection(ChartPlotOptions option, boolean selected) {
 		// grab current list of options
 		List<ChartPlotOptions> options = new ArrayList<ChartPlotOptions>(
 				userPreferences.getChartPlotOptions());
@@ -1479,6 +1616,16 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private void setDataCollectorMenuItems(boolean bStartItem, boolean bStopItem) {
 		startDataCollectorMenuItem.setEnabled(bStartItem);
 		stopDataCollectorMenuItem.setEnabled(bStopItem);
+	}
+
+	/**
+	 * Performs the operations for dumping various trace data' in one file.
+	 * 
+	 * @param dir
+	 * @throws IOException
+	 */
+	private void startDataDump(File dir) throws IOException {
+		new DataDump(dir, getProfile().getName());
 	}
 
 }

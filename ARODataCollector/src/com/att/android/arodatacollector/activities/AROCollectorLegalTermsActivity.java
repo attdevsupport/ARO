@@ -47,8 +47,9 @@ public class AROCollectorLegalTermsActivity extends Activity {
 	public static int TERMS_REJECTED = 2;
 
 	/**
-	 * Overriding onCreate initialize data members
-	 * 
+	 * Initializes data members with a saved instance of an AROCollectorLegalTermsActivity object. 
+	 * Overrides the android.app.Activity#onCreate method. 
+	 * @param savedInstanceState – A saved instance of an AROCollectorLegalTermsActivity object.
 	 * @see android.app.Activity#onCreate(android.os.Bundle)
 	 */
 	@Override

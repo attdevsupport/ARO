@@ -70,6 +70,12 @@ public class AROCollectorUtils {
 	 */
 	public static boolean DEBUG = !mIsProduction;
 
+	/** Empty String */
+	public static String EMPTY_STRING = "";
+	
+	/** Not Applicable */
+	public static String NOT_APPLICABLE = "NA";
+	
 	/**
 	 * Gets the ARO Data Collector time stamp
 	 * 
@@ -152,16 +158,16 @@ public class AROCollectorUtils {
 	}
 
 	/**
-	 * Fetch the value of given field from the class dump specified using
+	 * Retrieves the value of the specified field from an instance of the specified class using
 	 * reflection.
 	 * 
 	 * @param mClass
-	 *            The class name.
+	 *            The name of the class.
 	 * @param mInstance
-	 *            The object which contains the values.
+	 *            The object containing the value to be retrieved.
 	 * @param fieldName
-	 *            The name of the specified field.
-	 * @return The value of the specified field from the class dump.
+	 *            The name of the field to be retrieved.
+	 * @return The value of the specified field from the specified class.
 	 */
 	public final String getSpecifiedFieldValues(Class<?> mClass, Object mInstance, String fieldName) {
 
@@ -339,8 +345,8 @@ public class AROCollectorUtils {
 				Log.d(TAG, "PID should be in 2nd column in single row retrieved");
 			}
 			for (int rowNum = 1; rowNum < rows.length; rowNum++) {
-				String row = rows[rowNum];
-				String[] values_item = row.split("\\s+");
+				final String row = rows[rowNum];
+				final String[] values_item = row.split("\\s+");
 
 				if (DEBUG) {
 					for (int itemNum = 0; itemNum < values_item.length; itemNum++) {
@@ -388,12 +394,12 @@ public class AROCollectorUtils {
 			if (rows != null && (rows.length > 1)) {
 				int column_num = -1; // default
 				for (int itemNumPS = 0; itemNumPS < rows.length; itemNumPS++) {
-					String row = rows[itemNumPS];
+					final String row = rows[itemNumPS];
 					if (DEBUG) {
 						Log.d(TAG, "row " + itemNumPS + ": " + ">>>" + row + "<<<");
 					}
 
-					String[] value_item = row.split("\\s+"); // assumption on ps
+					final String[] value_item = row.split("\\s+"); // assumption on ps
 																// command:
 																// processname
 																// is last row,

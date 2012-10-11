@@ -51,8 +51,10 @@ public class HyperlinkLabel extends JLabel {
 	}
 
 	/**
-	 * @param text
-	 * @param horizontalAlignment
+	 * Initializes a new instance of the HyperlinkLabel class using the 
+	 * specified text and horizontal alignment.
+	 * @param text - A String that is the text to be hyper linked.
+	 * @param horizontalAlignment - Coordinate for horizontal alignment.
 	 */
 	public HyperlinkLabel(String text, int horizontalAlignment) {
 		super(text, horizontalAlignment);

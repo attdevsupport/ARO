@@ -24,6 +24,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -31,20 +32,32 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import org.apache.http.client.ClientProtocolException;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Build;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.provider.Settings.SettingNotFoundException;
+import android.telephony.TelephonyManager;
 import android.util.Log;
+import java.util.Properties;
 
+import com.att.android.arodatacollector.R;
 import com.att.android.arodatacollector.activities.AROCollectorCompletedActivity;
 import com.att.android.arodatacollector.activities.AROCollectorMainActivity;
 import com.att.android.arodatacollector.utils.AROCollectorUtils;
+import com.flurry.android.FlurryAgent;
 
 /**
  * Contains methods for managing the tcpdump and video capture processes while
@@ -82,11 +95,17 @@ public class AROCollectorService extends Service {
 	 */
 	public static boolean DEBUG = !mIsProduction;
 
+	/**
+	 * A boolean value that indicates whether flurry events will be logged to flurry.  False means
+	 * logging is disabled
+	 */
+	public static boolean isFlurryLogEventsEnabled = true;
+
 	/** The AROCollectorService object to collect peripherals trace data */
 	private static AROCollectorService mDataCollectorService;
 
 	/**
-	 * The Application context of the ARo-Data Collector to gets and sets the
+	 * The Application context of the ARO-Data Collector to gets and sets the
 	 * application data
 	 **/
 	private static ARODataCollector mApp;
@@ -106,15 +125,26 @@ public class AROCollectorService extends Service {
 	/** Intent to launch ARO Data Collector Completed screen */
 	private Intent tcpdumpStoppedIntent;
 
-	/**
-	 * Intent to launch ARO main screen in case of tcpdump stop due to network
-	 * change bearer
-	 */
-	private Intent tcpdumpStoppedBearerChangeIntent;
-
 	/** Intent to launch ARO Data Collector Completed screen */
 	private Intent traceCompletedIntent;
 
+	/** Timed event used to log the duration of trace for use by Flurry */
+	public Map<String, String> flurryTimedEvent = new HashMap<String, String>();
+
+	/**
+	 * Start Time of trace used for Flurry Analytics
+	 */
+	public Calendar startCalTime = null;
+	
+	/**
+	 * Max Timeout time for Data Collector STOP to exit tcpdump capture from the
+	 * shell
+	 */
+	private static final int ARO_STOP_WATCH_TIME = 35000;
+	
+	/** Watch dog timer to set STOP timeout for Data Collector */
+	private Timer aroDCStopWatchTimer = new Timer();
+	
 	/**
 	 * Gets the valid instance of AROCollectorService.
 	 * 
@@ -137,6 +167,26 @@ public class AROCollectorService extends Service {
 		mDataCollectorService = this;
 		mApp = (ARODataCollector) getApplication();
 		mAroUtils = new AROCollectorUtils();
+			
+		//flurry start session if set to is true.  set to false to disable FlurryAgent logging call.
+		FlurryAgent.setLogEvents(isFlurryLogEventsEnabled); 
+		
+		//check for flurry api key override from default-incorrect key will cause session to not log to correct Flurry app.
+		setFlurryApiKey();
+		FlurryAgent.setContinueSessionMillis(5000);  // Set session timeout to 5 seconds (minimum specified by flurry)
+ 
+		FlurryAgent.onStartSession(this, mApp.app_flurry_api_key); //don't use mAroCollectorService as context
+		if (DEBUG) {
+			Log.d(TAG, "flurry-called onStartSession");
+		}
+		
+		//set device id as flurry's userid within a session
+		final TelephonyManager mAROtelManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+		FlurryAgent.setUserId( mAROtelManager.getDeviceId());
+		if (DEBUG) {
+			Log.d(TAG, "flurry-TelephonyManager deviceId: " + mAROtelManager.getDeviceId());
+		}
+
 		try {
 			// Record the screen timeout
 			getScreenTimeOut();
@@ -159,6 +209,12 @@ public class AROCollectorService extends Service {
 	 */
 	@Override
 	public void onDestroy() {
+		//flurry end session
+		FlurryAgent.onEndSession(this);
+		if (DEBUG) {
+			Log.d(TAG, "flurry-called onEndSession");
+		}
+		
 		super.onDestroy();
 		// Sets the screen timeout to previous value
 		setScreenTimeOut(mScreenTimeout);
@@ -229,13 +285,24 @@ public class AROCollectorService extends Service {
 			os.writeBytes(Command);
 			Command = "chmod 777 " + ARODataCollector.INTERNAL_DATA_PATH + "key.db" + "\n";
 			os.writeBytes(Command);
+			
+			//flurry timed event duration
+			startCalTime = Calendar.getInstance();
+			mApp.writeToFlurryAndLogEvent(flurryTimedEvent, "Flurry trace start", startCalTime.getTime().toString(), "Trace Duration", true);
+			
 			Command = "." + ARODataCollector.INTERNAL_DATA_PATH + TCPDUMPFILENAME + " -w "
 					+ TRACE_FOLDERNAME + "\n";
 			os.writeBytes(Command);
 			Command = "exit\n";
 			os.writeBytes(Command);
 			os.flush();
-			int shExitValue = sh.waitFor();
+			final int shExitValue = sh.waitFor();
+			final AROCollectorTaskManagerProcessInfo mAROTaskManagerProcessInfo = new AROCollectorTaskManagerProcessInfo();
+			//We will continue and block the thread untill we see valid instance of tcpdump running in shell
+			//waitFor() does not seems to be working on ICS firmware 
+			while (mAROTaskManagerProcessInfo.pstcpdump()) {
+				continue;
+			}
 			if (DEBUG) {
 				Log.d(TAG, "tcpdump process exit value: " + shExitValue);
 				Log.i(TAG, "Coming out of startTcpDump");
@@ -250,6 +317,13 @@ public class AROCollectorService extends Service {
 					}
 				}
 			}).start();
+			
+			final Calendar endCalTime = Calendar.getInstance();
+			
+			FlurryAgent.endTimedEvent("Trace Duration");
+			mApp.writeToFlurry(flurryTimedEvent, "Flurry trace end", endCalTime.getTime().toString(), "flurryTimedEvent", AROCollectorUtils.NOT_APPLICABLE, AROCollectorUtils.EMPTY_STRING);
+			mApp.writeToFlurry(flurryTimedEvent, "calculated Flurry trace duration", getUpTime(endCalTime), "flurryTimedEvent", AROCollectorUtils.NOT_APPLICABLE, AROCollectorUtils.EMPTY_STRING);
+			logFlurryEvents();
 			handleDataCollectorTraceStop();
 		} finally {
 			try {
@@ -263,12 +337,126 @@ public class AROCollectorService extends Service {
 	}
 
 	/**
+	 * Sample file content: FLURRY_API_KEY=YKN7M4TDXRKXH97PX565
+	 * Each Flurry API Key corresponds to an Application on Flurry site.  It is absolutely 
+     * necessary that the Flurry API Key-value from user's device is correct in order to log to the Flurry application.
+     * 
+     * No validation on the API key allows creation of a new Flurry application by client at any time
+     * The API key is communicated to the user group who would put the API key name-value pair into 
+     * properties file specified by variable flurryFileName below.
+     * 
+     * If no key-value is found, the default API key is used below.  Default is intended for users of
+     * ATT Developer Program.
+	 */
+	private void setFlurryApiKey() {
+		if (DEBUG) {
+			Log.d(TAG, "entered setFlurryApiKey");
+		}
+			final String flurryFileName = ARODataCollector.ARO_TRACE_ROOTDIR + ARODataCollector.FLURRY_API_KEY_REL_PATH;
+
+			InputStream flurryFileReaderStream = null;
+			try {
+				final ClassLoader loader = ClassLoader.getSystemClassLoader ();
+
+				flurryFileReaderStream = loader.getResourceAsStream(flurryFileName);
+
+				Properties prop = new Properties();
+				try {
+					if (flurryFileReaderStream != null) {
+						prop.load(flurryFileReaderStream);
+						mApp.app_flurry_api_key = prop.containsKey(ARODataCollector.FLURRY_API_KEY_NAME) && 
+								!prop.getProperty(ARODataCollector.FLURRY_API_KEY_NAME).equals(AROCollectorUtils.EMPTY_STRING) ? 
+								prop.getProperty(ARODataCollector.FLURRY_API_KEY_NAME).trim() : 
+									mApp.app_flurry_api_key;
+						if (DEBUG) {
+							Log.d(TAG, "flurry Property String: " + prop.toString());
+							Log.d(TAG, "flurry app_flurry_api_key: " + mApp.app_flurry_api_key);
+						}
+					} else {
+						if (DEBUG) {
+							Log.d(TAG, "flurryFileReader stream is null.  Using default: " + mApp.app_flurry_api_key);
+						}
+					}
+				} 
+				catch (IOException e) {
+					Log.d(TAG, e.getClass().getName() + " thrown trying to load file ");
+				}
+			} finally {
+				try {
+					if (flurryFileReaderStream != null) {
+						flurryFileReaderStream.close();
+					}
+				} catch (IOException e) {
+					//log and exit method-nothing else to do.
+					if (DEBUG) {
+						Log.d(TAG, "setFlurryApiKey method reached catch in finally method, trying to close flurryFileReader"  );
+					}
+				}
+				Log.d(TAG, "exiting setFlurryApiKey");
+			}
+	}
+	private void logFlurryEvents() {
+		
+		if (AROCollectorTraceService.makeModelEvent != null) {
+			FlurryAgent.logEvent(AROCollectorTraceService.makeModelEvent.getEventName(),
+					AROCollectorTraceService.makeModelEvent.getMapToWrite());
+		}
+		if (AROCollectorTraceService.backgroundAppsFlurryEvent != null) {
+			FlurryAgent.logEvent(AROCollectorTraceService.backgroundAppsFlurryEvent.getEventName(),
+					AROCollectorTraceService.backgroundAppsFlurryEvent.getMapToWrite());
+		}
+		//trace video y/n
+		if ((mApp.getCollectVideoOption() && !mApp.isVideoFileExisting())
+				|| mApp.getVideoCaptureFailed()) {		
+			mApp.writeToFlurryAndLogEvent(mApp.flurryVideoTaken, getResources().getText(R.string.flurry_param_traceVideoTaken).toString(), 
+					getResources().getText(R.string.aro_failedvideo).toString(), 
+					getResources().getText(R.string.flurry_param_traceVideoTaken).toString(), false);						
+		} else if (mApp.getCollectVideoOption()) {			
+			mApp.writeToFlurryAndLogEvent(mApp.flurryVideoTaken, getResources().getText(R.string.flurry_param_traceVideoTaken).toString(),
+					getResources().getText(R.string.aro_yestext).toString(), 
+					getResources().getText(R.string.flurry_param_traceVideoTaken).toString(), false);
+		} else {			
+			mApp.writeToFlurryAndLogEvent(mApp.flurryVideoTaken, getResources().getText(R.string.flurry_param_traceVideoTaken).toString(),
+					getResources().getText(R.string.aro_notext).toString(), 
+					getResources().getText(R.string.flurry_param_traceVideoTaken).toString(), false);
+		}
+		
+		if (DEBUG) {
+			Log.d(TAG, "exiting logFlurryEvents");
+		}
+	}
+
+	private String getUpTime(Calendar endCalTime) {
+		if (DEBUG) {
+			Log.d("calculate duration-flurry start time: ", AROCollectorUtils.EMPTY_STRING + startCalTime.getTime());
+			Log.d("calculate duration-flurry end time: ", AROCollectorUtils.EMPTY_STRING + endCalTime.getTime());
+		}
+		final long appUpTime = (endCalTime.getTimeInMillis() - startCalTime.getTimeInMillis()) / 1000;
+		long appTimeR, appUpHours, appUpMinutes, appUpSeconds;
+		appTimeR = appUpTime % 3600;
+		appUpHours = appUpTime / 3600;
+		appUpMinutes = (appTimeR / 60);
+		appUpSeconds = appTimeR % 60;
+
+		final String upTime = (appUpHours < 10 ? "0" : AROCollectorUtils.EMPTY_STRING) + appUpHours + ":"
+				+ (appUpMinutes < 10 ? "0" : AROCollectorUtils.EMPTY_STRING) + appUpMinutes + ":"
+				+ (appUpSeconds < 10 ? "0" : AROCollectorUtils.EMPTY_STRING) + appUpSeconds;
+
+		if (DEBUG) {
+			Log.d("flurry Trace Duration: ", upTime);
+		}
+		
+		return upTime;
+	}
+
+	/**
 	 * Stops the ARO Data Collector trace by stopping the tcpdump process.
 	 * 
 	 * @throws java.io.IOException
 	 * @throws java.net.UnknownHostException
 	 */
 	public void requestDataCollectorStop() {
+		dataCollectorStopWatchTimer();
 		try {
 			if (DEBUG) {
 				Log.i(TAG, "stopTcpDump In....");
@@ -305,57 +493,26 @@ public class AROCollectorService extends Service {
 	 * navigate to respective screen or shows error dialog
 	 */
 	private void handleDataCollectorTraceStop() {
+		aroDCStopWatchTimer.cancel();
+		
 		if (DEBUG) {
 			Log.i(TAG, "handleDataCollectorTraceStop");
 			Log.i(TAG, "mApp.getDataCollectorBearerChange()=" + mApp.getDataCollectorBearerChange());
 			Log.i(TAG, "mApp.getDataCollectorInProgressFlag()=" + mApp.getDataCollectorInProgressFlag());
 			Log.i(TAG, "mApp.getARODataCollectorStopFlag()=" + mApp.getARODataCollectorStopFlag());
 		}
-
-		if (mApp.getDataCollectorBearerChange()) {
-			mApp.setDataCollectorBearerChange(false);
-			mApp.setTcpDumpStartFlag(false);
-			mApp.cancleAROAlertNotification();
-			tcpdumpStoppedBearerChangeIntent = new Intent(getBaseContext(),
-					AROCollectorMainActivity.class);
-
-			if (!mApp.isWifiLost()) {
-				if (DEBUG) {
-					Log.d(TAG, "network bearer change");
-				}
-				tcpdumpStoppedBearerChangeIntent.putExtra(ARODataCollector.ERRODIALOGID,
-						ARODataCollector.BEARERCHANGEERROR);
-			} else {
-				if (DEBUG) {
-					Log.d(TAG, "writing for wifi lost");
-				}
-
-				tcpdumpStoppedBearerChangeIntent.putExtra(ARODataCollector.ERRODIALOGID,
-						ARODataCollector.WIFI_LOST_ERROR);
-			}
-
-			tcpdumpStoppedBearerChangeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-			getApplication().startActivity(tcpdumpStoppedBearerChangeIntent);
-			// Stopping the peripherals collection trace service
-			stopService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
-			// Stopping the tcpdump/screen capture collection trace service
-			stopService(new Intent(getApplicationContext(), AROCollectorService.class));
-		} else if (!mApp.getDataCollectorInProgressFlag()) {
-			if (DEBUG) {
-				Log.i(TAG, "Cancle Notification Call");
-			}
+		if (!mApp.getDataCollectorInProgressFlag()) {
 			mApp.cancleAROAlertNotification();
 			if (!mApp.getARODataCollectorStopFlag()) {
 				// Stopping the peripherals collection trace service
 				stopService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
 				// Stopping the tcpdump/screen capture collection trace service
 				stopService(new Intent(getApplicationContext(), AROCollectorService.class));
-
 				try {
 					// Motorola Atrix2 -waiting to get SD card refresh state
-					if (Build.MODEL.toString().equalsIgnoreCase("MB865")) {
-						// thread sleep for 12 sec
-						Thread.sleep(14000);
+					if (Build.MODEL.equalsIgnoreCase("MB865") && !mApp.getAirplaneModeEnabledMidAROTrace()) {
+						// thread sleep for 16 sec
+						Thread.sleep(16000);
 					}
 				} catch (InterruptedException e) {
 					Log.e(TAG, "InterruptedException while sleep SD card mount" + e);
@@ -371,9 +528,13 @@ public class AROCollectorService extends Service {
 				} else if (mAroUtils.checkSDCardMemoryAvailable() < AROSDCARD_MIN_SPACEKBYTES) {
 					tcpdumpStoppedIntent.putExtra(ARODataCollector.ERRODIALOGID,
 							ARODataCollector.SDCARDERROR);
+				} else if (mApp.getAirplaneModeEnabledMidAROTrace()){
+					tcpdumpStoppedIntent.putExtra(ARODataCollector.ERRODIALOGID,
+							ARODataCollector.AIRPLANEMODEENABLED_MIDTRACE);
 				} else {
 					tcpdumpStoppedIntent.putExtra(ARODataCollector.ERRODIALOGID,
 							ARODataCollector.TCPDUMPSTOPPED);
+					mApp.writeToFlurryAndLogEvent(mApp.flurryError, "tcpdump stopped", Calendar.getInstance().getTime().toString(), "Error", false);
 				}
 				tcpdumpStoppedIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 				getApplication().startActivity(tcpdumpStoppedIntent);
@@ -382,7 +543,7 @@ public class AROCollectorService extends Service {
 					Log.i(TAG, "Trace Summary Screen to Start");
 				}
 				traceCompletedIntent = new Intent(getBaseContext(),
-						AROCollectorCompletedActivity.class);
+				AROCollectorCompletedActivity.class);
 				traceCompletedIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 				getApplication().startActivity(traceCompletedIntent);
 				mDataCollectorService = null;
@@ -446,7 +607,7 @@ public class AROCollectorService extends Service {
 		} finally {
 			try {
 				if (DEBUG) {
-					Log.e(TAG, "Stopped Video Capture");
+					Log.e(TAG, "Stopped Video Capture in startScreenVideoCapture");
 				}
 				os.close();
 				// Reading start time of Video from ffmpegout file
@@ -477,7 +638,7 @@ public class AROCollectorService extends Service {
 	private void stopScreenVideoCapture() {
 		Process sh = null;
 		DataOutputStream os = null;
-		int pid = 0;
+		int pid = 0, exitValue = -1;
 		try {
 			pid = mAroUtils.getProcessID("ffmpeg");
 		} catch (IOException e1) {
@@ -492,25 +653,122 @@ public class AROCollectorService extends Service {
 			try {
 				sh = Runtime.getRuntime().exec("su");
 				os = new DataOutputStream(sh.getOutputStream());
-				final String Command = "kill -15 " + pid + "\n";
-				os.writeBytes(Command);
+				String command = "kill -15 " + pid + "\n";
+				os.writeBytes(command);
+				
+				command = "exit\n";
+				os.writeBytes(command);
 				os.flush();
-				sh.waitFor();
+				
+				//clear the streams so that it doesnt block the process
+				//sh.inputStream is actually the output from the process
+				StreamClearer stdoutClearer = new StreamClearer(sh.getInputStream(), "stdout", false);
+				new Thread(stdoutClearer).start();
+				StreamClearer stderrClearer = new StreamClearer(sh.getErrorStream(), "stderr", true);
+				new Thread(stderrClearer).start();
+				
+				exitValue = sh.waitFor();
+				if (exitValue == 0){
+					mVideoRecording = false;
+				}
+				
+				if (DEBUG){
+					Log.i(TAG, "successfully returned from kill -15; exitValue= " + exitValue);
+				}
 			} catch (IOException e) {
 				Log.e(TAG, "exception in stopScreenVideoCapture", e);
 			} catch (InterruptedException e) {
 				Log.e(TAG, "exception in stopScreenVideoCapture", e);
 			} finally {
 				try {
-					mVideoRecording = false;
-					os.close();
+					kill9Ffmpeg();
+					
+					if (os != null){
+						os.close();
+					}
+					if (sh != null){
+						sh.destroy();
+					}
 				} catch (IOException e) {
 					Log.e(TAG, "exception in stopScreenVideoCapture DataOutputStream close", e);
 				}
 				if (DEBUG) {
-					Log.i(TAG, "Stopped Video Capture");
+					Log.i(TAG, "Stopped Video Capture in stopScreenVideoCapture()");
 				}
-				sh.destroy();
+			}
+		}
+		
+		if (DEBUG){
+			Log.i(TAG, "exit stopScreenVideoCapture");
+		}
+	}
+	
+	/**
+	 * issue the kill -9 command if ffmpeg couldn't be stopped with kill -15
+	 */
+	private void kill9Ffmpeg(){
+		
+		Process sh = null;
+		DataOutputStream os = null;
+		
+		int pid = 0, exitValue = -1;
+		try {
+			//have a 1 sec delay since it takes some time for the kill -15 to end ffmpeg
+			Thread.sleep(1000);
+			pid = mAroUtils.getProcessID("ffmpeg");
+		
+			if (pid != 0){
+				//ffmpeg still running
+				if (DEBUG){
+					Log.i(TAG, "ffmpeg still running after kill -15. Will issue kill -9 " + pid);
+				}
+	
+				sh = Runtime.getRuntime().exec("su");
+				os = new DataOutputStream(sh.getOutputStream());
+				String Command = "kill -9 " + pid + "\n";
+				os.writeBytes(Command);
+					
+				Command = "exit\n";
+				os.writeBytes(Command);
+				os.flush();
+					
+				//clear the streams so that it doesnt block the process
+				//sh.inputStream is actually the output from the process
+				StreamClearer stdoutClearer = new StreamClearer(sh.getInputStream(), "stdout", false);
+				new Thread(stdoutClearer).start();
+				StreamClearer stderrClearer = new StreamClearer(sh.getErrorStream(), "stderr", true);
+				new Thread(stderrClearer).start();
+					
+				exitValue = sh.waitFor();
+				if (exitValue == 0){
+					mVideoRecording = false;
+				}
+				else {
+					Log.e(TAG, "could not kill ffmpeg in kill9Ffmpeg, exitValue=" + exitValue);
+				}
+
+			} 
+			else {
+				mVideoRecording = false;
+				if (DEBUG){
+					Log.i(TAG, "ffmpeg had been ended successfully by kill -15");
+				}
+			}
+		} catch (IOException e1) {
+			Log.e(TAG, "IOException in kill9Ffmpeg", e1);
+		} catch (InterruptedException e1) {
+			Log.e(TAG, "exception in kill9Ffmpeg", e1);
+		} finally {
+			try {
+				if (os != null){
+					os.close();
+				}
+				
+				if (sh != null){
+					sh.destroy();
+				}
+			} catch (IOException e) {
+				Log.e(TAG, "exception in kill9Ffmpeg DataOutputStream close", e);
 			}
 		}
 	}
@@ -525,13 +783,13 @@ public class AROCollectorService extends Service {
 		BufferedReader appNamesFileReader = null;
 		BufferedWriter appNmesFileWriter = null;
 		try {
-			String strTraceFolderName = mApp.getTcpDumpTraceFolderName();
+			final String strTraceFolderName = mApp.getTcpDumpTraceFolderName();
 			Log.i(TAG, "Trace folder name is: " + strTraceFolderName);
-			File appNameFile = new File(mApp.getTcpDumpTraceFolderName() + APP_NAME_FILE);
+			final File appNameFile = new File(mApp.getTcpDumpTraceFolderName() + APP_NAME_FILE);
 			appNamesFileReader = new BufferedReader(new InputStreamReader(new FileInputStream(
 					appNameFile)));
 			String processName = null;
-			List<String> appNamesWithVersions = new ArrayList<String>();
+			final List<String> appNamesWithVersions = new ArrayList<String>();
 			while ((processName = appNamesFileReader.readLine()) != null) {
 
 				String versionNum = null;
@@ -563,4 +821,88 @@ public class AROCollectorService extends Service {
 			}
 		}
 	}
+	
+	/**
+	 * Watch Dog to check abnormal termination of Data Collector
+	 */
+	private void dataCollectorStopWatchTimer() {
+		if (DEBUG) {
+			Log.i(TAG, "Inside dataCollectorStopWatchTimer....");
+		}
+		aroDCStopWatchTimer.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				if (DEBUG) {
+					Log.i(TAG,
+							"Inside dataCollectorStopWatchTimer....mApp.getTcpDumpStartFlag"
+									+ mApp.getTcpDumpStartFlag()
+									+ "mApp.getARODataCollectorStopFlag(true);"
+									+ mApp.getARODataCollectorStopFlag());
+				}
+				if (mApp.getTcpDumpStartFlag()) {
+					aroDCStopWatchTimer.cancel();
+					if (AROCollectorTraceService.getServiceObj() != null) {
+						if (DEBUG) {
+							Log.i(TAG, "Inside Ping Connection....hideProgressDialog");
+						}
+						if (DEBUG) {
+							Log.i(TAG, "Setting Data Collector stop flag");
+						}
+						mApp.setARODataCollectorStopFlag(true);
+						try {
+							// Going to ping google to break out of tcpdump
+							// while loop to come out of native shell and stop
+							// ARO-Data Collector
+							// for htc hardware
+							mAroUtils.OpenHttpConnection();
+						} catch (ClientProtocolException e) {
+							Log.e(TAG, "exception in OpenHttpConnection ", e);
+						} catch (IOException e) {
+							// TODO : To display error message for failed stop
+							// of data collector
+							Log.e(TAG, "exception in OpenHttpConnection ", e);
+						}
+					}
+				}
+			}
+		}, ARO_STOP_WATCH_TIME);
+	}
+	
+	
+	class StreamClearer implements Runnable {
+		InputStream streamToClear = null;
+		boolean logStream = false;
+		String name = null;
+		
+		public StreamClearer(InputStream is, String name, boolean logStream){
+			streamToClear = is;
+			this.logStream = logStream;
+			this.name = name;
+		}
+		@Override
+		public void run() {
+			
+			final BufferedReader reader = new BufferedReader(new InputStreamReader(streamToClear));
+			String buf = null;
+			if (DEBUG && logStream){
+				Log.i(TAG, "StreamClearer logging content from shell's " + name);
+			}
+			
+			try {
+				while ((buf = reader.readLine()) != null) {
+					buf = buf.trim();
+					if (logStream && buf.length() > 0){
+						Log.e(TAG, name + ">" + buf + "\n");
+					}
+				}
+			} catch (IOException e) {
+				Log.e(TAG, "StreamClearer IOException in StreamClearer", e);
+			}
+			
+			if (DEBUG && logStream){
+				Log.i(TAG, "StreamClearer done logging content from shell's " + name);
+			}
+		}
+	}
 }
+

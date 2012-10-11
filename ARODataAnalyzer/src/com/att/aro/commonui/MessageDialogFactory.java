@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 package com.att.aro.commonui;
 
 import java.awt.Component;
@@ -31,8 +31,7 @@ import com.att.aro.main.ResourceBundleManager;
 public class MessageDialogFactory extends JOptionPane {
 	private static final long serialVersionUID = 1L;
 
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
 	/**
 	 * Displays a dialog that is used for reporting unexpected exceptions to the
@@ -45,13 +44,12 @@ public class MessageDialogFactory extends JOptionPane {
 	 * @param t
 	 *            The exception that should be thrown for this error.
 	 */
-	public static void showUnexpectedExceptionDialog(Component parentComponent,
-			Throwable t) {
+	public static void showUnexpectedExceptionDialog(Component parentComponent, Throwable t) {
 		t.printStackTrace();
-		showMessageDialog(parentComponent, MessageFormat.format(
-				rb.getString("Error.unexpected"), t.getClass().getName(),
-				t.getLocalizedMessage()), rb.getString("Error.title"),
-				ERROR_MESSAGE);
+		showMessageDialog(
+				parentComponent,
+				MessageFormat.format(rb.getString("Error.unexpected"), t.getClass().getName(),
+						t.getLocalizedMessage()), rb.getString("Error.title"), ERROR_MESSAGE);
 	}
 
 	/**
@@ -66,12 +64,12 @@ public class MessageDialogFactory extends JOptionPane {
 	 * @param t
 	 *            The exception that should be thrown for this error.
 	 */
-	public static void showInvalidTraceDialog(String strTraceDir,
-			Component parentComponent, Throwable t) {
-		showMessageDialog(parentComponent, MessageFormat.format(
-				rb.getString("Error.invalidTrace"), strTraceDir,
-				t.getLocalizedMessage()), rb.getString("Error.title"),
-				ERROR_MESSAGE);
+	public static void showInvalidTraceDialog(String strTraceDir, Component parentComponent,
+			Throwable t) {
+		showMessageDialog(
+				parentComponent,
+				MessageFormat.format(rb.getString("Error.invalidTrace"), strTraceDir,
+						t.getLocalizedMessage()), rb.getString("Error.title"), ERROR_MESSAGE);
 	}
 
 	/**
@@ -86,8 +84,7 @@ public class MessageDialogFactory extends JOptionPane {
 	 * @param title
 	 *            The dialog title.
 	 */
-	public static void showErrorDialog(Window window, String message,
-			String title) {
+	public static void showErrorDialog(Window window, String message, String title) {
 		showMessageDialog(window, message, title, ERROR_MESSAGE);
 	}
 
@@ -102,8 +99,7 @@ public class MessageDialogFactory extends JOptionPane {
 	 *            The message to be displayed in the dialog.
 	 */
 	public static void showErrorDialog(Window window, String message) {
-		showMessageDialog(window, message, rb.getString("Error.title"),
-				ERROR_MESSAGE);
+		showMessageDialog(window, message, rb.getString("Error.title"), ERROR_MESSAGE);
 	}
 
 	/**
@@ -118,29 +114,25 @@ public class MessageDialogFactory extends JOptionPane {
 	 * @param optionType
 	 *            An int that identifies the dialog option type.
 	 */
-	public static int showConfirmDialog(Component parentComponent,
-			String message, int optionType) {
-		Object[] options = { rb.getString("jdialog.option.yes"),
-				rb.getString("jdialog.option.no") };
+	public static int showConfirmDialog(Component parentComponent, String message, int optionType) {
+		Object[] options = { rb.getString("jdialog.option.yes"), rb.getString("jdialog.option.no") };
 		return JOptionPane.showOptionDialog(parentComponent, message,
-				rb.getString("confirm.title"), optionType,
-				JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+				rb.getString("confirm.title"), optionType, JOptionPane.QUESTION_MESSAGE, null,
+				options, options[0]);
 	}
-	
+
 	/**
-	 * Displays a confirmation dialog using the default title. The confirmation
-	 * dialog is associated with the specified parent window, contains the
-	 * specified message, and uses the specified optionType.
+	 * Displays a confirmation dialog for exporting data from a table. The dialog 
+	 * uses the default title, and is associated with the specified parent window.
 	 * 
 	 * @param parentComponent
 	 *            The parent window to associate with this dialog.
 	 */
 	public static int showExportConfirmDialog(Component parentComponent) {
-		Object[] options = { rb.getString("Button.ok"), rb.getString("Button.open") };
+		Object[] options = { rb.getString("Button.open"), rb.getString("Button.ok") };
 		return JOptionPane.showOptionDialog(parentComponent, rb.getString("table.export.success"),
-				rb.getString("confirm.title"), JOptionPane.YES_NO_OPTION,
-				JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+				rb.getString("confirm.title"), JOptionPane.YES_OPTION,
+				JOptionPane.OK_CANCEL_OPTION, null, options, options[1]);
 	}
-	
-	
+
 }

@@ -30,7 +30,7 @@ import javax.swing.SwingConstants;
 import com.att.aro.main.ResourceBundleManager;
 
 /**
- * Represents a progress dialog that can be used to indicate that some background process/loading process is in progress.
+ * Represents a progress dialog that indicates a background process such as loading, is in progress.
  */
 public class AROProgressDialog extends JDialog {
 	private static final long serialVersionUID = 1L;
@@ -46,9 +46,9 @@ public class AROProgressDialog extends JDialog {
 	 * the specified parent window, and status message.
 	 * 
 	 * @param parent
-	 *            - The parent window.
+	 *            The parent window.
 	 * @param message
-	 *            – The status message to be displayed in the progress dialog.
+	 *            The status message to be displayed in the progress dialog.
 	 */
 	public AROProgressDialog(Window parent, String message) {
 		super(parent, rb.getString("aro.title.short"));

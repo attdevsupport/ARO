@@ -18,6 +18,9 @@
 package com.att.aro.main;
 
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,11 +43,11 @@ public class Launch {
 			.getDefaultBundle();
 
 	/**
-	 * The starting point for the ARO Data Analyzer This. method launches the
+	 * The starting point for the ARO Data Analyzer. This method launches the
 	 * application with the specified arguments.
 	 * 
 	 * @param args
-	 *            – Argument strings that are passed to the application at
+	 *            Argument strings that are passed to the application at
 	 *            startup.
 	 */
 	public static void main(String[] args) {
@@ -74,6 +77,22 @@ public class Launch {
 				mainClass.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 				mainClass.setVisible(true);
 
+				// Code to display About window from Mac menu
+				if (System.getProperty("os.name").contains("Mac")) {
+				    try {
+				        Object app = Class.forName("com.apple.eawt.Application").getMethod("getApplication",
+				         (Class[]) null).invoke(null, (Object[]) null);
+
+				        Object al = Proxy.newProxyInstance(Class.forName("com.apple.eawt.AboutHandler")
+				                .getClassLoader(), new Class[] { Class.forName("com.apple.eawt.AboutHandler") },
+				                    new AboutListener());
+				        app.getClass().getMethod("setAboutHandler", new Class[] {
+				            Class.forName("com.apple.eawt.AboutHandler") }).invoke(app, new Object[] { al });
+				    } catch (Exception e) {
+				        //fail quietly
+				    }
+				}
+				
 				// Display splash
 				final SplashScreen splash = new SplashScreen(mainClass);
 				splash.setVisible(true);
@@ -103,4 +122,11 @@ public class Launch {
 		});
 	}
 
+	private static class AboutListener implements InvocationHandler {
+
+	    public Object invoke(Object proxy, Method method, Object[] args) {
+	    	new AboutDialog(null).setVisible(true);
+	        return null;
+	    }
+	}
 }

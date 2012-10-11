@@ -49,7 +49,7 @@ public enum RRCState {
 	PROMO_FACH_DCH,
 	
 	/**
-	 * Idle state for RRC.
+	 * The idle state for LTE.
 	 */
 	LTE_IDLE,
 
@@ -59,28 +59,38 @@ public enum RRCState {
 	LTE_PROMOTION,
 	
 	/**
-	 * LTE data is flowing
+	 * The LTE state in which data is flowing.
 	 */
 	LTE_CONTINUOUS,
 	
 	/**
-	 * After data flow ends
+	 * The LTE tail state that occurs after data flow ends.
 	 */
 	LTE_CR_TAIL,
 	
 	/**
-	 * Next step of LTE tail
+	 * The LTE tail state that occurs after the LTE_CR_TAIL state.
 	 */
 	LTE_DRX_SHORT,
 	
 	/**
-	 * Long part of LTE tail
+	 * The long part of the LTE tail that occurs after the LTE_DRX_SHORT tail state.
 	 */
 	LTE_DRX_LONG,
 
 	// TODO Add comments
+	/**
+	 * The WiFi Active state.
+	 */
 	WIFI_ACTIVE,
-	WIFI_TAIL,
-	WIFI_IDLE
 	
+	/**
+	 * The WiFi Idle state.
+	 */
+	WIFI_TAIL,
+	
+	/**
+	 * The WiFi Tail state.
+	 */
+	WIFI_IDLE
 }

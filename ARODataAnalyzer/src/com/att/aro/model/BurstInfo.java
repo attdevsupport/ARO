@@ -63,7 +63,7 @@ public enum BurstInfo {
 	 */
 	BURST_USER_INPUT,
 	/**
-	 * Burst initiated because of User input.
+	 * A burst initiated by screen rotation.
 	 */
 	BURST_SCREEN_ROTATION_INPUT,
 	/**

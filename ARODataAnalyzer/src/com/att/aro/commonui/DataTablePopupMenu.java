@@ -16,10 +16,13 @@
 package com.att.aro.commonui;
 
 import java.awt.Desktop;
+import java.awt.Frame;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
 
@@ -85,7 +88,8 @@ public class DataTablePopupMenu extends JPopupMenu {
 					try {
 						saveFile(chooser);
 					} catch (Exception e1) {
-						MessageDialogFactory.showUnexpectedExceptionDialog(table, e1);
+						MessageDialogFactory.showErrorDialog(new Window(new Frame()),
+								rb.getString("exportall.errorFileOpen") + e1.getMessage());
 					}
 				}
 
@@ -119,34 +123,17 @@ public class DataTablePopupMenu extends JPopupMenu {
 
 			FileWriter writer = new FileWriter(file);
 			try {
-				String lineSep = System.getProperty("line.separator");
-
-				// Write headers
-				for (int i = 0; i < table.getColumnCount(); ++i) {
-					if (i > 0) {
-						writer.append(',');
-					}
-					writer.append(createCSVEntry(table.getColumnModel().getColumn(i)
-							.getHeaderValue()));
-				}
-				writer.append(lineSep);
-
-				// Write data
-				for (int i = 0; i < table.getRowCount(); ++i) {
-					for (int j = 0; j < table.getColumnCount(); ++j) {
-						if (j > 0) {
-							writer.append(',');
-						}
-						writer.append(createCSVEntry(table.getValueAt(i, j)));
-					}
-					writer.append(lineSep);
+				if (table.getSelectedRowCount() > 1) {
+					writeFile(writer, false);
+				} else {
+					writeFile(writer, true);
 				}
 				UserPreferences.getInstance().setLastExportDirectory(file);
 			} finally {
 				writer.close();
 			}
 			if (file.getName().contains(".csv")) {
-				if (MessageDialogFactory.showExportConfirmDialog(table) != JOptionPane.YES_OPTION) {
+				if (MessageDialogFactory.showExportConfirmDialog(table) == JOptionPane.YES_OPTION) {
 					try {
 						Desktop desktop = Desktop.getDesktop();
 						desktop.open(file);
@@ -184,5 +171,43 @@ public class DataTablePopupMenu extends JPopupMenu {
 		}
 		writer.append('"');
 		return writer.toString();
+	}
+
+	private FileWriter writeFile(FileWriter writer, boolean isAllRow) throws IOException {
+		final String lineSep = System.getProperty("line.separator");
+		// Write headers
+		for (int i = 0; i < table.getColumnCount(); ++i) {
+			if (i > 0) {
+				writer.append(',');
+			}
+			writer.append(createCSVEntry(table.getColumnModel().getColumn(i).getHeaderValue()));
+		}
+		writer.append(lineSep);
+
+		if (isAllRow) {
+			// Write data
+			for (int i = 0; i < table.getRowCount(); ++i) {
+				for (int j = 0; j < table.getColumnCount(); ++j) {
+					if (j > 0) {
+						writer.append(',');
+					}
+					writer.append(createCSVEntry(table.getValueAt(i, j)));
+				}
+				writer.append(lineSep);
+			}
+		} else {
+			int[] rowIndex = table.getSelectedRows();
+			for (int i = 0; i < table.getSelectedRowCount(); ++i) {
+				for (int j = 0; j < table.getColumnCount(); ++j) {
+					if (j > 0) {
+						writer.append(',');
+					}
+					writer.append(createCSVEntry(table.getValueAt(rowIndex[i], j)));
+				}
+				writer.append(lineSep);
+			}
+		}
+
+		return writer;
 	}
 }

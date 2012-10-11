@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.io.File;
@@ -35,8 +34,7 @@ import com.att.aro.model.ProfileWiFi;
 /**
  * Represents the data table model for the Configuration dialog.
  */
-public class ConfigurationTableModel extends DataTableModel<ConfigurationData> {
-	private static final long serialVersionUID = 1L;
+public class ConfigurationTableModel {
 
 	private static final ResourceBundle rb = ResourceBundleManager
 			.getDefaultBundle();
@@ -50,19 +48,24 @@ public class ConfigurationTableModel extends DataTableModel<ConfigurationData> {
 	 */
 	public static final int PROFILE_DATA_COLUMN = 1;
 
-	private static final String[] columns = {
-			rb.getString("configurationTableModel.PROFILE_ATTRIBUTE_COLUMN"),
+	private static final String[] networkColumns = {
+			rb.getString("configurationTableModel.NETWORK_ATTRIBUTE_COLUMN"),
 			rb.getString("configurationTableModel.PROFILE_DATA_COLUMN") };
+	private static final String[] deviceColumns = {
+		rb.getString("configurationTableModel.DEVICE_ATTRIBUTE_COLUMN"),
+		rb.getString("configurationTableModel.PROFILE_DATA_COLUMN") };
 
 	private File file;
 	private String name;
 	private ProfileType profileType;
+	private NetworkAttributesTableModel networkAttrTableModel;
+	private DeviceAttributesTableModel deviceAttrTableModel;
 
 	/**
 	 * Initializes a new instance of the ConfigurationTableModel class.
 	 */
 	public ConfigurationTableModel() {
-		super(columns);
+
 	}
 
 	/**
@@ -75,7 +78,6 @@ public class ConfigurationTableModel extends DataTableModel<ConfigurationData> {
 	 * @see Profile
 	 */
 	public ConfigurationTableModel(Profile profile) {
-		super(columns);
 		setProfile(profile);
 	}
 
@@ -88,255 +90,9 @@ public class ConfigurationTableModel extends DataTableModel<ConfigurationData> {
 	public synchronized void setProfile(Profile profile) {
 		this.file = profile.getFile();
 		this.name = profile.getName();
-		List<ConfigurationData> data = new ArrayList<ConfigurationData>();
-
 		this.profileType = profile.getProfileType();
-
-		data.add(new ConfigurationData(rb.getString("configuration.CARRIER"),
-				Profile.CARRIER, profile.getCarrier()));
-		data.add(new ConfigurationData(rb.getString("configuration.DEVICE"),
-				Profile.DEVICE, profile.getDevice()));
-
-		if (profile instanceof Profile3G) {
-			// Adding 3G Profile
-			Profile3G profile3g = (Profile3G) profile;
-
-			data.add(new ConfigurationData(rb
-					.getString("configuration.DCH_FACH_TIMER"),
-					Profile3G.DCH_FACH_TIMER, Double.toString(profile3g
-							.getDchFachTimer())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.FACH_IDLE_TIMER"),
-					Profile3G.FACH_IDLE_TIMER, Double.toString(profile3g
-							.getFachIdleTimer())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.IDLE_DCH_PROMO_MIN"),
-					Profile3G.IDLE_DCH_PROMO_MIN, Double.toString(profile3g
-							.getIdleDchPromoMin())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.IDLE_DCH_PROMO_AVG"),
-					Profile3G.IDLE_DCH_PROMO_AVG, Double.toString(profile3g
-							.getIdleDchPromoAvg())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.IDLE_DCH_PROMO_MAX"),
-					Profile3G.IDLE_DCH_PROMO_MAX, Double.toString(profile3g
-							.getIdleDchPromoMax())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.FACH_DCH_PROMO_MIN"),
-					Profile3G.FACH_DCH_PROMO_MIN, Double.toString(profile3g
-							.getFachDchPromoMin())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.FACH_DCH_PROMO_AVG"),
-					Profile3G.FACH_DCH_PROMO_AVG, Double.toString(profile3g
-							.getFachDchPromoAvg())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.FACH_DCH_PROMO_MAX"),
-					Profile3G.FACH_DCH_PROMO_MAX, Double.toString(profile3g
-							.getFachDchPromoMax())));
-
-			data.add(new ConfigurationData(rb
-					.getString("configuration.RLC_UL_TH"), Profile3G.RLC_UL_TH,
-					Integer.toString(profile3g.getRlcUlTh())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.RLC_DL_TH"), Profile3G.RLC_DL_TH,
-					Integer.toString(profile3g.getRlcDlTh())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.DCH_TIMER_RESET_SIZE"),
-					Profile3G.DCH_TIMER_RESET_SIZE, Integer.toString(profile3g
-							.getDchTimerResetSize())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.DCH_TIMER_RESET_WIN"),
-					Profile3G.DCH_TIMER_RESET_WIN, Double.toString(profile3g
-							.getDchTimerResetWin())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.RLC_UL_RATE_P2"),
-					Profile3G.RLC_UL_RATE_P2, Double.toString(profile3g
-							.getRlcUlRateP2())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.RLC_UL_RATE_P1"),
-					Profile3G.RLC_UL_RATE_P1, Double.toString(profile3g
-							.getRlcUlRateP1())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.RLC_UL_RATE_P0"),
-					Profile3G.RLC_UL_RATE_P0, Double.toString(profile3g
-							.getRlcUlRateP0())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.RLC_DL_RATE_P2"),
-					Profile3G.RLC_DL_RATE_P2, Double.toString(profile3g
-							.getRlcDlRateP2())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.RLC_DL_RATE_P1"),
-					Profile3G.RLC_DL_RATE_P1, Double.toString(profile3g
-							.getRlcDlRateP1())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.RLC_DL_RATE_P0"),
-					Profile3G.RLC_DL_RATE_P0, Double.toString(profile3g
-							.getRlcDlRateP0())));
-
-			data.add(new ConfigurationData(rb
-					.getString("configuration.POWER_DCH"), Profile3G.POWER_DCH,
-					Double.toString(profile3g.getPowerDch())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.POWER_FACH"),
-					Profile3G.POWER_FACH, Double.toString(profile3g
-							.getPowerFach())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.POWER_IDLE"),
-					Profile3G.POWER_IDLE, Double.toString(profile3g
-							.getPowerIdle())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.POWER_IDLE_DCH"),
-					Profile3G.POWER_IDLE_DCH, Double.toString(profile3g
-							.getPowerIdleDch())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.POWER_FACH_DCH"),
-					Profile3G.POWER_FACH_DCH, Double.toString(profile3g
-							.getPowerFachDch())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.W_THROUGHPUT"),
-					ProfileLTE.W_THROUGHPUT, Double.toString(profile3g
-							.getThroughputWindow())));
-		} else if (profile instanceof ProfileLTE) {
-
-			// Adding LTE Parameters
-			ProfileLTE profileLte = (ProfileLTE) profile;
-			data.add(new ConfigurationData(rb
-					.getString("configuration.T_PROMOTION"),
-					ProfileLTE.T_PROMOTION, Double.toString(profileLte
-							.getPromotionTime())));
-			data.add(new ConfigurationData(
-					rb.getString("configuration.TI_DRX"),
-					ProfileLTE.INACTIVITY_TIMER, Double.toString(profileLte
-							.getInactivityTimer())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.TIS_DRX"),
-					ProfileLTE.T_SHORT_DRX, Double.toString(profileLte
-							.getDrxShortTime())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.TON_DRX"), ProfileLTE.T_DRX_PING,
-					Double.toString(profileLte.getDrxPingTime())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.T_TAIL_DRX"),
-					ProfileLTE.T_LONG_DRX, Double.toString(profileLte
-							.getDrxLongTime())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.T_ONIDLE"),
-					ProfileLTE.T_IDLE_PING, Double.toString(profileLte
-							.getIdlePingTime())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.TPS_DRX"),
-					ProfileLTE.T_SHORT_DRX_PING_PERIOD, Double
-							.toString(profileLte.getDrxShortPingPeriod())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.TPI_DRX"),
-					ProfileLTE.T_LONG_DRX_PING_PERIOD, Double
-							.toString(profileLte.getDrxLongPingPeriod())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.PPL_DRX"),
-					ProfileLTE.T_IDLE_PING_PERIOD, Double.toString(profileLte
-							.getIdlePingPeriod())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.W_THROUGHPUT"),
-					ProfileLTE.W_THROUGHPUT, Double.toString(profileLte
-							.getThroughputWindow())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.LTE_P_PROMOTION"),
-					ProfileLTE.P_PROMOTION, Double.toString(profileLte
-							.getLtePromotionPower())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.LTE_P_SHORT_DRX"),
-					ProfileLTE.P_SHORT_DRX_PING, Double.toString(profileLte
-							.getDrxShortPingPower())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.LTE_LONG_DRX"),
-					ProfileLTE.P_LONG_DRX_PING, Double.toString(profileLte
-							.getDrxLongPingPower())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.LTE_TAIL"), ProfileLTE.P_TAIL,
-					Double.toString(profileLte.getLteTailPower())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.LTE_IDLE"),
-					ProfileLTE.P_IDLE_PING, Double.toString(profileLte
-							.getLteIdlePingPower())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.LTE_ALPHA_UP"),
-					ProfileLTE.LTE_ALPHA_UP, Double.toString(profileLte
-							.getLteAlphaUp())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.LTE_ALPHA_DOWN"),
-					ProfileLTE.LTE_ALPHA_DOWN, Double.toString(profileLte
-							.getLteAlphaDown())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.LTE_BETA"), ProfileLTE.LTE_BETA,
-					Double.toString(profileLte.getLteBeta())));
-		} else if (profile instanceof ProfileWiFi) {
-			ProfileWiFi profileWiFi = (ProfileWiFi)profile;
-			data.add(new ConfigurationData(rb
-					.getString("configuration.WIFI_TAIL_TIME"), ProfileWiFi.WIFI_TAIL_TIME,
-					Double.toString(profileWiFi.getWifiTailTime())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.POWER_WIFI_ACTIVE"), ProfileWiFi.POWER_WIFI_ACTIVE,
-					Double.toString(profileWiFi.getWifiActivePower())));
-			data.add(new ConfigurationData(rb
-					.getString("configuration.POWER_WIFI_STANDBY"), ProfileWiFi.POWER_WIFI_STANDBY,
-					Double.toString(profileWiFi.getWifiIdlePower())));
-		}
-
-		data.add(new ConfigurationData(rb.getString("configuration.BURST_TH"),
-				Profile.BURST_TH, Double.toString(profile.getBurstTh())));
-		data.add(new ConfigurationData(rb
-				.getString("configuration.LONG_BURST_TH"),
-				Profile.LONG_BURST_TH,
-				Double.toString(profile.getLongBurstTh())));
-		data.add(new ConfigurationData(rb
-				.getString("configuration.USER_INPUT_TH"),
-				Profile.USER_INPUT_TH,
-				Double.toString(profile.getUserInputTh())));
-		data.add(new ConfigurationData(rb
-				.getString("configuration.PERIOD_MIN_CYCLE"),
-				Profile.PERIOD_MIN_CYCLE, Double.toString(profile
-						.getPeriodMinCycle())));
-		data.add(new ConfigurationData(rb
-				.getString("configuration.PERIOD_CYCLE_TOL"),
-				Profile.PERIOD_CYCLE_TOL, Double.toString(profile
-						.getPeriodCycleTol())));
-		data.add(new ConfigurationData(rb
-				.getString("configuration.PERIOD_MIN_SAMPLES"),
-				Profile.PERIOD_MIN_SAMPLES, Integer.toString(profile
-						.getPeriodMinSamples())));
-		data.add(new ConfigurationData(rb
-				.getString("configuration.LARGE_BURST_DURATION"),
-				Profile.LARGE_BURST_DURATION, Double.toString(profile
-						.getLargeBurstDuration())));
-		data.add(new ConfigurationData(rb
-				.getString("configuration.LARGE_BURST_SIZE"),
-				Profile.LARGE_BURST_SIZE, Integer.toString(profile
-						.getLargeBurstSize())));
-		data.add(new ConfigurationData(rb
-				.getString("configuration.POWER_GPS_ACTIVE"),
-				Profile.POWER_GPS_ACTIVE, Double.toString(profile
-						.getPowerGpsActive())));
-		data.add(new ConfigurationData(rb
-				.getString("configuration.POWER_GPS_STANDBY"),
-				Profile.POWER_GPS_STANDBY, Double.toString(profile
-						.getPowerGpsStandby())));
-		data.add(new ConfigurationData(rb
-				.getString("configuration.POWER_CAMERA_ON"),
-				Profile.POWER_CAMERA_ON, Double.toString(profile
-						.getPowerCameraOn())));
-		data.add(new ConfigurationData(rb
-				.getString("configuration.POWER_BLUETOOTH_ACTIVE"),
-				Profile.POWER_BLUETOOTH_ACTIVE, Double.toString(profile
-						.getPowerBluetoothActive())));
-		data.add(new ConfigurationData(rb
-				.getString("configuration.POWER_BLUETOOTH_STANDBY"),
-				Profile.POWER_BLUETOOTH_STANDBY, Double.toString(profile
-						.getPowerBluetoothStandby())));
-		data.add(new ConfigurationData(rb
-				.getString("configuration.POWER_SCREEN_ON"),
-				Profile.POWER_SCREEN_ON, Double.toString(profile
-						.getPowerScreenOn())));
-		setData(data);
+		((NetworkAttributesTableModel) getNetworkAttributesTableModel()).initializeTableData(profile);
+		((DeviceAttributesTableModel) getDeviceAttributesTableModel()).initializeTableData(profile);
 	}
 
 	/**
@@ -347,74 +103,493 @@ public class ConfigurationTableModel extends DataTableModel<ConfigurationData> {
 	 * @throws ProfileException
 	 */
 	public Profile getProfile() throws ProfileException {
+
 		Properties props = new Properties();
-		for (ConfigurationData data : getData()) {
+		props = setProperties(props, getNetworkAttributesTableModel().getData());
+		props = setProperties(props, getDeviceAttributesTableModel().getData());
+
+		return file != null ? Profile.create(profileType, file, props)
+				: Profile.create(profileType, name, props);
+	}
+
+	private Properties setProperties(Properties props,
+			List<ConfigurationData> confData) {
+
+		for (ConfigurationData data : confData) {
 			String value = data.getProfileData();
 			String attribute = data.getProfileAttr();
 			if (value != null) {
 				props.setProperty(attribute, value);
 			}
 		}
+		return props;
 
-		return file != null ? Profile.create(profileType, file, props)
-				: Profile.create(profileType, name, props);
 	}
 
-	@Override
-	protected Object getColumnValue(ConfigurationData item, int columnIndex) {
-		switch (columnIndex) {
-		case PROFILE_ATTRIBUTE_COLUMN:
-			return item.getProfileDesc();
-		case PROFILE_DATA_COLUMN:
-			return item.getProfileData();
+	public DataTableModel<ConfigurationData> getDeviceAttributesTableModel() {
+		if (deviceAttrTableModel == null) {
+			deviceAttrTableModel = new DeviceAttributesTableModel(deviceColumns);
 		}
-		return null;
+		return deviceAttrTableModel;
+	}
+
+	public DataTableModel<ConfigurationData> getNetworkAttributesTableModel() {
+		if (networkAttrTableModel == null) {
+			networkAttrTableModel = new NetworkAttributesTableModel(networkColumns);
+		}
+		return networkAttrTableModel;
 	}
 
 	/**
-	 * Returns a value that indicates whether the specified data cell is
-	 * editable or not.
+	 * Data model class for DeviceAttributesTable in the configuration dialog
+	 * screen.
 	 * 
-	 * @param row
-	 *            – The row number of the cell.
-	 * 
-	 * @param col
-	 *            – The column number of the cell.
-	 * 
-	 * @return A boolean value that is “true” if the cell is editable, and
-	 *         “false” if it is not.
 	 */
-	@Override
-	public boolean isCellEditable(int row, int col) {
+	private class DeviceAttributesTableModel extends
+			DataTableModel<ConfigurationData> {
 
-		return col == PROFILE_DATA_COLUMN;
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		public DeviceAttributesTableModel(String[] columns) {
+			super(columns);
+
+		}
+
+		public void initializeTableData(Profile profile) {
+			List<ConfigurationData> data = new ArrayList<ConfigurationData>();
+			data.add(new ConfigurationData(
+					rb.getString("configuration.DEVICE"), Profile.DEVICE,
+					profile.getDevice()));
+			if (profile instanceof Profile3G) {
+				// Adding 3G Profile
+				Profile3G profile3g = (Profile3G) profile;
+				data.add(new ConfigurationData(rb
+						.getString("configuration.POWER_DCH"),
+						Profile3G.POWER_DCH, Double.toString(profile3g
+								.getPowerDch())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.POWER_FACH"),
+						Profile3G.POWER_FACH, Double.toString(profile3g
+								.getPowerFach())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.POWER_IDLE"),
+						Profile3G.POWER_IDLE, Double.toString(profile3g
+								.getPowerIdle())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.POWER_IDLE_DCH"),
+						Profile3G.POWER_IDLE_DCH, Double.toString(profile3g
+								.getPowerIdleDch())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.POWER_FACH_DCH"),
+						Profile3G.POWER_FACH_DCH, Double.toString(profile3g
+								.getPowerFachDch())));
+			} else if (profile instanceof ProfileLTE) {
+
+				// Adding LTE Parameters
+				ProfileLTE profileLte = (ProfileLTE) profile;
+				data.add(new ConfigurationData(rb
+						.getString("configuration.LTE_P_PROMOTION"),
+						ProfileLTE.P_PROMOTION, Double.toString(profileLte
+								.getLtePromotionPower())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.LTE_P_SHORT_DRX"),
+						ProfileLTE.P_SHORT_DRX_PING, Double.toString(profileLte
+								.getDrxShortPingPower())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.LTE_LONG_DRX"),
+						ProfileLTE.P_LONG_DRX_PING, Double.toString(profileLte
+								.getDrxLongPingPower())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.LTE_TAIL"),
+						ProfileLTE.P_TAIL, Double.toString(profileLte
+								.getLteTailPower())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.LTE_IDLE"),
+						ProfileLTE.P_IDLE_PING, Double.toString(profileLte
+								.getLteIdlePingPower())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.LTE_ALPHA_UP"),
+						ProfileLTE.LTE_ALPHA_UP, Double.toString(profileLte
+								.getLteAlphaUp())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.LTE_ALPHA_DOWN"),
+						ProfileLTE.LTE_ALPHA_DOWN, Double.toString(profileLte
+								.getLteAlphaDown())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.LTE_BETA"),
+						ProfileLTE.LTE_BETA, Double.toString(profileLte
+								.getLteBeta())));
+			} else if (profile instanceof ProfileWiFi) {
+				ProfileWiFi profileWiFi = (ProfileWiFi) profile;
+				data.add(new ConfigurationData(rb
+						.getString("configuration.POWER_WIFI_ACTIVE"),
+						ProfileWiFi.POWER_WIFI_ACTIVE, Double
+								.toString(profileWiFi.getWifiActivePower())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.POWER_WIFI_STANDBY"),
+						ProfileWiFi.POWER_WIFI_STANDBY, Double
+								.toString(profileWiFi.getWifiIdlePower())));
+			}
+			data.add(new ConfigurationData(rb
+					.getString("configuration.POWER_GPS_ACTIVE"),
+					Profile.POWER_GPS_ACTIVE, Double.toString(profile
+							.getPowerGpsActive())));
+			data.add(new ConfigurationData(rb
+					.getString("configuration.POWER_GPS_STANDBY"),
+					Profile.POWER_GPS_STANDBY, Double.toString(profile
+							.getPowerGpsStandby())));
+			data.add(new ConfigurationData(rb
+					.getString("configuration.POWER_CAMERA_ON"),
+					Profile.POWER_CAMERA_ON, Double.toString(profile
+							.getPowerCameraOn())));
+			data.add(new ConfigurationData(rb
+					.getString("configuration.POWER_BLUETOOTH_ACTIVE"),
+					Profile.POWER_BLUETOOTH_ACTIVE, Double.toString(profile
+							.getPowerBluetoothActive())));
+			data.add(new ConfigurationData(rb
+					.getString("configuration.POWER_BLUETOOTH_STANDBY"),
+					Profile.POWER_BLUETOOTH_STANDBY, Double.toString(profile
+							.getPowerBluetoothStandby())));
+			data.add(new ConfigurationData(rb
+					.getString("configuration.POWER_SCREEN_ON"),
+					Profile.POWER_SCREEN_ON, Double.toString(profile
+							.getPowerScreenOn())));
+
+			setData(data);
+
+		}
+
+		/**
+		 * This is the one method that must be implemented by subclasses. This
+		 * method defines how the data object managed by this table model is
+		 * mapped to its columns when displayed in a row of the table. The
+		 * getValueAt() method uses this method to retrieve table cell data.
+		 * 
+		 * @param item
+		 *            An object containing the column information. columnIndex
+		 * @param columnIndex
+		 *            The index of the specified column.
+		 * 
+		 * @return The table column value calculated for the object.
+		 */
+		@Override
+		protected Object getColumnValue(ConfigurationData item, int columnIndex) {
+			switch (columnIndex) {
+			case PROFILE_ATTRIBUTE_COLUMN:
+				return item.getProfileDesc();
+			case PROFILE_DATA_COLUMN:
+				return item.getProfileData();
+			}
+			return null;
+		}
+
+		/**
+		 * Returns a value that indicates whether the specified data cell is
+		 * editable or not.
+		 * 
+		 * @param row
+		 *            The row number of the cell.
+		 * 
+		 * @param col
+		 *            The column number of the cell.
+		 * 
+		 * @return A boolean value that is "true" if the cell is editable, and
+		 *         "false" if it is not.
+		 */
+		@Override
+		public boolean isCellEditable(int row, int col) {
+
+			return col == PROFILE_DATA_COLUMN;
+		}
+
+		/**
+		 * Sets the value of the specified profile data item.
+		 * 
+		 * @param value
+		 *            The value to set for the data item.
+		 * 
+		 * @param rowIndex
+		 *            The row index of the data item.
+		 * 
+		 * @param columnIndex
+		 *            The column index of the data item.
+		 */
+		@Override
+		public void setValueAt(Object value, int rowIndex, int columnIndex) {
+			// data[rowIndex][columnIndex] = value;
+			// fireTableCellUpdated(rowIndex, columnIndex);
+			super.setValueAt(value, rowIndex, columnIndex);
+
+			if (columnIndex == PROFILE_DATA_COLUMN) {
+				String s = value.toString();
+				ConfigurationData cd = getValueAt(rowIndex);
+
+				cd.setProfileData(s);
+				fireTableCellUpdated(rowIndex, PROFILE_DATA_COLUMN);
+			}
+		}
+
 	}
 
 	/**
-	 * Sets the value of the specified profile data item.
+	 * Data model class for NetworkAttributesTable in the configuration dialog
+	 * screen.
 	 * 
-	 * @param value
-	 *            – The value to set for the data item.
-	 * 
-	 * @param rowIndex
-	 *            – The row index of the data item.
-	 * 
-	 * @param columnIndex
-	 *            - The column index of the data item.
 	 */
-	@Override
-	public void setValueAt(Object value, int rowIndex, int columnIndex) {
-		// data[rowIndex][columnIndex] = value;
-		// fireTableCellUpdated(rowIndex, columnIndex);
-		super.setValueAt(value, rowIndex, columnIndex);
+	private class NetworkAttributesTableModel extends
+			DataTableModel<ConfigurationData> {
 
-		if (columnIndex == PROFILE_DATA_COLUMN) {
-			String s = value.toString();
-			ConfigurationData cd = getValueAt(rowIndex);
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
 
-			cd.setProfileData(s);
-			fireTableCellUpdated(rowIndex, PROFILE_DATA_COLUMN);
+		public NetworkAttributesTableModel(String[] columns) {
+			super(columns);
+
 		}
+
+		public void initializeTableData(Profile profile) {
+			List<ConfigurationData> data = new ArrayList<ConfigurationData>();
+			data.add(new ConfigurationData(rb
+					.getString("configuration.CARRIER"), Profile.CARRIER,
+					profile.getCarrier()));
+			if (profile instanceof Profile3G) {
+				// Adding 3G Profile
+				Profile3G profile3g = (Profile3G) profile;
+
+				data.add(new ConfigurationData(rb
+						.getString("configuration.DCH_FACH_TIMER"),
+						Profile3G.DCH_FACH_TIMER, Double.toString(profile3g
+								.getDchFachTimer())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.FACH_IDLE_TIMER"),
+						Profile3G.FACH_IDLE_TIMER, Double.toString(profile3g
+								.getFachIdleTimer())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.IDLE_DCH_PROMO_MIN"),
+						Profile3G.IDLE_DCH_PROMO_MIN, Double.toString(profile3g
+								.getIdleDchPromoMin())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.IDLE_DCH_PROMO_AVG"),
+						Profile3G.IDLE_DCH_PROMO_AVG, Double.toString(profile3g
+								.getIdleDchPromoAvg())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.IDLE_DCH_PROMO_MAX"),
+						Profile3G.IDLE_DCH_PROMO_MAX, Double.toString(profile3g
+								.getIdleDchPromoMax())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.FACH_DCH_PROMO_MIN"),
+						Profile3G.FACH_DCH_PROMO_MIN, Double.toString(profile3g
+								.getFachDchPromoMin())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.FACH_DCH_PROMO_AVG"),
+						Profile3G.FACH_DCH_PROMO_AVG, Double.toString(profile3g
+								.getFachDchPromoAvg())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.FACH_DCH_PROMO_MAX"),
+						Profile3G.FACH_DCH_PROMO_MAX, Double.toString(profile3g
+								.getFachDchPromoMax())));
+
+				data.add(new ConfigurationData(rb
+						.getString("configuration.RLC_UL_TH"),
+						Profile3G.RLC_UL_TH, Integer.toString(profile3g
+								.getRlcUlTh())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.RLC_DL_TH"),
+						Profile3G.RLC_DL_TH, Integer.toString(profile3g
+								.getRlcDlTh())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.DCH_TIMER_RESET_SIZE"),
+						Profile3G.DCH_TIMER_RESET_SIZE, Integer
+								.toString(profile3g.getDchTimerResetSize())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.DCH_TIMER_RESET_WIN"),
+						Profile3G.DCH_TIMER_RESET_WIN, Double
+								.toString(profile3g.getDchTimerResetWin())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.RLC_UL_RATE_P2"),
+						Profile3G.RLC_UL_RATE_P2, Double.toString(profile3g
+								.getRlcUlRateP2())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.RLC_UL_RATE_P1"),
+						Profile3G.RLC_UL_RATE_P1, Double.toString(profile3g
+								.getRlcUlRateP1())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.RLC_UL_RATE_P0"),
+						Profile3G.RLC_UL_RATE_P0, Double.toString(profile3g
+								.getRlcUlRateP0())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.RLC_DL_RATE_P2"),
+						Profile3G.RLC_DL_RATE_P2, Double.toString(profile3g
+								.getRlcDlRateP2())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.RLC_DL_RATE_P1"),
+						Profile3G.RLC_DL_RATE_P1, Double.toString(profile3g
+								.getRlcDlRateP1())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.RLC_DL_RATE_P0"),
+						Profile3G.RLC_DL_RATE_P0, Double.toString(profile3g
+								.getRlcDlRateP0())));
+			} else if (profile instanceof ProfileLTE) {
+
+				// Adding LTE Parameters
+				ProfileLTE profileLte = (ProfileLTE) profile;
+				data.add(new ConfigurationData(rb
+						.getString("configuration.T_PROMOTION"),
+						ProfileLTE.T_PROMOTION, Double.toString(profileLte
+								.getPromotionTime())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.TI_DRX"),
+						ProfileLTE.INACTIVITY_TIMER, Double.toString(profileLte
+								.getInactivityTimer())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.TIS_DRX"),
+						ProfileLTE.T_SHORT_DRX, Double.toString(profileLte
+								.getDrxShortTime())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.TON_DRX"),
+						ProfileLTE.T_DRX_PING, Double.toString(profileLte
+								.getDrxPingTime())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.T_TAIL_DRX"),
+						ProfileLTE.T_LONG_DRX, Double.toString(profileLte
+								.getDrxLongTime())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.T_ONIDLE"),
+						ProfileLTE.T_IDLE_PING, Double.toString(profileLte
+								.getIdlePingTime())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.TPS_DRX"),
+						ProfileLTE.T_SHORT_DRX_PING_PERIOD, Double
+								.toString(profileLte.getDrxShortPingPeriod())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.TPI_DRX"),
+						ProfileLTE.T_LONG_DRX_PING_PERIOD, Double
+								.toString(profileLte.getDrxLongPingPeriod())));
+				data.add(new ConfigurationData(rb
+						.getString("configuration.PPL_DRX"),
+						ProfileLTE.T_IDLE_PING_PERIOD, Double
+								.toString(profileLte.getIdlePingPeriod())));
+			} else if (profile instanceof ProfileWiFi) {
+				ProfileWiFi profileWiFi = (ProfileWiFi) profile;
+				data.add(new ConfigurationData(rb
+						.getString("configuration.WIFI_TAIL_TIME"),
+						ProfileWiFi.WIFI_TAIL_TIME, Double.toString(profileWiFi
+								.getWifiTailTime())));
+			}
+			data.add(new ConfigurationData(rb
+					.getString("configuration.W_THROUGHPUT"),
+					Profile.W_THROUGHPUT, Double.toString(profile
+							.getThroughputWindow())));
+			data.add(new ConfigurationData(rb
+					.getString("configuration.BURST_TH"), Profile.BURST_TH,
+					Double.toString(profile.getBurstTh())));
+			data.add(new ConfigurationData(rb
+					.getString("configuration.LONG_BURST_TH"),
+					Profile.LONG_BURST_TH, Double.toString(profile
+							.getLongBurstTh())));
+			data.add(new ConfigurationData(rb
+					.getString("configuration.USER_INPUT_TH"),
+					Profile.USER_INPUT_TH, Double.toString(profile
+							.getUserInputTh())));
+			data.add(new ConfigurationData(rb
+					.getString("configuration.PERIOD_MIN_CYCLE"),
+					Profile.PERIOD_MIN_CYCLE, Double.toString(profile
+							.getPeriodMinCycle())));
+			data.add(new ConfigurationData(rb
+					.getString("configuration.PERIOD_CYCLE_TOL"),
+					Profile.PERIOD_CYCLE_TOL, Double.toString(profile
+							.getPeriodCycleTol())));
+			data.add(new ConfigurationData(rb
+					.getString("configuration.PERIOD_MIN_SAMPLES"),
+					Profile.PERIOD_MIN_SAMPLES, Integer.toString(profile
+							.getPeriodMinSamples())));
+			data.add(new ConfigurationData(rb
+					.getString("configuration.LARGE_BURST_DURATION"),
+					Profile.LARGE_BURST_DURATION, Double.toString(profile
+							.getLargeBurstDuration())));
+			data.add(new ConfigurationData(rb
+					.getString("configuration.LARGE_BURST_SIZE"),
+					Profile.LARGE_BURST_SIZE, Integer.toString(profile
+							.getLargeBurstSize())));
+
+			setData(data);
+		}
+
+		/**
+		 * This is the one method that must be implemented by subclasses. This
+		 * method defines how the data object managed by this table model is
+		 * mapped to its columns when displayed in a row of the table. The
+		 * getValueAt() method uses this method to retrieve table cell data.
+		 * 
+		 * @param item
+		 *            An object containing the column information. columnIndex
+		 * @param columnIndex
+		 *            The index of the specified column.
+		 * 
+		 * @return The table column value calculated for the object.
+		 */
+		@Override
+		protected Object getColumnValue(ConfigurationData item, int columnIndex) {
+			switch (columnIndex) {
+			case PROFILE_ATTRIBUTE_COLUMN:
+				return item.getProfileDesc();
+			case PROFILE_DATA_COLUMN:
+				return item.getProfileData();
+			}
+			return null;
+		}
+
+		/**
+		 * Returns a value that indicates whether the specified data cell is
+		 * editable or not.
+		 * 
+		 * @param row
+		 *            The row number of the cell.
+		 * 
+		 * @param col
+		 *            The column number of the cell.
+		 * 
+		 * @return A boolean value that is "true" if the cell is editable, and
+		 *         "false" if it is not.
+		 */
+		@Override
+		public boolean isCellEditable(int row, int col) {
+
+			return col == PROFILE_DATA_COLUMN;
+		}
+
+		/**
+		 * Sets the value of the specified profile data item.
+		 * 
+		 * @param value
+		 *            The value to set for the data item.
+		 * 
+		 * @param rowIndex
+		 *            The row index of the data item.
+		 * 
+		 * @param columnIndex
+		 *            The column index of the data item.
+		 */
+		@Override
+		public void setValueAt(Object value, int rowIndex, int columnIndex) {
+			// data[rowIndex][columnIndex] = value;
+			// fireTableCellUpdated(rowIndex, columnIndex);
+			super.setValueAt(value, rowIndex, columnIndex);
+
+			if (columnIndex == PROFILE_DATA_COLUMN) {
+				String s = value.toString();
+				ConfigurationData cd = getValueAt(rowIndex);
+
+				cd.setProfileData(s);
+				fireTableCellUpdated(rowIndex, PROFILE_DATA_COLUMN);
+			}
+		}
+
 	}
 
 }

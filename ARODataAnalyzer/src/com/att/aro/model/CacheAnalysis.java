@@ -124,7 +124,7 @@ public class CacheAnalysis implements Serializable {
 	 * it expired? Yes: If (object changed) report... otherwise report... NO:
 	 * report a duplicate transfer before expiration [E] Update the cache entry
 	 * 
-	 * @param sessions – A Collection of TCPSession objects.
+	 * @param sessions A Collection of TCPSession objects.
 	 * 
 	 * @throws java.io.IOException
 	 */
@@ -163,7 +163,8 @@ public class CacheAnalysis implements Serializable {
 			if (statusCode == 0) {
 				invalidResponses.add(response);
 				diagnosisResults.add(new CacheEntry(null, response,
-						CacheEntry.Diagnosis.CACHING_DIAG_INVALID_RESPONSE, 0));
+						CacheEntry.Diagnosis.CACHING_DIAG_INVALID_RESPONSE, 0, 
+						response.getSession().getPackets().get(0)));
 				continue;
 			} else {
 				validResponses.add(response);
@@ -171,7 +172,8 @@ public class CacheAnalysis implements Serializable {
 
 			if (statusCode != 200 && statusCode != 206 && statusCode != 304) {
 				diagnosisResults.add(new CacheEntry(null, response,
-						CacheEntry.Diagnosis.CACHING_DIAG_INVALID_REQUEST, 0));
+						CacheEntry.Diagnosis.CACHING_DIAG_INVALID_REQUEST, 0, 
+						response.getSession().getPackets().get(0)));
 				continue;
 			}
 
@@ -183,7 +185,7 @@ public class CacheAnalysis implements Serializable {
 								request,
 								response,
 								CacheEntry.Diagnosis.CACHING_DIAG_REQUEST_NOT_FOUND,
-								0));
+								0, response.getSession().getPackets().get(0)));
 				continue;
 			}
 
@@ -193,14 +195,16 @@ public class CacheAnalysis implements Serializable {
 					&& !HttpRequestResponseInfo.HTTP_PUT.equals(requestType)
 					&& !HttpRequestResponseInfo.HTTP_POST.equals(requestType)) {
 				diagnosisResults.add(new CacheEntry(request, response,
-						CacheEntry.Diagnosis.CACHING_DIAG_INVALID_REQUEST, 0));
+						CacheEntry.Diagnosis.CACHING_DIAG_INVALID_REQUEST, 0, 
+						response.getSession().getPackets().get(0)));
 				continue;
 			}
 
 			// Check for valid object name and host name
 			if (request.getHostName() == null || request.getObjName() == null) {
 				diagnosisResults.add(new CacheEntry(request, response,
-						CacheEntry.Diagnosis.CACHING_DIAG_INVALID_OBJ_NAME, 0));
+						CacheEntry.Diagnosis.CACHING_DIAG_INVALID_OBJ_NAME, 0, 
+						response.getSession().getPackets().get(0)));
 				continue;
 			}
 
@@ -210,7 +214,8 @@ public class CacheAnalysis implements Serializable {
 					|| HttpRequestResponseInfo.HTTP_PUT.equals(requestType)) {
 				cacheEntries.remove(getObjFullName(request, response));
 				diagnosisResults.add(new CacheEntry(request, response,
-						CacheEntry.Diagnosis.CACHING_DIAG_NOT_CACHABLE, 0));
+						CacheEntry.Diagnosis.CACHING_DIAG_NOT_CACHABLE, 0, 
+						response.getSession().getPackets().get(0)));
 				continue;
 			}
 
@@ -219,7 +224,8 @@ public class CacheAnalysis implements Serializable {
 			CacheEntry newCacheEntry;
 			if (cacheEntry == null) {
 				newCacheEntry = new CacheEntry(request, response,
-						CacheEntry.Diagnosis.CACHING_DIAG_CACHE_MISSED);
+						CacheEntry.Diagnosis.CACHING_DIAG_CACHE_MISSED, 
+						response.getSession().getPackets().get(0));
 				addToCache(newCacheEntry);
 				diagnosisResults.add(newCacheEntry);
 				continue;
@@ -248,23 +254,27 @@ public class CacheAnalysis implements Serializable {
 									.getContentLength())) {
 
 						newCacheEntry = new CacheEntry(request, response,
-								CacheEntry.Diagnosis.CACHING_DIAG_OBJ_CHANGED);
+								CacheEntry.Diagnosis.CACHING_DIAG_OBJ_CHANGED, 
+								response.getSession().getPackets().get(0));
 					} else if (response.getStatusCode() == 304) {
 						newCacheEntry = new CacheEntry(
 								request,
 								response,
-								CacheEntry.Diagnosis.CACHING_DIAG_OBJ_NOT_CHANGED_304);
+								CacheEntry.Diagnosis.CACHING_DIAG_OBJ_NOT_CHANGED_304, 
+								response.getSession().getPackets().get(0));
 					} else if (request.isIfModifiedSince()
 							|| request.isIfNoneMatch()) {
 						newCacheEntry = new CacheEntry(
 								request,
 								response,
-								CacheEntry.Diagnosis.CACHING_DIAG_OBJ_NOT_CHANGED_DUP_SERVER);
+								CacheEntry.Diagnosis.CACHING_DIAG_OBJ_NOT_CHANGED_DUP_SERVER, 
+								response.getSession().getPackets().get(0));
 					} else {
 						newCacheEntry = new CacheEntry(
 								request,
 								response,
-								CacheEntry.Diagnosis.CACHING_DIAG_OBJ_NOT_CHANGED_DUP_CLIENT);
+								CacheEntry.Diagnosis.CACHING_DIAG_OBJ_NOT_CHANGED_DUP_CLIENT, 
+								response.getSession().getPackets().get(0));
 					}
 					diagnosisResults.add(newCacheEntry);
 					break;
@@ -274,7 +284,8 @@ public class CacheAnalysis implements Serializable {
 						logger.warning("679 - Unexpected 304 HTTP status encountered");
 					}
 					newCacheEntry = new CacheEntry(request, response,
-							CacheEntry.Diagnosis.CACHING_DIAG_NOT_EXPIRED_DUP);
+							CacheEntry.Diagnosis.CACHING_DIAG_NOT_EXPIRED_DUP, 
+							response.getSession().getPackets().get(0));
 					diagnosisResults.add(newCacheEntry);
 					break;
 				default:
@@ -303,25 +314,27 @@ public class CacheAnalysis implements Serializable {
 									.getContentLength())) {
 
 						newCacheEntry = new CacheEntry(request, response,
-								CacheEntry.Diagnosis.CACHING_DIAG_OBJ_CHANGED);
+								CacheEntry.Diagnosis.CACHING_DIAG_OBJ_CHANGED, 
+								response.getSession().getPackets().get(0));
 					} else if (response.getStatusCode() == 304) {
 						newCacheEntry = new CacheEntry(
 								request,
 								response,
-								CacheEntry.Diagnosis.CACHING_DIAG_OBJ_NOT_CHANGED_304);
+								CacheEntry.Diagnosis.CACHING_DIAG_OBJ_NOT_CHANGED_304, 
+								response.getSession().getPackets().get(0));
 					} else if (request.isIfModifiedSince()
 							|| request.isIfNoneMatch()) {
 						newCacheEntry = new CacheEntry(
 								request,
 								response,
 								CacheEntry.Diagnosis.CACHING_DIAG_OBJ_NOT_CHANGED_DUP_PARTIALHIT_SERVER,
-								bytesInCache);
+								bytesInCache, response.getSession().getPackets().get(0));
 					} else {
 						newCacheEntry = new CacheEntry(
 								request,
 								response,
 								CacheEntry.Diagnosis.CACHING_DIAG_OBJ_NOT_CHANGED_DUP_PARTIALHIT_CLIENT,
-								bytesInCache);
+								bytesInCache, response.getSession().getPackets().get(0));
 					}
 					diagnosisResults.add(newCacheEntry);
 					break;
@@ -334,7 +347,7 @@ public class CacheAnalysis implements Serializable {
 							request,
 							response,
 							CacheEntry.Diagnosis.CACHING_DIAG_NOT_EXPIRED_DUP_PARTIALHIT,
-							bytesInCache);
+							bytesInCache, response.getSession().getPackets().get(0));
 					diagnosisResults.add(newCacheEntry);
 					break;
 				default:

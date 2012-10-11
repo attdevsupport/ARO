@@ -69,7 +69,7 @@ public class UserPreferences {
 	/**
 	 * Sets the directory where the last trace was loaded from.
 	 * 
-	 * @param tdPath – The absolute path of the last trace directory.
+	 * @param tdPath The absolute path of the last trace directory.
 	 */
 	public void setLastTraceDirectory(File tdPath) {
 		if (tdPath != null && !tdPath.isDirectory()) {
@@ -95,13 +95,13 @@ public class UserPreferences {
 	}
 
 	/**
-	 * Returns either the pre-defined profile name, or the absolute path to the file which 
-	 * contains the profile data. 
+	 * Returns either the name or the absolute path to the last used profile of the specified 
+	 * type. If no type is specified, the name or path to the last used profile of any type is returned.
 	 * 
 	 * @param profileType
-	 *            Specifies profile type to get. If null, last profile of any
-	 *            type is returned.
-	 * @return TThe name of the last profile that was used.
+	 *            Specifies the profile type to return. If null, the last profile of 
+	 *            any type is returned. 
+	 * @return TThe name of the last profile used.
 	 */
 	public String getLastProfile(ProfileType profileType) {
 		if (profileType != null) {
@@ -119,10 +119,9 @@ public class UserPreferences {
 	}
 
 	/**
-	 * Sets the pre-defined profile name or the absolute path to the file which contains 
-	 * the profile data. 
+	 * Sets the last profile used to the specified profile. 
 	 * 
-	 * @param profile – The last profile.
+	 * @param profile The profile that is to be set as the last profile.
 	 */
 	public void setLastProfile(Profile profile) {
 		String name = profile != null ? profile.getName() : null;
@@ -149,7 +148,7 @@ public class UserPreferences {
 	/**
 	 * Sets the directory where the user device profiles were last stored. 
 	 * 
-	 * @param profilePath – The absolute path of the last profile directory.
+	 * @param profilePath The absolute path of the last profile directory.
 	 */
 	public void setLastProfileDirectory(File profilePath) {
 		if (profilePath != null && !profilePath.isDirectory()) {
@@ -164,7 +163,7 @@ public class UserPreferences {
 	/**
 	 * Set the list of chart plot options. 
 	 * 
-	 * @param chartPlotOptions – A List of ChartPlotOptions objects containing the user 
+	 * @param chartPlotOptions A List of ChartPlotOptions objects containing the user 
 	 * configurable list of items to plot on the Diagnostic Chart.
 	 */
 	public void setChartPlotOptions(List<ChartPlotOptions> chartPlotOptions) {
@@ -210,7 +209,7 @@ public class UserPreferences {
 	/**
 	 * Sets the directory where the last table export occurred
 	 * 
-	 * @param f – The last table export directory. If this parameter is a file, the parent 
+	 * @param f The last table export directory. If this parameter is a file, the parent 
 	 * directory is used. If it is null, the previous user preference is cleared.
 	 */
 	public void setLastExportDirectory(File f) {

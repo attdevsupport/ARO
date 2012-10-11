@@ -81,6 +81,7 @@ public class IPPacket extends Packet implements Serializable {
 
 	/**
 	 * @see com.att.aro.pcap.Packet#getDataOffset()
+	 * @return The offset within the data array of the packet data, excluding the header information.
 	 */
 	@Override
 	public int getDataOffset() {
@@ -135,7 +136,7 @@ public class IPPacket extends Packet implements Serializable {
 	/**
 	 * Gets the value of the Don't Fragment flag. (IPv4 only)
 	 * 
-	 * @return A boolean value that is the Don’t Fragment flag.
+	 * @return A boolean value that is the Don't Fragment flag.
 	 */
 	public boolean isDontFrag() {
 		return dontFrag;

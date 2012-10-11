@@ -20,10 +20,10 @@ package com.att.aro.main;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Insets;
-import java.awt.Window;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ResourceBundle;
 
 import javax.swing.ImageIcon;
@@ -35,9 +35,9 @@ import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.StyleSheet;
 
+import com.att.aro.bp.BestPracticeDisplay;
 import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.images.Images;
-import com.att.aro.model.BestPractices;
 import com.att.aro.model.TraceData;
 
 /**
@@ -45,7 +45,7 @@ import com.att.aro.model.TraceData;
  * Practices test which has a category ( Caching, Connections, or Other), an
  * icon, a test name, an About line, and Results details.
  */
-public abstract class DetailedResultRowPanel {
+public class DetailedResultRowPanel {
 
 	private static ImageIcon passIcon = Images.BP_PASS_DARK.getIcon();
 	private static ImageIcon failIcon = Images.BP_FAIL_DARK.getIcon();
@@ -71,69 +71,60 @@ public abstract class DetailedResultRowPanel {
 	// private HyperlinkLabel learnMoreLabel;
 	private JLabel resultLabel;
 	private JTextPane resultDetailsLabel;
-	private boolean selfTest;
+	private BestPracticeDisplay bp;
 	private TraceData.Analysis analysisData;
-	private Window parent;
+	private ApplicationResourceOptimizer parent;
 
 	/**
 	 * Initializes a new instance of the DetailedResultRowPanel class using the
-	 * specified self-test flag, test title, test description, and url for more
+	 * specified  parent window, self-test flag, test title, test description, and url for more
 	 * information.
 	 * 
-	 * @param isSelfTest
-	 *            – A boolean that indicates whether or not the test is a
-	 *            self-test. A self-test is a test that is not automatically run
-	 *            by the ARO Data Analyzer.
+	 * @param parent 
+	 * 			  The parent window for the panel.
 	 * 
-	 * @param bpTitle
-	 *            - The title of the Best Practice test.
-	 * 
-	 * @param bpDesc
-	 *            – A description of the Best Practice test.
-	 * 
-	 * @param bpUrl
-	 *            – A url to a site containing more information about the test.
+	 * @param bp
+	 *            The best practice to be displayed in this panel
 	 */
-	public DetailedResultRowPanel(Window parent, boolean isSelfTest,
-			String bpTitle, String bpDesc, String bpUrl) {
+	public DetailedResultRowPanel(ApplicationResourceOptimizer parent, BestPracticeDisplay bp) {
 		this.parent = parent;
-		this.selfTest = isSelfTest;
-		createDetailedResultRow(isSelfTest, bpTitle, bpDesc, bpUrl);
+		this.bp = bp;
+		createDetailedResultRow();
 	}
-
-	protected abstract boolean isPass(BestPractices bp);
-
-	protected abstract String resultText(TraceData.Analysis analysisData);
-
-	protected abstract void performAction();
 
 	/**
 	 * Refreshes the icons and sets the Results text using the specified trace
 	 * data.
 	 * 
 	 * @param analysisData
-	 *            – An Analysis object containing the trace data.
+	 *            An Analysis object containing the trace data.
+	 * @return If analysisData is not null and this is not a self test then indicates whether
+	 * the best practice evaluation passed.  Otherwise null is returned.
 	 * 
 	 */
-	public void refresh(TraceData.Analysis analysisData) {
+	public Boolean refresh(TraceData.Analysis analysisData) {
 		this.analysisData = analysisData;
 
 		if (analysisData == null) {
 			iconLabel.setIcon(notRunIcon);
 			iconLabel.setToolTipText(null);
-			resultDetailsLabel.setText(selfTest ? resultText(null) : null);
-		} else if (selfTest) {
+			resultDetailsLabel.setText(bp.isSelfTest() ? bp.resultText(null) : null);
+			return null;
+		} else if (bp.isSelfTest()) {
 			iconLabel.setIcon(manualIcon);
 			iconLabel.setToolTipText(MANUAL);
+			return null;
 		} else {
-			if (isPass(analysisData.getBestPractice())) {
+			if (bp.isPass(analysisData)) {
 				iconLabel.setIcon(passIcon);
 				iconLabel.setToolTipText(PASS);
-				resultDetailsLabel.setText(resultText(analysisData));
+				resultDetailsLabel.setText(bp.resultText(analysisData));
+				return Boolean.TRUE;
 			} else {
 				iconLabel.setIcon(failIcon);
 				iconLabel.setToolTipText(FAIL);
-				resultDetailsLabel.setText(resultText(analysisData));
+				resultDetailsLabel.setText(bp.resultText(analysisData));
+				return Boolean.FALSE;
 			}
 		}
 	}
@@ -206,36 +197,35 @@ public abstract class DetailedResultRowPanel {
 	 * Connections or others Each row contains 3 icons , Test , About and
 	 * Results details for the Best Practice.
 	 */
-	private void createDetailedResultRow(boolean isSelfTest, String bpTitle,
-			String bpDesc, final String bpUrl) {
+	private void createDetailedResultRow() {
 
 		this.iconLabel = new JLabel(notRunIcon);
 
 		this.testLabel = new JLabel(rb.getString("bestPractices.test"));
 		testLabel.setFont(boldTextFont);
 
-		this.testNameLabel = new JLabel(bpTitle);
+		this.testNameLabel = new JLabel(bp.getDetailTitle());
 		testNameLabel.setFont(boldTextFont);
 
 		this.aboutLabel = new JLabel(rb.getString("bestPractices.About"));
 		aboutLabel.setFont(boldTextFont);
 
-		this.aboutText = createJTextArea(bpDesc, bpUrl);
+		this.aboutText = createJTextArea(bp.getAboutText(), bp.getLearnMoreURI());
 
 		resultLabel = new JLabel(
-				isSelfTest ? rb.getString("bestPractices.selfEvaluation")
+				bp.isSelfTest() ? rb.getString("bestPractices.selfEvaluation")
 						: rb.getString("bestPractices.results"));
 		resultLabel.setFont(boldTextFont);
 
 		this.resultDetailsLabel = createJTextPane();
-		resultDetailsLabel.setText(isSelfTest ? resultText(null) : null);
+		resultDetailsLabel.setText(bp.isSelfTest() ? bp.resultText(null) : null);
 		resultDetailsLabel.addMouseListener(new MouseAdapter() {
 
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				if (analysisData != null
-						&& !isPass(analysisData.getBestPractice())) {
-					performAction();
+						&& !bp.isPass(analysisData)) {
+					bp.performAction(parent);
 				}
 			}
 
@@ -245,7 +235,7 @@ public abstract class DetailedResultRowPanel {
 	/**
 	 * This method creates the about text area.
 	 */
-	private JTextPane createJTextArea(String textToDisplay, final String url) {
+	private JTextPane createJTextArea(String textToDisplay, final URI url) {
 		HTMLDocument doc = new HTMLDocument();
 		StyleSheet style = doc.getStyleSheet();
 		style.addRule("body { font-family: " + textFont.getFamily() + "; "
@@ -257,24 +247,28 @@ public abstract class DetailedResultRowPanel {
 		jTextArea.setStyledDocument(doc);
 		jTextArea.setMargin(new Insets(0, 0, 0, 0));
 		jTextArea.setPreferredSize(new Dimension(500, 70));
-		jTextArea.setText(textToDisplay + " <a href=\"#\">"
-				+ rb.getString("bestPractices.learnMore") + "</a>");
-		jTextArea.addHyperlinkListener(new HyperlinkListener() {
+		if (url != null) {
+			jTextArea.setText(textToDisplay + " <a href=\"#\">"
+					+ rb.getString("bestPractices.learnMore") + "</a>");
+			jTextArea.addHyperlinkListener(new HyperlinkListener() {
 
-			@Override
-			public void hyperlinkUpdate(HyperlinkEvent e) {
+				@Override
+				public void hyperlinkUpdate(HyperlinkEvent e) {
 
-				if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-					try {
-						BrowserGenerator.openBrowser(url);
-					} catch (IOException e1) {
-						MessageDialogFactory.showUnexpectedExceptionDialog(
-								parent, e1);
+					if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+						try {
+							BrowserGenerator.openBrowser(url);
+						} catch (IOException e1) {
+							MessageDialogFactory.showUnexpectedExceptionDialog(
+									parent, e1);
+						}
 					}
 				}
-			}
 
-		});
+			});
+		} else {
+			jTextArea.setText(textToDisplay);
+		}
 		return jTextArea;
 	}
 

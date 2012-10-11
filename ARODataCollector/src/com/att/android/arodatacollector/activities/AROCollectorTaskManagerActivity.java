@@ -121,8 +121,9 @@ public class AROCollectorTaskManagerActivity extends Activity {
 			"com.htc", "com.motorola", "com.smithmicro.DM", "com.pv", };
 
 	/**
-	 * onCreate
-	 * 
+	 * Initializes data members with a saved instance of an AROCollectorTaskManagerActivity 
+	 * object. Overrides the android.app.Activity#onCreate method.
+	 * @param savedInstanceState – A saved instance of an AROCollectorTaskManagerActivity object.
 	 * @see android.app.Activity#onCreate(android.os.Bundle)
 	 */
 	@Override
@@ -261,7 +262,7 @@ public class AROCollectorTaskManagerActivity extends Activity {
 	}
 
 	/**
-	 * Overriding onResume
+	 * Overrides the android.app.Activity#onResume method. 
 	 * 
 	 * @see android.app.Activity#onResume()
 	 */
@@ -340,7 +341,7 @@ public class AROCollectorTaskManagerActivity extends Activity {
 	}
 
 	/**
-	 * Overriding onPause
+	 * Overrides the android.app.Activity#onPause method. 
 	 * 
 	 * @see android.app.Activity#onPause()
 	 */

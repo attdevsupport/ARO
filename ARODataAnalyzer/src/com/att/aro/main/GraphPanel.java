@@ -50,6 +50,7 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -65,7 +66,6 @@ import javax.swing.filechooser.FileFilter;
 import org.jfree.chart.ChartMouseEvent;
 import org.jfree.chart.ChartMouseListener;
 import org.jfree.chart.ChartPanel;
-import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.AxisLocation;
 import org.jfree.chart.axis.NumberAxis;
@@ -108,6 +108,8 @@ import com.att.aro.model.CameraInfo.CameraState;
 import com.att.aro.model.ExtensionFileFilter;
 import com.att.aro.model.GpsInfo;
 import com.att.aro.model.GpsInfo.GpsState;
+import com.att.aro.model.NetworkBearerTypeInfo;
+import com.att.aro.model.NetworkType;
 import com.att.aro.model.PacketInfo;
 import com.att.aro.model.Profile;
 import com.att.aro.model.ProfileLTE;
@@ -338,6 +340,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		plotOrder.add(ChartPlotOptions.SCREEN);
 		plotOrder.add(ChartPlotOptions.BATTERY);
 		plotOrder.add(ChartPlotOptions.WIFI);
+		plotOrder.add(ChartPlotOptions.NETWORK_TYPE);
 		plotOrder.add(ChartPlotOptions.THROUGHPUT);
 		plotOrder.add(ChartPlotOptions.UL_PACKETS);
 		plotOrder.add(ChartPlotOptions.DL_PACKETS);
@@ -382,21 +385,25 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 	public GraphPanel() {
 
 		subplotMap.put(ChartPlotOptions.GPS, new GraphPanelPlotLabels(rb.getString("chart.gps"),
-				createGpsPlot(), 1));
+				createBarPlot(Color.gray), 1));
 		subplotMap.put(ChartPlotOptions.RADIO, new GraphPanelPlotLabels(
 				rb.getString("chart.radio"), createRadioPlot(), 2));
+		subplotMap.put(ChartPlotOptions.BLUETOOTH,
+				new GraphPanelPlotLabels(rb.getString("chart.bluetooth"),
+						createBarPlot(Color.gray), 1));
 		subplotMap
-				.put(ChartPlotOptions.BLUETOOTH,
-						new GraphPanelPlotLabels(rb.getString("chart.bluetooth"),
-								createBluetoothPlot(), 1));
-		subplotMap.put(ChartPlotOptions.CAMERA,
-				new GraphPanelPlotLabels(rb.getString("chart.camera"), createCameraPlot(), 1));
+				.put(ChartPlotOptions.CAMERA, new GraphPanelPlotLabels(
+						rb.getString("chart.camera"), createBarPlot(Color.gray), 1));
 		subplotMap.put(ChartPlotOptions.SCREEN,
-				new GraphPanelPlotLabels(rb.getString("chart.screen"), createScreenStatePlot(), 1));
+				new GraphPanelPlotLabels(rb.getString("chart.screen"), createBarPlot(new Color(34,
+						177, 76)), 1));
 		subplotMap.put(ChartPlotOptions.BATTERY,
 				new GraphPanelPlotLabels(rb.getString("chart.battery"), createBatteryPlot(), 2));
 		subplotMap.put(ChartPlotOptions.WIFI, new GraphPanelPlotLabels(rb.getString("chart.wifi"),
-				createWifiPlot(), 1));
+				createBarPlot(Color.gray), 1));
+		subplotMap.put(ChartPlotOptions.NETWORK_TYPE,
+				new GraphPanelPlotLabels(rb.getString("chart.networkType"),
+						createBarPlot(Color.gray), 1));
 		subplotMap.put(ChartPlotOptions.THROUGHPUT,
 				new GraphPanelPlotLabels(rb.getString("chart.throughput"), createThroughputPlot(),
 						2));
@@ -447,7 +454,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 	 * menu item in the View menu.
 	 * 
 	 * @param optionsSelected
-	 *            – A List of ChartPlotOptions to be set on the GraphPanel
+	 *            A List of ChartPlotOptions to be set on the GraphPanel
 	 *            chart.
 	 */
 	public synchronized void setChartOptions(List<ChartPlotOptions> optionsSelected) {
@@ -524,6 +531,9 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 			case GPS:
 				populateGpsPlot(entry.getValue().getPlot(), analysis);
 				break;
+			case NETWORK_TYPE:
+				populateNetworkTyesPlot(entry.getValue().getPlot(), analysis);
+				break;
 			case RADIO:
 				populateRadioPlot(entry.getValue().getPlot(), analysis);
 				break;
@@ -566,7 +576,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 	 * doubles in precision for each zoom increment.
 	 * 
 	 * @param zoomFactor
-	 *            – A double that indicates the zoom factor.
+	 *            A double that indicates the zoom factor.
 	 */
 	public void setZoomFactor(double zoomFactor) {
 		this.zoomFactor = zoomFactor;
@@ -577,7 +587,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 	 * graph on the cross hair.
 	 * 
 	 * @param graphCrosshairSetting
-	 *            – A double that is the new cross-hair value.
+	 *            A double that is the new cross-hair value.
 	 */
 	public void setGraphView(double graphCrosshairSetting) {
 		setGraphView(graphCrosshairSetting, true);
@@ -586,13 +596,13 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 	/**
 	 * Sets the GraphPanel cross hair to the specified value, and centers the
 	 * graph on the cross hair if the centerChartOnCrosshair parameter is
-	 * “true”.
+	 * "true".
 	 * 
 	 * @param graphCrosshairSetting
-	 *            – A timestamp that is the new cross hair setting.
+	 *            A timestamp that is the new cross hair setting.
 	 * 
 	 * @param centerChartOnCrosshair
-	 *            – A boolean value that indicates whether the graph should be
+	 *            A boolean value that indicates whether the graph should be
 	 *            centered on the new cross hair value.
 	 */
 	public void setGraphView(double graphCrosshairSetting, boolean centerChartOnCrosshair) {
@@ -666,7 +676,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 	 * Returns a value that indicates if the GraphPanel cross hair is within the
 	 * viewport (the viewable lower and upper bounds).
 	 * 
-	 * @return A boolean value that is “true” if the cross-hair is within the
+	 * @return A boolean value that is "true" if the cross-hair is within the
 	 *         viewport.
 	 */
 	public boolean isCrossHairInViewport() {
@@ -744,8 +754,8 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 
 		// find weights and use them to determine how may divisions are needed.
 		int plotWeightedDivs = 0;
-		List<Plot> plots = combinedPlot.getSubplots();
-		for (Plot p : plots) {
+		List<?> plots = combinedPlot.getSubplots();
+		for (Object p : plots) {
 			if (p instanceof XYPlot) {
 				plotWeightedDivs += ((XYPlot) p).getWeight();
 			}
@@ -786,8 +796,8 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		Plot mainplot = advancedGraph.getPlot();
 		if (mainplot instanceof CombinedDomainXYPlot) {
 			CombinedDomainXYPlot combinedPlot = (CombinedDomainXYPlot) mainplot;
-			List<Plot> plots = combinedPlot.getSubplots();
-			for (Plot p : plots) {
+			List<?> plots = combinedPlot.getSubplots();
+			for (Object p : plots) {
 				if (p instanceof XYPlot) {
 					XYPlot subPlot = (XYPlot) p;
 					subPlot.setDomainCrosshairLockedOnData(false);
@@ -885,13 +895,11 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 					if (bAttemptToWriteToFile) {
 						try {
 							if (fileType.equalsIgnoreCase(fileTypesPng[0])) {
-								ChartUtilities.saveChartAsPNG(plotImageFile, advancedGraph,
-										advancedGraphPanel.getWidth(),
-										advancedGraphPanel.getHeight());
+								BufferedImage bufImage = createImage(pane);
+								ImageIO.write(bufImage, "png", plotImageFile);
 							} else {
-								ChartUtilities.saveChartAsJPEG(plotImageFile, advancedGraph,
-										advancedGraphPanel.getWidth(),
-										advancedGraphPanel.getHeight());
+								BufferedImage bufImage = createImage(pane);
+								ImageIO.write(bufImage, "jpg", plotImageFile);
 							}
 							bSavedOrCancelled = true;
 						} catch (IOException e) {
@@ -906,6 +914,23 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 				bSavedOrCancelled = true;
 			}
 		}
+	}
+
+	/**
+	 * Returns buffered image of current viewport in provided JScrollPane.
+	 * 
+	 * @param pane
+	 * @return Graph image.
+	 */
+	private BufferedImage createImage(JScrollPane pane) {
+		JViewport jVPort = pane.getViewport();
+		jVPort.getWidth();
+		int w = jVPort.getWidth();
+		int h = jVPort.getHeight();
+		BufferedImage bi = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+		Graphics2D g = bi.createGraphics();
+		jVPort.paint(g);
+		return bi;
 	}
 
 	/**
@@ -1193,25 +1218,25 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 	 * 
 	 * @return XYPlot.
 	 */
-	private static XYPlot createGpsPlot() {
+	private static XYPlot createBarPlot(Color color) {
 
 		// Create renderer
-		XYBarRenderer gpsRenderer = new XYBarRenderer();
-		gpsRenderer.setDrawBarOutline(false);
-		gpsRenderer.setUseYInterval(true);
-		gpsRenderer.setBasePaint(Color.gray);
-		gpsRenderer.setAutoPopulateSeriesPaint(false);
-		gpsRenderer.setShadowVisible(false);
-		gpsRenderer.setGradientPaintTransformer(null);
+		XYBarRenderer barRenderer = new XYBarRenderer();
+		barRenderer.setDrawBarOutline(false);
+		barRenderer.setUseYInterval(true);
+		barRenderer.setBasePaint(color);
+		barRenderer.setAutoPopulateSeriesPaint(false);
+		barRenderer.setShadowVisible(false);
+		barRenderer.setGradientPaintTransformer(null);
 
 		XYBarPainter painter = new StandardXYBarPainter();
-		gpsRenderer.setBarPainter(painter);
+		barRenderer.setBarPainter(painter);
 
 		// Create result plot
-		XYPlot gpsPlot = new XYPlot(null, null, new NumberAxis(), gpsRenderer);
-		gpsPlot.getRangeAxis().setVisible(false);
+		XYPlot barPlot = new XYPlot(null, null, new NumberAxis(), barRenderer);
+		barPlot.getRangeAxis().setVisible(false);
 
-		return gpsPlot;
+		return barPlot;
 	}
 
 	private static void populateBluetoothPlot(XYPlot plot, TraceData.Analysis analysis) {
@@ -1274,33 +1299,6 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 
 		}
 		plot.setDataset(bluetoothData);
-	}
-
-	/**
-	 * Returns a XYPlot for Bluetooth info
-	 * 
-	 * @return XYPlot.
-	 */
-	private static XYPlot createBluetoothPlot() {
-
-		// Create renderer
-		XYBarRenderer bluetoothRenderer = new XYBarRenderer();
-		bluetoothRenderer.setDrawBarOutline(false);
-		bluetoothRenderer.setUseYInterval(true);
-		bluetoothRenderer.setBasePaint(Color.gray);
-		bluetoothRenderer.setAutoPopulateSeriesPaint(false);
-		bluetoothRenderer.setShadowVisible(false);
-		bluetoothRenderer.setGradientPaintTransformer(null);
-
-		XYBarPainter painter = new StandardXYBarPainter();
-		bluetoothRenderer.setBarPainter(painter);
-
-		// Create result plot
-		XYPlot bluetoothPlot = new XYPlot(null, null, new NumberAxis(), bluetoothRenderer);
-		bluetoothPlot.getRangeAxis().setVisible(false);
-
-		return bluetoothPlot;
-
 	}
 
 	private static void populateWifiPlot(XYPlot plot, TraceData.Analysis analysis) {
@@ -1394,32 +1392,6 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		plot.setDataset(wifiData);
 	}
 
-	/**
-	 * Returns a XYPlot for WIFI info
-	 * 
-	 * @return XYPlot.
-	 */
-	private static XYPlot createWifiPlot() {
-
-		// Create renderer
-		XYBarRenderer gpsRenderer = new XYBarRenderer();
-		gpsRenderer.setDrawBarOutline(false);
-		gpsRenderer.setUseYInterval(true);
-		gpsRenderer.setBasePaint(Color.gray);
-		gpsRenderer.setAutoPopulateSeriesPaint(false);
-		gpsRenderer.setShadowVisible(false);
-		gpsRenderer.setGradientPaintTransformer(null);
-
-		XYBarPainter painter = new StandardXYBarPainter();
-		gpsRenderer.setBarPainter(painter);
-
-		// Create result plot
-		XYPlot gpsPlot = new XYPlot(null, null, new NumberAxis(), gpsRenderer);
-		gpsPlot.getRangeAxis().setVisible(false);
-		return gpsPlot;
-
-	}
-
 	private static void populateCameraPlot(XYPlot plot, TraceData.Analysis analysis) {
 
 		XYIntervalSeriesCollection cameraData = new XYIntervalSeriesCollection();
@@ -1456,29 +1428,6 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		}
 
 		plot.setDataset(cameraData);
-	}
-
-	/**
-	 * Returns a XYPlot for Camera info
-	 * 
-	 * @return XYPlot.
-	 */
-	private static XYPlot createCameraPlot() {
-		// Create renderer
-		XYBarRenderer cameraRenderer = new XYBarRenderer();
-		Color customGreen = new Color(34, 177, 76);
-		cameraRenderer.setDrawBarOutline(false);
-		cameraRenderer.setUseYInterval(true);
-		cameraRenderer.setBasePaint(customGreen);
-		cameraRenderer.setAutoPopulateSeriesPaint(false);
-		cameraRenderer.setShadowVisible(false);
-		cameraRenderer.setGradientPaintTransformer(null);
-		cameraRenderer.setBarPainter(new StandardXYBarPainter());
-
-		// Create result plot
-		XYPlot cameraPlot = new XYPlot(null, null, new NumberAxis(), cameraRenderer);
-		cameraPlot.getRangeAxis().setVisible(false);
-		return cameraPlot;
 	}
 
 	private static void populateScreenStatePlot(XYPlot plot, TraceData.Analysis analysis) {
@@ -1531,31 +1480,6 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		}
 
 		plot.setDataset(screenData);
-	}
-
-	/**
-	 * Returns a XYPlot for Screen State info
-	 * 
-	 * @return XYPlot.
-	 */
-	private static XYPlot createScreenStatePlot() {
-
-		// Create renderer
-		XYBarRenderer screenStateRenderer = new XYBarRenderer();
-		Color customGreen = new Color(34, 177, 76);
-		screenStateRenderer.setDrawBarOutline(false);
-		screenStateRenderer.setUseYInterval(true);
-		screenStateRenderer.setBasePaint(customGreen);
-		screenStateRenderer.setAutoPopulateSeriesPaint(false);
-		screenStateRenderer.setShadowVisible(false);
-		screenStateRenderer.setGradientPaintTransformer(null);
-		screenStateRenderer.setBarPainter(new StandardXYBarPainter());
-
-		// Create result plot
-		XYPlot screenStatePlot = new XYPlot(null, null, new NumberAxis(), screenStateRenderer);
-		screenStatePlot.getRangeAxis().setVisible(false);
-		return screenStatePlot;
-
 	}
 
 	private static void populateBatteryPlot(XYPlot plot, TraceData.Analysis analysis) {
@@ -2023,10 +1947,11 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 					getTailPaint(dchGreen));
 
 			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.PROMO_FACH_DCH), Color.red);
-			
+
 			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.WIFI_IDLE), Color.white);
 			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.WIFI_ACTIVE), fachOrange);
-			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.WIFI_TAIL), getTailPaint(fachOrange));
+			renderer.setSeriesPaint(rrcDataCollection.indexOf(RRCState.WIFI_TAIL),
+					getTailPaint(fachOrange));
 
 			// Assign ToolTip to renderer
 			final Profile profile = analysis.getProfile();
@@ -2073,6 +1998,61 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		rrcStatesPlot.getRangeAxis().setVisible(false);
 
 		return rrcStatesPlot;
+	}
+
+	private static void populateNetworkTyesPlot(XYPlot plot, TraceData.Analysis analysis) {
+		final XYIntervalSeriesCollection networkData = new XYIntervalSeriesCollection();
+		if (analysis != null) {
+
+			// create the GPS dataset...
+			Map<NetworkType, XYIntervalSeries> seriesMap = new EnumMap<NetworkType, XYIntervalSeries>(
+					NetworkType.class);
+			for (NetworkType eventType : NetworkType.values()) {
+				XYIntervalSeries series = new XYIntervalSeries(eventType);
+				seriesMap.put(eventType, series);
+				networkData.addSeries(series);
+			}
+			Iterator<NetworkBearerTypeInfo> iter = analysis.getNetworTypeInfos().iterator();
+			if (iter.hasNext()) {
+				while (iter.hasNext()) {
+					NetworkBearerTypeInfo networkInfo = iter.next();
+					if (networkInfo.getNetworkType() != NetworkType.UNKNOWN) {
+						seriesMap.get(networkInfo.getNetworkType()).add(
+								networkInfo.getBeginTimestamp(), networkInfo.getBeginTimestamp(),
+								networkInfo.getEndTimestamp(), 0.5, 0, 1);
+					}
+				}
+			} else {
+				NetworkType nt = analysis.getTraceData().getNetworkType();
+				if (nt != null && nt != NetworkType.UNKNOWN) {
+					seriesMap.get(nt).add(0, 0,
+							analysis.getTraceData().getTraceDuration(), 0.5, 0, 1);
+				}
+			}
+
+			XYItemRenderer renderer = plot.getRenderer();
+			renderer.setSeriesPaint(networkData.indexOf(NetworkType.LTE), Color.RED);
+			renderer.setSeriesPaint(networkData.indexOf(NetworkType.WIFI), Color.BLUE);
+			renderer.setSeriesPaint(networkData.indexOf(NetworkType.UMTS), Color.PINK);
+			renderer.setSeriesPaint(networkData.indexOf(NetworkType.HSDPA), Color.YELLOW);
+			renderer.setSeriesPaint(networkData.indexOf(NetworkType.HSPA), Color.ORANGE);
+			renderer.setSeriesPaint(networkData.indexOf(NetworkType.HSPAP), Color.MAGENTA);
+			renderer.setSeriesPaint(networkData.indexOf(NetworkType.HSUPA), Color.CYAN);
+			renderer.setSeriesPaint(networkData.indexOf(NetworkType.GPRS), Color.GRAY);
+
+			// Assign ToolTip to renderer
+			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
+				@Override
+				public String generateToolTip(XYDataset dataset, int series, int item) {
+					NetworkType networkType = (NetworkType) networkData.getSeries(series).getKey();
+					return MessageFormat.format(rb.getString("network.tooltip"),
+							dataset.getX(series, item),
+							ResourceBundleManager.getEnumString(networkType));
+				}
+			});
+
+		}
+		plot.setDataset(networkData);
 	}
 
 	/**

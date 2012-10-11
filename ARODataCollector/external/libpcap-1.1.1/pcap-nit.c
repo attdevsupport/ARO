@@ -327,7 +327,8 @@ pcap_activate_nit(pcap_t *p)
 	return (PCAP_ERROR);
 }
 
-pcap_t * pcap_create(const char *device, char *ebuf)
+pcap_t *
+pcap_create(const char *device, char *ebuf)
 {
 	pcap_t *p;
 

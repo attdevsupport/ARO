@@ -28,11 +28,11 @@ public class ConfigurationData {
 	 * Initializes an instance of the ConfigurationData class using the specified profile 
 	 * attribute, and the descriptions and data associated with the attribute.
 	 * 
-	 * @param desc – The description of the device profile attribute.
+	 * @param desc The description of the device profile attribute.
 	 * 
-	 * @param attribute – A Profile.Attribute enumeration value that specifies the device profile attribute.
+	 * @param attribute A Profile.Attribute enumeration value that specifies the device profile attribute.
 	 * 
-	 * @param data – The data associated with the attribute.
+	 * @param data The data associated with the attribute.
 	 */
 	public ConfigurationData(String desc, String attribute, String data) {
 

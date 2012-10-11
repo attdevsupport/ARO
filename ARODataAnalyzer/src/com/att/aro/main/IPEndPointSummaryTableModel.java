@@ -1,17 +1,20 @@
 package com.att.aro.main;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.ResourceBundle;
 
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
+import com.att.aro.commonui.DataTable;
 import com.att.aro.commonui.DataTableModel;
 import com.att.aro.commonui.NumberFormatRenderer;
 import com.att.aro.model.IPPacketSummary;
 
 /**
- * Represents the data table model for end point summary statistics for IP
+ * Represents the data table model for the end point summary statistics for IP
  * address. This class implements the aro.commonui. DataTableModel class using
  * ApplicationSelection.
  */
@@ -28,7 +31,7 @@ public class IPEndPointSummaryTableModel extends DataTableModel<IPPacketSummary>
 	TableColumnModel cols = null;
 
 	/**
-	 * Initializes a new instance of the EndPointSummaryTableModel class.
+	 * Initializes a new instance of the IPEndPointSummaryTableModel class.
 	 */
 	public IPEndPointSummaryTableModel() {
 		super(columns);
@@ -39,7 +42,7 @@ public class IPEndPointSummaryTableModel extends DataTableModel<IPPacketSummary>
 	 * primarily used to sort numeric columns.
 	 * 
 	 * @param columnIndex
-	 *            – The index of the specified column.
+	 *            The index of the specified column.
 	 * 
 	 * @return A class representing the specified column.
 	 */
@@ -80,8 +83,13 @@ public class IPEndPointSummaryTableModel extends DataTableModel<IPPacketSummary>
 	}
 
 	/**
-	 * Returns a Cell values.
-	 * @return Object Cell value.
+	 * Returns the value of the specified item in the specified column.
+	 * 
+	 * * @param
+	 * 		item The specified item.
+			columnIndex The index of the specified column.
+			
+	 * @return An object containing specified cell value
 	 */
 	@Override
 	protected Object getColumnValue(IPPacketSummary item, int columnIndex) {
@@ -98,11 +106,62 @@ public class IPEndPointSummaryTableModel extends DataTableModel<IPPacketSummary>
 	}
 
 	/**
-	 * Returns a Column header name.
-	 * @return String column header name.
+	 * Returns a column header name.
+	 * 
+	 * @return A string that is the column header name.
 	 */
 	@Override
 	public String getColumnName(int col) {
 		return columns[col];
+	}
+
+	/**
+	 * Method to write the end point summary per IP address into the csv file.
+	 * 
+	 * @throws IOException
+	 */
+	public FileWriter addEndPointSummaryPerIPTable(FileWriter writer,
+			DataTable<IPPacketSummary> table) throws IOException {
+		final String lineSep = System.getProperty(rb.getString("statics.csvLine.seperator"));
+		// Write headers
+		for (int i = 0; i < table.getColumnCount(); ++i) {
+			if (i > 0) {
+				writer.append(rb.getString("statics.csvCell.seperator"));
+			}
+			writer.append(createCSVEntry(table.getColumnModel().getColumn(i).getHeaderValue()));
+		}
+		writer.append(lineSep);
+		// Write data
+		for (int i = 0; i < table.getRowCount(); ++i) {
+			for (int j = 0; j < table.getColumnCount(); ++j) {
+				if (j > 0) {
+					writer.append(rb.getString("statics.csvCell.seperator"));
+				}
+				writer.append(createCSVEntry(table.getValueAt(i, j)));
+			}
+			writer.append(lineSep);
+		}
+		return writer;
+	}
+
+	/**
+	 * Changes the format of the table object.
+	 */
+	private String createCSVEntry(Object val) {
+		StringBuffer writer = new StringBuffer();
+		String str = val != null ? val.toString() : "";
+		writer.append('"');
+		for (char c : str.toCharArray()) {
+			switch (c) {
+			case '"':
+				// Add an extra
+				writer.append("\"\"");
+				break;
+			default:
+				writer.append(c);
+			}
+		}
+		writer.append('"');
+		return writer.toString();
 	}
 }

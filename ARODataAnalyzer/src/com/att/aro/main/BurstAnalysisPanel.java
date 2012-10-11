@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ResourceBundle;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -38,14 +39,13 @@ import com.att.aro.model.ProfileWiFi;
 import com.att.aro.model.TraceData;
 
 /**
- * Represents a panel for displayings the burst analysis data in the Statistics
- * tab of the ARO Data Analyzer.
+ * Represents a panel for displaying the individual burst analysis table, 
+ * and the burst analysis table in the Statistics tab of the ARO Data Analyzer.
  */
 public class BurstAnalysisPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
 	private JScrollPane scroll;
 	private JScrollPane burstScroll;
@@ -53,10 +53,9 @@ public class BurstAnalysisPanel extends JPanel {
 	private BurstCollectionInfoTableModel burstTableModel = new BurstCollectionInfoTableModel();
 	private DataTable<BurstAnalysisInfo> table;
 	private DataTable<Burst> burstTable;
-	private static final Font HEADER_FONT = new Font("HeaderFont", Font.BOLD,
-			16);
+	private static final Font HEADER_FONT = new Font("HeaderFont", Font.BOLD, 16);
 	private static final int HEADER_DATA_SPACING = 10;
-	
+
 	/**
 	 * Initializes a new instance of the BurstAnalysisPanel class.
 	 */
@@ -74,10 +73,10 @@ public class BurstAnalysisPanel extends JPanel {
 	 *            - The Analysis object containing the trace data.
 	 */
 	public void refresh(TraceData.Analysis analysis) {
-		tableModel.setData(analysis != null ? analysis.getBcAnalysis()
-				.getBurstAnalysisInfo() : null);
-		burstTableModel.setData(analysis != null ? analysis.getBcAnalysis()
-				.getBurstCollection() : null);
+		tableModel.setData(analysis != null ? analysis.getBcAnalysis().getBurstAnalysisInfo()
+				: null);
+		burstTableModel.setData(analysis != null ? analysis.getBcAnalysis().getBurstCollection()
+				: null);
 		if (analysis == null || analysis.getProfile() == null)
 			return;
 
@@ -99,14 +98,12 @@ public class BurstAnalysisPanel extends JPanel {
 		headerLabel.setFont(HEADER_FONT);
 		this.add(headerLabel);
 		this.add(getScroll());
-		
+
 		JPanel spacePanel = new JPanel();
-		spacePanel.setPreferredSize(new Dimension(this.getWidth(),
-				HEADER_DATA_SPACING));
-		spacePanel.setBackground(UIManager
-				.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
+		spacePanel.setPreferredSize(new Dimension(this.getWidth(), HEADER_DATA_SPACING));
+		spacePanel.setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
 		this.add(spacePanel);
-		
+
 		JLabel subHeaderLabel = new JLabel(rb.getString("burstAnalysis.individualBurst"));
 		subHeaderLabel.setFont(HEADER_FONT);
 		this.add(subHeaderLabel);
@@ -123,7 +120,7 @@ public class BurstAnalysisPanel extends JPanel {
 		}
 		return scroll;
 	}
-	
+
 	/**
 	 * Returns the JScrollPane containing the burst analysis table.
 	 */
@@ -148,11 +145,10 @@ public class BurstAnalysisPanel extends JPanel {
 		return table;
 	}
 
-	
 	/**
-	 * Returns a DataTable containing the burst analysis data.
+	 * Returns a DataTable containing the individual burst analysis data.
 	 * 
-	 * @return A DataTable object containing the burst analysis data.
+	 * @return A DataTable object containing the individual burst analysis data.
 	 */
 	public DataTable<Burst> getBurstTable() {
 		if (burstTable == null) {
@@ -160,6 +156,89 @@ public class BurstAnalysisPanel extends JPanel {
 			burstTable.setGridColor(Color.LIGHT_GRAY);
 		}
 		return burstTable;
+	}
+
+	/**
+	 * Method to write the burst information into the csv file.
+	 * 
+	 * @throws IOException
+	 */
+	public FileWriter addBurstTable(FileWriter writer) throws IOException {
+		final String lineSep = System.getProperty(rb.getString("statics.csvLine.seperator"));
+		
+		if (table == null)
+			return writer;
+		
+		// Write headers
+		for (int i = 0; i < table.getColumnCount(); ++i) {
+			if (i > 0) {
+				writer.append(rb.getString("statics.csvCell.seperator"));
+			}
+			writer.append(createCSVEntry(table.getColumnModel().getColumn(i).getHeaderValue()));
+		}
+		writer.append(lineSep);
+		// Write data
+		for (int i = 0; i < table.getRowCount(); ++i) {
+			for (int j = 0; j < table.getColumnCount(); ++j) {
+				if (j > 0) {
+					writer.append(rb.getString("statics.csvCell.seperator"));
+				}
+				writer.append(createCSVEntry(table.getValueAt(i, j)));
+			}
+			writer.append(lineSep);
+		}
+		return writer;
+	}
+
+	/**
+	 * Method to write the burst information into the csv file.
+	 * 
+	 * @throws IOException
+	 */
+	public FileWriter addBurstCollectionTable(FileWriter writer) throws IOException {
+		final String lineSep = System.getProperty(rb.getString("statics.csvLine.seperator"));
+		if (burstTable == null)
+			return writer;
+		// Write headers
+		for (int i = 0; i < burstTable.getColumnCount(); ++i) {
+			if (i > 0) {
+				writer.append(rb.getString("statics.csvCell.seperator"));
+			}
+			writer.append(createCSVEntry(burstTable.getColumnModel().getColumn(i).getHeaderValue()));
+		}
+		writer.append(lineSep);
+		// Write data
+		for (int i = 0; i < burstTable.getRowCount(); ++i) {
+			for (int j = 0; j < burstTable.getColumnCount(); ++j) {
+				if (j > 0) {
+					writer.append(rb.getString("statics.csvCell.seperator"));
+				}
+				writer.append(createCSVEntry(burstTable.getValueAt(i, j)));
+			}
+			writer.append(lineSep);
+		}
+		return writer;
+	}
+
+	/**
+	 * Changes the format of the table object.
+	 */
+	private String createCSVEntry(Object val) {
+		StringBuffer writer = new StringBuffer();
+		String str = val != null ? val.toString() : "";
+		writer.append('"');
+		for (char c : str.toCharArray()) {
+			switch (c) {
+			case '"':
+				// Add an extra
+				writer.append("\"\"");
+				break;
+			default:
+				writer.append(c);
+			}
+		}
+		writer.append('"');
+		return writer.toString();
 	}
 
 }

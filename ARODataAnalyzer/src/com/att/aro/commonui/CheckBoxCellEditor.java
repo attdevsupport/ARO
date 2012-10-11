@@ -22,9 +22,9 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.tree.TreeCellEditor;
 
 /**
- * Represents a table cell editor that can beis used for adding modifiable check
+ * Represents a table cell editor that is used for adding modifiable check
  * boxes to a table.To use this class, initialize a new instance of the
- * CheckBoxCellEditor, and add an instance of this classit as the cell editor
+ * CheckBoxCellEditor, and add an instance of this class as the cell editor
  * for a column on the a table. Modify the table model so that the column
  * associated with the cell editor, is editable.
  */

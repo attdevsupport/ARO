@@ -10,10 +10,13 @@ import java.util.GregorianCalendar;
  */
 public class DataAtomOutputStream extends FilterOutputStream {
 
+	/**
+	 * The Mac Epoch format timestamp value.
+	 */
 	protected static final long MAC_TIMESTAMP_EPOCH = new GregorianCalendar(
 			1904, GregorianCalendar.JANUARY, 1).getTimeInMillis();
 	/**
-	 * The number of bytes written to the data output stream so far. If this
+	 * The current number of bytes written to the data output stream. If this
 	 * counter overflows, it will be wrapped to Integer.MAX_VALUE.
 	 */
 	protected long written;
@@ -359,6 +362,7 @@ public class DataAtomOutputStream extends FilterOutputStream {
 	/**
 	 * Increases the written counter by the specified value until it reaches
 	 * Long.MAX_VALUE.
+	 * @param value - The value to increase the written counter.
 	 */
 	protected void incCount(int value) {
 		long temp = written + value;

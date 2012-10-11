@@ -36,13 +36,13 @@ public class PercentLabelGenerator extends StandardCategoryItemLabelGenerator {
 	 * column of the dataset.
 	 * 
 	 * @param dataset
-	 *            – The dataset containing the data for the chart.
+	 *            The dataset containing the data for the chart.
 	 * 
 	 * @param row
-	 *            – The row of data in the dataset.
+	 *            The row of data in the dataset.
 	 * 
 	 * @param column
-	 *            – The column of data in the dataset.
+	 *            The column of data in the dataset.
 	 * 
 	 * @return A string that is the percentage label.
 	 */

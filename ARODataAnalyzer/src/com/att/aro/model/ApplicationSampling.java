@@ -298,7 +298,7 @@ public class ApplicationSampling {
 	/**
 	 * Calculates the throughput percentile based upon the sampled trace analysis data.
 	 * 
-	 * @param throughput – The throughput value to be compared to the total throughput.
+	 * @param throughput The throughput value to be compared to the total throughput.
 	 * 
 	 * @return A double that is the throughput value in percentage format.
 	 */
@@ -314,7 +314,7 @@ public class ApplicationSampling {
 	/**
 	 * Calculates the joules/kilobyte percentile based upon the sampled trace analysis data.
 	 * 
-	 * @param jpkb – The joules/kilobyte value to be compared to the total joules/kilobyte 
+	 * @param jpkb The joules/kilobyte value to be compared to the total joules/kilobyte 
 	 * in the sample.
 	 * 
 	 * @return A double that is the joules/kilobyte value in percentage format.
@@ -327,7 +327,7 @@ public class ApplicationSampling {
 	 * Calculates the signaling overhead percentile (the promotion ratio) based upon the 
 	 * sampled trace analysis data.
 	 * 
-	 * @param promoRatio – The promotion ratio value to be compared to the total packet 
+	 * @param promoRatio The promotion ratio value to be compared to the total packet 
 	 * duration in the sample.
 	 * 
 	 * @return A double that is the promotion ratio in percentage format.

@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -43,10 +44,8 @@ import com.att.aro.model.TraceData;
 public class BasicStatisticsPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
-	private static final Font HEADER_FONT = new Font("HeaderFont", Font.BOLD,
-			16);
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
+	private static final Font HEADER_FONT = new Font("HeaderFont", Font.BOLD, 16);
 	private static final Font TEXT_FONT = new Font("TEXT_FONT", Font.PLAIN, 12);
 	private static final int HEADER_DATA_SPACING = 10;
 
@@ -84,11 +83,9 @@ public class BasicStatisticsPanel extends JPanel {
 
 		JPanel tcpStatisticsPanel = new JPanel();
 		tcpStatisticsPanel.setLayout(new VerticalLayout());
-		tcpStatisticsPanel.setBackground(UIManager
-				.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
+		tcpStatisticsPanel.setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
 
-		JLabel sessStatisticsHeaderLabel = new JLabel(
-				rb.getString("basic.title"));
+		JLabel sessStatisticsHeaderLabel = new JLabel(rb.getString("basic.title"));
 		sessStatisticsHeaderLabel.setFont(HEADER_FONT);
 		sizeLabel = new JLabel(rb.getString("basic.size"));
 		sizeLabel.setFont(TEXT_FONT);
@@ -110,15 +107,12 @@ public class BasicStatisticsPanel extends JPanel {
 		tcpStatisticsPanel.add(sessStatisticsHeaderLabel);
 
 		JPanel spacePanel = new JPanel();
-		spacePanel.setPreferredSize(new Dimension(this.getWidth(),
-				HEADER_DATA_SPACING));
-		spacePanel.setBackground(UIManager
-				.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
+		spacePanel.setPreferredSize(new Dimension(this.getWidth(), HEADER_DATA_SPACING));
+		spacePanel.setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
 		tcpStatisticsPanel.add(spacePanel);
 
 		JPanel tcpStatisticsDataPanel = new JPanel(new GridLayout(4, 2, 5, 5));
-		tcpStatisticsDataPanel.setBackground(UIManager
-				.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
+		tcpStatisticsDataPanel.setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
 		tcpStatisticsDataPanel.add(durationLabel);
 		tcpStatisticsDataPanel.add(durationValueLabel);
 		tcpStatisticsDataPanel.add(sizeLabel);
@@ -130,8 +124,7 @@ public class BasicStatisticsPanel extends JPanel {
 
 		tcpStatisticsPanel.add(tcpStatisticsDataPanel);
 
-		tcpStatisticsLeftAlligmentPanel.add(tcpStatisticsPanel,
-				BorderLayout.WEST);
+		tcpStatisticsLeftAlligmentPanel.add(tcpStatisticsPanel, BorderLayout.WEST);
 
 		return tcpStatisticsLeftAlligmentPanel;
 	}
@@ -151,19 +144,13 @@ public class BasicStatisticsPanel extends JPanel {
 			nf.setMinimumFractionDigits(1);
 			NumberFormat intf = NumberFormat.getIntegerInstance();
 			sizeValueLabel.setText(intf.format(analysis.getTotalBytes()));
-			durationValueLabel
-					.setText(nf.format(analysis.getPacketsDuration()));
-			packetsValueLabel
-					.setText(intf.format(analysis.getPackets().size()));
+			durationValueLabel.setText(nf.format(analysis.getPacketsDuration()));
+			packetsValueLabel.setText(intf.format(analysis.getPackets().size()));
 			throughputValueLabel.setText(nf.format(analysis.getAvgKbps()));
-			basicContent.put(rb.getString("basic.size"),
-					sizeValueLabel.getText());
-			basicContent.put(rb.getString("basic.duration"),
-					durationValueLabel.getText());
-			basicContent.put(rb.getString("basic.packets"),
-					packetsValueLabel.getText());
-			basicContent.put(rb.getString("basic.throughput"),
-					throughputValueLabel.getText());
+			basicContent.put(rb.getString("basic.size"), sizeValueLabel.getText());
+			basicContent.put(rb.getString("basic.duration"), durationValueLabel.getText());
+			basicContent.put(rb.getString("basic.packets"), packetsValueLabel.getText());
+			basicContent.put(rb.getString("basic.throughput"), throughputValueLabel.getText());
 		} else {
 			sizeValueLabel.setText(null);
 			durationValueLabel.setText(null);
@@ -252,5 +239,41 @@ public class BasicStatisticsPanel extends JPanel {
 	 */
 	JLabel getThroughputValueLabel() {
 		return throughputValueLabel;
+	}
+
+	/**
+	 * Method to add the Trace information content in the csv file.
+	 * 
+	 * @throws IOException
+	 */
+	public FileWriter addBasicContent(FileWriter writer, TraceData.Analysis analysisData)
+			throws IOException {
+		final String lineSep = System.getProperty(rb.getString("statics.csvLine.seperator"));
+
+		writer = addKeyValue(writer, packetsLabel.getText(),
+				packetsValueLabel.getText().replace(rb.getString("statics.csvCell.seperator"), ""));
+		writer.append(lineSep);
+
+		writer = addKeyValue(writer, throughputLabel.getText(), throughputValueLabel.getText()
+				.replace(rb.getString("statics.csvCell.seperator"), ""));
+		writer.append(lineSep);
+
+		return writer;
+	}
+
+	/**
+	 * Writes a provided key and value in the file writer.
+	 * 
+	 * @param writer
+	 * @param key
+	 * @param value
+	 * @return
+	 * @throws IOException
+	 */
+	private FileWriter addKeyValue(FileWriter writer, String key, String value) throws IOException {
+		writer.append(key);
+		writer.append(rb.getString("statics.csvCell.seperator"));
+		writer.append(value);
+		return writer;
 	}
 }

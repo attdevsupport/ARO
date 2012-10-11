@@ -54,22 +54,20 @@ public class ScreenStateInfo {
 	private int screenTimeout;
 
 	/**
-	 * Initializes an instance of the ScreenStateInfo class, using the specified
-	 * timestamp, ScreenState value, screen brightness, and timeout value.
+	 * Initializes an instance of the ScreenStateInfo class, using the specified beginning and 
+	 * ending timestamps, ScreenState value, screen brightness, and timeout value.
 	 * 
 	 * @param beginTimeStamp
-	 *            – The begin time stamp for the screen state .
+	 *            The beginning timestamp from which the screen state information was captured. 
 	 * @param endTimeStamp
-	 *            – The end time stamp for the screen state .
+	 *            The ending timestamp at which the screen state information was captured.
 	 * @param screenState
-	 *            –A ScreenState enumeration value that indicates whether the
+	 *            A ScreenState enumeration value that indicates whether the
 	 *            screen is On, Off, or in an unknown state.
-	 * 
 	 * @param screenBrightness
-	 *            –A string that describes the screen brightness.
-	 * 
+	 *            A string that describes the screen brightness.
 	 * @param screenTimeout
-	 *            –The screen timeout value.
+	 *            The screen timeout value.
 	 */
 	public ScreenStateInfo(double beginTimeStamp, double endTimeStamp, ScreenState screenState,
 			String screenBrightness, int screenTimeout) {
@@ -81,18 +79,18 @@ public class ScreenStateInfo {
 	}
 
 	/**
-	 * Returns the start timestamp for the GPS state.
+	 * Returns the beginning timestamp for the screen state. 
 	 * 
-	 * @return A double that is the GPS timestamp.
+	 * @return A double that is the beginning screen state timestamp.
 	 */
 	public double getBeginTimeStamp() {
 		return beginTimeStamp;
 	}
 
 	/**
-	 * Returns the end timestamp for the GPS state.
+	 * Returns the ending timestamp for the screen state. 
 	 * 
-	 * @return A double that is the GPS timestamp.
+	 * @return A double that is the ending screen state timestamp.
 	 */
 	public double getEndTimeStamp() {
 		return endTimeStamp;

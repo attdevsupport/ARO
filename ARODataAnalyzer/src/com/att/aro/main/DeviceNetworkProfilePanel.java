@@ -33,8 +33,8 @@ import com.att.aro.commonui.AROUIManager;
 import com.att.aro.model.TraceData;
 
 /**
- * Displays the Data, Trace, network type and device profile in overview and
- * diagnostics tab.
+ * Displays the date, trace name, network type, and device profile in the header of the Overview and
+ * Diagnostics tabs.
  */
 public class DeviceNetworkProfilePanel extends JPanel {
 	private static final long serialVersionUID = 1L;
@@ -49,8 +49,11 @@ public class DeviceNetworkProfilePanel extends JPanel {
 	private JLabel profileValueLabel;
 	private static final Font LABEL_FONT = new Font("TEXT_FONT", Font.BOLD, 12);
 	private static final Font TEXT_FONT = new Font("TEXT_FONT", Font.PLAIN, 12);
+	private JLabel networkTypeLabel;
 
-	// Constructor
+	/**
+	 * Initializes a new instance of the DeviceNetworkProfilePanel class.
+	 */
 	public DeviceNetworkProfilePanel() {
 		this.setLayout(new BorderLayout(10, 10));
 		this.setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
@@ -68,8 +71,7 @@ public class DeviceNetworkProfilePanel extends JPanel {
 	}
 
 	/**
-	 * Refreshes various labels in the DeviceNetworkProfilePanel when a trace is
-	 * loaded.
+	 * Refreshes the various labels in the DeviceNetworkProfilePanel using the specified trace data.
 	 * 
 	 * @param analysisData
 	 *            The Analysis object containing the trace data.
@@ -80,8 +82,19 @@ public class DeviceNetworkProfilePanel extends JPanel {
 			DateFormat format = DateFormat.getDateTimeInstance();
 			dateValueLabel.setText(format.format(traceData.getTraceDateTime()));
 			traceValueLabel.setText(traceData.getTraceDir().getName());
-			networkTypeValueLabel.setText(ResourceBundleManager
-					.getEnumString(traceData.getNetworkType()));
+			if(!traceData.getTraceDir().isFile()){
+				if (analysisData.getNetworTypeInfos().size() > 1) {
+
+					networkTypeLabel.setText(rb.getString("bestPractices.networktypes"));
+					networkTypeValueLabel.setText(traceData.getNetworkTypesList());
+
+				} else {
+					networkTypeLabel.setText(rb.getString("bestPractices.networktype"));
+					networkTypeValueLabel.setText(ResourceBundleManager.getEnumString((traceData
+							.getNetworkType())));
+
+				}
+			}
 			profileValueLabel.setText(analysisData.getProfile().getName());
 		} else {
 			dateValueLabel.setText(null);
@@ -94,7 +107,7 @@ public class DeviceNetworkProfilePanel extends JPanel {
 	/**
 	 * Returns the date value label.
 	 * 
-	 * @return JLabel The date value label.
+	 * @return A JLabel object containing the date value label.
 	 */
 	public JLabel getDateValueLabel() {
 		return dateValueLabel;
@@ -103,7 +116,7 @@ public class DeviceNetworkProfilePanel extends JPanel {
 	/**
 	 * Returns the trace name label.
 	 * 
-	 * @return JLabel The trace name label.
+	 * @return A JLabel object containing the trace name label.
 	 */
 	public JLabel getTraceValueLabel() {
 		return traceValueLabel;
@@ -112,7 +125,7 @@ public class DeviceNetworkProfilePanel extends JPanel {
 	/**
 	 * Returns the network type value label.
 	 * 
-	 * @return JLabel The network type value label.
+	 * @return A JLabel object containing the network type value label.
 	 */
 	public JLabel getNetworkTypeValueLabel() {
 		return networkTypeValueLabel;
@@ -121,7 +134,7 @@ public class DeviceNetworkProfilePanel extends JPanel {
 	/**
 	 * Returns the device profile value label.
 	 * 
-	 * @return JLabel The device value label.
+	 * @return A JLabel object containing tThe device value label.
 	 */
 	public JLabel getProfileValueLabel() {
 		return profileValueLabel;
@@ -148,14 +161,14 @@ public class DeviceNetworkProfilePanel extends JPanel {
 					0.0, 0.0, GridBagConstraints.NORTHWEST,
 					GridBagConstraints.NONE, insets, 0, 0));
 
-			label = new JLabel(rb.getString("overview.info.networktype"),
+			networkTypeLabel = new JLabel(rb.getString("overview.info.networktype"),
 					JLabel.RIGHT);
-			label.setFont(LABEL_FONT);
-			dataPanel.add(label, new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0,
+			networkTypeLabel.setFont(LABEL_FONT);
+			dataPanel.add(networkTypeLabel, new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0,
 					GridBagConstraints.EAST, GridBagConstraints.NONE, insets,
 					0, 0));
 			dataPanel.add(networkTypeValueLabel, new GridBagConstraints(3, 0,
-					1, 1, 0.0, 0.0, GridBagConstraints.EAST,
+					1, 1, 0.0, 0.0, GridBagConstraints.WEST,
 					GridBagConstraints.NONE, insets, 0, 0));
 
 			label = new JLabel(rb.getString("bestPractices.trace"));
@@ -174,7 +187,7 @@ public class DeviceNetworkProfilePanel extends JPanel {
 					GridBagConstraints.EAST, GridBagConstraints.NONE, insets,
 					0, 0));
 			dataPanel.add(profileValueLabel, new GridBagConstraints(3, 1, 1, 1,
-					0.0, 0.0, GridBagConstraints.EAST, GridBagConstraints.NONE,
+					0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
 					insets, 0, 0));
 		}
 		return dataPanel;

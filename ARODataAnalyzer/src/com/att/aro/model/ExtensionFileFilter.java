@@ -40,9 +40,9 @@ public class ExtensionFileFilter extends FileFilter {
 	/**
 	 * Initializes an instance of the ExtensionFileFilter class using the specified extension and description.
 	 * 
-	 * @param description – The file filter description. 
+	 * @param description The file filter description. 
 	 * 
-	 * @param extension – The file extension.
+	 * @param extension The file extension.
 	 */
 	public ExtensionFileFilter(String description, String extension) {
 		this(description, new String[] { extension });
@@ -52,9 +52,9 @@ public class ExtensionFileFilter extends FileFilter {
 	 * Initializes the ExtensionFileFilter class using the specified description, and an 
 	 * array of file extensions.. 
 	 * 
-	 * @param description – The file filter description. 
+	 * @param description The file filter description. 
 	 * 
-	 * @param extensions – An array of file extensions.
+	 * @param extensions An array of file extensions.
 	 */
 	public ExtensionFileFilter(String description, String extensions[]) {
 		if (description == null) {

@@ -201,7 +201,7 @@ public class AROSimpleTabb extends JPanel {
 	/**
 	 * Initializes and returns the Panel that contains the File Types Chart.
 	 */
-	private FileTypesChartPanel getFileTypesChartPanel() {
+	public FileTypesChartPanel getFileTypesChartPanel() {
 		if (fileTypesChart == null) {
 			fileTypesChart = new FileTypesChartPanel();
 		}
@@ -212,7 +212,7 @@ public class AROSimpleTabb extends JPanel {
 	 * Initializes and returns the Panel that contains the Connection Statistics
 	 * Chart.
 	 */
-	private ProperSessionTerminationPanel getProperSessionTermChartPanel() {
+	public ProperSessionTerminationPanel getProperSessionTermChartPanel() {
 		if (sessionTermPanel == null) {
 			sessionTermPanel = new ProperSessionTerminationPanel();
 		}
@@ -254,7 +254,7 @@ public class AROSimpleTabb extends JPanel {
 	/**
 	 * Initializes and returns the Trace Overview panel.
 	 */
-	private TraceOverviewPanel getTraceOverviewPanel() {
+	public TraceOverviewPanel getTraceOverviewPanel() {
 		if (traceOverviewPanel == null) {
 			traceOverviewPanel = new TraceOverviewPanel();
 		}
@@ -262,7 +262,7 @@ public class AROSimpleTabb extends JPanel {
 	}
 
 	/**
-	 * Refreshes the content of the Overview tab with the specified a trace
+	 * Refreshes the content of the Overview tab with the specified trace
 	 * data.
 	 * 
 	 * @param analysisData

@@ -63,6 +63,17 @@ public class FilterApplicationsTableModel extends DataTableModel<ApplicationSele
 
 	private static final long serialVersionUID = 1L;
 
+	/**
+	 * This is the one method that must be implemented by subclasses. This method defines how 
+	 * the data object managed by this table model is mapped to its columns when displayed 
+	 * in a row of the table. The getValueAt() method uses this method to retrieve table cell data.
+	 * 
+	 * @param
+	 * 		item A object containing the column information.
+			columnIndex The index of the specified column.
+	 *		
+	 * @return An object containing the table column value. 
+	 */
 	@Override
 	protected Object getColumnValue(ApplicationSelection item, int columnIndex) {
 		switch (columnIndex) {
@@ -80,11 +91,11 @@ public class FilterApplicationsTableModel extends DataTableModel<ApplicationSele
 	/**
 	 * Returns a value that Indicates if the specified data cell is editable.
 	 * 
-	 * @param row – The row number of the cell.
+	 * @param row The row number of the cell.
 	 * 
-	 * @param col – The column number of the cell.
+	 * @param col The column number of the cell.
 	 * 
-	 * @return A boolean value that is “true” if the cell is editable, and “false” if not.
+	 * @return A boolean value that is "true" if the cell is editable, and "false" if not.
 	 */
 	@Override
 	public boolean isCellEditable(int row, int col) {
@@ -122,9 +133,9 @@ public class FilterApplicationsTableModel extends DataTableModel<ApplicationSele
 	/**
 	 * Sets the value of the specified data item.
 	 * 
-	 * @param aValue – The value to set for the data item.
+	 * @param aValue The value to set for the data item.
 	 * 
-	 * @param rowIndex – The row index of the data item.
+	 * @param rowIndex The row index of the data item.
 	 * 
 	 * @param columnIndex The column index of the data item.
 	 * 

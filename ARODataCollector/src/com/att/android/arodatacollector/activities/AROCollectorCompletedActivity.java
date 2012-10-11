@@ -63,8 +63,9 @@ public class AROCollectorCompletedActivity extends Activity {
 	private ARODataCollector mApp;
 
 	/**
-	 * Overriding onCreate initialize data members
-	 * 
+	 * Initializes data members with a saved instance of an AROCollectorCompletedActivity 
+	 * object. Overrides the android.app.Activity#onCreate method.
+	 * @param savedInstanceState – A saved instance of an AROCollectorCompletedActivity object.
 	 * @see android.app.Activity#onCreate(android.os.Bundle)
 	 */
 	@Override
@@ -79,7 +80,9 @@ public class AROCollectorCompletedActivity extends Activity {
 	/**
 	 * Overrides the android.app.Activity#onKeyDown method to handle key presses
 	 * to the OK button.
-	 * 
+	 * @param keyCode –A code that represents the key that was pressed down.
+	 * @param event –An event object for the key action.
+	 * @return A boolean value that is true if the key was pressed, and false otherwise.
 	 * @see android.app.Activity#onKeyDown(int, android.view.KeyEvent)
 	 */
 	@Override
@@ -147,7 +150,7 @@ public class AROCollectorCompletedActivity extends Activity {
 	}
 
 	/**
-	 * Overriding onPause
+	 * Overrides the android.app.Activity#onPause method.
 	 * 
 	 * @see android.app.Activity#onPause()
 	 */

@@ -22,123 +22,131 @@ import java.util.List;
 import java.util.Properties;
 
 /**
- * Represents a device profile used in analysis modeling.
+ * Represents a device profile that is used as a model of a 3G device when analyzing trace data.
  */
 public class Profile3G extends Profile implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	/**
-	 * Direct channel to Forward access channel timer.
+	 * The value of the timer for (direct channel) DCH to (forward access channel) FACH.
 	 */
 	public static final String DCH_FACH_TIMER = "DCH_FACH_TIMER";
 
 	/**
-	 * Forward access channel to idel timer.
+	 * The FACH (Forward access channel) to IDLE timer. 
 	 */
 	public static final String FACH_IDLE_TIMER = "FACH_IDLE_TIMER";
 
 	/**
-	 * Idle to Direct channel promotional minimum.
+	 * The minimum amount of energy used when the RRC state is promoted from 
+	 * IDLE to DCH (Active).
 	 */
 	public static final String IDLE_DCH_PROMO_MIN = "IDLE_DCH_PROMO_MIN";
 
 	/**
-	 * Idle to Direct channel promotional average.
+	 * The average amount of energy used when the RRC state is promoted from 
+	 * IDLE to DCH (Active).
 	 */
 	public static final String IDLE_DCH_PROMO_AVG = "IDLE_DCH_PROMO_AVG";
 
 	/**
-	 * Idle to Direct channel promotional maximum.
+	 * The maximum amount of energy used when the RRC state is promoted from 
+	 * IDLE to DCH (Active).
 	 */
 	public static final String IDLE_DCH_PROMO_MAX = "IDLE_DCH_PROMO_MAX";
 
 	/**
-	 * Idle to Forward access channel promotional minimum.
+	 * The minimum amount of energy used when the RRC state is promoted from IDLE to 
+	 * DCH (Active) and FACH (Forward access channel) to DCH (Active).
 	 */
 	public static final String FACH_DCH_PROMO_MIN = "FACH_DCH_PROMO_MIN";
 
 	/**
-	 * Idle to Forward access channel promotional average.
+	 * The average amount of energy used when the RRC state is promoted from IDLE to 
+	 * DCH (Active) and FACH (Forward access channel) to DCH (Active).
 	 */
 	public static final String FACH_DCH_PROMO_AVG = "FACH_DCH_PROMO_AVG";
 
 	/**
-	 * Idle to Forward access channel promotional maximum.
+	 * The maximum amount of energy used when the RRC state is promoted from IDLE to 
+	 * DCH (Active) and FACH (Forward access channel) to DCH (Active).
 	 */
 	public static final String FACH_DCH_PROMO_MAX = "FACH_DCH_PROMO_MAX";
 
 	/**
-	 * RLC threshold value for up link.
+	 * The RLC threshold value for up link.
 	 */
 	public static final String RLC_UL_TH = "RLC_UL_TH";
 
 	/**
-	 * RLC threshold value for down link.
+	 * The RLC threshold value for down link.
 	 */
 	public static final String RLC_DL_TH = "RLC_DL_TH";
 
 	/**
-	 * Threshold for resetting DCH (Active) timer (bytes).
+	 * The threshold for resetting the DCH (Active) timer (in bytes).
 	 */
 	public static final String DCH_TIMER_RESET_SIZE = "DCH_TIMER_RESET_SIZE";
 
 	/**
-	 * Timing window for resetting DCH (Active) timer (sec).
+	 * The timing window for the resetting DCH (Active) timer (in seconds).
 	 */
 	public static final String DCH_TIMER_RESET_WIN = "DCH_TIMER_RESET_WIN";
 
 	/**
-	 * RLC consumption rate (^2) for up link.
+	 * The RLC consumption rate (^2) for up link.
 	 */
 	public static final String RLC_UL_RATE_P2 = "RLC_UL_RATE_P2";
 
 	/**
-	 * RLC consumption rate (^1) for up link.
+	 * The RLC consumption rate (^1) for up link.
 	 */
 	public static final String RLC_UL_RATE_P1 = "RLC_UL_RATE_P1";
 
 	/**
-	 * RLC consumption rate (^0) for up link.
+	 * The RLC consumption rate (^0) for up link.
 	 */
 	public static final String RLC_UL_RATE_P0 = "RLC_UL_RATE_P0";
 
 	/**
-	 * RLC consumption rate (^2) for down link.
+	 * The RLC consumption rate (^2) for down link.
 	 */
 	public static final String RLC_DL_RATE_P2 = "RLC_DL_RATE_P2";
 
 	/**
-	 * RLC consumption rate (^1) for down link.
+	 * The RLC consumption rate (^1) for down link.
 	 */
 	public static final String RLC_DL_RATE_P1 = "RLC_DL_RATE_P1";
 
 	/**
-	 * RLC consumption rate (^0) for down link.
+	 * The RLC consumption rate (^0) for down link.
 	 */
 	public static final String RLC_DL_RATE_P0 = "RLC_DL_RATE_P0";
 
 	/**
-	 * DCH (Active) Power (w).
+	 * The amount of power (in watts) that should be used when the RRC state is DCH (Active).
 	 */
 	public static final String POWER_DCH = "POWER_DCH";
 
 	/**
-	 * FACH (Standby) Power (w).
+	 * The amount of power (in watts) that should be used when the RRC state is FACH (Standby).
 	 */
 	public static final String POWER_FACH = "POWER_FACH";
 
 	/**
-	 * IDLE Power (w).
+	 * The amount of power (in watts) that should be used when the RRC state is IDLE.
 	 */
 	public static final String POWER_IDLE = "POWER_IDLE";
 
 	/**
-	 * Average power for IDLE->DCH (Active) promotion (w).
+	 * The average amount of power (in watts) that should be used when the RRC state is promoted 
+	 * from IDLE to-> DCH (Active) 
 	 */
 	public static final String POWER_IDLE_DCH = "POWER_IDLE_DCH";
 
 	/**
-	 * Average power for FACH (Standby)->DCH (Active) promotion (w).
+	 * The average amount of power (in watts) that should be used when the RRC state is promoted 
+	 * from FACH (Standby) to ->DCH (Active).
 	 */
 	public static final String POWER_FACH_DCH = "POWER_FACH_DCH";
 
@@ -169,18 +177,19 @@ public class Profile3G extends Profile implements Serializable {
 	private double powerFachDch;
 
 	/**
-	 * Default constructor
+	 * Initializes an instance of the Profile3G class.
 	 */
 	public Profile3G() {
 		super();
 	}
 
 	/**
-	 * Constructor
+	 * Initializes an instance of the Profile3G class, using the specified properties.
 	 * 
 	 * @param file
-	 *            The file where profile can be saved. Can be null.
+	 *            The file where the profile can be saved. Can be null.
 	 * @param properties
+	 * 			  The properties to be set in the profile.
 	 * @throws ProfileException
 	 */
 	public Profile3G(File file, Properties properties) throws ProfileException {
@@ -188,13 +197,13 @@ public class Profile3G extends Profile implements Serializable {
 	}
 
 	/**
-	 * Initializes a new instance of Profile3G with the specified name and
+	 * Initializes a new instance of the Profile3G class, using the specified name and
 	 * properties.
 	 * 
 	 * @param name
 	 *            The profile name.
 	 * @param properties
-	 *            The properties to be set to the profile.
+	 *            The properties to be set in the profile.
 	 * @throws ProfileException
 	 */
 	public Profile3G(String name, Properties properties) throws ProfileException {
@@ -202,7 +211,10 @@ public class Profile3G extends Profile implements Serializable {
 	}
 
 	/**
+	 * Returns the type of profile. Subclasses of this class must identify the profile type.
 	 * @see com.att.aro.model.Profile#getProfileType()
+	 * 
+	 * @return One of the values of the ProfileType enumeration.
 	 */
 	@Override
 	public ProfileType getProfileType() {
@@ -210,10 +222,11 @@ public class Profile3G extends Profile implements Serializable {
 	}
 
 	/**
-	 * Initialize the Profile values from the provided Properties object.
+	 * Initializes Profile class members using values from the specified Properties object. 
+	 * This method is overridden by Sub-classes to initialize properties in a Profile object.
 	 * 
 	 * @param properties
-	 *            Object that contains profile values.
+	 *            The profile values to be set.
 	 * @throws ProfileException
 	 */
 	@Override
@@ -245,10 +258,11 @@ public class Profile3G extends Profile implements Serializable {
 	}
 
 	/**
-	 * Saves the various properties values for the profile.
+	 * Saves the current profile values in the specified  Properties object. This method is 
+	 * used by sub-classes to save member values to a properties object for persistence.
 	 * 
 	 * @param props
-	 *            The profile properties to be saved.
+	 *            The properties object in which to store the values.
 	 * 
 	 * @throws IOException
 	 */
@@ -281,9 +295,9 @@ public class Profile3G extends Profile implements Serializable {
 	}
 
 	/**
-	 * Returns the timer for DCH and FACH.
+	 * Returns the value of the timer for DCH and FACH.
 	 * 
-	 * @return dchFachTimer.
+	 * @return The timer value.
 	 */
 	public double getDchFachTimer() {
 		return dchFachTimer;
@@ -292,61 +306,64 @@ public class Profile3G extends Profile implements Serializable {
 	/**
 	 * Returns the idle timer for FACH.
 	 * 
-	 * @return fachIdleTimer.
+	 * @return The timer value.
 	 */
 	public double getFachIdleTimer() {
 		return fachIdleTimer;
 	}
 
 	/**
-	 * Returns the minimum idle promotional DCH.
+	 * Returns the minimum amount of energy used when the RRC state is promoted from IDLE to DCH (Active).
 	 * 
-	 * @return idleDchPromoMin.
+	 * @return A double value that is the minimum.
 	 */
 	public double getIdleDchPromoMin() {
 		return idleDchPromoMin;
 	}
 
 	/**
-	 * Returns the average idle promotional DCH.
+	 * Returns the average amount of energy used when the RRC state is promoted from IDLE to DCH (Active).
 	 * 
-	 * @return idleDchPromoAvg.
+	 * @return A double value that is the average.
 	 */
 	public double getIdleDchPromoAvg() {
 		return idleDchPromoAvg;
 	}
 
 	/**
-	 * Returns the maximum idle promotional DCH.
+	 * Returns the maximum amount of energy used when the RRC state is promoted from IDLE to DCH (Active).  
 	 * 
-	 * @return idleDchPromoMax.
+	 * @return A double value that is the maximum.
 	 */
 	public double getIdleDchPromoMax() {
 		return idleDchPromoMax;
 	}
 
 	/**
-	 * Returns the minimum idle promotional DCH and FACH.
+	 * Returns the minimum amount of energy used when the RRC state is promoted from IDLE to DCH 
+	 * (Active) and FACH (Standby) to DCH (Active).
 	 * 
-	 * @return fachDchPromoMin.
+	 * @return A double value that is the minimum.
 	 */
 	public double getFachDchPromoMin() {
 		return fachDchPromoMin;
 	}
 
 	/**
-	 * Returns the average promotional DCH and FACH.
+	 * Returns the average amount of energy used when the RRC state is promoted from IDLE to DCH 
+	 * (Active) and FACH (Standby) to DCH (Active).
 	 * 
-	 * @return fachDchPromoAvg.
+	 * @return  A double value that is the average.
 	 */
 	public double getFachDchPromoAvg() {
 		return fachDchPromoAvg;
 	}
 
 	/**
-	 * Returns the maximum promotional DCH and FACH.
+	 * Returns the maximum amount of energy used when the RRC state is promoted from IDLE to 
+	 * DCH (Active) and FACH (Standby) to DCH (Active).  
 	 * 
-	 * @return fachDchPromoMax.
+	 * @return A double value that is the maximum.
 	 */
 	public double getFachDchPromoMax() {
 		return fachDchPromoMax;
@@ -355,7 +372,7 @@ public class Profile3G extends Profile implements Serializable {
 	/**
 	 * Returns the uplink threshold.
 	 * 
-	 * @return rlcUlTh.
+	 * @return The uplink threshold value.
 	 */
 	public int getRlcUlTh() {
 		return rlcUlTh;
@@ -364,7 +381,7 @@ public class Profile3G extends Profile implements Serializable {
 	/**
 	 * Returns the downlink threshold.
 	 * 
-	 * @return rlcDlTh.
+	 * @return The downlink threshold value.
 	 */
 	public int getRlcDlTh() {
 		return rlcDlTh;
@@ -373,7 +390,7 @@ public class Profile3G extends Profile implements Serializable {
 	/**
 	 * Returns the size of DCH timer.
 	 * 
-	 * @return dchTimerResetSize.
+	 * @return The size of the DCH timer.
 	 */
 	public int getDchTimerResetSize() {
 		return dchTimerResetSize;
@@ -382,7 +399,7 @@ public class Profile3G extends Profile implements Serializable {
 	/**
 	 * Returns the value of DCH timer for ResetWin.
 	 * 
-	 * @return dchTimerResetWin.
+	 * @return The timer value.
 	 */
 	public double getDchTimerResetWin() {
 		return dchTimerResetWin;
@@ -391,7 +408,7 @@ public class Profile3G extends Profile implements Serializable {
 	/**
 	 * Returns the value of uplink rateP2.
 	 * 
-	 * @return rlcUlRateP2.
+	 * @return The P2 uplink rate value.
 	 */
 	public double getRlcUlRateP2() {
 		return rlcUlRateP2;
@@ -400,7 +417,7 @@ public class Profile3G extends Profile implements Serializable {
 	/**
 	 * Returns the value of uplink rateP1.
 	 * 
-	 * @return rlcUlRateP1.
+	 * @return The P1 uplink rate value.
 	 */
 	public double getRlcUlRateP1() {
 		return rlcUlRateP1;
@@ -409,7 +426,7 @@ public class Profile3G extends Profile implements Serializable {
 	/**
 	 * Returns the value of uplink rateP0.
 	 * 
-	 * @return rlcUlRateP0.
+	 * @return The P0 uplink rate value.
 	 */
 	public double getRlcUlRateP0() {
 		return rlcUlRateP0;
@@ -418,7 +435,7 @@ public class Profile3G extends Profile implements Serializable {
 	/**
 	 * Returns the value of downlink rateP2.
 	 * 
-	 * @return rlcDlRateP2.
+	 * @return The P2 downlink rate value.
 	 */
 	public double getRlcDlRateP2() {
 		return rlcDlRateP2;
@@ -427,7 +444,7 @@ public class Profile3G extends Profile implements Serializable {
 	/**
 	 * Returns the value of downlink rateP1.
 	 * 
-	 * @return rlcDlRateP1.
+	 * @return The P1 downlink rate value.
 	 */
 	public double getRlcDlRateP1() {
 		return rlcDlRateP1;
@@ -436,67 +453,67 @@ public class Profile3G extends Profile implements Serializable {
 	/**
 	 * Returns the value of downlink rateP0.
 	 * 
-	 * @return rlcDlRateP0.
+	 * @return . The P0 downlink rate value.
 	 */
 	public double getRlcDlRateP0() {
 		return rlcDlRateP0;
 	}
 
 	/**
-	 * Returns the value of power for DCH.
+	 * Returns the total amount of energy used when the device is in the DCH RRC state.
 	 * 
-	 * @return powerDch.
+	 * @return  The DCH power value.
 	 */
 	public double getPowerDch() {
 		return powerDch;
 	}
 
 	/**
-	 * Returns the value of power for FACH.
+	 * Returns the total amount of energy used when the device is in the FACH RRC state.
 	 * 
-	 * @return powerFach.
+	 * @return The FACH power value.
 	 */
 	public double getPowerFach() {
 		return powerFach;
 	}
 
 	/**
-	 * Returns the value of idle power.
+	 * Returns the total amount of energy used when the device is idle.  
 	 * 
-	 * @return powerIdle.
+	 * @return The idle power value.
 	 */
 	public double getPowerIdle() {
 		return powerIdle;
 	}
 
 	/**
-	 * Returns the value of idle power for DCH.
+	 * Returns the total amount of energy used when the device is idle during the DCH RRC state.
 	 * 
-	 * @return powerIdleDch.
+	 * @return The idle DCH power value.
 	 */
 	public double getPowerIdleDch() {
 		return powerIdleDch;
 	}
 
 	/**
-	 * Returns the value of power for DCH and FACH.
+	 * Returns the total amount of energy used when the device is in the DCH and FACH RRC states.
 	 * 
-	 * @return powerFachDch.
+	 * @return The DCH and FACH power value.
 	 */
 	public double getPowerFachDch() {
 		return powerFachDch;
 	}
 
 	/**
-	 * RRC energy calculation utility
+	 * A utility method for calculating RRC energy.
 	 * 
 	 * @param time1
 	 *            The begin time for the RRC state.
 	 * @param time2
 	 *            The end time for the RRC state.
 	 * @param state
-	 *            The RRC state.
-	 * @return The energy consumption for the RRC state.
+	 *            An RRCState enumeration value that indicates the RRC energy state.
+	 * @return The energy consumption value for the RRC state.
 	 */
 	@Override
 	public double energy(double time1, double time2, RRCState state, List<PacketInfo> packets) {

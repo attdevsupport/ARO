@@ -34,7 +34,7 @@ public class ContentException extends Exception {
 	 * 
 	 * @param message - The exception message. 
 	 * 
-	 * @param cause – A Throwable object that indicates the cause of the exception.
+	 * @param cause A Throwable object that indicates the cause of the exception.
 	 */
 	public ContentException(String message, Throwable cause) {
 		super(message, cause);
@@ -44,7 +44,7 @@ public class ContentException extends Exception {
 	 * Initializes an instance of the ContentException class using the specified 
 	 * exception message. 
 	 * 
-	 * @param message - The exception message. 
+	 * @param message The exception message. 
 	 */
 	public ContentException(String message) {
 		super(message);
@@ -53,7 +53,7 @@ public class ContentException extends Exception {
 	/**
 	 * Initializes an instance of the ContentException class using the specified cause. 
 	 * 
-	 * @param cause – A Throwable object that indicates the cause of the exception.
+	 * @param cause A Throwable object that indicates the cause of the exception.
 	 */
 	public ContentException(Throwable cause) {
 		super(cause);

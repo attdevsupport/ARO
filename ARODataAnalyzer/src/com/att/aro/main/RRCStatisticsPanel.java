@@ -20,6 +20,8 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
 import java.util.LinkedHashMap;
@@ -68,6 +70,10 @@ public class RRCStatisticsPanel extends JPanel {
 	private JLabel rrcParam7ValueLabel;
 	private JLabel rrcParam8Label;
 	private JLabel rrcParam8ValueLabel;
+	private JLabel rrcParam9Label;
+	private JLabel rrcParam9ValueLabel;
+	private JLabel rrcParam10Label;
+	private JLabel rrcParam10ValueLabel;
 
 	Map<String, String> rrcContent = new LinkedHashMap<String, String>();
 
@@ -126,6 +132,14 @@ public class RRCStatisticsPanel extends JPanel {
 		rrcParam8Label.setFont(TEXT_FONT);
 		rrcParam8ValueLabel = new JLabel();
 		rrcParam8ValueLabel.setFont(TEXT_FONT);
+		rrcParam9Label = new JLabel();
+		rrcParam9Label.setFont(TEXT_FONT);
+		rrcParam9ValueLabel = new JLabel();
+		rrcParam9ValueLabel.setFont(TEXT_FONT);
+		rrcParam10Label = new JLabel();
+		rrcParam10Label.setFont(TEXT_FONT);
+		rrcParam10ValueLabel = new JLabel();
+		rrcParam10ValueLabel.setFont(TEXT_FONT);
 
 		JLabel rrcStatisticsHeaderLabel = new JLabel(rb.getString("rrc.title"));
 		rrcStatisticsHeaderLabel.setFont(HEADER_FONT);
@@ -137,7 +151,7 @@ public class RRCStatisticsPanel extends JPanel {
 		spacePanel.setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
 		rrcStatisticsPanel.add(spacePanel);
 
-		JPanel rrcStatDataPanel = new JPanel(new GridLayout(8, 2, 5, 5));
+		JPanel rrcStatDataPanel = new JPanel(new GridLayout(10, 2, 5, 5));
 		rrcStatDataPanel.setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
 
 		rrcStatDataPanel.add(rrcParam1Label);
@@ -156,6 +170,10 @@ public class RRCStatisticsPanel extends JPanel {
 		rrcStatDataPanel.add(rrcParam7ValueLabel);
 		rrcStatDataPanel.add(rrcParam8Label);
 		rrcStatDataPanel.add(rrcParam8ValueLabel);
+		rrcStatDataPanel.add(rrcParam9Label);
+		rrcStatDataPanel.add(rrcParam9ValueLabel);
+		rrcStatDataPanel.add(rrcParam10Label);
+		rrcStatDataPanel.add(rrcParam10ValueLabel);
 
 		rrcStatisticsPanel.add(rrcStatDataPanel);
 
@@ -192,6 +210,11 @@ public class RRCStatisticsPanel extends JPanel {
 				rrcParam7ValueLabel.setVisible(true);
 				rrcParam8Label.setVisible(true);
 				rrcParam8ValueLabel.setVisible(true);
+				
+				rrcParam9Label.setVisible(false);
+				rrcParam9ValueLabel.setVisible(false);
+				rrcParam10Label.setVisible(false);
+				rrcParam10ValueLabel.setVisible(false);
 
 				rrcParam1Label.setText(rb.getString("rrc.dch"));
 				rrcParam2Label.setText(rb.getString("rrc.fach"));
@@ -199,6 +222,8 @@ public class RRCStatisticsPanel extends JPanel {
 				rrcParam4Label.setText(rb.getString("rrc.idle2dch"));
 				rrcParam5Label.setText(rb.getString("rrc.fach2dch"));
 				rrcParam6Label.setText(rb.getString("rrc.dchTailRatio"));
+				rrcParam7Label.setText(rb.getString("rrc.fachTailRatio"));
+				rrcParam8Label.setText(rb.getString("rrc.promotionRatio"));
 
 				valueAndPct = rb.getString("rrc.valueAndPct");
 				rrcParam1ValueLabel.setText(MessageFormat.format(valueAndPct,
@@ -226,19 +251,21 @@ public class RRCStatisticsPanel extends JPanel {
 				rrcContent.put(rb.getString("rrc.fachTailRatio"), rrcParam7ValueLabel.getText());
 				rrcContent.put(rb.getString("rrc.promotionRatio"), rrcParam8ValueLabel.getText());
 			} else if (profile instanceof ProfileLTE) {
-                 
+
 				rrcParam4Label.setVisible(true);
 				rrcParam4ValueLabel.setVisible(true);
 				rrcParam5Label.setVisible(true);
 				rrcParam5ValueLabel.setVisible(true);
 				rrcParam6Label.setVisible(true);
 				rrcParam6ValueLabel.setVisible(true);
-				
-				// Hiding additional labels in case of LTE profile
-				rrcParam7Label.setVisible(false);
-				rrcParam7ValueLabel.setVisible(false);
-				rrcParam8Label.setVisible(false);
-				rrcParam8ValueLabel.setVisible(false);
+				rrcParam7Label.setVisible(true);
+				rrcParam7ValueLabel.setVisible(true);
+				rrcParam8Label.setVisible(true);
+				rrcParam8ValueLabel.setVisible(true);
+				rrcParam9Label.setVisible(true);
+				rrcParam9ValueLabel.setVisible(true);
+				rrcParam10Label.setVisible(true);
+				rrcParam10ValueLabel.setVisible(true);
 
 				rrcParam1Label.setText(rb.getString("rrc.continuousReceptionIdle"));
 				rrcParam2Label.setText(rb.getString("rrc.continuousReception"));
@@ -246,6 +273,10 @@ public class RRCStatisticsPanel extends JPanel {
 				rrcParam4Label.setText(rb.getString("rrc.shortDRX"));
 				rrcParam5Label.setText(rb.getString("rrc.longDRX"));
 				rrcParam6Label.setText(rb.getString("rrc.idle"));
+				rrcParam7Label.setText(rb.getString("rrc.crTailRatio"));
+				rrcParam8Label.setText(rb.getString("rrc.longDRXRatio"));
+				rrcParam9Label.setText(rb.getString("rrc.shortDRXRatio"));
+				rrcParam10Label.setText(rb.getString("rrc.promotionRatio"));
 
 				valueAndPct = rb.getString("rrc.valueAndPctLTE");
 				rrcParam1ValueLabel.setText(MessageFormat.format(valueAndPct,
@@ -265,6 +296,10 @@ public class RRCStatisticsPanel extends JPanel {
 				rrcParam6ValueLabel.setText(MessageFormat.format(valueAndPct,
 						nf.format(rrc.getLteIdleTime()),
 						nf.format(rrc.getLteIdleTimeRatio() * 100.0)));
+				rrcParam7ValueLabel.setText(nf.format(rrc.getCRTailRatio()));
+				rrcParam8ValueLabel.setText(nf.format(rrc.getLteDrxShortRatio()));
+				rrcParam9ValueLabel.setText(nf.format(rrc.getLteDrxLongRatio()));
+				rrcParam10ValueLabel.setText(nf.format(rrc.getCRPromotionRatio()));
 
 				rrcContent.put(rb.getString("rrc.continuousReceptionIdle"),
 						rrcParam1ValueLabel.getText());
@@ -275,14 +310,18 @@ public class RRCStatisticsPanel extends JPanel {
 				rrcContent.put(rb.getString("rrc.shortDRX"), rrcParam4ValueLabel.getText());
 				rrcContent.put(rb.getString("rrc.longDRX"), rrcParam5ValueLabel.getText());
 				rrcContent.put(rb.getString("rrc.idle"), rrcParam6ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.crTailRatio"), rrcParam7ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.longDRXRatio"), rrcParam8ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.shortDRXRatio"), rrcParam9ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.promotionRatio"), rrcParam10ValueLabel.getText());
 			} else if (profile instanceof ProfileWiFi) {
-				
+
 				valueAndPct = rb.getString("rrc.valueAndPctWiFi");
-				
+
 				rrcParam1Label.setText(rb.getString("rrc.wifiActive"));
 				rrcParam2Label.setText(rb.getString("rrc.WifiTail"));
 				rrcParam3Label.setText(rb.getString("rrc.WiFiIdle"));
-				
+
 				rrcParam1ValueLabel.setText(MessageFormat.format(valueAndPct,
 						nf.format(rrc.getWifiActiveTime()),
 						nf.format(rrc.getWifiActiveRatio() * 100.0)));
@@ -294,7 +333,7 @@ public class RRCStatisticsPanel extends JPanel {
 						.setText(MessageFormat.format(valueAndPct,
 								nf.format(rrc.getWifiIdleTime()),
 								nf.format(rrc.getWifiIdleRatio() * 100.0)));
-                
+
 				rrcParam4Label.setVisible(false);
 				rrcParam4ValueLabel.setVisible(false);
 				rrcParam5Label.setVisible(false);
@@ -305,13 +344,14 @@ public class RRCStatisticsPanel extends JPanel {
 				rrcParam7ValueLabel.setVisible(false);
 				rrcParam8Label.setVisible(false);
 				rrcParam8ValueLabel.setVisible(false);
-				
-				rrcContent.put(rb.getString("rrc.wifiActive"),
-						rrcParam1ValueLabel.getText());
-				rrcContent.put(rb.getString("rrc.WifiTail"),
-						rrcParam2ValueLabel.getText());
-				rrcContent.put(rb.getString("rrc.WiFiIdle"),
-						rrcParam3ValueLabel.getText());
+				rrcParam9Label.setVisible(false);
+				rrcParam9ValueLabel.setVisible(false);
+				rrcParam10Label.setVisible(false);
+				rrcParam10ValueLabel.setVisible(false);
+
+				rrcContent.put(rb.getString("rrc.wifiActive"), rrcParam1ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.WifiTail"), rrcParam2ValueLabel.getText());
+				rrcContent.put(rb.getString("rrc.WiFiIdle"), rrcParam3ValueLabel.getText());
 			}
 		} else {
 			rrcParam1ValueLabel.setText(null);
@@ -322,16 +362,39 @@ public class RRCStatisticsPanel extends JPanel {
 			rrcParam6ValueLabel.setText(null);
 			rrcParam7ValueLabel.setText(null);
 			rrcParam8ValueLabel.setText(null);
+			rrcParam9ValueLabel.setText(null);
+			rrcParam10ValueLabel.setText(null);
 			rrcContent.clear();
 		}
 	}
 
 	/**
-	 * Returns a Map of strings containing the RRC states data.
+	 * Method to write the RRC statistics content into the csv file
 	 * 
-	 * @return A Map containing the RRC states statistics.
+	 * @throws IOException
 	 */
-	public Map<String, String> getRrcContent() {
-		return rrcContent;
+	public FileWriter addRRCContent(FileWriter writer)
+			throws IOException {
+		final String lineSep = System.getProperty(rb.getString("statics.csvLine.seperator"));
+		for (Map.Entry<String, String> iter : rrcContent.entrySet()) {
+			String individualVal = iter.getValue().replace(
+					rb.getString("statics.csvCell.seperator"), "");
+			writer.append(iter.getKey());
+			writer.append(rb.getString("statics.csvCell.seperator"));
+			if (individualVal.contains(rb.getString("statics.csvCell.openBraket"))) {
+				writer.append(individualVal.substring(0,
+						individualVal.indexOf(rb.getString("statics.csvCell.openBraket"))));
+				writer.append(rb.getString("statics.csvCell.seperator"));
+				writer.append(rb.getString("statics.csvUnits.s"));
+				writer.append(rb.getString("statics.csvCell.seperator"));
+				writer.append(individualVal.substring(
+						individualVal.indexOf(rb.getString("statics.csvCell.openBraket")) + 1,
+						individualVal.indexOf(rb.getString("statics.csvCell.closeBraket"))));
+			} else {
+				writer.append(individualVal);
+			}
+			writer.append(lineSep);
+		}
+		return writer;
 	}
 } // @jve:decl-index=0:visual-constraint="10,10"

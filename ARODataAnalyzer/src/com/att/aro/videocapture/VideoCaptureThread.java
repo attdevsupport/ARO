@@ -116,6 +116,7 @@ public class VideoCaptureThread extends Thread {
 	}
 
 	/**
+	 * Finalizes the VideoCaptureThread object. This method overrides the java.lang.Object.Finalize method.
 	 * @see java.lang.Object#finalize()
 	 */
 	@Override

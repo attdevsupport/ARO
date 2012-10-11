@@ -69,6 +69,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox jScreenStateCheckBox;
 	private JCheckBox jBatteryStateCheckBox;
 	private JCheckBox jWifiStateCheckBox;
+	private JCheckBox jNetworkTypeCheckBox;
 	private JCheckBox jThroughputCheckBox;
 	private JCheckBox jUplinkCheckBox;
 	private JCheckBox jDownlinkCheckBox;
@@ -117,7 +118,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	 * Sets the visibility of the chart plot options dialog.
 	 * 
 	 * @param visible
-	 *            – A boolean value that indicates whether the dialog should be
+	 *            A boolean value that indicates whether the dialog should be
 	 *            visible or not.
 	 */
 	public void setVisibleToUser(boolean visible) {
@@ -134,6 +135,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 		jScreenStateCheckBox.setEnabled(enabled);
 		jBatteryStateCheckBox.setEnabled(enabled);
 		jWifiStateCheckBox.setEnabled(enabled);
+		jNetworkTypeCheckBox.setEnabled(enabled);
 		jThroughputCheckBox.setEnabled(enabled);
 		jUplinkCheckBox.setEnabled(enabled);
 		jDownlinkCheckBox.setEnabled(enabled);
@@ -290,9 +292,9 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JPanel getJAdvancedOptionsPanel() {
 		if (jAdvancedOptionsPanel == null) {
 			GridBagConstraints gridBagConstraints14 = new GridBagConstraints();
-			gridBagConstraints14.gridx = 1;
+			gridBagConstraints14.gridx = 0;
 			gridBagConstraints14.anchor = GridBagConstraints.WEST;
-			gridBagConstraints14.gridy = 10;
+			gridBagConstraints14.gridy = 13;
 
 			GridBagConstraints gridBagConstraints13 = new GridBagConstraints();
 			gridBagConstraints13.gridx = 0;
@@ -393,8 +395,8 @@ public class ChartPlotOptionsDialog extends JDialog {
 					gridBagConstraints12);
 			jAdvancedOptionsPanel.add(getJRRCStateCheckBox(),
 					gridBagConstraints13);
-			// jAdvancedOptionsPanel.add(getJBurstTypesColorCheckBox(),
-			// gridBagConstraints14);
+			 jAdvancedOptionsPanel.add(getJNetworkTypeCheckBox(),
+			 gridBagConstraints14);
 
 		}
 		return jAdvancedOptionsPanel;
@@ -433,6 +435,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 		return jGPSStateCheckBox;
 	}
 
+	
 	/**
 	 * Initializes jWifiStateCheckBox
 	 * 
@@ -448,6 +451,23 @@ public class ChartPlotOptionsDialog extends JDialog {
 			checkBoxPlots.put(jWifiStateCheckBox, ChartPlotOptions.WIFI);
 		}
 		return jWifiStateCheckBox;
+	}
+	
+	/**
+	 * Initializes jNetworkTypeCheckBox
+	 * 
+	 * @return javax.swing.JCheckBox
+	 */
+	private JCheckBox getJNetworkTypeCheckBox() {
+		if (jNetworkTypeCheckBox == null) {
+			jNetworkTypeCheckBox = new JCheckBox();
+			jNetworkTypeCheckBox.setText(rb
+					.getString("chart.options.dialog.network"));
+			jNetworkTypeCheckBox
+					.setSelected(isUserPrefsSelected(ChartPlotOptions.NETWORK_TYPE));
+			checkBoxPlots.put(jNetworkTypeCheckBox, ChartPlotOptions.NETWORK_TYPE);
+		}
+		return jNetworkTypeCheckBox;
 	}
 
 	/**

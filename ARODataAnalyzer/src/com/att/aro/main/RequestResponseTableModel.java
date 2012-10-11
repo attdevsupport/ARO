@@ -78,7 +78,7 @@ public class RequestResponseTableModel extends DataTableModel<HttpRequestRespons
 	 * primarily used to sort numeric columns.
 	 * 
 	 * @param columnIndex
-	 *            – The index of the specified column.
+	 *            The index of the specified column.
 	 * 
 	 * @return A class representing the specified column.
 	 * 
@@ -94,6 +94,17 @@ public class RequestResponseTableModel extends DataTableModel<HttpRequestRespons
 		}
 	}
 
+	/**
+	 * This is the one method that must be implemented by subclasses. This method defines how 
+	 * the data object managed by this table model is mapped to its columns when displayed 
+	 * in a row of the table. The getValueAt() method uses this method to retrieve table cell data.
+	 * 
+	 * @param
+	 * 		item A object containing the column information.
+			columnIndex The index of the specified column.
+	 *		
+	 * @return An object containing the table column value. 
+	 */
 	@Override
 	protected Object getColumnValue(HttpRequestResponseInfo item, int columnIndex) {
 		if (item.getDirection() != null) {

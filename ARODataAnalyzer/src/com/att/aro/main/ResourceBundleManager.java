@@ -84,7 +84,7 @@ public class ResourceBundleManager {
 	 * returned.
 	 * 
 	 * @param val
-	 *            – An enumeration value that specifies which localized display
+	 *            An enumeration value that specifies which localized display
 	 *            string should be returned from the resource bundle.
 	 * 
 	 * @return A string that corresponds to the enumeration value, or to the

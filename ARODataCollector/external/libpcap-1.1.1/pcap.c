@@ -419,6 +419,7 @@ pcap_loop(pcap_t *p, int cnt, pcap_handler callback, u_char *user)
 	register int n;
 
 	for (;;) {
+		
 		// --------Code change to terminate loop---------------------------
 		if (exitFlag == 3) {pcap_breakloop(p); return;}
 		if (exitFlag == 4) {pcap_breakloop(p); return;}

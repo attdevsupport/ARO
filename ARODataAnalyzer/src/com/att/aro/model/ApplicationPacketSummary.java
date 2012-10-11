@@ -17,7 +17,7 @@ package com.att.aro.model;
 
 
 /**
- * Base class for a packet summary for an application
+ * A case class containing packet summary information for an application.
  */
 public class ApplicationPacketSummary extends PacketSummary {
 	private static final long serialVersionUID = 1L;
@@ -25,10 +25,11 @@ public class ApplicationPacketSummary extends PacketSummary {
 	private String appName;
 	
 	/**
-	 * Initializing constructor
-	 * @param appName
-	 * @param packetCount
-	 * @param totalBytes
+	 * Initializes an instance of the ApplicationPacketSummary class using the specified 
+	 * application name, number of packets, and total bytes contained in those packets.
+	 * @param appName - The application name.
+	 * @param packetCount - The number of packets for the application.
+	 * @param totalBytes - The total number of bytes contained in the packets. 
 	 */
 	public ApplicationPacketSummary(String appName, int packetCount, long totalBytes) {
 		super(packetCount, totalBytes);
@@ -36,7 +37,8 @@ public class ApplicationPacketSummary extends PacketSummary {
 	}
 
 	/**
-	 * @return the appName
+	 * Returns the application name.
+	 * @return The application name
 	 */
 	public String getAppName() {
 		return appName;

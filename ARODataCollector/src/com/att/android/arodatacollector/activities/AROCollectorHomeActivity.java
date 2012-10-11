@@ -16,17 +16,11 @@
 
 package com.att.android.arodatacollector.activities;
 
-import java.io.IOException;
-import java.util.Timer;
-import java.util.TimerTask;
-
-import org.apache.http.client.ClientProtocolException;
+//import org.apache.http.client.ClientProtocolException;
 
 import com.att.android.arodatacollector.R;
 import com.att.android.arodatacollector.main.AROCollectorService;
-import com.att.android.arodatacollector.main.AROCollectorTraceService;
 import com.att.android.arodatacollector.main.ARODataCollector;
-import com.att.android.arodatacollector.utils.AROCollectorUtils;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -37,9 +31,9 @@ import android.widget.Button;
 
 /**
  * Represents the Home screen of the ARO Data Collector, which contains butttons
- * that allow the user to hid or stop the application. When the application is
+ * that allow the user to hide or stop the application. When the application is
  * hidden, the user can navigate to Home Screen by selecting a command on the
- * context menui of the application, or by clicking the application.
+ * context menu of the application, or by clicking the application.
  * 
  * */
 
@@ -49,15 +43,9 @@ public class AROCollectorHomeActivity extends Activity {
 	private static final String TAG = "ARO.HomeActivity";
 
 	/**
-	 * Max Timeout time for Data Collector STOP to exit tcpdump capture from the
-	 * shell
-	 */
-	private static final int ARO_STOP_WATCH_TIME = 35000;
-
-	/**
 	 * The boolean value to enable logs based on production build or debug build
 	 */
-	private static boolean mIsProduction = true;
+	private static boolean mIsProduction = false;
 
 	/**
 	 * A boolean value that indicates whether or not to enable logging for this
@@ -68,35 +56,31 @@ public class AROCollectorHomeActivity extends Activity {
 	/** The Home screen button controls to hide and stop data collector */
 	private Button hideDataCollector, stopDataCollector;
 
-	/** ARO Data Collector utilities class object */
-	private AROCollectorUtils mAroUtils;
-
 	/**
 	 * The Application context of the ARO-Data Collector to gets and sets the
 	 * application data
 	 **/
 	private ARODataCollector mApp;
 
-	/** Watch dog timer to set STOP timeout for Data Collector */
-	private Timer aroDCStopWatchTimer = new Timer();
-
 	/**
-	 * Overriding onCreate initialize data members
-	 * 
+	 * Initializes data members with a saved instance of an AROCollectorHomeActivity object. 
+	 * Overrides the android.app.Activity#onCreate method. 
+	 * @param savedInstanceState – A saved instance of an AROCollectorHomeActivity object.
 	 * @see android.app.Activity#onCreate(android.os.Bundle)
 	 */
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		mApp = (ARODataCollector) getApplication();
-		mAroUtils = new AROCollectorUtils();
+		//mAroUtils = new AROCollectorUtils();
 		setContentView(R.layout.arocollector_home_screen);
 		initHomeScreenControls();
 		initHomeScreenControlListeners();
 	}
 
 	/**
-	 * Overriding onPause to hide progress dialog when loosing the focus
+	 * Hides the Progress dialog window when it loses focus. Overrides the 
+	 * android.app.Activity#onPause method. 
 	 * 
 	 * @see android.app.Activity#onPause()
 	 */
@@ -140,52 +124,6 @@ public class AROCollectorHomeActivity extends Activity {
 	}
 
 	/**
-	 * Watch Dog to check abnormal termination of Data Collector
-	 */
-	private void dataCollectorStopWatchTimer() {
-		if (DEBUG) {
-			Log.i(TAG, "Inside dataCollectorStopWatchTimer....");
-		}
-		aroDCStopWatchTimer.schedule(new TimerTask() {
-			@Override
-			public void run() {
-				if (DEBUG) {
-					Log.i(TAG,
-							"Inside dataCollectorStopWatchTimer....mApp.getTcpDumpStartFlag"
-									+ mApp.getTcpDumpStartFlag()
-									+ "mApp.getARODataCollectorStopFlag(true);"
-									+ mApp.getARODataCollectorStopFlag());
-				}
-				if (mApp.getTcpDumpStartFlag()) {
-					aroDCStopWatchTimer.cancel();
-					if (AROCollectorTraceService.getServiceObj() != null) {
-						if (DEBUG) {
-							Log.i(TAG, "Inside Ping Connection....hideProgressDialog");
-						}
-						if (DEBUG) {
-							Log.i(TAG, "Setting Data Collector stop flag");
-						}
-						mApp.setARODataCollectorStopFlag(true);
-						try {
-							// Going to ping google to break out of tcpdump
-							// while loop to come out of native shell and stop
-							// ARO-Data Collector
-							// for htc hardware
-							mAroUtils.OpenHttpConnection();
-						} catch (ClientProtocolException e) {
-							Log.e(TAG, "exception in OpenHttpConnection ", e);
-						} catch (IOException e) {
-							// TODO : To display error message for failed stop
-							// of data collector
-							Log.e(TAG, "exception in OpenHttpConnection ", e);
-						}
-					}
-				}
-			}
-		}, ARO_STOP_WATCH_TIME);
-	}
-
-	/**
 	 * Stops the data collector trace by stopping Video Trace and tcpdump from
 	 * shell
 	 */
@@ -193,7 +131,6 @@ public class AROCollectorHomeActivity extends Activity {
 		if (DEBUG) {
 			Log.i(TAG, "Inside stopARODataCollector....");
 		}
-		dataCollectorStopWatchTimer();
 		stopDataCollector.setEnabled(false);
 		hideDataCollector.setEnabled(false);
 		mApp.setARODataCollectorStopFlag(true);

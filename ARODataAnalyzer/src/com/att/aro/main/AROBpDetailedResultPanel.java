@@ -23,6 +23,7 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.MouseWheelListener;
 import java.util.Collection;
 
 import javax.swing.BorderFactory;
@@ -45,6 +46,12 @@ public class AROBpDetailedResultPanel extends JPanel {
 
 	private static Font textFont = new Font("TextFont", Font.PLAIN, 12);
 
+	private static void removeMouseWheelListeners(JScrollPane scrollPane) {
+		for (MouseWheelListener mwl : scrollPane.getMouseWheelListeners()) {
+			scrollPane.removeMouseWheelListener(mwl);
+		}
+	}
+	
 	private DateTraceAppDetailPanel dateTraceAppDetailPanel;
 	private BpHeaderPanel header;
 	private Collection<DetailedResultRowPanel> panels;
@@ -64,31 +71,36 @@ public class AROBpDetailedResultPanel extends JPanel {
 	 *            - The collection of panels that are displayed for the detailed
 	 *            result section.
 	 */
-	public AROBpDetailedResultPanel(int page, String title, String desc,
+	public AROBpDetailedResultPanel(String title, String desc,
 			Collection<DetailedResultRowPanel> panels) {
 		super(new BorderLayout());
 		this.panels = panels;
 		setOpaque(false);
 		setBorder(new RoundedBorder(new Insets(0, 0, 0, 0), Color.WHITE));
 
+		// Create the header bar
 		this.header = new BpHeaderPanel(title);
 		add(header, BorderLayout.NORTH);
 
+		// Create the date panel
 		JPanel dataPanel = new JPanel(new BorderLayout());
 		dataPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 		dataPanel.setOpaque(false);
 		this.dateTraceAppDetailPanel = new DateTraceAppDetailPanel();
 		dataPanel.add(dateTraceAppDetailPanel, BorderLayout.NORTH);
 
+		// Create the group overview panel
 		JPanel textPanel = new JPanel(new BorderLayout(10, 10));
 		textPanel.setOpaque(false);
 		JScrollPane scroll = new JScrollPane(createJTextArea(desc));
 		scroll.setBorder(BorderFactory.createEmptyBorder());
+		removeMouseWheelListeners(scroll);
 		textPanel.add(scroll, BorderLayout.NORTH);
 		JPanel separator = new ImagePanel(Images.DIVIDER.getImage(), true,
 				Color.WHITE);
 		textPanel.add(separator, BorderLayout.SOUTH);
 
+		// Create the best practices detail panel
 		JPanel detailPanel = new JPanel(new GridBagLayout());
 		detailPanel.setOpaque(false);
 		int row = 0;
@@ -96,6 +108,7 @@ public class AROBpDetailedResultPanel extends JPanel {
 		Insets startInsets = new Insets(25, 5, 2, 5);
 		Insets insets = new Insets(2, 5, 2, 5);
 
+		// Add each best practice to the detail panel
 		for (DetailedResultRowPanel panel : panels) {
 			detailPanel.add(panel.getIconLabel(), new GridBagConstraints(0,
 					row, 1, 4, 0.0, 0.0, GridBagConstraints.NORTH,
@@ -113,6 +126,7 @@ public class AROBpDetailedResultPanel extends JPanel {
 					GridBagConstraints.NONE, insets, 0, 0));
 			scroll = new JScrollPane(panel.getAboutText());
 			scroll.setBorder(BorderFactory.createEmptyBorder());
+			removeMouseWheelListeners(scroll);
 			detailPanel.add(scroll, new GridBagConstraints(2, row, 1, 1, 1.0,
 					1.0, GridBagConstraints.NORTHWEST,
 					GridBagConstraints.HORIZONTAL, insets, 0, 0));
@@ -122,6 +136,7 @@ public class AROBpDetailedResultPanel extends JPanel {
 					GridBagConstraints.NONE, insets, 0, 0));
 			scroll = new JScrollPane(panel.getResultDetailsLabel());
 			scroll.setBorder(BorderFactory.createEmptyBorder());
+			removeMouseWheelListeners(scroll);
 			detailPanel.add(scroll, new GridBagConstraints(2, row, 1, 1, 1.0,
 					1.0, GridBagConstraints.NORTHWEST, GridBagConstraints.BOTH,
 					insets, 0, 0));
@@ -151,8 +166,10 @@ public class AROBpDetailedResultPanel extends JPanel {
 		if (analysisData != null) {
 			boolean pass = true;
 			for (DetailedResultRowPanel panel : panels) {
-				panel.refresh(analysisData);
-				pass = pass && panel.isPass(analysisData.getBestPractice());
+				Boolean b = panel.refresh(analysisData);
+				if (b != null) {
+					pass = pass && b.booleanValue();
+				}
 			}
 			header.setPass(pass);
 		} else {

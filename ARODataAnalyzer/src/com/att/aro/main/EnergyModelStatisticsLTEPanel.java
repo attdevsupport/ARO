@@ -26,7 +26,8 @@ import com.att.aro.model.RRCStateMachine;
 import com.att.aro.model.TraceData;
 
 /**
- * Displays the LTE Energy Model statistics about the trace
+ * Displays the portion of the Energy Consumption Simulation section of the Statistics Tab 
+ * information page that apply to an LTE Energy Model.
  */
 public class EnergyModelStatisticsLTEPanel extends EnergyModelStatisticsPanel {
 	private static final long serialVersionUID = 1L;
@@ -51,6 +52,13 @@ public class EnergyModelStatisticsLTEPanel extends EnergyModelStatisticsPanel {
 	private JLabel jpkbLabel;
 	private JLabel jpkbValueLabel;
 
+	/**
+	 * Initializes a new instance of the EnergyModelStatisticsLTEPanel class.
+	 */
+	public EnergyModelStatisticsLTEPanel() {
+		
+	}
+	
 	/**
 	 * Creates the JPanel that contains the Energy Consumption statistics data.
 	 */
@@ -107,11 +115,12 @@ public class EnergyModelStatisticsLTEPanel extends EnergyModelStatisticsPanel {
 	}
 
 	/**
-	 * Refreshes various label values in the EnergyModelStatisticsPanel when a
-	 * trace is loaded.
+	 * Refreshes the RRCStatistics portion of the EnergyModelStatisticsLTEPanel when a trace is loaded.
 	 * 
 	 * @param analysis
-	 *            The Analysis object containing the trace data.
+	 *          - The Analysis object containing the trace data.
+	 * @param nf 
+	 *          - The number format used to display the label values.
 	 */
 	public void refreshRRCStatistic(TraceData.Analysis analysis, NumberFormat nf) {
 		if (analysis != null) {
@@ -211,18 +220,18 @@ public class EnergyModelStatisticsLTEPanel extends EnergyModelStatisticsPanel {
 	}
 
 	/**
-	 * Returns RRC Total JLabel object.
+	 * Returns a JLabel object containing total RRC energy data.
 	 * 
-	 * @return RRC Total label.
+	 * @return The JLabel object.
 	 */
 	public JLabel getRrcTotalLabel() {
 		return rrcTotalLabel;
 	}
 
 	/**
-	 * Returns JPKB JLabel object.
+	 * Returns a JLabel object containing joules per kilobyte data.
 	 * 
-	 * @return JPKB label.
+	 * @return The JLabel object.
 	 */
 	public JLabel getJpkbLabel() {
 		return jpkbLabel;

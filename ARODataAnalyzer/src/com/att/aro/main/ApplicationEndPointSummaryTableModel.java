@@ -1,11 +1,14 @@
 package com.att.aro.main;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.ResourceBundle;
 
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
+import com.att.aro.commonui.DataTable;
 import com.att.aro.commonui.DataTableModel;
 import com.att.aro.commonui.NumberFormatRenderer;
 import com.att.aro.model.ApplicationPacketSummary;
@@ -20,12 +23,9 @@ public class ApplicationEndPointSummaryTableModel extends DataTableModel<Applica
 	private static final int APPNAME_COL = 0;
 	private static final int PACKET_COL = 1;
 	private static final int BYTES_COL = 2;
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
-	private static final String[] columns = {
-			rb.getString("endpointsummary.appname"),
-			rb.getString("endpointsummary.packets"),
-			rb.getString("endpointsummary.bytes") };
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
+	private static final String[] columns = { rb.getString("endpointsummary.appname"),
+			rb.getString("endpointsummary.packets"), rb.getString("endpointsummary.bytes") };
 
 	TableColumnModel cols = null;
 
@@ -41,7 +41,7 @@ public class ApplicationEndPointSummaryTableModel extends DataTableModel<Applica
 	 * primarily used to sort numeric columns.
 	 * 
 	 * @param columnIndex
-	 *            – The index of the specified column.
+	 *            The index of the specified column.
 	 * 
 	 * @return A class representing the specified column.
 	 */
@@ -74,15 +74,16 @@ public class ApplicationEndPointSummaryTableModel extends DataTableModel<Applica
 		TableColumn col;
 		NumberFormatRenderer bytesRenderer = new NumberFormatRenderer(
 				NumberFormat.getIntegerInstance());
-		
+
 		col = cols.getColumn(BYTES_COL);
 		col.setCellRenderer(bytesRenderer);
-		
+
 		return cols;
 	}
 
 	/**
 	 * Returns a Cell values.
+	 * 
 	 * @return Object Cell value.
 	 */
 	@Override
@@ -101,10 +102,62 @@ public class ApplicationEndPointSummaryTableModel extends DataTableModel<Applica
 
 	/**
 	 * Returns a Column header name.
+	 * 
 	 * @return String column header name.
 	 */
 	@Override
 	public String getColumnName(int col) {
 		return columns[col];
-	}	
+	}
+
+	/**
+	 * Method to write the end point summary per application into the csv file.
+	 * 
+	 * @throws IOException
+	 */
+	public FileWriter addEndPointSummaryPerAppTable(FileWriter writer,
+			DataTable<ApplicationPacketSummary> table) throws IOException {
+		final String lineSep = System.getProperty(rb.getString("statics.csvLine.seperator"));
+
+		// Write headers
+		for (int i = 0; i < table.getColumnCount(); ++i) {
+			if (i > 0) {
+				writer.append(rb.getString("statics.csvCell.seperator"));
+			}
+			writer.append(createCSVEntry(table.getColumnModel().getColumn(i).getHeaderValue()));
+		}
+		writer.append(lineSep);
+		// Write data
+		for (int i = 0; i < table.getRowCount(); ++i) {
+			for (int j = 0; j < table.getColumnCount(); ++j) {
+				if (j > 0) {
+					writer.append(rb.getString("statics.csvCell.seperator"));
+				}
+				writer.append(createCSVEntry(table.getValueAt(i, j)));
+			}
+			writer.append(lineSep);
+		}
+		return writer;
+	}
+
+	/**
+	 * Changes the format of the table object.
+	 */
+	private String createCSVEntry(Object val) {
+		StringBuffer writer = new StringBuffer();
+		String str = val != null ? val.toString() : "";
+		writer.append('"');
+		for (char c : str.toCharArray()) {
+			switch (c) {
+			case '"':
+				// Add an extra
+				writer.append("\"\"");
+				break;
+			default:
+				writer.append(c);
+			}
+		}
+		writer.append('"');
+		return writer.toString();
+	}
 }

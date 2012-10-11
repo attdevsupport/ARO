@@ -26,15 +26,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.att.android.arodatacollector.R;
 import com.att.android.arodatacollector.activities.AROCollectorHomeActivity;
+import com.att.android.arodatacollector.utils.AROCollectorUtils;
+import com.flurry.android.FlurryAgent;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.net.NetworkInfo;
 import android.util.Log;
 import android.view.Window;
 import android.app.Application;
@@ -63,6 +67,12 @@ public class ARODataCollector extends Application {
 	/** The root directory of the ARO Data Collector Trace. */
 	public static final String ARO_TRACE_ROOTDIR = "/sdcard/ARO/";
 
+	/** The relative file path for flurry holding api key file */
+	public static final String FLURRY_API_KEY_REL_PATH = "flurry/flurry_api_key.properties";
+	
+	/** Key for Flurry Application API Key */
+	public static final String FLURRY_API_KEY_NAME = "FLURRY_API_KEY";
+
 	/**
 	 * The error dialog ID string for the Intent filer that is used in Main
 	 * Activity. The error dialog appears when the ARO Data Collector
@@ -80,7 +90,7 @@ public class ARODataCollector extends Application {
 	 * The boolean value to enable logs depending on if production build or
 	 * debug build
 	 */
-	private static boolean mIsProduction = true;
+	private static boolean mIsProduction = false;
 
 	/**
 	 * The boolean value to enable logs depending on if production build or
@@ -97,6 +107,9 @@ public class ARODataCollector extends Application {
 	/** The name of video starts and end time file name */
 	private static final String outVideoTimeFileName = "video_time";
 
+	/** The name of shared preference name for local persistence  */
+	private static final String PREFS = "AROPrefs";
+	
 	/** The ARO alert menu notification id used with notification manager */
 	private static final int NOTIFICATION_ID = 1;
 
@@ -109,9 +122,6 @@ public class ARODataCollector extends Application {
 	 */
 	public static final int SDCARDERROR = 2;
 
-	/** The error ID for the network bearer change error. */
-	public static final int BEARERCHANGEERROR = 3;
-
 	/**
 	 * The error ID for an "SD Card mount" error that occurs before the start of
 	 * a trace.
@@ -120,9 +130,9 @@ public class ARODataCollector extends Application {
 
 	/** The error ID for an "SD Card mount" error that occurs during mid-trace. */
 	public static final int SDCARDMOUNTED_MIDTRACE = 5;
-
-	/** The error ID for the wifi lost change error. */
-	public static final int WIFI_LOST_ERROR = 6;
+	
+	/** The error ID for an "Airplane Mode Enabled" error that occurs during mid-trace. */
+	public static final int AIRPLANEMODEENABLED_MIDTRACE = 6;
 
 	/**
 	 * The ARO-Data Collector application version String which is read from the
@@ -130,6 +140,20 @@ public class ARODataCollector extends Application {
 	 */
 	private String mApplicationVersion;
 
+	/**
+	 * Flurry Analytics API Key.  This is associated to the Application specified
+	 * at https://dev.flurry.com under a specified login and Company AT&T.  This is the
+	 * default value meant for ATT Developers.  Internal ATT users will override this value
+	 * via a file input. 
+	 */
+	public String app_flurry_api_key = "5WYSN3ZBDP476WD6VHDY";
+	
+	/** Event properties logged during ARO application for use by Flurry Analytics. */
+	public Map<String, String> flurryVideoTaken = new HashMap<String, String>();
+
+	/** Event properties logged during ARO application for use by Flurry Analytics. Application context scope. */
+	public Map<String, String> flurryError = new HashMap<String, String>();
+	
 	/**
 	 * Boolean variable to hold value true and false to check if tcpdump is
 	 * active and taking trace
@@ -140,16 +164,16 @@ public class ARODataCollector extends Application {
 	 * Boolean variable to keep true and false value for SD card mounted during
 	 * mid trace
 	 */
-	private boolean mMidTraceMediaMounted;
+	private boolean mMidTraceMediaMounted = false;
+	
+	/**
+	 * Boolean variable to keep true and false value for SD card mounted during
+	 * mid trace
+	 */
+	private boolean mMidTraceAirplaneModeEnabled = false;
 
 	/** The ARO Data Collector trace folder name */
 	private String mTraceFolderName;
-
-	/**
-	 * The network info class object to store current connected network which is
-	 * stored right after trace cycle is started
-	 */
-	private NetworkInfo mAROCurrentNetworkType;
 
 	/**
 	 * The notification manager class to display ARO-Data Collector alert menu
@@ -210,12 +234,6 @@ public class ARODataCollector extends Application {
 
 	/** ARO Data Collector progress spinner Dialog */
 	private Dialog aroProgressDialog;
-
-	/** ARO Data Collector Wifi State */
-	private String previousWifiState = "NONE";
-
-	/** ARO Data Collector is wifi lost flag */
-	private boolean wifiLost = false;
 
 	/** ARO Data Collector is wifi lost flag */
 	private boolean requestDataCollectorStop = false;
@@ -625,19 +643,20 @@ public class ARODataCollector extends Application {
 	 * @return A string that is the trace folder path name.
 	 */
 	public String getTcpDumpTraceFolderName() {
-		return (ARO_TRACE_ROOTDIR + mTraceFolderName + "/");
+		return (ARO_TRACE_ROOTDIR + getDumpTraceFolderName() + "/");
 	}
 
 	/**
 	 * Sets the trace folder name for the ARO Data Collector to the specified
 	 * string.
 	 * 
-	 * @param traceFolderName
-	 *            A string value that is the trace folder name.
+	 * @param traceFolderName A string value that is the trace folder name.
 	 */
 	public void setTcpDumpTraceFolderName(String traceFolderName) {
-		mTraceFolderName = traceFolderName;
-
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putString("TraceFolderName", traceFolderName);
+		editor.commit();
 	}
 
 	/**
@@ -646,6 +665,8 @@ public class ARODataCollector extends Application {
 	 * @return A string that is the ARO Data Collector trace folder name.
 	 */
 	public String getDumpTraceFolderName() {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		mTraceFolderName = prefs.getString("TraceFolderName", null);
 		return (mTraceFolderName);
 	}
 
@@ -658,8 +679,10 @@ public class ARODataCollector extends Application {
 	 *            trace, and "false" otherwise.
 	 */
 	public void setCollectVideoOption(boolean videoRecording) {
-		mVideoRecroding = videoRecording;
-
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putBoolean("VideoRecordFlag", videoRecording);
+		editor.commit();
 	}
 
 	/**
@@ -669,6 +692,8 @@ public class ARODataCollector extends Application {
 	 *         collection option is enabled.
 	 */
 	public boolean getCollectVideoOption() {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		mVideoRecroding = prefs.getBoolean("VideoRecordFlag", false);
 		return (mVideoRecroding);
 	}
 
@@ -680,33 +705,6 @@ public class ARODataCollector extends Application {
 	public long getAppUpTimeinSeconds() {
 
 		return Math.round(getTraceEndTime() - getTraceStartTime());
-	}
-
-	/**
-	 * Sets the network type of the currently connected network to the specified
-	 * value. This value is used to determine changes in the data bearer during
-	 * a trace cycle.
-	 * 
-	 * @param mNetworkType
-	 *            A Networkinfo object that indicates the network type.
-	 */
-	public void setCurrentNetworkType(NetworkInfo mNetworkType) {
-		mAROCurrentNetworkType = mNetworkType;
-	}
-
-	/**
-	 * Gets the types of the currently connected network.
-	 * 
-	 * @return An int value that indicates the network type. A value of 1
-	 *         indicates the current network type is wifi, and a value of 0
-	 *         indicates that it is any other mobile network.
-	 */
-	public int getCurrentNetworkType() {
-		// If current network is WIFI
-		if (mAROCurrentNetworkType.getType() == 1)
-			return 1;
-		else
-			return 0;
 	}
 
 	/**
@@ -815,6 +813,28 @@ public class ARODataCollector extends Application {
 	public void setMediaMountedMidAROTrace(boolean flag) {
 		mMidTraceMediaMounted = flag;
 	}
+	
+	/**
+	 * Gets the flag that indicates if Airplane mode was enabled
+	 * mid-trace.
+	 * 
+	 * @return A boolean value that indicates if Airplane mode was enabled mid-trace.
+	 */
+	public boolean getAirplaneModeEnabledMidAROTrace() {
+		return mMidTraceAirplaneModeEnabled;
+	}
+	
+	/**
+	 * Sets a flag that indicates Airplane was enabled
+	 * mid-trace.
+	 * 
+	 * @param flag
+	 *            A boolean value that is "true" if Airplane Mode was enabled
+	 *            during mid-trace, and "false" if it is not.
+	 */
+	public void setAirplaneModeEnabledMidAROTrace(boolean flag) {
+		mMidTraceAirplaneModeEnabled = flag;
+	}
 
 	/**
 	 * Sets the flag that indicates whether the video capture is running during
@@ -907,20 +927,20 @@ public class ARODataCollector extends Application {
 	}
 
 	/**
-	 * Determines whether the video.mp4 file is created in the current trace
-	 * folder or not.
+	 * Returns a value that indicates whether or not the 
+	 * video.mp4 file is created in the current trace folder.
 	 * 
-	 * @return <CODE>true</CODE> if the video file exists in the current trace
-	 *         folder and bigger than 0 bytes. <CODE>false</CODE> otherwise.
+	 * @return A boolean value that is true if the video.mp4 file exists in the 
+	 * 		   current trace folder and is larger than 0 bytes. Otherwise, the value is false.
 	 */
 	public boolean isVideoFileExisting() {
-		String videoAbsolutePath = ARODataCollector.ARO_TRACE_ROOTDIR
+		final String videoAbsolutePath = ARODataCollector.ARO_TRACE_ROOTDIR
 				+ this.getDumpTraceFolderName() + "/" + videoMp4;
 
 		if (DEBUG) {
 			Log.d(TAG, "isVideoFileExisting()--videoPath: " + videoAbsolutePath);
 		}
-		File videoFile = new File(videoAbsolutePath);
+		final File videoFile = new File(videoAbsolutePath);
 		if (videoFile.isFile() && videoFile.length() > 0) {
 			if (DEBUG) {
 				Log.d(TAG, "isVideoFileExisting(): " + "returning true" + "-videoFile.isFile():"
@@ -935,67 +955,132 @@ public class ARODataCollector extends Application {
 			return false;
 		}
 	}
-
-	/**
-	 * Sets a flag that indicates the current wifi state.
-	 * 
-	 * @param currentWifiState
-	 *            A NetworkInfo state value for wifi currently in the trace.
-	 */
-	public void setPreviousWifiState(String currentWifiState) {
-		this.previousWifiState = currentWifiState;
-	}
-
-	/**
-	 * Gets a value that indicates the previous wifi state. It is the current
-	 * state if state has not changed.
-	 * 
-	 * @return A NetworkInfo state value for wifi.
-	 */
-	public String getPreviousWifiState() {
-		return previousWifiState;
-	}
-
-	/**
-	 * Sets a flag that indicates whether wifi connectivity is lost.
-	 * 
-	 * @param isWifiLost
-	 *            A boolean value to indicate whether wifi connectivity is lost
-	 *            during the trace.
-	 */
-	public void setWifiLost(boolean isWifiLost) {
-		wifiLost = isWifiLost;
-	}
-
-	/**
-	 * Determines whether wifi connectivity is lost during the trace
-	 * 
-	 * @return <CODE>true</CODE> if wifi is currently not connected and was
-	 *         connected previously. <CODE>false</CODE> otherwise.
-	 */
-	public boolean isWifiLost() {
-		return wifiLost;
-	}
-
 	/**
 	 * Sets a flag that indicates whether a request to stop data collection has
 	 * been issued.
 	 * 
 	 * @param requestDataCollectorStop
-	 *            A flag to set whether a request to stop data collection has
-	 *            been made.
+	 *           A boolean value that is true if a request 
+	 *           to stop data collection has been made, and is false otherwise.
 	 */
 	public void setRequestDataCollectorStop(boolean requestDataCollectorStop) {
 		this.requestDataCollectorStop = requestDataCollectorStop;
 	}
 
 	/**
-	 * Determines whether a request to stop data Collection has been issued.
+	 * Returns a value that indicates whether a request to stop data collection has been issued. 
 	 * 
-	 * @return <CODE>true</CODE> if a request to stop data collection has been
-	 *         made. <CODE>false</CODE> otherwise.
+	 * @return A boolean value that is true if a request to stop data collection 
+	 * 		   has been made, and is false otherwise.
 	 */
 	public boolean isRequestDataCollectorStop() {
 		return requestDataCollectorStop;
+	}
+		
+	/**
+	 * Writing to a Flurry hashmap but and log the event.  T
+	 * @param hashMapToWriteTo Hashmap to write event data to.
+	 * @param mapKey Map Key to write for an event that uses a map
+	 * @param mapValue Map Value to write for an event
+	 * @param eventName Event Name to show up in Flurry Analytics
+	 * @param isTimedEvent True if event is a timed event.  False otherwise
+	 */
+	public void writeToFlurryAndLogEvent(Map<String, String> hashMapToWriteTo, String mapKey, String mapValue, String eventName, boolean isTimedEvent) {
+		if (hashMapToWriteTo != null) {
+			hashMapToWriteTo.put(mapKey, mapValue);
+			
+			if (!isTimedEvent) {
+				FlurryAgent.logEvent(eventName, hashMapToWriteTo);
+			} else  {
+				FlurryAgent.logEvent(eventName, hashMapToWriteTo, true);
+			}
+			if (DEBUG) {
+				Log.d(TAG, "logged flurry Event: " + eventName + "-hashmap key: " + mapKey + "-hashmap value: " + 
+						mapValue + "-timedEvent: " + isTimedEvent);
+			}
+		}
+		else if (eventName != null) {
+			FlurryAgent.logEvent(eventName);
+			if (DEBUG) {
+				Log.d(TAG, "logged flurry Event: " + eventName);
+			}
+		}	
+	}
+	
+	/**
+	 * Writing to a Flurry hashmap if state changes but not log the event.  The event should be logged
+	 * at a later time.
+	 * @param hashMapToWriteTo Hashmap to write event data to.
+	 * @param mapKey Map Key to write for an event that uses a map.
+	 * @param mapValue Map Value to write for an event
+	 * @param comment Used by debug message.  Set to empty string if not needed.
+	 * @param existingState used to compare states, if it is the same as last state, hashmap is not updated.  Displayed for logging.
+	 * @param currentState Current state of Event.  Displayed for logging in this method.  
+	 */
+	public void writeToFlurry(Map<String, String> hashMapToWriteTo, String mapKey, String mapValue, String comment, String existingState, String currentState) {
+		if (hashMapToWriteTo != null) {
+
+			hashMapToWriteTo.put(mapKey, mapValue);
+			if (DEBUG) {
+				Log.d(TAG, "writeToFlurry()" + "hashMapToWriteTo()-wrote flurry" + "-hashmap: " + comment + "-key: " + mapKey + "-hashmap value: " + mapValue + "-existingState: " + existingState);
+			}
+		} else {
+			if (DEBUG) {
+				Log.d(TAG, "writeToFlurry()" + "hashMapToWriteTo()-" + comment + " not updated due to-currentState: " + currentState + "-existingState: " + existingState);
+			}
+		}
+	}
+}
+
+
+/**
+ * Class to hold Flurry object states.  For example, peripheral usage are logged
+ * only when there is a change.
+ */
+class FlurryEvent {
+	private String eventName = AROCollectorUtils.EMPTY_STRING;
+	private int counter = 0;
+	private Map<String, String> mapToWrite = null;
+	private String state = AROCollectorUtils.EMPTY_STRING;
+
+	public FlurryEvent(String eventName, int eventCounter, 
+			Map<String, String> mapToWrite, String state) {
+		this.eventName = eventName;
+		this.counter = eventCounter;
+		this.mapToWrite = mapToWrite;
+		this.state = state;
+	}
+
+	public String getEventName() {
+		return eventName;
+	}
+	public void setEventName(String eventName) {
+		this.eventName = eventName;
+	}
+
+	public Map<String, String> getMapToWrite() {
+		return mapToWrite;
+	}
+	public void setMapToWrite(Map<String, String> mapToWrite) {
+		this.mapToWrite = mapToWrite;				
+	}
+	public int getCounter() {
+		return counter;
+	}
+
+	public void setCounter(int counter) {
+		this.counter = counter;
+	}
+
+	public int incrementCounter() {
+		setCounter(getCounter() + 1);
+		return getCounter();
+	}
+
+	public String getState() {
+		return state;
+	}
+	public void setState(String state) {
+		this.state = state;
 	}
 }

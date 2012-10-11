@@ -23,12 +23,15 @@ import java.nio.ByteBuffer;
  */
 public class UDPPacket extends IPPacket implements Serializable {
 	private static final long serialVersionUID = 1L;
+	
+	public static final int DNS_PORT = 53;
 
 	private int sourcePort;
 	private int destinationPort;
 	private int packetLength;
 	private int dataOffset;
 	private int payloadLen;
+	private DomainNameSystem dns;
 
 	/**
 	 * Constructor
@@ -45,9 +48,14 @@ public class UDPPacket extends IPPacket implements Serializable {
 		destinationPort = bytes.getShort(headerOffset + 2) & 0xFFFF;
 		packetLength = bytes.getShort(headerOffset + 4) & 0xFFFF;
 		payloadLen = packetLength - 8;
+		
+		if (isDNSPacket()) {
+			dns = new DomainNameSystem(this);
+		}
 	}
 
 	/**
+	 * @return The offset within the data array of the packet data excluding the header information.
 	 * @see com.att.aro.pcap.IPPacket#getDataOffset()
 	 */
 	@Override
@@ -88,6 +96,22 @@ public class UDPPacket extends IPPacket implements Serializable {
 	 */
 	public int getPacketLength() {
 		return packetLength;
+	}
+
+	/**
+	 * Indicates whether the data portion of this packet contains a DNS packet
+	 * @return
+	 */
+	public boolean isDNSPacket() {
+		return destinationPort == DNS_PORT || sourcePort == DNS_PORT;
+	}
+
+	/**
+	 * If this packet contains DNS info it may be accessed here
+	 * @return the dns or null if this is not a DNS packet
+	 */
+	public DomainNameSystem getDns() {
+		return dns;
 	}
 
 }

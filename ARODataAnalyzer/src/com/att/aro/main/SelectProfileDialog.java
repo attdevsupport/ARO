@@ -56,7 +56,7 @@ import com.att.aro.model.ProfileException;
 import com.att.aro.model.UserPreferences;
 
 /**
- * Represents a dialog that allows the user to select a Device Pprofile to be
+ * Represents a dialog that allows the user to select a Device Profile to be
  * used in the trace analysis.
  */
 public class SelectProfileDialog extends JDialog {

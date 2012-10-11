@@ -18,7 +18,7 @@ package com.att.aro.model;
 import java.io.Serializable;
 
 /**
- * Base class for a packet summary
+ * A Base class containing packet summary information.
  */
 public class PacketSummary implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -27,9 +27,10 @@ public class PacketSummary implements Serializable {
 	private long totalBytes;
 
 	/**
-	 * Initializing constructor
-	 * @param packetCount
-	 * @param totalBytes
+	 * Initializes an instance of the PacketSummary class, 
+	 * using the specified packet count and total number of bytes.
+	 * @param packetCount - The number of packets.
+	 * @param totalBytes - The total number of bytes in the packets.
 	 */
 	public PacketSummary(int packetCount, long totalBytes) {
 		this.packetCount = packetCount;
@@ -37,14 +38,16 @@ public class PacketSummary implements Serializable {
 	}
 	
 	/**
-	 * @return the packetCount
+	 * Returns the packet count.
+	 * @return The number of packets.
 	 */
 	public int getPacketCount() {
 		return packetCount;
 	}
 
 	/**
-	 * @return the totalBytes
+	 * Returns the total bytes.
+	 * @return The total number of bytes in the packets.
 	 */
 	public long getTotalBytes() {
 		return totalBytes;

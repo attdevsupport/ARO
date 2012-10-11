@@ -19,7 +19,7 @@ import java.net.InetAddress;
 
 
 /**
- * Base class for a packet summary for an application
+ * A base class containing packet summary information for an IP address.
  */
 public class IPPacketSummary extends PacketSummary {
 	private static final long serialVersionUID = 1L;
@@ -27,10 +27,11 @@ public class IPPacketSummary extends PacketSummary {
 	private InetAddress ipAddress;
 	
 	/**
-	 * Initializing constructor
-	 * @param ipAddress
-	 * @param packetCount
-	 * @param totalBytes
+	 * Initializes an instance of the IPPacketSummary class, using the specified 
+	 * IP address, number of packets for the IP address, and total number of bytes for the IPAddress.
+	 * @param ipAddress The IP address.
+	 * @param packetCount The number of packets.
+	 * @param totalBytes The total number of bytes for the IPAddress.
 	 */
 	public IPPacketSummary(InetAddress ipAddress, int packetCount, long totalBytes) {
 		super(packetCount, totalBytes);
@@ -38,7 +39,8 @@ public class IPPacketSummary extends PacketSummary {
 	}
 
 	/**
-	 * @return the ipAddress
+	 * Returns the IP address.
+	 * @return The IP address.
 	 */
 	public InetAddress getIPAddress() {
 		return ipAddress;

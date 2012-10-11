@@ -70,7 +70,7 @@ public class BurstAnalysisTableModel extends DataTableModel<BurstAnalysisInfo> {
 	 * primarily used to sort numeric columns.
 	 * 
 	 * @param columnIndex
-	 *            – The index of the specified column.
+	 *            The index of the specified column.
 	 * 
 	 * @return A class representing the specified column.
 	 */
@@ -138,6 +138,18 @@ public class BurstAnalysisTableModel extends DataTableModel<BurstAnalysisInfo> {
 		return cols;
 	}
 
+	/**
+	 * This is the one method that must be implemented by subclasses. This method defines 
+	 * how the data object managed by this table model is mapped to its columns when 
+	 * displayed in a row of the table. The getValueAt() method uses this method to retrieve 
+	 * table cell data. 
+	 * 
+	 * @param
+	 * 		item A BurstAnalysisInfo object containing the column information.
+			columnIndex The index of the specified column.
+	 *		
+	 * @return An object containing the table column value. 
+	 */
 	@Override
 	protected Object getColumnValue(BurstAnalysisInfo item, int columnIndex) {
 		switch (columnIndex) {
@@ -225,7 +237,7 @@ public class BurstAnalysisTableModel extends DataTableModel<BurstAnalysisInfo> {
 	}
 
 	/**
-	 * Changes the Columns according to LTE headers.
+	 * Changes the columns and headers in the table to match an LTE device profile.
 	 */
 	public void changeLTECol() {
 		changeColHeader(RRC_ACT_COL, rb.getString("burstAnalysis.lteCr"));
@@ -233,14 +245,14 @@ public class BurstAnalysisTableModel extends DataTableModel<BurstAnalysisInfo> {
 	}
 
 	/**
-	 * Changes the Columns according to 3G headers.
+	 * Changes the columns and headers in the table to match a 3G device profile.
 	 */
 	public void change3GCol() {
 		changeColHeader(RRC_ACT_COL, rb.getString("burstAnalysis.dch"));
 		changeColHeader(RRC_ACT_PCT_COL, rb.getString("burstAnalysis.dchPct"));
 	}
 	/**
-	 * Changes the Columns according to WiFi headers.
+	 * Changes the columns and headers in the table to match a WiFi device profile.
 	 */
 	public void changeWiFiCol() {
 		changeColHeader(RRC_ACT_COL, rb.getString("burstAnalysis.wifiActive"));

@@ -14,20 +14,22 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.ResourceBundle;
 
@@ -49,8 +51,7 @@ import com.att.aro.model.HttpRequestResponseInfo.Direction;
 public class RequestResponseDetailsPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
 	private JScrollPane scrollPane;
 	private RequestResponseTableModel jRequestResponseTableModel = new RequestResponseTableModel();
@@ -82,9 +83,9 @@ public class RequestResponseDetailsPanel extends JPanel {
 	 * Sets the HttpRequestResponseInfo data to be displayed on this panel.
 	 * 
 	 * @param data
-	 *            – A collection of HttpRequestResponseInfo objects obtained
-	 *            from the trace analysis. Each HttpRequestResponseInfo object
-	 *            in the collection represents one row of data in the panel.
+	 *            A collection of HttpRequestResponseInfo objects obtained from
+	 *            the trace analysis. Each HttpRequestResponseInfo object in the
+	 *            collection represents one row of data in the panel.
 	 */
 	public void setData(Collection<HttpRequestResponseInfo> data) {
 		jRequestResponseTableModel.setData(data);
@@ -94,8 +95,8 @@ public class RequestResponseDetailsPanel extends JPanel {
 	 * Convenience method to select the specified row in the table.
 	 * 
 	 * @param rrInfo
-	 *            -– An HttpRequestResponseInfo object that indicates the
-	 *            specified row.
+	 *            An HttpRequestResponseInfo object that indicates the specified
+	 *            row.
 	 */
 	public void select(HttpRequestResponseInfo rrInfo) {
 		jRequestResponseTable.selectItem(rrInfo);
@@ -151,12 +152,10 @@ public class RequestResponseDetailsPanel extends JPanel {
 				public void mouseClicked(MouseEvent e) {
 					if (e.getClickCount() == 2 && getViewBtn().isEnabled()) {
 						try {
-							ContentViewer.getInstance().viewContent(
-									jRequestResponseTable.getSelectedItem());
+							viewContent(jRequestResponseTable.getSelectedItem());
 						} catch (IOException ex) {
 							MessageDialogFactory.showUnexpectedExceptionDialog(
-									RequestResponseDetailsPanel.this
-											.getTopLevelAncestor(), ex);
+									RequestResponseDetailsPanel.this.getTopLevelAncestor(), ex);
 						}
 					}
 				}
@@ -177,9 +176,9 @@ public class RequestResponseDetailsPanel extends JPanel {
 			panel.add(getViewBtn());
 			panel.add(getSaveBtn());
 
-			buttonsPanel.add(panel, new GridBagConstraints(0, 0, 1, 1, 1.0,
-					1.0, GridBagConstraints.NORTH, GridBagConstraints.NONE,
-					new Insets(5, 5, 5, 5), 0, 0));
+			buttonsPanel.add(panel,
+					new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.NORTH,
+							GridBagConstraints.NONE, new Insets(5, 5, 5, 5), 0, 0));
 		}
 		return buttonsPanel;
 	}
@@ -195,12 +194,10 @@ public class RequestResponseDetailsPanel extends JPanel {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					try {
-						ContentViewer.getInstance().viewContent(
-								jRequestResponseTable.getSelectedItem());
+						viewContent(jRequestResponseTable.getSelectedItem());
 					} catch (IOException e) {
 						MessageDialogFactory.showUnexpectedExceptionDialog(
-								RequestResponseDetailsPanel.this
-										.getTopLevelAncestor(), e);
+								RequestResponseDetailsPanel.this.getTopLevelAncestor(), e);
 					}
 				}
 			});
@@ -220,13 +217,32 @@ public class RequestResponseDetailsPanel extends JPanel {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					ContentViewer.getInstance().saveContent(
-							RequestResponseDetailsPanel.this
-									.getTopLevelAncestor(),
+							RequestResponseDetailsPanel.this.getTopLevelAncestor(),
 							jRequestResponseTable.getSelectedItem());
 				}
 			});
 		}
 		return saveBtn;
+	}
+
+	/**
+	 * Creates a content viewer to view the response content.
+	 * 
+	 * @param rrInfo
+	 * @throws IOException
+	 */
+	private void viewContent(HttpRequestResponseInfo rrInfo) throws IOException {
+		if (!rrInfo.getContentType().contains("video")) {
+			if (rrInfo.getActualByteCount() < 5242880) {
+				ContentViewer.getInstance().viewContent(rrInfo);
+			} else {
+				MessageDialogFactory.showErrorDialog(new Window(new Frame()),
+						rb.getString("Error.fileSize"));
+			}
+		} else {
+			MessageDialogFactory.showErrorDialog(new Window(new Frame()), MessageFormat.format(
+					rb.getString("Error.videofile"), rrInfo.getContentType()));
+		}
 	}
 
 }

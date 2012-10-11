@@ -35,13 +35,13 @@ public class BatteryInfo {
 	 * Initializes an instance of the BatteryInfo class, using the specified time stamp, 
 	 * battery state, level and temperature.
 	 * 
-	 * @param bTimestamp – The time at which the battery information was modified.
+	 * @param bTimestamp The time at which the battery information was modified.
 	 * 
-	 * @param bState – The on/off state of the battery.
+	 * @param bState The on/off state of the battery.
 	 * 
-	 * @param bLevel – The battery level.
+	 * @param bLevel The battery level.
 	 * 
-	 * @param bTemp – The battery temperature.
+	 * @param bTemp The battery temperature.
 	 */
 	public BatteryInfo(double bTimestamp, boolean bState, int bLevel, int bTemp) {
 		this.batteryTimeStamp = bTimestamp;

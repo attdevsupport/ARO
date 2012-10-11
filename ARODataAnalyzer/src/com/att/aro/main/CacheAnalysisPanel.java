@@ -14,20 +14,22 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.ResourceBundle;
 
@@ -51,8 +53,7 @@ import com.att.aro.model.HttpRequestResponseInfo.Direction;
 public class CacheAnalysisPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
 	private ApplicationResourceOptimizer parent;
 	private JLabel jDuplicateTitleLabel;
@@ -102,8 +103,7 @@ public class CacheAnalysisPanel extends JPanel {
 	 */
 	private JLabel getjDuplicateTitleLabel() {
 		if (jDuplicateTitleLabel == null) {
-			jDuplicateTitleLabel = new JLabel(rb.getString("duplicate.title"),
-					JLabel.CENTER);
+			jDuplicateTitleLabel = new JLabel(rb.getString("duplicate.title"), JLabel.CENTER);
 		}
 		return jDuplicateTitleLabel;
 	}
@@ -135,23 +135,19 @@ public class CacheAnalysisPanel extends JPanel {
 	 */
 	private DataTable<CacheEntry> getJDuplicateContentTable() {
 		if (jDuplicateContentTable == null) {
-			jDuplicateContentTable = new DataTable<CacheEntry>(
-					jDuplicateContentTableModel);
+			jDuplicateContentTable = new DataTable<CacheEntry>(jDuplicateContentTableModel);
 			jDuplicateContentTable.setAutoCreateRowSorter(true);
 			jDuplicateContentTable.setGridColor(Color.LIGHT_GRAY);
-			jDuplicateContentTable.getSelectionModel()
-					.addListSelectionListener(new ListSelectionListener() {
+			jDuplicateContentTable.getSelectionModel().addListSelectionListener(
+					new ListSelectionListener() {
 
 						@Override
 						public void valueChanged(ListSelectionEvent e) {
 
 							// Enable view and save as buttons appropriately
-							CacheEntry entry = jDuplicateContentTable
-									.getSelectedItem();
-							HttpRequestResponseInfo rr = entry != null ? entry
-									.getResponse() : null;
-							boolean enabled = rr != null
-									&& rr.getContentLength() > 0
+							CacheEntry entry = jDuplicateContentTable.getSelectedItem();
+							HttpRequestResponseInfo rr = entry != null ? entry.getResponse() : null;
+							boolean enabled = rr != null && rr.getContentLength() > 0
 									&& rr.getDirection() == Direction.RESPONSE;
 							getViewBtn().setEnabled(enabled);
 							getSaveBtn().setEnabled(enabled);
@@ -162,9 +158,8 @@ public class CacheAnalysisPanel extends JPanel {
 					CacheEntry entry = jDuplicateContentTable.getSelectedItem();
 					if (e.getClickCount() == 2 && entry != null) {
 						parent.displayAdvancedTab();
-						parent.getAroAdvancedTab()
-								.setHighlightedRequestResponse(
-										entry.getResponse());
+						parent.getAroAdvancedTab().setHighlightedRequestResponse(
+								entry.getResponse());
 					}
 				}
 			});
@@ -183,9 +178,9 @@ public class CacheAnalysisPanel extends JPanel {
 			panel.add(getViewBtn());
 			panel.add(getSaveBtn());
 
-			buttonsPanel.add(panel, new GridBagConstraints(0, 0, 1, 1, 1.0,
-					1.0, GridBagConstraints.NORTH, GridBagConstraints.NONE,
-					new Insets(5, 5, 5, 5), 0, 0));
+			buttonsPanel.add(panel,
+					new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.NORTH,
+							GridBagConstraints.NONE, new Insets(5, 5, 5, 5), 0, 0));
 		}
 		return buttonsPanel;
 	}
@@ -201,16 +196,23 @@ public class CacheAnalysisPanel extends JPanel {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					try {
-						CacheEntry entry = jDuplicateContentTable
-								.getSelectedItem();
+						CacheEntry entry = jDuplicateContentTable.getSelectedItem();
 						if (entry != null) {
-							ContentViewer.getInstance().viewContent(
-									entry.getResponse());
+							if (!entry.getResponse().getContentType().contains("video")) {
+								if (entry.getResponse().getActualByteCount() < 5242880) {
+									ContentViewer.getInstance().viewContent(entry.getResponse());
+								} else {
+									MessageDialogFactory.showErrorDialog(new Window(new Frame()),
+											rb.getString("Error.fileSize"));
+								}
+							} else {
+								MessageDialogFactory.showErrorDialog(new Window(new Frame()),
+										MessageFormat.format(rb.getString("Error.videofile"), entry.getResponse().getContentType()));
+							}
 						}
 					} catch (IOException e) {
 						MessageDialogFactory.showUnexpectedExceptionDialog(
-								CacheAnalysisPanel.this.getTopLevelAncestor(),
-								e);
+								CacheAnalysisPanel.this.getTopLevelAncestor(), e);
 					}
 				}
 			});
@@ -231,8 +233,7 @@ public class CacheAnalysisPanel extends JPanel {
 					CacheEntry entry = jDuplicateContentTable.getSelectedItem();
 					if (entry != null) {
 						ContentViewer.getInstance().saveContent(
-								CacheAnalysisPanel.this.getTopLevelAncestor(),
-								entry.getResponse());
+								CacheAnalysisPanel.this.getTopLevelAncestor(), entry.getResponse());
 					}
 				}
 			});

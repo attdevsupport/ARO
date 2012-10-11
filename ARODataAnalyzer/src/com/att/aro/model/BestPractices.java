@@ -58,12 +58,14 @@ public class BestPractices {
 	private double tcpControlEnergy = 0.0;
 	private double largestEnergyTime = 0.0;
 	private double screenRotationBurstTime = 0.0;
+	private PacketInfo noCacheHeaderFirstPacket;
+	private PacketInfo dupContentFirstPacket;
 
 	/**
 	 * Initializes an instance of the BestPractices class, using the specified set of 
 	 * trace analysis data.
 	 * 
-	 * @param analysisData – An Analysis object containing the set of trace analysis data.
+	 * @param analysisData An Analysis object containing the set of trace analysis data.
 	 */
 	public BestPractices(TraceData.Analysis analysisData) {
 		this.analysisData = analysisData;
@@ -182,6 +184,9 @@ public class BestPractices {
 			switch (entry.getDiagnosis()) {
 			case CACHING_DIAG_NOT_EXPIRED_DUP:
 			case CACHING_DIAG_NOT_EXPIRED_DUP_PARTIALHIT:
+				if (hitNotExpiredDup == 0) {
+					this.dupContentFirstPacket = entry.getSessionFirstPacket();
+				}
 				hitNotExpiredDup++;
 				break;
 
@@ -201,6 +206,9 @@ public class BestPractices {
 			default:
 				++validCount;
 				if (!entry.hasCacheHeaders()) {
+					if (noCacheHeadersCount == 0) {
+						this.noCacheHeaderFirstPacket = entry.getSessionFirstPacket();
+					}
 					++noCacheHeadersCount;
 				}
 			}
@@ -252,18 +260,18 @@ public class BestPractices {
 	}
 	
 	/**
-	 * Returns a value indicating whether or not, network traffic burst has been detected 
-	 * after rotating the screen.
+	 * Returns a value that indicates whether or not, a network traffic burst was detected 
+	 * after the screen was rotated.
 	 * 
 	 * @return A boolean value that is true if the trace data shows a screen rotation 
-	 * problem, and false otherwise.
+	 * 		   problem (a network burst after screen rotation), and false otherwise.
 	 */
 	public boolean getScreenRotationProblem() {
 		return screenRotation;
 	}
 
 	/**
-	 * Returns a value that indicates if any offloading to WiFi occured. 
+	 * Returns a value that indicates if any offloading to WiFi occurred. 
 	 * 
 	 * @return A boolean value that is true if offloading to WiFi occurred, and is false 
 	 * otherwise.
@@ -284,7 +292,7 @@ public class BestPractices {
 	}
 
 	/**
-	 * Returns a value that indicates if any prefetching occured. 
+	 * Returns a value that indicates if any prefetching occurred. 
 	 * 
 	 * @return A boolean value that is true if it any prefetching occurred, and is false 
 	 * otherwise.
@@ -301,11 +309,29 @@ public class BestPractices {
 	public int getUserInputBurstCount() {
 		return userInputBurstCount;
 	}
+	
+	/**
+	 * Returns the PacketInfo of session with no cache header. 
+	 * 
+	 * @return PacketInfo.
+	 */
+	public PacketInfo getNoCacheHeaderStartTime() {
+		return noCacheHeaderFirstPacket;
+	}
+	
+	/**
+	 * Returns the PacketInfo of session with duplicate content.
+	 * 
+	 * @return PacketInfo.
+	 */
+	public PacketInfo getDupContentStartTime() {
+		return dupContentFirstPacket;
+	}
 
 	/**
 	 * Returns the count of expired but correct 304 responses from the serverhitExpired304. 
 	 * 
-	 * @return An int that is the numer of expired but correct 304 responses.
+	 * @return An int that is the number of expired but correct 304 responses.
 	 */
 	public int getHitExpired304Count() {
 		return hitExpired304;
@@ -429,8 +455,8 @@ public class BestPractices {
 
 	/**
 	 * Returns a value that indicates if the Best Practices Cache Control test has passed. 
-	 * The test passes when the amount of “not expired duplicate data” is NOT greater than 
-	 * the amount of “not changed data” (data for which a 304 response is received, 
+	 * The test passes when the amount of "not expired duplicate data" is NOT greater than 
+	 * the amount of "not changed data" (data for which a 304 response is received, 
 	 * indicating that the data has not been modified since it was last requested). 
 	 * 
 	 * @return A boolean value that is true if the Cache Control test has passed, and is 
@@ -469,9 +495,9 @@ public class BestPractices {
 	}
 	
 	/**
-	 * Returns the screen rotation burst begin time. 
+	 * Returns the begin time of the screen rotation burst.
 	 * 
-	 * @return A double that is screen rotation burst begin time.
+	 * @return A double that is the begin time of the screen rotation burst.
 	 */
 	public double getScreenRotationBurstTime() {
 		return screenRotationBurstTime;

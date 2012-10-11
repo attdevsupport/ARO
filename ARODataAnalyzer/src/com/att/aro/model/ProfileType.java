@@ -16,10 +16,21 @@
 package com.att.aro.model;
 
 /**
- * Defines profile types
+ * The ProfileType Enumeration specifies constant values that define the device profile types used by ARO.
  */
 public enum ProfileType {
+	/**
+	 * The 3G profile type.
+	 */
 	T3G,
+	
+	/**
+	 * The LTE profile type.
+	 */
 	LTE,
+	
+	/**
+	 * The WiFi profile type.
+	 */
 	WIFI
 }

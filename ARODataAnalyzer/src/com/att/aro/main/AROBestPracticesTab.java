@@ -63,7 +63,8 @@ public class AROBestPracticesTab extends JPanel implements Printable {
 	}
 
 	/**
-	 * Refreshes the best practices tab once the trace file is loaded.
+	 * Refreshes the AROBestPracticesTab using the specified trace analysis data. 
+	 * This method is typically called when a new trace file is loaded.
 	 * 
 	 * @param analysisData
 	 *            The trace analysis data.
@@ -77,7 +78,7 @@ public class AROBestPracticesTab extends JPanel implements Printable {
 	 * 
 	 * @return JScrollPane containing the Best Practices
 	 */
-	private AROBestPracticesPanel getBestPracticesPanel() {
+	public AROBestPracticesPanel getBestPracticesPanel() {
 		if (bpScrollPane == null) {
 			bpScrollPane = new AROBestPracticesPanel(parent);
 		}

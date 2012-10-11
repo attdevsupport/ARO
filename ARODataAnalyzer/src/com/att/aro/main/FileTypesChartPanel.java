@@ -14,19 +14,15 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.ResourceBundle;
 
 import javax.swing.JPanel;
@@ -52,22 +48,18 @@ import org.jfree.data.general.DatasetUtilities;
 import org.jfree.ui.TextAnchor;
 
 import com.att.aro.commonui.AROUIManager;
-import com.att.aro.model.HttpRequestResponseInfo;
-import com.att.aro.model.HttpRequestResponseInfo.Direction;
-import com.att.aro.model.TCPSession;
+import com.att.aro.model.FileTypeSummary;
 import com.att.aro.model.TraceData;
 
 /**
- * Represents a Panel for displayings a chart of File Types. 
+ * Represents a Panel for displayings a chart of File Types.
  */
 public class FileTypesChartPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
 	private static final int WIDTH = 390;
 	private static final int HEIGHT = 310;
-	private static final int MAX_LIMIT_FILETYPES = 8;
 
 	// chart panel settings for constructor
 	private static final boolean USER_BUFFER = false;
@@ -81,24 +73,6 @@ public class FileTypesChartPanel extends JPanel {
 	private List<FileTypeSummary> content;
 	private CategoryPlot plot;
 
-	private class FileTypeSummary implements Comparable<FileTypeSummary> {
-		private String fileType;
-		private long bytes;
-		private double pct;
-
-		public FileTypeSummary(String fileType) {
-			this.fileType = fileType;
-		}
-
-		@Override
-		public int compareTo(FileTypeSummary o) {
-
-			// Sort descending
-			return -Long.valueOf(bytes).compareTo(o.bytes);
-		}
-
-	}
-
 	/**
 	 * Initializes a new instance of the FileTypesChartPanel class.
 	 */
@@ -108,36 +82,39 @@ public class FileTypesChartPanel extends JPanel {
 	}
 
 	/**
-	 * Sets the trace analysis data used for calculating the plot data for the chart. 
+	 * Sets the trace analysis data used for calculating the plot data for the
+	 * chart.
 	 * 
-	 * @param analysis - The trace analysis data.
+	 * @param analysis
+	 *            - The trace analysis data.
 	 */
 	public synchronized void setAnalysisData(TraceData.Analysis analysis) {
-		this.content = constructContent(analysis);
-		double[][] data = new double[2][content.size()];
-		String[] titles = new String[content.size()];
-		for (int i = 0; i < content.size(); ++i) {
-			FileTypeSummary summary = content.get(i);
-			String key = summary.fileType;
-			titles[i] = key;
-			data[0][i] = summary.pct;
-			data[1][i] = 100.0 - summary.pct;
-		}
+		if (analysis != null) {
+			this.content = analysis.constructContent(analysis);
+			double[][] data = new double[2][content.size()];
+			String[] titles = new String[content.size()];
+			for (int i = 0; i < content.size(); ++i) {
+				FileTypeSummary summary = content.get(i);
+				String key = summary.getFileType();
+				titles[i] = key;
+				data[0][i] = summary.getPct();
+				data[1][i] = 100.0 - summary.getPct();
+			}
 
-		// plot.setDataset(DatasetUtilities.createCategoryDataset("Percentile",
-		// values));
-		plot.setDataset(DatasetUtilities.createCategoryDataset(new Integer[] {
-				1, 2 }, titles, data));
+			plot.setDataset(DatasetUtilities.createCategoryDataset(new Integer[] { 1, 2 }, titles,
+					data));
+		} else {
+			plot.setDataset(null);
+		}
 	}
 
 	/**
 	 * Initializes the File Type chart.
 	 */
 	private void initialize() {
-		JFreeChart chart = ChartFactory.createBarChart(
-				rb.getString("chart.filetype.title"), null,
-				rb.getString("simple.percent"), null,
-				PlotOrientation.HORIZONTAL, false, false, false);
+		JFreeChart chart = ChartFactory.createBarChart(rb.getString("chart.filetype.title"), null,
+				rb.getString("simple.percent"), null, PlotOrientation.HORIZONTAL, false, false,
+				false);
 
 		chart.setBackgroundPaint(this.getBackground());
 		chart.getTitle().setFont(AROUIManager.HEADER_FONT);
@@ -172,19 +149,17 @@ public class FileTypesChartPanel extends JPanel {
 
 		renderer.setBaseToolTipGenerator(new CategoryToolTipGenerator() {
 			@Override
-			public String generateToolTip(CategoryDataset dataset, int row,
-					int column) {
+			public String generateToolTip(CategoryDataset dataset, int row, int column) {
 
 				FileTypeSummary summary = content.get(column);
 
-				return MessageFormat.format(rb
-						.getString("chart.filetype.tooltip"), NumberFormat
-						.getIntegerInstance().format(summary.bytes));
+				return MessageFormat.format(rb.getString("chart.filetype.tooltip"), NumberFormat
+						.getIntegerInstance().format(summary.getBytes()));
 			}
 		});
 
-		ItemLabelPosition insideItemlabelposition = new ItemLabelPosition(
-				ItemLabelAnchor.INSIDE3, TextAnchor.CENTER_RIGHT);
+		ItemLabelPosition insideItemlabelposition = new ItemLabelPosition(ItemLabelAnchor.INSIDE3,
+				TextAnchor.CENTER_RIGHT);
 		renderer.setBasePositiveItemLabelPosition(insideItemlabelposition);
 
 		ItemLabelPosition outsideItemlabelposition = new ItemLabelPosition(
@@ -200,10 +175,9 @@ public class FileTypesChartPanel extends JPanel {
 		plot.getDomainAxis().setMaximumCategoryLabelLines(2);
 
 		ChartPanel chartPanel = new ChartPanel(chart, WIDTH, HEIGHT, 200,
-				ChartPanel.DEFAULT_MINIMUM_DRAW_HEIGHT,
-				ChartPanel.DEFAULT_MAXIMUM_DRAW_WIDTH,
-				ChartPanel.DEFAULT_MAXIMUM_DRAW_HEIGHT, USER_BUFFER,
-				PROPERTIES, COPY, SAVE, PRINT, ZOOM, TOOL_TIPS);
+				ChartPanel.DEFAULT_MINIMUM_DRAW_HEIGHT, ChartPanel.DEFAULT_MAXIMUM_DRAW_WIDTH,
+				ChartPanel.DEFAULT_MAXIMUM_DRAW_HEIGHT, USER_BUFFER, PROPERTIES, COPY, SAVE, PRINT,
+				ZOOM, TOOL_TIPS);
 
 		chartPanel.setDomainZoomable(false);
 		chartPanel.setRangeZoomable(false);
@@ -212,68 +186,28 @@ public class FileTypesChartPanel extends JPanel {
 	}
 
 	/**
-	 * Creates the FilTypes list to be plotted on the chart.
+	 * Adds the file information in to provided writer.
+	 * 
+	 * @param writer
+	 * @throws IOException
 	 */
-	private List<FileTypeSummary> constructContent(
-			TraceData.Analysis analysisData) {
-		Map<String, FileTypeSummary> content = new HashMap<String, FileTypeSummary>();
-		int totalContentLength = 0;
-		if (analysisData != null) {
-			for (TCPSession tcp : analysisData.getTcpSessions()) {
-				for (HttpRequestResponseInfo info : tcp
-						.getRequestResponseInfo()) {
-					if (Direction.RESPONSE.equals(info.getDirection())) {
-						long contentLength = info.getActualByteCount();
-						if (contentLength > 0) {
-							String contentType = info.getContentType();
-							if (contentType == null
-									|| contentType.trim().length() == 0) {
-								contentType = rb
-										.getString("chart.filetype.unknown");
-							}
-							FileTypeSummary summary = content.get(contentType);
-							if (summary == null) {
-								summary = new FileTypeSummary(contentType);
-								content.put(contentType, summary);
-							}
-							summary.bytes += contentLength;
-							totalContentLength += contentLength;
-						}
-					}
-				}
-			}
+	public void addFiletypes(FileWriter writer) throws IOException {
+		StringBuffer apps = new StringBuffer();
+		apps.append(rb.getString("statics.csvCell.seperator"));
+		apps.append(rb.getString("simple.percent"));
+		apps.append(rb.getString("statics.csvCell.seperator"));
+		apps.append(rb.getString("statics.csvUnits.bytes"));
+		apps.append('\n');
+		for (FileTypeSummary fileType : content) {
+			apps.append(fileType.getFileType());
+			apps.append(rb.getString("statics.csvCell.seperator"));
+			apps.append(fileType.getPct() + "%");
+			apps.append(rb.getString("statics.csvCell.seperator"));
+			apps.append(fileType.getBytes());
+			apps.append('\n');
 		}
 
-		List<FileTypeSummary> result = new ArrayList<FileTypeSummary>(
-				content.values());
-		Collections.sort(result);
-
-		if (result.size() > MAX_LIMIT_FILETYPES) {
-			long otherValuesTotal = 0;
-
-			Iterator<FileTypeSummary> iterator = result.iterator();
-			for (int index = 0; index < (MAX_LIMIT_FILETYPES - 1); index++) {
-				iterator.next();
-			}
-			while (iterator.hasNext()) {
-				otherValuesTotal += iterator.next().bytes;
-				iterator.remove();
-			}
-
-			FileTypeSummary other = new FileTypeSummary(
-					rb.getString("chart.filetype.others"));
-			other.bytes = otherValuesTotal;
-			result.add(other);
-
-			// Sort again
-			Collections.sort(result);
-		}
-
-		for (FileTypeSummary summary : result) {
-			summary.pct = (double) summary.bytes / totalContentLength * 100.0;
-		}
-
-		return result;
+		writer.append(apps);
 	}
 
 }

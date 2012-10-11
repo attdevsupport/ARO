@@ -23,7 +23,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Represents the results of state machine analysis
+ * Represents the results of an RRC state machine analysis.
  * 
  */
 public class RRCStateMachine implements Serializable {
@@ -83,10 +83,10 @@ public class RRCStateMachine implements Serializable {
 	private List<RrcStateRange> rrc = new ArrayList<RrcStateRange>();
 
 	/**
-	 * Constructor
+	 * Initializes an instance of the RrcStateMachine class using the specified analysisData.
 	 * 
 	 * @param analysisData
-	 *            Trace analysis
+	 *            The trace analysis data.
 	 */
 	public RRCStateMachine(TraceData.Analysis analysisData) {
         
@@ -170,108 +170,108 @@ public class RRCStateMachine implements Serializable {
 	}
 
 	/**
-	 * Returns the list of RRC state range.
+	 * Returns a list of all RRC state ranges. 
 	 * 
-	 * @return the RRC states
+	 * @return A List of RRCStateRange objects.
 	 */
 	public List<RrcStateRange> getRRcStateRanges() {
 		return Collections.unmodifiableList(rrc);
 	}
 
 	/**
-	 * Returns the Direct channel time.
+	 * Returns the total amount of time spent in the Direct channel (DCH) state.
 	 * 
-	 * @return the dchTime
+	 * @return The total DCH time value.
 	 */
 	public double getDchTime() {
 		return dchTime;
 	}
 
 	/**
-	 * Returns the total DCH time ratio corresponding to trace duration.
+	 * Returns the ratio of total DCH time to the total trace duration.
 	 * 
-	 * @return the DCH time as a ratio to traceDuration
+	 * @return The DCH time ratio value.
 	 */
 	public double getDchTimeRatio() {
 		return traceDuration != 0.0 ? dchTime / traceDuration : 0.0;
 	}
 
 	/**
-	 * Returns the Forward access channel time.
+	 * Returns the total amount of time spent in the forward access channel (FACH) state.
 	 * 
-	 * @return the fachTime
+	 * @return The FACH time value.
 	 */
 	public double getFachTime() {
 		return fachTime;
 	}
 
 	/**
-	 * Returns the total FACH time ratio corresponding to trace duration.
+	 * Returns the ratio of total FACH time to the total trace duration. 
 	 * 
-	 * @return the FACH time as a ratio to traceDuration
+	 * @return The FACH time ratio value.
 	 */
 	public double getFachTimeRatio() {
 		return traceDuration != 0.0 ? fachTime / traceDuration : 0.0;
 	}
 
 	/**
-	 * Returns the total idle time.
+	 * Returns the total amount of time spent in the IDLE state.
 	 * 
-	 * @return the idleTime
+	 * @return The IDLE time value.
 	 */
 	public double getIdleTime() {
 		return idleTime;
 	}
 
 	/**
-	 * Returns the total idle time ratio corresponding to trace duration.
+	 * Returns the ratio of total IDLE state time to the total trace duration.
 	 * 
-	 * @return the idle time as a ratio to traceDuration
+	 * @return  The IDLE time ratio value.
 	 */
 	public double getIdleTimeRatio() {
 		return traceDuration != 0.0 ? idleTime / traceDuration : 0.0;
 	}
 
 	/**
-	 * Returns the total Idle to DCH time.
+	 * Returns the total amount of time spent while the radio state was promoted from IDLE to DCH.
 	 * 
-	 * @return the idleToDchTime
+	 * @return The IDLE to DCH time value.
 	 */
 	public double getIdleToDchTime() {
 		return idleToDchTime;
 	}
 
 	/**
-	 * Returns the total Idle to DCH time ratio corresponding to trace duration.
+	 * Returns the ratio of total IDLE to DCH time, to the trace duration.
 	 * 
-	 * @return the Idle->DCH time as a ratio to traceDuration
+	 * @return The IDLE to DCH time ratio value.
 	 */
 	public double getIdleToDchTimeRatio() {
 		return traceDuration != 0.0 ? idleToDchTime / traceDuration : 0.0;
 	}
 
 	/**
-	 * Returns the idle to DCH state count in the trace.
+	 * Returns a count of the number of times that the radio state was promoted from IDLE to DCH. 
 	 * 
-	 * @return the idleToDch
+	 * @return The IDLE to DCH count.
 	 */
 	public int getIdleToDchCount() {
 		return idleToDch;
 	}
 
 	/**
-	 * Returns the FACH to DCH time.
+	 * Returns the amount of time spent while the radio state was promoted from FACH to DCH.
 	 * 
-	 * @return the fachToDchTime
+	 * @return The FACH to DCH time value.
 	 */
 	public double getFachToDchTime() {
 		return fachToDchTime;
 	}
 
 	/**
-	 * Returns the total FACH to DCH time ratio corresponding to trace duration.
+	 * Returns the ratio of total FACH to DCH time, to the trace duration.
 	 * 
-	 * @return the Fach->DCH time as a ratio to traceDuration
+	 * @return The FACH to DCH time ratio value.
 	 */
 	public double getFachToDchTimeRatio() {
 		return traceDuration != 0.0 ? fachToDchTime / traceDuration : 0.0;
@@ -280,346 +280,412 @@ public class RRCStateMachine implements Serializable {
 	/**
 	 * Returns the total DCH tail time.
 	 * 
-	 * @return the dchTailTime
+	 * @return The DCH tail time value.
 	 */
 	public double getDchTailTime() {
 		return dchTailTime;
 	}
 
 	/**
-	 * Returns the total DCH tail time ratio corresponding to trace duration.
+	 * Returns the ratio of total DCH tail time to the total trace duration.
 	 * 
-	 * @return the DCH Tail Ratio
+	 * @return The DCH tail ratio value.
 	 */
 	public double getDchTailRatio() {
 		return dchTime != 0.0 ? dchTailTime / dchTime : 0.0;
 	}
 
 	/**
-	 * Returns the total FACH to DCH count.
+	 * Returns a count of the number of times that the radio state was promoted from FACH to DCH.
 	 * 
-	 * @return the fachToDch
+	 * @return The FACH to DCH count.
 	 */
 	public int getFachToDchCount() {
 		return fachToDch;
 	}
 
 	/**
-	 * Returns the total FACH tail time.
+	 * Returns the total amount of time spent in the FACH tail state. 
 	 * 
-	 * @return the fachTailTime
+	 * @return The FACH tail time value.
 	 */
 	public double getFachTailTime() {
 		return fachTailTime;
 	}
 
 	/**
-	 * Returns the total FACH tail time ratio corresponding to trace duration.
+	 * Returns the ratio of total FACH tail time to the total trace duration. 
 	 * 
-	 * @return the FACH Tail Ratio
+	 * @return The FACH tail ratio value.
 	 */
 	public double getFachTailRatio() {
 		return fachTime != 0.0 ? fachTailTime / fachTime : 0.0;
 	}
 
 	/**
-	 * Returns the promotion time ratio corresponding to trace duration.
+	 * Returns the ratio of the total amount of promotion time to the trace duration. 
 	 * 
-	 * @return the Promotion Ratio/Signaling overhead
+	 * @return The total promotion ratio value.
 	 */
 	public double getPromotionRatio() {
 		return packetsDuration != 0.0 ? (idleToDchTime + fachToDchTime) / packetsDuration : 0.0;
 	}
 
 	/**
-	 * Returns the total energy expended sending packet data.
+	 * Returns the total amount of energy expended sending packet data in the trace. 
 	 * 
-	 * @return totalRRCEnergy
+	 * @return The total RRC energy value.
 	 */
 	public double getTotalRRCEnergy() {
 		return totalRRCEnergy;
 	}
 
 	/**
-	 * Returns the average joules per kilobyte for the trace.
+	 * Returns the average amount of Joules per Kilobyte for the trace.
 	 * 
-	 * @return joulesPerKilobyte
+	 * @return The average Joules per Kilobyte value.
 	 */
 	public double getJoulesPerKilobyte() {
 		return joulesPerKilobyte;
 	}
 
 	/**
-	 * Returns the total idle time energy expended.
+	 * Returns the total amount of energy expended in the IDLE state.
 	 * 
-	 * @return idleEnergy
+	 * @return The IDLE energy value.
 	 */
 	public double getIdleEnergy() {
 		return idleEnergy;
 	}
 
 	/**
-	 * Returns the total DCH time energy expended.
+	 * Returns the total amount of energy expended in the DCH state.
 	 * 
-	 * @return dchEnergy
+	 * @return The DCH energy value.
 	 */
 	public double getDchEnergy() {
 		return dchEnergy;
 	}
 
 	/**
-	 * Returns the total FACH energy expended.
+	 * Returns the total amount of energy expended in the FACH state.
 	 * 
-	 * @return fachEnergy
+	 * @return The FACH energy value.
 	 */
 	public double getFachEnergy() {
 		return fachEnergy;
 	}
 
 	/**
-	 * Returns the total Idle->DCH energy expended
+	 * Returns the total amount of energy expended when the radio state was promoted from IDLE to DCH.
 	 * 
-	 * @return idleToDchEnergy
+	 * @return The IDLE to DCH energy value.
 	 */
 	public double getIdleToDchEnergy() {
 		return idleToDchEnergy;
 	}
 
 	/**
-	 * Returns the total FACH->DCH energy expended.
+	 * Returns the total amount of energy expended when the radio state was promoted from FACH to DCH.
 	 * 
-	 * @return fachToDchEnergy
+	 * @return The FACH to DCH energy value.
 	 */
 	public double getFachToDchEnergy() {
 		return fachToDchEnergy;
 	}
 
 	/**
-	 * Returns the total DCH Tail energy expended.
+	 * Returns the total amount of energy expended in the DCH tail state.
 	 * 
-	 * @return dchTailEnergy
+	 * @return The DCH tail energy value.
 	 */
 	public double getDchTailEnergy() {
 		return dchTailEnergy;
 	}
 
 	/**
-	 * Returns the total energy expended sending packet data.
+	 * Returns the total amount of energy expended in the FACH tail state.
 	 * 
-	 * @return fachTailEnergy
+	 * @return The FACH tail energy value.
 	 */
 	public double getFachTailEnergy() {
 		return fachTailEnergy;
 	}
 
 	/**
-	 * Returns the LTE idle period time.
+	 * Returns the total amount of time spent in the LTE IDLE state.
 	 * 
-	 * @return lteIdleTime
+	 * @return The LTE IDLE time value.
 	 */
 	public double getLteIdleTime() {
 		return lteIdleTime;
 	}
 
 	/**
-	 * Returns the LTE idle period time ratio.
+	 * Returns the ratio of total LTE IDLE state time to the trace duration.
 	 * 
-	 * @return lteIdleTimeratio
+	 * @return The LTE IDLE time ratio value.
 	 */
 	public double getLteIdleTimeRatio() {
 		return traceDuration != 0.0 ? lteIdleTime / traceDuration : 0.0;
 	}
 
 	/**
-	 * Returns the Idle to CR promotion period time.
+	 * Returns the total amount of time spent while the radio state was promoted from LTE IDLE to LTE CR.
 	 * 
-	 * @return lteIdleToCRPromotionTime
+	 * @return The LTE IDLE to LTE CR promotion time value.
 	 */
 	public double getLteIdleToCRPromotionTime() {
 		return lteIdleToCRPromotionTime;
 	}
 
 	/**
-	 * Returns the Idle to CR promotion period time Ratio.
+	 * Returns the ratio of total LTE IDLE to LTE CR promotion time, to the trace duration.
 	 * 
-	 * @return lteIdleToCRPromotionTimeRatio
+	 * @return The LTE IDLE to LTE CR promotion time ratio value.
 	 */
 	public double getLteIdleToCRPromotionTimeRatio() {
 		return traceDuration != 0.0 ? lteIdleToCRPromotionTime / traceDuration : 0.0;
 	}
+	
+	/**
+	 * Returns the CR promotion time ratio corresponding to trace duration.
+	 * 
+	 * @return the Promotion Ratio/Signaling overhead
+	 */
+	public double getCRPromotionRatio() {
+		return packetsDuration != 0.0 ? lteIdleToCRPromotionTime / packetsDuration : 0.0;
+	}
 
 	/**
-	 * Returns the CR period time.
+	 * Returns the total amount of time spent in the LTE CR state.
 	 * 
-	 * @return lteCrTime
+	 * @return The LTE CR time value.
 	 */
 	public double getLteCrTime() {
 		return lteCrTime;
 	}
 
 	/**
-	 * Returns the CR period time ratio.
+	 * Returns the ratio of total CR state time to the trace duration.
 	 * 
-	 * @return lteCrTimeRatio.
+	 * @return The LTE CR time ratio value.
 	 */
 	public double getLteCrTimeRatio() {
 		return traceDuration != 0.0 ? lteCrTime / traceDuration : 0.0;
 	}
 
 	/**
-	 * Returns the CR Tail period time.
+	 * Returns the total amount of time spent in the CR tail state.
 	 * 
-	 * @return lteCrTailTime
+	 * @return The LTE CR tail time value.
 	 */
 	public double getLteCrTailTime() {
 		return lteCrTailTime;
 	}
 
 	/**
-	 * Returns the CR Tail period time Ratio.
+	 * Returns the ratio of total CR tail state time to the trace duration.
 	 * 
-	 * @return lteCrTailTimeRatio
+	 * @return The LTE CR tail time ratio value.
 	 */
 	public double getLteCrTailTimeRatio() {
 		return traceDuration != 0.0 ? lteCrTailTime / traceDuration : 0.0;
 	}
+	
+	/**
+	 * Returns the total CR tail time ratio corresponding to trace duration.
+	 * 
+	 * @return the DCH Tail Ratio
+	 */
+	public double getCRTailRatio() {
+		return lteCrTime != 0.0 ? lteCrTailTime / lteCrTime : 0.0;
+	}
 
 	/**
-	 * Returns the LTE DRX Short period time.
+	 * Returns the amount of time spent in the LTE DRX Short state.
 	 * 
-	 * @return lteDrxShortTime
+	 * @return The LTE DRX Short time value.
 	 */
 	public double getLteDrxShortTime() {
 		return lteDrxShortTime;
 	}
 
 	/**
-	 * Returns the LTE DRX Short period time Ratio.
+	 * Returns the ratio of total LTE DRX Short state time to the total duration.
 	 * 
-	 * @return lteDrxShortTimeRatio
+	 * @return The LTE DRX Short time value.
 	 */
 	public double getLteDrxShortTimeRatio() {
 		return traceDuration != 0.0 ? lteDrxShortTime / traceDuration : 0.0;
 	}
+	
+	/**
+	 * Returns the LTE DRX Short period time Ratio.
+	 * 
+	 * @return lteDrxShortTimeRatio
+	 */
+	public double getLteDrxShortRatio() {
+		return packetsDuration != 0.0 ? lteDrxShortTime / packetsDuration : 0.0;
+	}
 
 	/**
-	 * Returns the LTE DRX long period time.
+	 * Returns the amount of time spent in the LTE DRX Long state.
 	 * 
-	 * @return lteDrxLongTime
+	 * @return The LTE DRX Long time value.
 	 */
 	public double getLteDrxLongTime() {
 		return lteDrxLongTime;
 	}
 
 	/**
-	 * Returns the LTE DRX long period time Ratio.
+	 * Returns the ratio of total LTE DRX Long state time to the trace duration.
 	 * 
-	 * @return lteDrxLongTimeRatio
+	 * @return The LTE DRX Long time ratio value.
 	 */
 	public double getLteDrxLongTimeRatio() {
 		return traceDuration != 0.0 ? lteDrxLongTime / traceDuration : 0.0;
 	}
+	
+	/**
+	 * Returns the LTE DRX long period time Ratio.
+	 * 
+	 * @return lteDrxLongTimeRatio
+	 */
+	public double getLteDrxLongRatio() {
+		return packetsDuration != 0.0 ? lteDrxLongTime / packetsDuration : 0.0;
+	}
 
 	/**
-	 * Returns the LTE Idle energy.
+	 * Returns the total amount of energy expended in the LTE IDLE state.
 	 * 
-	 * @return lteIdleEnergy
+	 * @return The LTE IDLE energy value.
 	 */
 	public double getLteIdleEnergy() {
 		return lteIdleEnergy;
 	}
 
 	/**
-	 * Returns the LTE Idle to CR promotion energy.
+	 * Returns the total amount of energy expended when the radio state was promoted from LTE IDLE to LTE CR. 
 	 * 
-	 * @return lteIdleToCRPromotionEnergy
+	 * @return The LTE IDLE to LTE CR promotion energy value.
 	 */
 	public double getLteIdleToCRPromotionEnergy() {
 		return lteIdleToCRPromotionEnergy;
 	}
 
 	/**
-	 * Returns the LTE CR energy.
+	 * Returns the total amount of energy expended in the LTE CR state.
 	 * 
-	 * @return lteCrEnergy
+	 * @return The LTE CR energy value.
 	 */
 	public double getLteCrEnergy() {
 		return lteCrEnergy;
 	}
 
 	/**
-	 * Returns the LTE CR Tail energy.
+	 * Returns the total amount of energy expended in the LTE CR tail state. 
 	 * 
-	 * @return lteCrTailEnergy
+	 * @return The LTE CR tail energy value.
 	 */
 	public double getLteCrTailEnergy() {
 		return lteCrTailEnergy;
 	}
 
 	/**
-	 * Returns the LTE DRX Short energy.
+	 * Returns the total amount of energy expended in the LTE DRX Short state.
 	 * 
-	 * @return lteDrxShortEnergy
+	 * @return The LTE DRX Short energy value.
 	 */
 	public double getLteDrxShortEnergy() {
 		return lteDrxShortEnergy;
 	}
 
 	/**
-	 * Returns the LTE DRX Long energy.
+	 * Returns the total amount of energy expended in the LTE DRX Long state.
 	 * 
-	 * @return lteDrxLongenergy
+	 * @return The LTE DRX Long energy value.
 	 */
 	public double getLteDrxLongEnergy() {
 		return lteDrxLongEnergy;
 	}
 
 	/**
-	 * Returns the Continues Reception energy.
+	 * Returns the Continuous Reception (CR) state energy value.
 	 * 
-	 * @return crPower
+	 * @return The CR power value.
 	 */
 	public double getCrPower() {
 		return crPower;
 	}
 
+	/**
+	 * Returns the total amount of energy expended in the WiFi Active state.
+	 * @return The WiFi Active energy value.
+	 */
 	public double getWifiActiveEnergy() {
 		return wifiActiveEnergy;
 	}
 
+	/**
+	 * Returns the total amount of energy expended in the WiFi Tail state.
+	 * @return The WiFi Tail energy value.
+	 */
 	public double getWifiTailEnergy() {
 		return wifiTailEnergy;
 	}
 
+	/**
+	 * Returns the total amount of energy expended in the WiFi Idle state.
+	 * @return The WiFi Idle energy value.
+	 */
 	public double getWifiIdleEnergy() {
 		return wifiIdleEnergy;
 	}
+	
+	/**
+	 * Returns the ratio of total amount of time spent in the WiFi Active state.
+	 * @return The WiFi Active time value.
+	 */
 	public double getWifiActiveTime() {
 		return wifiActiveTime;
 	}
 
+	/**
+	 * Returns the ratio of total amount of time spent in the WiFi Tail state.
+	 * @return The WiFi Tail time value.
+	 */
 	public double getWifiTailTime() {
 		return wifiTailTime;
 	}
 
-
 	/**
-	 * @return the wifiIdleTime
+	 * Returns the ratio of total amount of time spent in the WiFi Idle state.
+	 * @return The WiFi Idle time value.
 	 */
 	public double getWifiIdleTime() {
 		return wifiIdleTime;
 	}
+	
+	/**
+	 * Returns the ratio of total WiFi Active state time to the total trace duration.
+	 * @return The WiFi Active ratio value.
+	 */
 	public double getWifiActiveRatio() {
 		return traceDuration != 0.0 ? wifiActiveTime / traceDuration : 0.0;
 	}
 
+	/**
+	 * Returns the ratio of total WiFi Tail state time to the total trace duration.
+	 * @return The WiFi Tail ratio value.
+	 */
 	public double getWifiTailRatio() {
 		return traceDuration != 0.0 ? wifiTailTime / traceDuration : 0.0;
 	}
 
-
 	/**
-	 * @return the wifiIdleTime
+	 * Returns the ratio of total WiFi Idle state time to the total trace duration.
+	 * @return The WiFi Idle ratio value.
 	 */
 	public double getWifiIdleRatio() {
 		return traceDuration != 0.0 ? wifiIdleTime / traceDuration : 0.0;

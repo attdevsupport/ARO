@@ -107,7 +107,8 @@ public class ImagePanel extends JPanel {
 	}
 
 	/**
-	 * Override method to paint the image on the panel.
+	 * Paints the image on the ImagePanel using the specified Graphics object. 
+	 * Overrides the paintComponent method in JComponent.
 	 */
 	@Override
 	protected void paintComponent(Graphics g) {

@@ -4,8 +4,6 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.ResourceBundle;
 
 import javax.swing.JLabel;
@@ -17,13 +15,12 @@ import javax.swing.UIManager;
 import com.att.aro.commonui.AROUIManager;
 import com.att.aro.commonui.DataTable;
 import com.att.aro.model.ApplicationPacketSummary;
-import com.att.aro.model.ApplicationSelection;
 import com.att.aro.model.IPPacketSummary;
 import com.att.aro.model.TraceData;
 
 /**
- * Represents a panel for displaying the end point summary in the Statistics tab
- * of the ARO Data Analyzer.
+ * Represents a panel for displaying the EndPoint Summary Per Application and the End Point Summary 
+ * Per IP Address tables in the Statistics tab of the ARO Data Analyzer. 
  */
 public class EndPointSummaryPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
@@ -59,7 +56,6 @@ public class EndPointSummaryPanel extends JPanel {
 	 *            - The Analysis object containing the trace data.
 	 */
 	public void refresh(TraceData.Analysis analysis) {
-		List<ApplicationSelection> appSelection = new ArrayList<ApplicationSelection>();
 		if (analysis != null) {
 			tableModel.setData(analysis.getApplicationPacketSummary());
 			ipTableModel.setData(analysis.getIpPacketSummary());
@@ -133,9 +129,9 @@ public class EndPointSummaryPanel extends JPanel {
 	}
 
 	/**
-	 * Returns a DataTable containing the end point summary data.
+	 * Returns a DataTable containing the end point summary per application data.
 	 * 
-	 * @return A DataTable object containing the end point summary data.
+	 * @return A DataTable object containing the end point summary per application data.
 	 */
 	public DataTable<ApplicationPacketSummary> getTable() {
 		if (table == null) {
@@ -146,9 +142,9 @@ public class EndPointSummaryPanel extends JPanel {
 	}
 
 	/**
-	 * Returns a DataTable containing the IP end point summary data.
+	 * Returns a DataTable containing the end point summary per IP address data.
 	 * 
-	 * @return A DataTable object containing the IP end point summary data.
+	 * @return A DataTable object containing the end point summary per IP address data.
 	 */
 	public DataTable<IPPacketSummary> getIPTable() {
 		if (ipTable == null) {
@@ -168,8 +164,22 @@ public class EndPointSummaryPanel extends JPanel {
 			jSummarySplitPane.setResizeWeight(0.5);
 			jSummarySplitPane.setLeftComponent(getApplicationSummaryPanel());
 			jSummarySplitPane.setRightComponent(getIPSummaryPanel());
-			jSummarySplitPane.setPreferredSize(new Dimension(790, 180));
+			jSummarySplitPane.setPreferredSize(new Dimension(750, 180));
 		}
 		return jSummarySplitPane;
+	}
+
+	/**
+	 * @return the tableModel
+	 */
+	public ApplicationEndPointSummaryTableModel getTableModel() {
+		return tableModel;
+	}
+
+	/**
+	 * @return the ipTableModel
+	 */
+	public IPEndPointSummaryTableModel getIpTableModel() {
+		return ipTableModel;
 	}
 }

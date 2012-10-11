@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.util.List;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ResourceBundle;
 
 import javax.swing.JPanel;
@@ -44,9 +44,6 @@ import org.jfree.data.general.DatasetUtilities;
 import org.jfree.ui.TextAnchor;
 
 import com.att.aro.commonui.AROUIManager;
-import com.att.aro.model.Burst;
-import com.att.aro.model.BurstCategory;
-import com.att.aro.model.TCPSession;
 import com.att.aro.model.TraceData;
 
 /**
@@ -55,10 +52,8 @@ import com.att.aro.model.TraceData;
  */
 public class ProperSessionTerminationPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
-	private static final double SESSION_TERMINATION_THRESHOLD = 1.0;
 	private static final int WIDTH = 400;
 	private static final int HEIGHT = 170;
 	private static final int SESSION_TERMINATION = 0;
@@ -77,6 +72,11 @@ public class ProperSessionTerminationPanel extends JPanel {
 	private static final boolean TOOL_TIPS = true;
 
 	private CategoryPlot plot;
+
+	private double sessionTermPct;
+	private double tightlyCoupledTCPPct;
+	private double longBurstPct;
+	private double nonPeriodicBurstPct;
 
 	/**
 	 * Initializes a new instance of the ProperSessionTerminationPanel class.
@@ -102,9 +102,8 @@ public class ProperSessionTerminationPanel extends JPanel {
 	 */
 	private void initialize() {
 		JFreeChart chart = ChartFactory.createBarChart(
-				rb.getString("overview.sessionoverview.title"), null, null,
-				createDataset(null), PlotOrientation.HORIZONTAL, false, false,
-				false);
+				rb.getString("overview.sessionoverview.title"), null, null, createDataset(null),
+				PlotOrientation.HORIZONTAL, false, false, false);
 		chart.setBackgroundPaint(this.getBackground());
 		chart.getTitle().setFont(AROUIManager.HEADER_FONT);
 
@@ -138,8 +137,8 @@ public class ProperSessionTerminationPanel extends JPanel {
 		renderer.setSeriesItemLabelsVisible(1, false);
 		renderer.setSeriesPaint(1, new Color(0, 0, 0, 0));
 
-		ItemLabelPosition insideItemlabelposition = new ItemLabelPosition(
-				ItemLabelAnchor.INSIDE3, TextAnchor.CENTER_RIGHT);
+		ItemLabelPosition insideItemlabelposition = new ItemLabelPosition(ItemLabelAnchor.INSIDE3,
+				TextAnchor.CENTER_RIGHT);
 		renderer.setBasePositiveItemLabelPosition(insideItemlabelposition);
 
 		ItemLabelPosition outsideItemlabelposition = new ItemLabelPosition(
@@ -147,8 +146,7 @@ public class ProperSessionTerminationPanel extends JPanel {
 		renderer.setPositiveItemLabelPositionFallback(outsideItemlabelposition);
 		renderer.setBaseToolTipGenerator(new CategoryToolTipGenerator() {
 			@Override
-			public String generateToolTip(CategoryDataset arg0, int arg1,
-					int arg2) {
+			public String generateToolTip(CategoryDataset arg0, int arg1, int arg2) {
 				String sessionInfo = "";
 				switch (arg2) {
 				case SESSION_TERMINATION:
@@ -177,10 +175,9 @@ public class ProperSessionTerminationPanel extends JPanel {
 		plot.getDomainAxis().setMaximumCategoryLabelLines(2);
 
 		ChartPanel chartPanel = new ChartPanel(chart, WIDTH, HEIGHT,
-				ChartPanel.DEFAULT_MINIMUM_DRAW_WIDTH, 100,
-				ChartPanel.DEFAULT_MAXIMUM_DRAW_WIDTH,
-				ChartPanel.DEFAULT_MAXIMUM_DRAW_HEIGHT, USER_BUFFER,
-				PROPERTIES, COPY, SAVE, PRINT, ZOOM, TOOL_TIPS);
+				ChartPanel.DEFAULT_MINIMUM_DRAW_WIDTH, 100, ChartPanel.DEFAULT_MAXIMUM_DRAW_WIDTH,
+				ChartPanel.DEFAULT_MAXIMUM_DRAW_HEIGHT, USER_BUFFER, PROPERTIES, COPY, SAVE, PRINT,
+				ZOOM, TOOL_TIPS);
 
 		chartPanel.setDomainZoomable(false);
 		chartPanel.setRangeZoomable(false);
@@ -197,10 +194,10 @@ public class ProperSessionTerminationPanel extends JPanel {
 	 * @return CategoryDataset The plot data set.
 	 */
 	private CategoryDataset createDataset(TraceData.Analysis analysis) {
-		double sessionTermPct = calculateSessionTermPercentage(analysis);
-		double tightlyCoupledTCPPct = calculateTightlyCoupledConnection(analysis);
-		double longBurstPct = calculateLargeBurstConnection(analysis);
-		double nonPeriodicBurstPct = calculateNonPeriodicConnection(analysis);
+		this.sessionTermPct = analysis!= null ? analysis.calculateSessionTermPercentage(analysis) : 0;
+		this.tightlyCoupledTCPPct = analysis!= null ? analysis.calculateTightlyCoupledConnection(analysis) : 0;
+		this.longBurstPct = analysis!= null ? analysis.calculateLargeBurstConnection(analysis) : 0;
+		this.nonPeriodicBurstPct = analysis!= null ? analysis.calculateNonPeriodicConnection(analysis) : 0;
 
 		double[][] data = new double[2][4];
 		data[0][0] = sessionTermPct;
@@ -211,104 +208,45 @@ public class ProperSessionTerminationPanel extends JPanel {
 		data[1][1] = 100.0 - tightlyCoupledTCPPct;
 		data[1][2] = 100.0 - nonPeriodicBurstPct;
 		data[1][3] = 100.0 - longBurstPct;
-		return DatasetUtilities
-				.createCategoryDataset(
-						new Integer[] { 1, 2 },
-						new String[] {
-								rb.getString("overview.sessionoverview.sessionTerm"),
-								rb.getString("overview.sessionoverview.tightlyGroupedBurstTerm"),
-								rb.getString("overview.sessionoverview.nonPeriodicBurstTerm"),
-								rb.getString("overview.sessionoverview.longBurstTerm") },
-						data);
+		return DatasetUtilities.createCategoryDataset(
+				new Integer[] { 1, 2 },
+				new String[] { rb.getString("overview.sessionoverview.sessionTerm"),
+						rb.getString("overview.sessionoverview.tightlyGroupedBurstTerm"),
+						rb.getString("overview.sessionoverview.nonPeriodicBurstTerm"),
+						rb.getString("overview.sessionoverview.longBurstTerm") }, data);
 	}
 
 	/**
-	 * This method returns the percentage of the tightly coupled bursts found in
-	 * the trace analysis.
+	 * Adds the connection statistics information in to provided writer.
 	 * 
-	 * @param analysis
-	 *            The trace analysis data.
-	 * @return The percentage of tightly coupled bursts.
+	 * @param writer
+	 * @throws IOException
 	 */
-	private double calculateTightlyCoupledConnection(TraceData.Analysis analysis) {
-		if (analysis == null) {
-			return 0;
-		}
-		int size = analysis.getBurstInfos().size();
-		return size > 0 ? 100.0
-				* analysis.getBcAnalysis().getTightlyCoupledBurstCount() / size
-				: 0.0;
+	public void addTraceOverview(FileWriter writer) throws IOException {
+		addKeyValue(writer, rb.getString("Export.sessionoverview.sessionTerm"), ""
+				+ sessionTermPct+"%");
+		addKeyValue(writer, rb.getString("Export.sessionoverview.tightlyGroupedBurstTerm"), ""
+				+ tightlyCoupledTCPPct+"%");
+		addKeyValue(writer, rb.getString("Export.sessionoverview.nonPeriodicBurstTerm"), ""
+				+ nonPeriodicBurstPct+"%");
+		addKeyValue(writer, rb.getString("Export.sessionoverview.longBurstTerm"), ""
+				+ longBurstPct+"%");
 	}
 
 	/**
-	 * Returns the percentage of proper session terminations found in the trace
-	 * analysis.
+	 * method writes a provided key values in to the file writer.
 	 * 
-	 * @param analysis
-	 *            The trace analysis data.
-	 * @return The percentage of the proper session terminations.
+	 * @param writer
+	 * @param key
+	 * @param value
+	 * @param value1
+	 * @throws IOException
 	 */
-	private double calculateSessionTermPercentage(TraceData.Analysis analysis) {
-		if (analysis == null) {
-			return 0;
-		}
-		int termSessions = 0;
-		int properTermSessions = 0;
-		for (TCPSession session : analysis.getTcpSessions()) {
-			TCPSession.Termination termination = session
-					.getSessionTermination();
-			if (termination != null) {
-				++termSessions;
-				if (termination.getSessionTerminationDelay() <= SESSION_TERMINATION_THRESHOLD) {
-					++properTermSessions;
-				}
-			}
-		}
-		double sessionTermPct = termSessions > 0 ? 100.0 * properTermSessions
-				/ termSessions : 0.0;
-		return sessionTermPct;
-	}
-
-	/**
-	 * Returns the percentage of the large bursts found in the trace analysis.
-	 * 
-	 * @param analysis
-	 *            The trace analysis data.
-	 * @return The percentage of the large bursts.
-	 */
-	private double calculateLargeBurstConnection(TraceData.Analysis analysis) {
-		if (analysis == null) {
-			return 0;
-		}
-		int size = analysis.getBurstInfos().size();
-		return size > 0 ? 100.0 * analysis.getBcAnalysis().getLongBurstCount()
-				/ size : 0.0;
-	}
-
-	/**
-	 * Returns the percentage of the non periodic bursts found in the trace
-	 * analysis.
-	 * 
-	 * @param analysis
-	 *            The trace analysis data.
-	 * @return The percentage of the non periodic bursts.
-	 */
-	private double calculateNonPeriodicConnection(TraceData.Analysis analysis) {
-		if (analysis == null) {
-			return 0;
-		}
-		List<Burst> burstInfos = analysis.getBurstInfos();
-		if (burstInfos != null && burstInfos.size() > 0) {
-			int periodicBurstCount = 0;
-			for (int i = 0; i < burstInfos.size(); i++) {
-				BurstCategory bCategory = burstInfos.get(i).getBurstCategory();
-				if (bCategory == BurstCategory.BURSTCAT_PERIODICAL) {
-					periodicBurstCount += 1;
-				}
-			}
-			return 100 - 100.0 * periodicBurstCount / burstInfos.size();
-		} else {
-			return 0.0;
-		}
+	private void addKeyValue(FileWriter writer, String key, String value) throws IOException {
+		final String lineSep = System.getProperty(rb.getString("statics.csvLine.seperator"));
+		writer.append(key);
+		writer.append(',');
+		writer.append(value);
+		writer.append(lineSep);
 	}
 }
