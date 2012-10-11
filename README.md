@@ -60,18 +60,24 @@ Contact Us:  http://developer.att.com/developer/contact_us.jsp
 
 
 **Version:**  
-ARO Data Collector 1.4.0  
-ARO Data Analyzer  1.4.0
+ARO Data Collector 1.5.0  
+ARO Data Analyzer  1.5.0
 
 **New Features:**  
-In this release of ARO, a WiFi device profile has been added to the ARO Data Analyzer that allows you to analyze trace data based on the WiFi energy model. Also, the ARO Data Analyzer can now analyze trace files that have been collected using the Microsoft Network Monitor.
+In this release, the ARO Data Collector can record when network bearers are switched without interrupting the capture of trace data. A new Waterfall View that displays connection data spread over time has been added to the ARO Data Analyzer, a Data Dump option now allows you to export all of the analytical data from a group of traces into one .csv file, and generic profiles have been added for 3G, LTE, and Wi-Fi. Also, the ARO Data Analyzer now displays a Trace Score which provides a comparative evaluation of how an application has handled the common causes of inefficiency, and mitigated the effects.
 
-**Known Issues:**  
+For Open Source ARO developers, new classes have been added to provide an easy way to add custom Best Practices to the ARO Data Analyzer and to add the ARO Data Collector to an existing application. 
 
-+  When running AT&T ARO for the first time on a new machine, you must select a device profile by opening the Profile menu, selecting Load, and choosing a pre-defined profile from the Select Device Profile dialog box.
+
+**Known Issues:**
+
++  All known issues from previous releases have been fixed in this release.
++  When creating a new Android Virtual Device (AVD) during the configuration of the Android Emulator for use with the ARO Data Collector, selecting a CPU/ABI type of “Intel Atom (x86)” will cause an “ARO Data Collector failed to start” error.
++  On certain devices with a hardware limitation, the ARO Data Collector is unable read the screen buffer and cannot collect a video file for the trace. In this case, it displays the error message "Video failed to start".
 +  To analyze a trace file in the ARO Data Analyzer that was collected using Microsoft Network Monitor, you must have Microsoft Network Monitor installed on the same machine.
-
-Note:  All known issues from previous releases have been fixed in this release.
++  On the Mac OS, the Data Dump feature in the ARO Data Analyzer that is new for version 1.5, will only work for one level of trace folders. Nested trace folders will not be displayed in the exported .csv file.
++  On the Mac or Windows OS, the Data Dump feature in the ARO Data Analyzer will throw an exception if any of the trace folders included in the export is corrupted. The exception can be closed and the export operation will continue, however, the csv file that is created will only include data from the trace folders that were read before the corrupted file was encountered and will not include data from the corrupted file.
++  In the Trace Score section of the Statistics tab of the ARO Data Analyzer, the score for Average Rate should be "(out of 62.5)" points, and the score for Energy Efficiency should be "(out of 187.5)" points.
 
 
 ##Documentation:
@@ -97,11 +103,12 @@ The ARO Open Source code package contains the following:
 +  **docs** - API reference for the ARO Data Collector (Open docs\api\index.html)  
 +  **external** - Source code for external dependencies: tcpdump and libpcap.  
 +  **res** - Resources for an Android project.  
-+  **src** - Source code for the ARO Data Collector.  
++  **src** - Source code for the ARO Data Collector.
++  *ARODataCollector_V1.5.0.1.apk* - Android application package (APK) file for the ARO Data Collector.  
 +  *AndroidManifest.xml* - Manifest file for an Android project.
 
 
-**ARO Compilation and Build Guide.docx** - Describes how to compile and build the ARO components. 
+**ARO Compilation and Build Guide.docx** - Describes how to compile and build the ARO components.
 
 **README.md** - This file.
 
