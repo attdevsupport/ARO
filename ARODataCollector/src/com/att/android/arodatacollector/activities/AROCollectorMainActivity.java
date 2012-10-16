@@ -40,6 +40,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -162,8 +163,8 @@ public class AROCollectorMainActivity extends Activity {
 			public void onClick(View v) {
 				final String state = Environment.getExternalStorageState();
 				
-				final NetworkInfo.State wifiState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState();
-				final NetworkInfo.State mobileState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState();
+				NetworkInfo.State wifiState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState();
+				NetworkInfo.State mobileState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState();
 				if (DEBUG){
 					Log.d(TAG, "wifiState=" + wifiState + "; mobileState=" + mobileState);
 				}
@@ -220,6 +221,10 @@ public class AROCollectorMainActivity extends Activity {
 		final Timer aroDCStartTimer = new Timer();
 		// Task Killer process info class to manage and store all running
 		// process
+		
+		//Takes a snap shoot of the time system system to boot to be used for the timer on the home page.
+		mApp.setElapsedTimeStartTime(SystemClock.elapsedRealtime());
+		
 		final AROCollectorTaskManagerProcessInfo mAROTaskManagerProcessInfo = new AROCollectorTaskManagerProcessInfo();
 		mApp.setARODataCollectorStopFlag(false);
 		mApp.setDataCollectorInProgressFlag(true);

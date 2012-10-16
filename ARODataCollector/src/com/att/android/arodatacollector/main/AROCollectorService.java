@@ -155,7 +155,7 @@ public class AROCollectorService extends Service {
 	}
 
 	/**
-	 * Handles processing when an AROCollectorService object is created.
+	 * s processing when an AROCollectorService object is created.
 	 * Overrides the android.app.Service#onCreate method.
 	 * 
 	 * @see android.app.Service#onCreate()
@@ -202,7 +202,7 @@ public class AROCollectorService extends Service {
 	}
 
 	/**
-	 * Handles processing when an AROCollectorService object is destroyed.
+	 * s processing when an AROCollectorService object is destroyed.
 	 * Overrides the android.app.Service#onDestroy method.
 	 * 
 	 * @see android.app.Service#onDestroy()
@@ -324,7 +324,7 @@ public class AROCollectorService extends Service {
 			mApp.writeToFlurry(flurryTimedEvent, "Flurry trace end", endCalTime.getTime().toString(), "flurryTimedEvent", AROCollectorUtils.NOT_APPLICABLE, AROCollectorUtils.EMPTY_STRING);
 			mApp.writeToFlurry(flurryTimedEvent, "calculated Flurry trace duration", getUpTime(endCalTime), "flurryTimedEvent", AROCollectorUtils.NOT_APPLICABLE, AROCollectorUtils.EMPTY_STRING);
 			logFlurryEvents();
-			handleDataCollectorTraceStop();
+			DataCollectorTraceStop();
 		} finally {
 			try {
 				mApp.setTcpDumpStartFlag(false);
@@ -478,7 +478,7 @@ public class AROCollectorService extends Service {
 	}
 
 	/**
-	 * Handles processing when an AROCollectorService object is binded to
+	 * s processing when an AROCollectorService object is binded to
 	 * content. Overrides the android.app.Service#onBind method.
 	 * 
 	 * @see android.app.Service#onBind(android.content.Intent)
@@ -489,14 +489,14 @@ public class AROCollectorService extends Service {
 	}
 
 	/**
-	 * Handle the tcpdump stops reasons while coming out of tcpdump shell and
+	 *  the tcpdump stops reasons while coming out of tcpdump shell and
 	 * navigate to respective screen or shows error dialog
 	 */
-	private void handleDataCollectorTraceStop() {
+	private void DataCollectorTraceStop() {
 		aroDCStopWatchTimer.cancel();
 		
 		if (DEBUG) {
-			Log.i(TAG, "handleDataCollectorTraceStop");
+			Log.i(TAG, "DataCollectorTraceStop");
 			Log.i(TAG, "mApp.getDataCollectorBearerChange()=" + mApp.getDataCollectorBearerChange());
 			Log.i(TAG, "mApp.getDataCollectorInProgressFlag()=" + mApp.getDataCollectorInProgressFlag());
 			Log.i(TAG, "mApp.getARODataCollectorStopFlag()=" + mApp.getARODataCollectorStopFlag());
@@ -508,11 +508,12 @@ public class AROCollectorService extends Service {
 				stopService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
 				// Stopping the tcpdump/screen capture collection trace service
 				stopService(new Intent(getApplicationContext(), AROCollectorService.class));
+
 				try {
 					// Motorola Atrix2 -waiting to get SD card refresh state
-					if (Build.MODEL.equalsIgnoreCase("MB865") && !mApp.getAirplaneModeEnabledMidAROTrace()) {
-						// thread sleep for 16 sec
-						Thread.sleep(16000);
+					if (Build.MODEL.equalsIgnoreCase("MB865")) {
+						// thread sleep for 12 sec
+						Thread.sleep(14000);
 					}
 				} catch (InterruptedException e) {
 					Log.e(TAG, "InterruptedException while sleep SD card mount" + e);
@@ -882,10 +883,10 @@ public class AROCollectorService extends Service {
 		@Override
 		public void run() {
 			
-			final BufferedReader reader = new BufferedReader(new InputStreamReader(streamToClear));
+			BufferedReader reader = new BufferedReader(new InputStreamReader(streamToClear));
 			String buf = null;
 			if (DEBUG && logStream){
-				Log.i(TAG, "StreamClearer logging content from shell's " + name);
+				Log.i(TAG, "logging content from shell's " + name);
 			}
 			
 			try {
@@ -896,11 +897,11 @@ public class AROCollectorService extends Service {
 					}
 				}
 			} catch (IOException e) {
-				Log.e(TAG, "StreamClearer IOException in StreamClearer", e);
+				Log.e(TAG, "IOException in StreamClearer", e);
 			}
 			
 			if (DEBUG && logStream){
-				Log.i(TAG, "StreamClearer done logging content from shell's " + name);
+				Log.i(TAG, "done logging content from shell's " + name);
 			}
 		}
 	}

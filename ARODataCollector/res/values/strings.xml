@@ -19,6 +19,7 @@
 	<string name="aro_traceduration">Duration :</string>
 	<string name="aro_failedvideo">Video failed to start</string>
 	<string name="splashmessageopensource">Built from Public code supplied by \n AT&amp;T Developer Program \n \n http://developer.att.com/aro</string>
+	<string name="aro_traceTimer">Elasped Time:</string>
 	<!-- Error Dialog Message -->
 	<string name="aro_error">Error</string>
 	<string name="aro_foldername">Please enter trace folder name.</string>

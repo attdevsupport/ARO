@@ -39,6 +39,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.Window;
 import android.app.Application;
@@ -170,7 +171,7 @@ public class ARODataCollector extends Application {
 	 * Boolean variable to keep true and false value for SD card mounted during
 	 * mid trace
 	 */
-	private boolean mMidTraceAirplaneModeEnabled = false;
+	private boolean mMidTraceAirplaneModeEnabled;
 
 	/** The ARO Data Collector trace folder name */
 	private String mTraceFolderName;
@@ -237,6 +238,8 @@ public class ARODataCollector extends Application {
 
 	/** ARO Data Collector is wifi lost flag */
 	private boolean requestDataCollectorStop = false;
+	
+	private long elapsedTimeStartTime;
 
 	/**
 	 * Handles processing when an ARODataCollector object is created. Overrides
@@ -791,6 +794,26 @@ public class ARODataCollector extends Application {
 		return isARODataCollectorStopped;
 	}
 
+	/**
+	 * Gets the elapsedTimeStartTime which is the start time of the timer on the home page.
+	 * 
+	 * @return A long integer that represents when the trace started for the home page timer.
+	 */
+	public long getElapsedTimeStartTime() {
+		return elapsedTimeStartTime;
+	}
+		
+	/**
+	 * Sets elapsedTimeStartTime which is the start time of the timer on the home page.
+	 * 
+	 * @param paramElapsedTimeStartTime
+	 *            A long integer that represents when the trace started for the home page timer.
+	 */
+	public void setElapsedTimeStartTime(long paramElapsedTimeStartTime) {
+		elapsedTimeStartTime = paramElapsedTimeStartTime;
+	}
+	
+	
 	/**
 	 * Gets the flag that indicates whether the SD card is mounted during
 	 * mid-trace.
