@@ -232,7 +232,7 @@ public class AROCollectorTraceService extends Service {
 	private int mAROPrevNetworkType;
 	
 	/**indicates whether WIFI, MOBILE, or UNKNOWN **/
-	private String mAROPrevBearer = AroTraceFileConstants.UNKNOWN_NETWORK;
+	private String mAROPrevBearer = AroTraceFileConstants.NOT_ASSIGNED_NETWORK;
 	
 	/** Output stream and Buffer Writer for peripherals traces files */
 	private OutputStream mWifiTraceOutputFile;
@@ -281,6 +281,7 @@ public class AROCollectorTraceService extends Service {
 		static final String UNKNOWN_NETWORK = "UNKNOWN";
 		static String IMPORTANCE_BACKGROUND = "Background";
 		static String IMPORTANCE_FOREGROUND = "Foreground";
+		static final String NOT_ASSIGNED_NETWORK = "NOTASSIGNED";
 	}
 	
 	/** Event names, counters, maps, states for displaying and storing on Flurry Analytics*/
@@ -623,6 +624,7 @@ public class AROCollectorTraceService extends Service {
 			public void run() {
 				if (mAroUtils.checkSDCardMemoryAvailable() < AROSDCARD_MIN_SPACEKBYTES) {
 					aroSDCardErrorUIUpdate();
+					checkSDCardSpace.cancel();
 					if (DEBUG) {
 						Log.i(TAG,
 								"startARODeviceSDCardSpaceMidTrace="
@@ -651,9 +653,19 @@ public class AROCollectorTraceService extends Service {
 	private void aroAirplaneModeUIUpdate() {
 		if (AROCollectorService.getServiceObj() != null) {
 			mApp.setAirplaneModeEnabledMidAROTrace(true);
-			AROCollectorService.getServiceObj().requestDataCollectorStop();
+			if (AROCollectorService.getServiceObj() != null) {
+				// Sends the STOP Command to tcpdump socket 
+				try {
+					//We will sleep for 10 seconds to give time for tcpdump bearer change before request STOP
+					//TODO: Need to find async call update here and not sleep
+					Thread.sleep(10000);
+				} catch (InterruptedException e) {
+					
+				}
+				AROCollectorService.getServiceObj().requestDataCollectorStop();
+				mApp.cancleAROAlertNotification();
+			}
 		}
-		
 	}
 	
 	/**
@@ -666,9 +678,9 @@ public class AROCollectorTraceService extends Service {
 		mAROConnectiviyMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 		checkAirplaneModeEnabled.scheduleAtFixedRate(new TimerTask() {
 			public void run() {
+				final NetworkInfo.State wifiState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState();
 				if( mAroUtils.isAirplaneModeOn(getApplicationContext())
-						&& (mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState() == NetworkInfo.State.DISCONNECTED
-						|| mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState() == NetworkInfo.State.UNKNOWN )) {
+						&& (wifiState == NetworkInfo.State.UNKNOWN || wifiState == NetworkInfo.State.DISCONNECTED)){
 					//We should cancel the timer here as we detected Air plane mode was turned on during trace cyle.
 					aroAirplaneModeUIUpdate();
 					checkAirplaneModeEnabled.cancel();
@@ -819,7 +831,6 @@ public class AROCollectorTraceService extends Service {
 				//bearer change, signaling a failover
 				mAROPrevBearer = currentBearer;
 				writeTraceLineToAROTraceFile(mNetworkTracewriter,Integer.toString(currentNetworkType), true);
-				
 				if (DEBUG){
 					Log.i(TAG, "failover, wrote networkType=" + currentNetworkType + " to networkdetails completed at timestamp: " + mAroUtils.getDataCollectorEventTimeStamp());
 				}
@@ -841,7 +852,6 @@ public class AROCollectorTraceService extends Service {
 				//log the 4G-3G-2G network switch
 				final String tempNetworkFlurryState = mAROActiveNetworkInfo.getSubtypeName();
 				writeToFlurryAndMaintainStateAndLogEvent(networkTypeFlurryEvent, getString(R.string.flurry_param_status), tempNetworkFlurryState, true);
-				
 				mAROPrevNetworkType = currentNetworkType;
 			}
 			// device_details trace file
@@ -875,10 +885,11 @@ public class AROCollectorTraceService extends Service {
 				final boolean noConnectivity = intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY , false);
 				final boolean isNetworkConnected = !noConnectivity;
 				
-				final ConnectivityManager mAROConnectiviyMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-				final NetworkInfo mAROActiveNetworkInfo = mAROConnectiviyMgr.getActiveNetworkInfo();
-				
-				recordBearerAndNetworkChange(mAROActiveNetworkInfo, isNetworkConnected);
+				final ConnectivityManager mAROConnectivityMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+				final NetworkInfo mAROActiveNetworkInfo = mAROConnectivityMgr.getActiveNetworkInfo();
+				if (!isFirstBearerChange) {
+					recordBearerAndNetworkChange(mAROActiveNetworkInfo, isNetworkConnected);
+				}
 			}
 		}
 	};
@@ -929,12 +940,7 @@ public class AROCollectorTraceService extends Service {
 							AroTraceFileConstants.CONNECTING_NETWORK, true);
 					break;
 				case CONNECTED:
-					collectWifiNetworkData();
-					writeTraceLineToAROTraceFile(mWifiTracewriter,
-							AroTraceFileConstants.CONNECTED_NETWORK + " " + mWifiMacAddress + " "
-									+ mWifiRssi + " " + mWifiNetworkSSID, true);
-					writeToFlurryAndMaintainStateAndLogEvent(wifiFlurryEvent, getString(R.string.flurry_param_status), 
-							AroTraceFileConstants.CONNECTED_NETWORK, true);					
+					recordAndLogConnectedWifiDetails();					
 					break;
 				case DISCONNECTING:
 					writeTraceLineToAROTraceFile(mWifiTracewriter,
@@ -1125,7 +1131,9 @@ public class AROCollectorTraceService extends Service {
 				final NetworkInfo mAROActiveNetworkInfo = mAROConnectivityMgr.getActiveNetworkInfo();
 				
 				final boolean isNetworkConnected = (state == TelephonyManager.DATA_CONNECTED);
-				recordBearerAndNetworkChange(mAROActiveNetworkInfo, isNetworkConnected);
+				if (!isFirstBearerChange) {
+					recordBearerAndNetworkChange(mAROActiveNetworkInfo, isNetworkConnected);
+				}
 				
 			}
 		};
@@ -1390,6 +1398,7 @@ public class AROCollectorTraceService extends Service {
 		mAROIntentFilter = new IntentFilter();
 		mAROIntentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
 		registerReceiver(mAROBearerChangeReceiver, mAROIntentFilter);
+		recordInitialBearerInfo();
 	}
 
 	/**
@@ -1751,5 +1760,43 @@ public class AROCollectorTraceService extends Service {
 						aFlurryEvent.getEventName() + "-key: " + key + "-value: " + currentValue);
 			}
 		}
+	}
+	
+	/**
+	 * record the bearer and network info at the start
+	 */
+	private void recordInitialBearerInfo(){
+		
+		final ConnectivityManager mAROConnectivityMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+		final NetworkInfo mAROActiveNetworkInfo = mAROConnectivityMgr.getActiveNetworkInfo();
+		
+		boolean isConnected = false;
+		if (mAROActiveNetworkInfo != null){
+			isConnected = mAROActiveNetworkInfo.isConnected();
+		}
+		
+		if (DEBUG){
+			Log.d(TAG, "recordInitialBearerInfo: isConnected=" + isConnected + "; currentBearerWifi=" + getifCurrentBearerWifi());
+		}
+		//call to record the initial bearer
+		recordBearerAndNetworkChange(mAROActiveNetworkInfo, isConnected);
+		//log the wifi network details if current bearer is wifi
+		if (getifCurrentBearerWifi()){
+			recordAndLogConnectedWifiDetails();
+		}
+	}
+
+	private void recordAndLogConnectedWifiDetails() {
+		collectWifiNetworkData();
+		writeTraceLineToAROTraceFile(mWifiTracewriter,
+				AroTraceFileConstants.CONNECTED_NETWORK + " " + mWifiMacAddress + " "
+				+ mWifiRssi + " " + mWifiNetworkSSID, true);
+		
+		if (DEBUG){
+			Log.i(TAG, "connected to " + mWifiNetworkSSID + " write to mWifiTracewriter completed at timestamp: " + mAroUtils.getDataCollectorEventTimeStamp());
+		}
+		
+		writeToFlurryAndMaintainStateAndLogEvent(wifiFlurryEvent, getString(R.string.flurry_param_status), 
+				AroTraceFileConstants.CONNECTED_NETWORK, true);
 	}
 }

@@ -9,58 +9,24 @@
 		android:paddingLeft="10dip" android:paddingRight="2dip"
 		android:paddingBottom="60dp" android:textSize="17sp"
 		android:text="@string/aro_usetestdata"></TextView>
-	    <!-- android:text="Chronometer" /> -->
-
-	<TextView
-	    android:id="@+id/timer"
-	    android:layout_width="208dp"
-	    android:layout_height="wrap_content"
-	    android:ems="15"
-	    android:textColor="@drawable/white_text"
-	    android:textSize="17sp" />
-
-	<TextView
-	    android:id="@+id/aro_dcstarted"
-	    android:layout_width="wrap_content"
-	    android:layout_height="wrap_content"
-	    android:layout_marginLeft="8dp"
-	    android:layout_marginRight="8dp"
-	    android:background="@drawable/white"
-	    android:paddingBottom="60dip"
-	    android:paddingLeft="10dip"
-	    android:paddingRight="2dip"
-	    android:paddingTop="5dip"
-	    android:text="@string/aro_dcstarted"
-	    android:textColor="@drawable/black"
-	    android:textSize="16sp" />
-
-	<LinearLayout
-	    android:layout_width="fill_parent"
-	    android:layout_height="fill_parent"
-	    android:gravity="center"
-	    android:orientation="horizontal" >
-
-	    <Button
-	        android:id="@+id/hidedatacollector"
-	        style="@style/BlueButton"
-	        android:layout_width="150dp"
-	        android:layout_height="45dp"
-	        android:paddingRight="2dp"
-	        android:text="@string/hidecollector"
-	        android:textSize="16sp" />
-
-	    <Chronometer android:layout_width="wrap_content"     
-	        android:layout_height="wrap_content"     
-	        android:id="@+id/chrono"     
-	        android:visibility="gone"/> 
-
-	    <Button
-	        android:id="@+id/stopcollector"
-	        style="@style/BlueButton"
-	        android:layout_width="150dp"
-	        android:layout_height="45dp"
-	        android:text="@string/stopcollector"
-	        android:textSize="16sp" />
+	<TextView android:id="@+id/aro_dcstarted"
+		android:layout_height="wrap_content" android:layout_width="wrap_content"
+		android:paddingTop="5dip" android:background="@drawable/white"
+		android:textColor="@drawable/black" android:paddingLeft="10dip"
+		android:paddingRight="2dip" android:paddingBottom="60dip"
+		android:layout_marginLeft="8dp" android:layout_marginRight="8dp"
+		android:textSize="16sp" android:text="@string/aro_dcstarted"></TextView>
+	<LinearLayout android:orientation="horizontal"
+		android:layout_width="fill_parent" android:layout_height="fill_parent"
+		android:gravity="center">
+		<Button android:id="@+id/hidedatacollector"
+			android:layout_width="150dp" style="@style/BlueButton"
+			android:layout_height="45dp" android:text="@string/hidecollector"
+			android:paddingRight="2dp" android:textSize="16sp">
+		</Button>
+		<Button android:id="@+id/stopcollector" android:layout_width="150dp"
+			style="@style/BlueButton" android:layout_height="45dp"
+			android:text="@string/stopcollector" android:textSize="16sp">
+		</Button>
 	</LinearLayout>
-
 </LinearLayout>

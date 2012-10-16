@@ -18,15 +18,8 @@ package com.att.android.arodatacollector.activities;
 
 //import org.apache.http.client.ClientProtocolException;
 
-import java.io.IOException;
-import java.util.Timer;
-import java.util.TimerTask;
-
-import org.apache.http.client.ClientProtocolException;
-
 import com.att.android.arodatacollector.R;
 import com.att.android.arodatacollector.main.AROCollectorService;
-import com.att.android.arodatacollector.main.AROCollectorTraceService;
 import com.att.android.arodatacollector.main.ARODataCollector;
 
 import android.app.Activity;
@@ -35,9 +28,6 @@ import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
-import android.widget.Chronometer;
-import android.widget.TextView;
-import android.os.SystemClock;
 
 /**
  * Represents the Home screen of the ARO Data Collector, which contains butttons
@@ -72,15 +62,6 @@ public class AROCollectorHomeActivity extends Activity {
 	 **/
 	private ARODataCollector mApp;
 
-	/** Used to access the "Timer" text box in aroCollector_home_screen.xml */
-	private TextView timerText;    
-	
-	/** Keeps track of the current tick that the timer is on*/
-	private long countUp; 
-	
-	
-	private Chronometer stopWatch;
-
 	/**
 	 * Initializes data members with a saved instance of an AROCollectorHomeActivity object. 
 	 * Overrides the android.app.Activity#onCreate method. 
@@ -95,33 +76,6 @@ public class AROCollectorHomeActivity extends Activity {
 		setContentView(R.layout.arocollector_home_screen);
 		initHomeScreenControls();
 		initHomeScreenControlListeners();
-		      
-		//All code until end of the method is used to maintain the on screen timer.
-		stopWatch = (Chronometer) findViewById(R.id.chrono);
-		stopWatch.setBase(mApp.getElapsedTimeStartTime()); 
-		
-		timerText = (TextView) findViewById(R.id.timer);    
-		stopWatch.setOnChronometerTickListener(new Chronometer.OnChronometerTickListener(){             
-			@Override             
-			 public void onChronometerTick(Chronometer arg0) {                 
-				 countUp = (SystemClock.elapsedRealtime() - arg0.getBase()) / 1000;		 	 
-				 String asText;
-				 String minPlace = "";
-				 String secPlace = "";
-				 
-				 if (((countUp / 60) % 60) < 10){
-					 minPlace = "0";
-				 }
-				 if (countUp % 60 < 10){
-					 secPlace = "0";
-				 }
-				 
-				 //Display the time in standard "Hours:Minutes:Seconds" | "00:00:00"
-				 asText = "0" + (countUp / 3600) + ":" + minPlace + ((countUp / 60) % 60) + ":" + secPlace + (countUp % 60);
-				 timerText.setText(getText(R.string.aro_traceTimer) + " " + asText); 
-			}         
-		});         
-		stopWatch.start(); 
 	}
 
 	/**
@@ -142,14 +96,6 @@ public class AROCollectorHomeActivity extends Activity {
 		}
 		finish();
 	}
-	
-	@Override
-	protected void onDestroy() {
-		super.onDestroy();
-		
-		stopWatch.stop();
-	}
-
 
 	/**
 	 * Initialize the data control home screen controls
@@ -199,4 +145,5 @@ public class AROCollectorHomeActivity extends Activity {
 		}
 
 	}
+
 }
