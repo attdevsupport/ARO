@@ -72,7 +72,7 @@ public class FilterApplicationsAndIpDialog extends JDialog {
 		super(owner);
 		
 		TraceData.Analysis analysisData = owner.getAnalysisData();
-		this.filter = analysisData.getFilter();
+		this.filter = analysisData != null ? analysisData.getFilter() : new AnalysisFilter(owner.getTraceData());
 		this.jIpAddressesTableModel = new FilterIpAddressesTableModel(this.filter);
 		this.jApplicationsTableModel = new FilterApplicationsTableModel(this.filter);
 		this.jApplicationsTableModel.addTableModelListener(new TableModelListener() {

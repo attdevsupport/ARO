@@ -64,10 +64,6 @@ import com.att.aro.model.TraceData;
 public class AROVideoPlayer extends JFrame {
 	private static final long serialVersionUID = 1L;
 
-	private static final Double SHORT_SNIPPET_DURATION_IN_SECONDS = 0.1;
-	private static final Double SHORT_SNIPPET_DURATION_IN_MILLISECONDS = SHORT_SNIPPET_DURATION_IN_SECONDS * 1000.0;
-	private static final int SHORT_SNIPPET_DURATION_MILLISECONDS = SHORT_SNIPPET_DURATION_IN_MILLISECONDS
-			.intValue();
 	private static final float PLAYBACK_RATE = 1.0f; // 5.0f
 	private static final ResourceBundle rb = ResourceBundleManager
 			.getDefaultBundle();
@@ -233,7 +229,7 @@ public class AROVideoPlayer extends JFrame {
 					}
 				}
 			});
-			setMediaDisplayTime(SHORT_SNIPPET_DURATION_IN_SECONDS);
+			setMediaDisplayTime(0.0);
  
 		} catch (NoPlayerException e) {
 			MessageDialogFactory.showUnexpectedExceptionDialog(this, e);
@@ -272,16 +268,7 @@ public class AROVideoPlayer extends JFrame {
 						.getSeconds()));
 				return;
 			}
-			if (videoTime > SHORT_SNIPPET_DURATION_IN_SECONDS) {
-				videoTime -= SHORT_SNIPPET_DURATION_IN_SECONDS;
-			}
 			videoPlayer.setMediaTime(new Time(videoTime));
-			videoPlayer.start();
-			try {
-				Thread.sleep(SHORT_SNIPPET_DURATION_MILLISECONDS);
-			} catch (InterruptedException e) {
-			}
-			videoPlayer.stop();
 		}
 	}
 
@@ -352,21 +339,24 @@ public class AROVideoPlayer extends JFrame {
 					}
 					File fileFullPathFFMPEGProgram = new File(traceDirectory,
 							strProgramName);
-					if (!fileFullPathFFMPEGProgram.exists()) {
-						InputStream is = AROVideoPlayer.class.getClassLoader()
-								.getResourceAsStream(strProgramName);
-						FileOutputStream fos = new FileOutputStream(
-								fileFullPathFFMPEGProgram);
-						try {
-							byte[] buf = new byte[2048];
-							int i;
-							while ((i = is.read(buf)) > 0) {
-								fos.write(buf, 0, i);
-							}
-							buf = null;
-						} finally {
-							fos.close();
+					
+					// Overwrite any existing ffmpeg file in trace
+					if (fileFullPathFFMPEGProgram.exists()) {
+						fileFullPathFFMPEGProgram.delete();
+					}
+					InputStream is = AROVideoPlayer.class.getClassLoader()
+							.getResourceAsStream(strProgramName);
+					FileOutputStream fos = new FileOutputStream(
+							fileFullPathFFMPEGProgram);
+					try {
+						byte[] buf = new byte[2048];
+						int i;
+						while ((i = is.read(buf)) > 0) {
+							fos.write(buf, 0, i);
 						}
+						buf = null;
+					} finally {
+						fos.close();
 					}
 					if (!fileFullPathFFMPEGProgram.canExecute()) {
 						fileFullPathFFMPEGProgram.setExecutable(true);

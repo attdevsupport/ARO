@@ -21,8 +21,12 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
+
+import javax.swing.event.HyperlinkEvent;
 
 import com.att.aro.main.ApplicationResourceOptimizer;
 import com.att.aro.main.ChartPlotOptions;
@@ -109,7 +113,7 @@ public class BestPracticeDisplayFactory {
 					rb.getString("bestPractice.referSection.connections"),
 					Arrays.asList(connectionOpening, unnecessaryConnections,
 							periodicTransfer, screenRotation,
-							connectionClosing, wifiOffloading));
+							connectionClosing, wifiOffloading, http4xx5xx));
 		}
 		return connectionsSection;
 	}
@@ -189,7 +193,7 @@ public class BestPracticeDisplayFactory {
 		}
 
 		@Override
-		public void performAction(ApplicationResourceOptimizer parent) {
+		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
 			parent.displaySimpleTab();
 		}
 
@@ -264,7 +268,7 @@ public class BestPracticeDisplayFactory {
 		}
 
 		@Override
-		public void performAction(ApplicationResourceOptimizer parent) {
+		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
 			refreshAndDisplayBurst(parent);
 			parent.getAroAdvancedTab().setHighlightedPacketView(
 					parent.getAnalysisData().getBestPractice().getNoCacheHeaderStartTime());
@@ -329,9 +333,10 @@ public class BestPracticeDisplayFactory {
 		}
 
 		@Override
-		public void performAction(ApplicationResourceOptimizer parent) {
-			parent.displayResultTab();
-			parent.getAnalysisResultsPanel().getVerticalScrollBar().setValue(1950);
+		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
+			refreshAndDisplayBurst(parent);
+			parent.getAroAdvancedTab().setHighlightedPacketView(
+					parent.getAnalysisData().getBestPractice().getCacheControlStartTime());
 		}
 		
 		@Override
@@ -392,7 +397,7 @@ public class BestPracticeDisplayFactory {
 		}
 
 		@Override
-		public void performAction(ApplicationResourceOptimizer parent) {
+		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
 			refreshAndDisplayBurst(parent);
 		}
 		
@@ -453,7 +458,7 @@ public class BestPracticeDisplayFactory {
 		}
 
 		@Override
-		public void performAction(ApplicationResourceOptimizer parent) {
+		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
 			
 		}
 		
@@ -513,7 +518,7 @@ public class BestPracticeDisplayFactory {
 		}
 
 		@Override
-		public void performAction(ApplicationResourceOptimizer parent) {
+		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
 			refreshAndDisplayBurst(parent);
 			parent.getAroAdvancedTab()
 					.getDisplayedGraphPanel()
@@ -582,7 +587,7 @@ public class BestPracticeDisplayFactory {
 		}
 
 		@Override
-		public void performAction(ApplicationResourceOptimizer parent) {
+		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
 			refreshAndDisplayBurst(parent);
 			parent.getAroAdvancedTab().setHighlightedPacketView(
 					parent.getAnalysisData().getBcAnalysis().getShortestPeriodPacketInfo());
@@ -645,7 +650,7 @@ public class BestPracticeDisplayFactory {
 		}
 
 		@Override
-		public void performAction(ApplicationResourceOptimizer parent) {
+		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
 			refreshAndDisplayBurst(parent);
 			double screenRotationBurstTime = parent.getAnalysisData().getBestPractice()
 					.getScreenRotationBurstTime();
@@ -718,7 +723,7 @@ public class BestPracticeDisplayFactory {
 		}
 
 		@Override
-		public void performAction(ApplicationResourceOptimizer parent) {
+		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
 			refreshAndDisplayBurst(parent);
 			parent.getAroAdvancedTab()
 					.getDisplayedGraphPanel()
@@ -740,6 +745,109 @@ public class BestPracticeDisplayFactory {
 			}
 		}
 		
+	};
+	
+	/**
+	 * Pre-defined HTTP 4xx/5xx errors best practice
+	 */
+	protected static final BestPracticeDisplay http4xx5xx = new BestPracticeDisplay() {
+
+		@Override
+		public String getOverviewTitle() {
+			return rb.getString("connections.http4xx5xx.title");
+		}
+
+		@Override
+		public String getDetailTitle() {
+			return rb.getString("connections.http4xx5xx.detailedTitle");
+		}
+
+		@Override
+		public boolean isSelfTest() {
+			return false;
+		}
+
+		@Override
+		public String getAboutText() {
+			return rb.getString("connections.http4xx5xx.desc");
+		}
+
+		@Override
+		public URI getLearnMoreURI() {
+			return URI.create(rb.getString("connections.http4xx5xx.url"));
+		}
+
+		@Override
+		public boolean isPass(TraceData.Analysis analysis) {
+			return analysis.getBestPractice().getHttpErrorCounts().isEmpty();
+		}
+
+		@Override
+		public String resultText(Analysis analysisData) {
+			Map<Integer, Integer> map = analysisData.getBestPractice().getHttpErrorCounts();
+			Iterator<Map.Entry<Integer, Integer>> i = map.entrySet().iterator();
+			if (i.hasNext()) {
+				Map.Entry<Integer, Integer> entry = i.next();
+				String message = formatError(entry);
+				if (i.hasNext()) {
+					entry = i.next();
+					while (i.hasNext()) {
+						message = MessageFormat.format(rb
+								.getString("connections.http4xx5xx.errorList"),
+								message, formatError(entry));
+						entry = i.next();
+					}
+					message = MessageFormat
+							.format(rb
+									.getString("connections.http4xx5xx.errorListEnd"),
+									message, formatError(entry));
+				}
+				
+				return MessageFormat.format(
+						rb.getString("connections.http4xx5xx.results"), message);
+			} else {
+				return rb.getString("connections.http4xx5xx.pass");
+			}
+		}
+
+		@Override
+		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
+			try {
+				
+				// Find a response with the selected status code
+				int status = Integer.parseInt(h.getDescription());
+				parent.displayAdvancedTab();
+				parent.getAroAdvancedTab().setHighlightedRequestResponse(
+						parent.getAnalysisData().getBestPractice()
+								.getFirstErrorRespMap().get(status));
+			} catch (NumberFormatException e) {
+				// Ignore
+			}
+		}
+		
+		@Override
+		public List<BestPracticeExport> getExportData(Analysis analysisData) {
+			Map<Integer, Integer> map = analysisData.getBestPractice().getHttpErrorCounts();
+			List<BestPracticeExport> result = new ArrayList<BestPracticeExport>(map.size());
+			for (Map.Entry<Integer, Integer> entry : analysisData.getBestPractice().getHttpErrorCounts().entrySet()) {
+				result.add(new BestPracticeExport(String.valueOf(entry.getValue()),
+						MessageFormat.format(rb.getString("exportall.csvHttpError"), entry.getKey())));
+			}
+			return result;
+		}
+
+		private String formatError(Map.Entry<Integer, Integer> entry) {
+			int count = entry.getValue();
+			if (count > 1) {
+				return MessageFormat.format(
+						rb.getString("connections.http4xx5xx.errorPlural"),
+						count, entry.getKey());
+			} else {
+				return MessageFormat.format(
+						rb.getString("connections.http4xx5xx.errorSingular"),
+						entry.getKey());
+			}
+		}
 	};
 	
 	/**
@@ -790,7 +898,7 @@ public class BestPracticeDisplayFactory {
 		}
 
 		@Override
-		public void performAction(ApplicationResourceOptimizer parent) {
+		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
 			refreshAndDisplayBurst(parent);
 			parent.getAroAdvancedTab()
 					.getDisplayedGraphPanel()
@@ -860,7 +968,7 @@ public class BestPracticeDisplayFactory {
 		}
 
 		@Override
-		public void performAction(ApplicationResourceOptimizer parent) {
+		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
 			BestPractices bp = parent.getAnalysisData().getBestPractice();
 			if (bp.getGPSActiveStateRatio() > PERIPHERAL_ACTIVE_LIMIT) {
 				parent.setExternalChartPlotSelection(ChartPlotOptions.GPS, true);
@@ -930,7 +1038,7 @@ public class BestPracticeDisplayFactory {
 		}
 
 		@Override
-		public void performAction(ApplicationResourceOptimizer parent) {
+		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
 			parent.displayAdvancedTab();
 			parent.getAroAdvancedTab().setHighlightedTCP(
 					parent.getAnalysisData().getBestPractice().getHttp1_0Session());

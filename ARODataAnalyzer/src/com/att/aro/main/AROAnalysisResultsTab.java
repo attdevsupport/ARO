@@ -38,6 +38,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -74,7 +75,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	private RRCStatisticsPanel rrcStatisticsPanel;
 	private EnergyModelStatisticsPanel energyModelStatisticsPanel;
 	private HttpCacheStatisticsPanel cacheStatisticsPanel;
-	private ImagePanel headerPanel;
+	private JPanel headerPanel;
 	private DateTraceAppDetailPanel dateTraceAppDetailPanel;
 	private JLabel exportBtn;
 	private ApplicationResourceOptimizer parent;
@@ -201,8 +202,8 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 			mainPanel.add(new ImagePanel(Images.DIVIDER.getImage(), true, Color.WHITE),
 					new GridBagConstraints(0, 5, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER,
 							GridBagConstraints.HORIZONTAL, insets, 0, 0));
-			mainPanel.add(getEndPointSummaryPanel(), new GridBagConstraints(0, 6, 1, 1, 0.6, 0.0,
-					GridBagConstraints.WEST, GridBagConstraints.CENTER, new Insets(5, 10, 5, 10),
+			mainPanel.add(getEndPointSummaryPanel(), new GridBagConstraints(0, 6, 3, 1, 0.0, 0.0,
+					GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, new Insets(5, 10, 5, 10),
 					0, 0));
 			mainPanel.add(new ImagePanel(Images.DIVIDER.getImage(), true, Color.WHITE),
 					new GridBagConstraints(0, 7, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER,
@@ -235,7 +236,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	/**
 	 * Initializes basic statistics panel
 	 */
-	public BasicStatisticsPanel getBasicStatisticsPanel() {
+	private BasicStatisticsPanel getBasicStatisticsPanel() {
 		if (basicStatisticsPanel == null) {
 			basicStatisticsPanel = new BasicStatisticsPanel();
 		}
@@ -245,7 +246,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	/**
 	 * Initializes application score statistics panel
 	 */
-	public ApplicationScorePanel getApplicationScorePanel() {
+	private ApplicationScorePanel getApplicationScorePanel() {
 		if (applicationScorePanel == null) {
 			applicationScorePanel = new ApplicationScorePanel();
 		}
@@ -255,7 +256,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	/**
 	 * Initializes burst statistics panel
 	 */
-	public BurstAnalysisPanel getBurstAnalysisPanel() {
+	private BurstAnalysisPanel getBurstAnalysisPanel() {
 		if (burstAnalysisPanel == null) {
 			burstAnalysisPanel = new BurstAnalysisPanel();
 		}
@@ -265,7 +266,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	/**
 	 * Initializes end point summary statistics panel
 	 */
-	public EndPointSummaryPanel getEndPointSummaryPanel() {
+	private EndPointSummaryPanel getEndPointSummaryPanel() {
 		if (endPointSummaryPanel == null) {
 			endPointSummaryPanel = new EndPointSummaryPanel();
 		}
@@ -275,7 +276,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	/**
 	 * Initializes basic TCP statistics panel
 	 */
-	public HttpCacheStatisticsPanel getCacheStatisticsPanel() {
+	private HttpCacheStatisticsPanel getCacheStatisticsPanel() {
 		if (cacheStatisticsPanel == null) {
 			cacheStatisticsPanel = new HttpCacheStatisticsPanel();
 		}
@@ -285,7 +286,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	/**
 	 * Initializes RRC simulation statistics panel
 	 */
-	public RRCStatisticsPanel getRRCStatisticsPanel() {
+	private RRCStatisticsPanel getRRCStatisticsPanel() {
 		if (rrcStatisticsPanel == null) {
 			rrcStatisticsPanel = new RRCStatisticsPanel();
 		}
@@ -295,7 +296,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	/**
 	 * Initializes and returns the 3G Energy model statistics panel
 	 */
-	public EnergyModelStatisticsPanel getEnergyModelStatistics3GPanel() {
+	private EnergyModelStatisticsPanel getEnergyModelStatistics3GPanel() {
 		if (energyModelStatisticsPanel == null) {
 			energyModelStatisticsPanel = new EnergyModelStatistics3GPanel();
 		} else {
@@ -315,7 +316,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	/**
 	 * Initializes and returns the LTE Energy model statistics panel
 	 */
-	public EnergyModelStatisticsPanel getEnergyModelStatisticsLTEPanel() {
+	private EnergyModelStatisticsPanel getEnergyModelStatisticsLTEPanel() {
 		if (energyModelStatisticsPanel != null
 				&& (energyModelStatisticsPanel instanceof EnergyModelStatistics3GPanel || energyModelStatisticsPanel instanceof EnergyModelStatisticsWiFiPanel)) {
 			mainPanel.remove(energyModelStatisticsPanel);
@@ -331,7 +332,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	/**
 	 * Initializes and returns the LTE Energy model statistics panel
 	 */
-	public EnergyModelStatisticsPanel getWiFiEnergyModelStatisticsPanel() {
+	private EnergyModelStatisticsPanel getWiFiEnergyModelStatisticsPanel() {
 		if (energyModelStatisticsPanel != null
 				&& (energyModelStatisticsPanel instanceof EnergyModelStatistics3GPanel || energyModelStatisticsPanel instanceof EnergyModelStatisticsLTEPanel)) {
 			mainPanel.remove(energyModelStatisticsPanel);
@@ -345,27 +346,33 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	}
 
 	/**
-	 * Creates the blue header with the ATT logo.
+	 * Creates the blue header with logo.
 	 */
-	private ImagePanel getHeaderPanel() {
+	private JPanel getHeaderPanel() {
 		if (headerPanel == null) {
-			headerPanel = new ImagePanel(Images.BLUE_HEADER.getImage());
-			headerPanel.setLayout(new BorderLayout(50, 50));
-			headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+			JPanel imagePanel = new ImagePanel(Images.BLUE_HEADER.getImage());
+			imagePanel.setLayout(new BorderLayout(50, 50));
+			imagePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+			imagePanel.setMaximumSize(new Dimension(1375, 114));
+
 			JLabel l = new JLabel(Images.HEADER_ICON.getIcon(), SwingConstants.CENTER);
 			l.setPreferredSize(new Dimension(80, 80));
-			headerPanel.add(l, BorderLayout.WEST);
+			imagePanel.add(l, BorderLayout.WEST);
 
 			JLabel bpHeaderLabel = new JLabel(rb.getString("statistics.title"));
 			bpHeaderLabel.setFont(UIManager.getFont(AROUIManager.TITLE_FONT_KEY));
 			bpHeaderLabel.setForeground(Color.WHITE);
-			headerPanel.add(bpHeaderLabel, BorderLayout.CENTER);
+			imagePanel.add(bpHeaderLabel, BorderLayout.CENTER);
 
 			JPanel buttonPanel = new JPanel();
 			buttonPanel.setLayout(new BorderLayout());
 			buttonPanel.setOpaque(false);
 			buttonPanel.add(getExportBtn(), BorderLayout.CENTER);
-			headerPanel.add(buttonPanel, BorderLayout.EAST);
+			imagePanel.add(buttonPanel, BorderLayout.EAST);
+			
+			headerPanel = new JPanel();
+			headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
+			headerPanel.add(imagePanel);
 		}
 		return headerPanel;
 	}
@@ -566,11 +573,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	 * 
 	 * @return the trace date and detail panel
 	 */
-	public DateTraceAppDetailPanel getdateTraceAppDetailPanel() {
+	private DateTraceAppDetailPanel getdateTraceAppDetailPanel() {
 		return this.dateTraceAppDetailPanel;
-	}
-	
-	public void setAnalysisDisplay(){
-		
 	}
 }

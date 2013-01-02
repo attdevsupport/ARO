@@ -18,6 +18,8 @@ package com.att.aro.bp;
 import java.net.URI;
 import java.util.List;
 
+import javax.swing.event.HyperlinkEvent;
+
 import com.att.aro.main.ApplicationResourceOptimizer;
 import com.att.aro.model.TraceData;
 
@@ -86,11 +88,11 @@ public interface BestPracticeDisplay {
 	/**
 	 * This method is used to allow the best practice to do something within the 
 	 * application to maybe display more detail about a failed test.  This action
-	 * will be performed when the user clicks on the results of a failed test.
-	 * This method is never called for a self-test.
+	 * will be performed when the user clicks on a hyperlink in the results of a
+	 * failed test.  This method is never called for a self-test.
 	 * @param parent The ARO parent window that is displaying current analysis
 	 */
-	public void performAction(ApplicationResourceOptimizer parent);
+	public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent);
 
 	/**
 	 * Allows the developer to include extra information when a best practice

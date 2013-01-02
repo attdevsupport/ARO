@@ -27,8 +27,10 @@ import java.text.MessageFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.ExecutionException;
@@ -40,16 +42,18 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import com.att.aro.bp.BestPracticeDisplay;
+import com.att.aro.bp.BestPracticeDisplayFactory;
+import com.att.aro.bp.BestPracticeDisplayGroup;
+import com.att.aro.bp.BestPracticeExport;
 import com.att.aro.commonui.AROUIManager;
 import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.main.ApplicationResourceOptimizer;
 import com.att.aro.main.ProfileManager;
 import com.att.aro.main.ResourceBundleManager;
 import com.att.aro.model.ApplicationPacketSummary;
-import com.att.aro.model.BestPractices;
 import com.att.aro.model.BurstAnalysisInfo;
 import com.att.aro.model.BurstCategory;
-import com.att.aro.model.BurstCollectionAnalysis;
 import com.att.aro.model.CacheInfoParser;
 import com.att.aro.model.EnergyModel;
 import com.att.aro.model.FileTypeSummary;
@@ -58,6 +62,7 @@ import com.att.aro.model.Profile3G;
 import com.att.aro.model.ProfileException;
 import com.att.aro.model.ProfileLTE;
 import com.att.aro.model.ProfileType;
+import com.att.aro.model.ProfileWiFi;
 import com.att.aro.model.RRCStateMachine;
 import com.att.aro.model.TraceData;
 import com.att.aro.model.TraceData.Analysis;
@@ -74,6 +79,17 @@ public class DataDump {
 
 	private File traceDir;
 	private File fileToSave;
+	private boolean subfolderAccess = true;
+	private boolean userConfirmation = false;
+	private Collection<BestPracticeDisplayGroup> bestPracticeGroups = BestPracticeDisplayFactory.getInstance().getBestPracticeDisplay();
+	private Collection<BestPracticeDisplay> bestPractices = new ArrayList<BestPracticeDisplay>();
+	{
+		for (BestPracticeDisplayGroup group : bestPracticeGroups) {
+			for (BestPracticeDisplay bp : group.getBestPractices()) {
+				bestPractices.add(bp);
+			}
+		}
+	}
 
 	private static final Window msgWindow = new Window(new Frame());
 
@@ -90,9 +106,9 @@ public class DataDump {
 	 * @param dir
 	 * @throws IOException
 	 */
-	public DataDump(File dir, String profileVal) throws IOException {
+	public DataDump(File dir, final Profile profile) throws IOException {
 		this.traceDir = dir;
-		final String profile = profileVal;
+
 		// Initialize application window
 		AROUIManager.init();
 		
@@ -121,7 +137,7 @@ public class DataDump {
 
 			new SwingWorker<File, Object>() {
 				@Override
-				protected File doInBackground() throws IOException {
+				protected File doInBackground() throws IOException, ProfileException {
 					startDataDump(traceFolders, profile);
 					return fileToSave;
 				}
@@ -165,19 +181,20 @@ public class DataDump {
 	 * 
 	 * @param args
 	 */
-	public static void main(String[] args) {
-		// TODO need to verify the folder names with spaces
-		if (args.length == 0) {
-			MessageDialogFactory.showErrorDialog(msgWindow,
-					rb.getString("datadump.Error.argumentfaliure"));
-		}
-		final File dataDumpDir = new File(args[0]);
-		try {
-			new DataDump(dataDumpDir, args[1]);
-		} catch (IOException e) {
-			logger.info("" + e);
-		}
-	}
+//	public static void main(String[] args) {
+//		// TODO need to verify the folder names with spaces
+//		if (args.length == 0) {
+//			MessageDialogFactory.showErrorDialog(msgWindow,
+//					rb.getString("datadump.Error.argumentfaliure"));
+//			return;
+//		}
+//		final File dataDumpDir = new File(args[0]);
+//		try {
+//			new DataDump(dataDumpDir, args[1]);
+//		} catch (IOException e) {
+//			logger.info("" + e);
+//		}
+//	}
 
 	/**
 	 * Initiates the save chooser options and creates a file.
@@ -224,16 +241,12 @@ public class DataDump {
 	 * @return A FileWriter object.
 	 * @throws IOException
 	 */
-	private FileWriter startDataDump(List<File> traceFolders, String profile) throws IOException {
+	private FileWriter startDataDump(List<File> traceFolders, Profile profile) throws IOException, ProfileException {
 
-		Profile currentProfile = ProfileManager.getInstance().getDefaultProfile();
 		FileWriter writer = new FileWriter(fileToSave);
 		try {
-			if (profile.contains("3G")) {
-				currentProfile = ProfileManager.getInstance().getLastUserProfile(ProfileType.T3G);
-			} else if (profile.contains("LTE")) {
-				currentProfile = ProfileManager.getInstance().getLastUserProfile(ProfileType.LTE);
-			} 
+			Profile currentProfile = profile != null ? profile : ProfileManager
+					.getInstance().getLastUserProfile(ProfileType.T3G);
 
 			writer.append(rb.getString("menu.profile") + ":" + currentProfile.getName());
 			writer.append(lineSep);
@@ -242,24 +255,26 @@ public class DataDump {
 				writer = add3GHeader(writer);
 			} else if (currentProfile instanceof ProfileLTE) {
 				writer = addLTEHeader(writer);
+			} else if (currentProfile instanceof ProfileWiFi) {
+				writer = addWiFiHeader(writer);
 			}
 
 			writer.append(lineSep);
 
-			for (File traceDir : traceFolders) {
-				final List<File> traceFiles = Arrays.asList(traceDir.listFiles());
-				if (!checkTraceDir(traceFiles)) {
-					continue;
+			List<File> validFolderList = new ArrayList<File>();
+			GetValidFolderList(traceFolders, validFolderList);
+			for (File traceDir : validFolderList) {
+				TraceData.Analysis analysis;
+				try {
+					TraceData traceData = new TraceData(traceDir);
+					analysis = traceData.runAnalysis(currentProfile, null);
+					writer = addContent(writer, analysis);
+				} catch (Exception e) {
+					
+					// Just log exceptions loading directories
+					logger.log(Level.WARNING, "Unable to run analysis on folder: " + traceDir, e);
 				}
-
-				final TraceData traceData = new TraceData(traceDir);
-				TraceData.Analysis analysis = traceData.runAnalysis(currentProfile, null);
-
-				writer = addContent(writer, analysis);
-
 			}
-		} catch (ProfileException proEx) {
-			// TODO Display profile exception
 		} finally {
 			writer.close();
 		}
@@ -267,23 +282,43 @@ public class DataDump {
 	}
 
 	/**
-	 * Validates individual trace folder.
+	 * Collects valid trace folders.
 	 * 
-	 * @param traceFiles
-	 *            - List of trace folder names.
-	 * @return true if valid trace else false.
+	 * @param traceFolders
+	 *            - List of available folder names.
+	 * @param validFolderList
+	 *            - List of valid trace folder names.
 	 */
-	private boolean checkTraceDir(List<File> traceFiles) {
-		if (!(traceFiles.size() > 0)) {
-			return false;
-		}
-		boolean isTraffic = false;
-		for (File traceFile : traceFiles) {
-			if (traceFile.getName().equalsIgnoreCase(rb.getString("datadump.trafficFile"))) {
-				isTraffic = true;
+	private void GetValidFolderList(List<File> traceFolders, List<File> validFolderList) {
+		String trafficFile = rb.getString("datadump.trafficFile");
+		for (File traceDir : traceFolders) {
+
+			// Check if it is a valid trace folder or not
+			if (new File(traceDir, trafficFile).exists()) {
+				validFolderList.add(traceDir);
+			} else {
+				// Invalid trace sub-folder. Skip it silently.
+			}
+
+			// Check if it has sub-folders or not
+			List<File> allFolders = Arrays.asList(traceDir.listFiles(new java.io.FileFilter() {
+				@Override
+				public boolean accept(File arg0) {
+					return arg0.isDirectory();
+				}
+			}));
+			if (subfolderAccess && allFolders.size() > 0) {
+				if (!userConfirmation
+						&& MessageDialogFactory.showConfirmDialog(msgWindow,
+								rb.getString("datadump.subfolder"), JOptionPane.YES_NO_OPTION) == JOptionPane.NO_OPTION) {
+
+					subfolderAccess = false;
+					continue;
+				}
+				userConfirmation = true;
+				GetValidFolderList(allFolders, validFolderList);
 			}
 		}
-		return isTraffic;
 	}
 
 	/**
@@ -312,6 +347,8 @@ public class DataDump {
 			writer = add3GRRCStateAndEnergySimulation(writer, analysis);
 		} else if (analysis.getProfile() instanceof ProfileLTE) {
 			writer = addLTERRCStateAndEnergySimulation(writer, analysis);
+		} else if (analysis.getProfile() instanceof ProfileWiFi) {
+			writer = addWiFiRRCStateAndEnergySimulation(writer, analysis);
 		}
 
 		// Cache Content score
@@ -632,7 +669,11 @@ public class DataDump {
 	 * @throws IOException
 	 */
 	private FileWriter addCommonContents(FileWriter writer, Analysis analysis) throws IOException {
-		writer.append(quoteSep + analysis.getTraceData().getTraceDir().getName() + quoteSep);
+
+		String traceDirPath = analysis.getTraceData().getTraceDir().toString();
+		String traceDirRelativeName = traceDirPath.replace(this.traceDir.toString(), "");
+
+		writer.append(quoteSep + traceDirRelativeName + quoteSep);
 		writer.append(commaSep);
 		writer.append(quoteSep + analysis.getTraceData().getCollectorVersion() + quoteSep);
 		writer.append(commaSep);
@@ -717,6 +758,12 @@ public class DataDump {
 		return writer;
 	}
 
+	private String bestPracticeExport(BestPracticeExport bpe) {
+		String value = bpe.getValue();
+		String units = bpe.getUnitsDescription();
+		return ((value != null ? value : "" ) + " " + (units != null ? units : "")).trim();
+	}
+	
 	/**
 	 * Adds Best practices data.
 	 * 
@@ -726,121 +773,28 @@ public class DataDump {
 	 * @throws IOException
 	 */
 	private FileWriter addBestPractices(FileWriter writer, Analysis analysis) throws IOException {
-		final BestPractices bestPractices = analysis.getBestPractice();
-		BurstCollectionAnalysis burst = analysis.getBcAnalysis();
+		final String bpPass = rb.getString("bestPractices.pass");
+		final String bpFail = rb.getString("bestPractices.fail");
 		final String commaSepWithSpace = commaSep + " ";
-		final int DUPLICATE_CONTENT_DENOMINATOR = 1048576;
-		NumberFormat nf = NumberFormat.getInstance();
-		nf.setMaximumFractionDigits(1);
-		NumberFormat nf2 = NumberFormat.getInstance();
-		nf2.setMaximumFractionDigits(3);
-
-		writer.append(bestPractices.getDuplicateContent() ? rb.getString("bestPractices.pass") : rb
-				.getString("bestPractices.fail"));
-		writer.append(commaSep);
-		writer.append(quoteSep
-				+ String.valueOf(nf.format(bestPractices.getDuplicateContentBytesRatio() * 100.0)
-						+ " " + rb.getString("exportall.csvPct"))
-				+ commaSepWithSpace
-				+ String.valueOf(bestPractices.getDuplicateContentsize())
-				+ " "
-				+ rb.getString("exportall.csvFiles")
-				+ commaSepWithSpace
-				+ String.valueOf(nf2.format(((double) bestPractices.getDuplicateContentBytes())
-						/ DUPLICATE_CONTENT_DENOMINATOR)
-						+ " " + rb.getString("statics.csvUnits.mbytes")) + quoteSep);
-		writer.append(commaSep);
-
-		writer.append(bestPractices.isUsingCache() ? rb.getString("bestPractices.pass") : rb
-				.getString("bestPractices.fail"));
-		writer.append(commaSep);
-		writer.append(String.valueOf(NumberFormat.getIntegerInstance().format(
-				bestPractices.getCacheHeaderRatio())
-				+ rb.getString("exportall.csvCacheConPct")));
-		writer.append(commaSep);
-
-		writer.append(bestPractices.isCacheControl() ? rb.getString("bestPractices.pass") : rb
-				.getString("bestPractices.fail"));
-		writer.append(commaSep);
-		writer.append(quoteSep + String.valueOf(bestPractices.getHitNotExpiredDupCount()) + " "
-				+ rb.getString("datadump.csvCacheConNExpDesc") + commaSepWithSpace
-				+ String.valueOf(bestPractices.getHitExpired304Count()) + " "
-				+ rb.getString("exportall.csvCacheCon304Desc") + quoteSep);
-		writer.append(commaSep);
-
-		writer.append(bestPractices.getPrefetching() ? rb.getString("bestPractices.pass") : rb
-				.getString("bestPractices.fail"));
-		writer.append(commaSep);
-		writer.append(String.valueOf(bestPractices.getUserInputBurstCount()) + " "
-				+ rb.getString("exportall.csvPrefetchDesc"));
-		writer.append(commaSep);
-
-		writer.append(rb.getString("bestPractices.selfTest"));
-		writer.append(commaSep);
-		writer.append(commaSep);
-
-		writer.append(bestPractices.getMultipleTcpCon() ? rb.getString("bestPractices.pass") : rb
-				.getString("bestPractices.fail"));
-		writer.append(commaSep);
-		writer.append(String.valueOf(burst.getTightlyCoupledBurstCount()) + " "
-				+ rb.getString("exportall.csvMultiConnDesc"));
-		writer.append(commaSep);
-
-		writer.append(bestPractices.getPeriodicTransfer() ? rb.getString("bestPractices.pass") : rb
-				.getString("bestPractices.fail"));
-		writer.append(commaSep);
-		writer.append(quoteSep + String.valueOf(burst.getDiffPeriodicCount()) + " "
-				+ rb.getString("exportall.csvIneffConnDesc") + commaSepWithSpace
-				+ String.valueOf(burst.getPeriodicCount()) + " "
-				+ rb.getString("exportall.csvIneffConnRptDesc") + commaSepWithSpace
-				+ String.valueOf(burst.getMinimumPeriodicRepeatTime()) + " "
-				+ rb.getString("exportall.csvIneffConnTimeDesc") + quoteSep);
-		writer.append(commaSep);
-
-		writer.append(bestPractices.getScreenRotationProblem() ? rb.getString("bestPractices.pass")
-				: rb.getString("bestPractices.fail"));
-		writer.append(commaSep);
-		writer.append(String.valueOf(analysis.getTraceData().getScreenRotationCounter())
-				+ " "
-				+ (bestPractices.getScreenRotationProblem() ? rb
-						.getString("exportall.csvSrcnRtnDescPass") : rb
-						.getString("exportall.csvSrcnRtnDesc")));
-		writer.append(commaSep);
-
-		writer.append(bestPractices.getConnectionClosingProblem() ? rb
-				.getString("bestPractices.pass") : rb.getString("bestPractices.fail"));
-		writer.append(commaSep);
-		writer.append(String.valueOf(nf.format(analysis.getBestPractice().getTcpControlEnergy())
-				+ " " + rb.getString("exportall.csvConnClosingDesc")));
-		writer.append(commaSep);
-
-		writer.append(bestPractices.getOffloadingToWiFi() ? rb.getString("bestPractices.pass") : rb
-				.getString("bestPractices.fail"));
-		writer.append(commaSep);
-		writer.append(String.valueOf(burst.getLongBurstCount()) + " "
-				+ rb.getString("exportall.csvOffWiFiDesc"));
-		writer.append(commaSep);
-
-		writer.append(bestPractices.getAccessingPeripherals() ? rb.getString("bestPractices.pass")
-				: rb.getString("bestPractices.fail"));
-		writer.append(commaSep);
-		writer.append(quoteSep
-				+ String.valueOf(nf.format(bestPractices.getGPSActiveStateRatio()) + " "
-						+ rb.getString("exportall.csvAccGPSDesc"))
-				+ commaSepWithSpace
-				+ String.valueOf(nf.format(bestPractices.getBluetoothActiveStateRatio()) + " "
-						+ rb.getString("exportall.csvAccBTDesc"))
-				+ commaSepWithSpace
-				+ String.valueOf(nf.format(bestPractices.getCameraActiveStateRatio()) + " "
-						+ rb.getString("exportall.csvAccCamDesc")) + quoteSep);
-		writer.append(commaSep);
-
-		writer.append(bestPractices.getHttp10Usage() ? rb.getString("bestPractices.pass") : rb
-				.getString("bestPractices.fail"));
-		writer.append(commaSep);
-		writer.append(String.valueOf(bestPractices.getHttp1_0HeaderCount()) + " "
-				+ rb.getString("exportall.csvHTTPhdrDesc"));
-		writer.append(commaSep);
+		
+		for (BestPracticeDisplay bp : this.bestPractices) {
+			writer.append(bp.isPass(analysis) ? bpPass : bpFail);
+			writer.append(commaSep);
+			
+			List<BestPracticeExport> bpes = bp.getExportData(analysis);
+			if (bpes != null && bpes.size() > 0) {
+				Iterator<BestPracticeExport> i = bpes.iterator();
+				BestPracticeExport bpe = i.next();
+				StringBuffer s = new StringBuffer(bestPracticeExport(bpe));
+				while (i.hasNext()) {
+					bpe = i.next();
+					s.append(commaSepWithSpace);
+					s.append(bestPracticeExport(bpe));
+				}
+				writer.append(createCSVEntry(s));
+			}
+			writer.append(commaSep);
+		}
 
 		return writer;
 	}
@@ -1072,6 +1026,57 @@ public class DataDump {
 	}
 
 	/**
+	 * Adds WiFi RRC state and energy simulation.
+	 * 
+	 * @param writer
+	 *            - A FileWriter object.
+	 * @param analysis
+	 *            - A TraceData.Analysis object.
+	 * @return A FileWriter object.
+	 * @throws IOException
+	 */
+	private FileWriter addWiFiRRCStateAndEnergySimulation(FileWriter writer, Analysis analysis)
+			throws IOException {
+		RRCStateMachine rrc = analysis.getRrcStateMachine();
+		// RRC simulation
+		writer.append(quoteSep + nf.format(rrc.getWifiActiveTime()) + quoteSep);
+		writer.append(commaSep);
+		writer.append(quoteSep + nf.format(rrc.getWifiActiveRatio() * 100.0) + quoteSep);
+		writer.append(commaSep);
+		writer.append(quoteSep + nf.format(rrc.getWifiTailTime()) + quoteSep);
+		writer.append(commaSep);
+		writer.append(quoteSep + nf.format(rrc.getWifiTailRatio() * 100.0) + quoteSep);
+		writer.append(commaSep);
+		writer.append(quoteSep + nf.format(rrc.getWifiIdleTime()) + quoteSep);
+		writer.append(commaSep);
+		writer.append(quoteSep + nf.format(rrc.getWifiIdleRatio() * 100.0) + quoteSep);
+		writer.append(commaSep);
+
+		writer.append(quoteSep + nf.format(rrc.getTotalRRCEnergy()) + quoteSep);
+		writer.append(commaSep);
+		// Energy Simulation
+		writer.append(quoteSep + nf.format(rrc.getWifiActiveEnergy()) + quoteSep);
+		writer.append(commaSep);
+		writer.append(quoteSep
+				+ nf.format((rrc.getWifiActiveEnergy() / rrc.getTotalRRCEnergy()) * 100.0)
+				+ quoteSep);
+		writer.append(commaSep);
+		writer.append(quoteSep + nf.format(rrc.getWifiTailEnergy()) + quoteSep);
+		writer.append(commaSep);
+		writer.append(quoteSep
+				+ nf.format((rrc.getWifiTailEnergy() / rrc.getTotalRRCEnergy()) * 100.0) + quoteSep);
+		writer.append(commaSep);
+		writer.append(quoteSep + nf.format(rrc.getWifiIdleEnergy()) + quoteSep);
+		writer.append(commaSep);
+		writer.append(quoteSep
+				+ nf.format((rrc.getWifiIdleEnergy() / rrc.getTotalRRCEnergy()) * 100.0) + quoteSep);
+		writer.append(commaSep);
+		writer.append(quoteSep + nf.format(rrc.getJoulesPerKilobyte()) + quoteSep);
+		writer.append(commaSep);
+		return writer;
+	}
+
+	/**
 	 * Adds Basic Statistics data in writer.
 	 * 
 	 * @param writer
@@ -1128,7 +1133,7 @@ public class DataDump {
 		final String largeBurst = rb.getString("datadump.largeburst");
 		final String periodical = rb.getString("burst.type.Periodical");
 		final String nonTarget = rb.getString("burst.type.NonTarget");
-		final String bestPractices = rb.getString("datadump.bpractices");
+		final String bestPractices = createCSVEntry(rb.getString("datadump.bpractices"));
 		final String bpPassFail = rb.getString("datadump.bppassfail");
 		final String bpAssoData = rb.getString("datadump.bpassodata");
 		final String filetype = rb.getString("datadump.filetype");
@@ -1153,7 +1158,7 @@ public class DataDump {
 		for (int i = 0; i <= 1; i++) {
 			writer.append(commaSep);
 		}
-		writer = addContinuousHeader(writer, bestPractices, 23);
+		writer = addContinuousHeader(writer, bestPractices, (this.bestPractices.size() * 2) - 1);
 
 		for (int i = 0; i <= 3; i++) {
 			writer.append(commaSep);
@@ -1184,25 +1189,10 @@ public class DataDump {
 			writer.append(commaSep);
 		}
 
-		writer = addContinuousHeader(writer,
-				rb.getString("caching.duplicateContent.detailedTitle"), 1);
-		writer = addContinuousHeader(writer, rb.getString("caching.usingCache.detailedTitle"), 1);
-		writer = addContinuousHeader(writer, rb.getString("caching.cacheControl.detailedTitle"), 1);
-		writer = addContinuousHeader(writer, rb.getString("caching.prefetching.detailedTitle"), 1);
-		writer = addContinuousHeader(writer,
-				rb.getString("connections.connectionOpening.detailedTitle"), 1);
-		writer = addContinuousHeader(writer,
-				rb.getString("connections.unnecssaryConn.detailedTitle"), 1);
-		writer = addContinuousHeader(writer, rb.getString("connections.periodic.detailedTitle"), 1);
-		writer = addContinuousHeader(writer,
-				rb.getString("connections.screenRotation.detailedTitle"), 1);
-		writer = addContinuousHeader(writer, rb.getString("connections.connClosing.detailedTitle"),
-				1);
-		writer = addContinuousHeader(writer,
-				rb.getString("connections.offloadingToWifi.detailedTitle"), 1);
-		writer = addContinuousHeader(writer,
-				rb.getString("other.accessingPeripherals.detailedTitle"), 1);
-		writer = addContinuousHeader(writer, rb.getString("other.httpUsage.detailedTitle"), 1);
+		// Write best practice titles
+		for (BestPracticeDisplay bp : this.bestPractices) {
+			writer = addContinuousHeader(writer, createCSVEntry(bp.getDetailTitle()), 1);
+		}
 
 		writer = addContinuousHeader(writer, basicStat, 3);
 
@@ -1337,11 +1327,12 @@ public class DataDump {
 		writer.append(commaSep);
 		writer.append(rb.getString("datadump.appnamever"));
 
-		for (int i = 0; i <= 11; i++) {
+		// Write best practice column headers
+		for (int i = 0; i < this.bestPractices.size(); i++) {
 			writer.append(commaSep);
-			writer.append(bpPassFail);
+			writer.append(createCSVEntry(bpPassFail));
 			writer.append(commaSep);
-			writer.append(bpAssoData);
+			writer.append(createCSVEntry(bpAssoData));
 		}
 
 		writer.append(commaSep);
@@ -1503,7 +1494,7 @@ public class DataDump {
 		final String largeBurst = rb.getString("datadump.largeburst");
 		final String periodical = rb.getString("burst.type.Periodical");
 		final String nonTarget = rb.getString("burst.type.NonTarget");
-		final String bestPractices = rb.getString("datadump.bpractices");
+		final String bestPractices = createCSVEntry(rb.getString("datadump.bpractices"));
 		final String bpPassFail = rb.getString("datadump.bppassfail");
 		final String bpAssoData = rb.getString("datadump.bpassodata");
 		final String filetype = rb.getString("datadump.filetype");
@@ -1528,7 +1519,7 @@ public class DataDump {
 		for (int i = 0; i <= 1; i++) {
 			writer.append(commaSep);
 		}
-		writer = addContinuousHeader(writer, bestPractices, 23);
+		writer = addContinuousHeader(writer, bestPractices, (this.bestPractices.size() * 2) - 1);
 
 		for (int i = 0; i <= 3; i++) {
 			writer.append(commaSep);
@@ -1559,25 +1550,10 @@ public class DataDump {
 			writer.append(commaSep);
 		}
 
-		writer = addContinuousHeader(writer,
-				rb.getString("caching.duplicateContent.detailedTitle"), 1);
-		writer = addContinuousHeader(writer, rb.getString("caching.usingCache.detailedTitle"), 1);
-		writer = addContinuousHeader(writer, rb.getString("caching.cacheControl.detailedTitle"), 1);
-		writer = addContinuousHeader(writer, rb.getString("caching.prefetching.detailedTitle"), 1);
-		writer = addContinuousHeader(writer,
-				rb.getString("connections.connectionOpening.detailedTitle"), 1);
-		writer = addContinuousHeader(writer,
-				rb.getString("connections.unnecssaryConn.detailedTitle"), 1);
-		writer = addContinuousHeader(writer, rb.getString("connections.periodic.detailedTitle"), 1);
-		writer = addContinuousHeader(writer,
-				rb.getString("connections.screenRotation.detailedTitle"), 1);
-		writer = addContinuousHeader(writer, rb.getString("connections.connClosing.detailedTitle"),
-				1);
-		writer = addContinuousHeader(writer,
-				rb.getString("connections.offloadingToWifi.detailedTitle"), 1);
-		writer = addContinuousHeader(writer,
-				rb.getString("other.accessingPeripherals.detailedTitle"), 1);
-		writer = addContinuousHeader(writer, rb.getString("other.httpUsage.detailedTitle"), 1);
+		// Write best practice titles
+		for (BestPracticeDisplay bp : this.bestPractices) {
+			writer = addContinuousHeader(writer, createCSVEntry(bp.getDetailTitle()), 1);
+		}
 
 		writer = addContinuousHeader(writer, basicStat, 3);
 
@@ -1708,11 +1684,12 @@ public class DataDump {
 		writer.append(commaSep);
 		writer.append(rb.getString("datadump.appnamever"));
 
-		for (int i = 0; i <= 11; i++) {
+		// Write best practice column headers
+		for (int i = 0; i < this.bestPractices.size(); i++) {
 			writer.append(commaSep);
-			writer.append(bpPassFail);
+			writer.append(createCSVEntry(bpPassFail));
 			writer.append(commaSep);
-			writer.append(bpAssoData);
+			writer.append(createCSVEntry(bpAssoData));
 		}
 
 		writer.append(commaSep);
@@ -1838,6 +1815,322 @@ public class DataDump {
 	}
 
 	/**
+	 * Adds WiFi headers in to CSV file.
+	 * 
+	 * @param writer
+	 *            - A FileWriter object.
+	 * @return A FileWriter object.
+	 * @throws IOException
+	 */
+	private FileWriter addWiFiHeader(FileWriter writer) throws IOException {
+
+		final String basicStat = rb.getString("datadump.basicstat");
+		final String rrcStatMachSim = rb.getString("datadump.rrcstatmcsimulation");
+		final String rrcSec = rb.getString("datadump.seconds");
+		final String rrcPCT = rb.getString("datadump.pct");
+		final String energySimulation = rb.getString("datadump.energysimulation");
+		final String energyJ = rb.getString("statics.csvUnits.j");
+		final String burstAnalysis = rb.getString("burstAnalysis.title");
+		final String userInput = rb.getString("chart.userInput");
+		final String app = rb.getString("burst.type.App");
+		final String tcpControl = rb.getString("datadump.tcpcontrol");
+		final String tcpLossRec = rb.getString("datadump.tcplossrec");
+		final String srvrNetDelay = rb.getString("burst.type.SvrNetDelay");
+		final String largeBurst = rb.getString("datadump.largeburst");
+		final String periodical = rb.getString("burst.type.Periodical");
+		final String nonTarget = rb.getString("burst.type.NonTarget");
+		final String bestPractices = createCSVEntry(rb.getString("datadump.bpractices"));
+		final String bpPassFail = rb.getString("datadump.bppassfail");
+		final String bpAssoData = rb.getString("datadump.bpassodata");
+		final String filetype = rb.getString("datadump.filetype");
+		final String value = rb.getString("overview.traceoverview.value");
+		final String percentile = rb.getString("overview.traceoverview.percentile");
+		final String conStats = rb.getString("overview.sessionoverview.title");
+		final String appScore = rb.getString("appscore.title");
+		final String endpntSumm = rb.getString("endpointsummary.title");
+		final String burstbytes = rb.getString("burstAnalysis.bytes");
+		final String burstbytpct = rb.getString("burstAnalysis.bytesPct");
+		final String burstEner = rb.getString("burstAnalysis.energy");
+		final String burstEngpct = rb.getString("burstAnalysis.energyPct");
+		final String wifiActive = rb.getString("burstAnalysis.wifiActive");
+		final String pctwifiActive = rb.getString("burstAnalysis.wifiActivePct");
+		final String burstjpkb = rb.getString("burstAnalysis.jpkb");
+		final String packettype = rb.getString("packet.type");
+		final String pct = rb.getString("simple.percent");
+		final String endpntapp = rb.getString("endpointsummary.appname");
+		final String endpntpkt = rb.getString("endpointsummary.packets");
+		final String endpntbyte = rb.getString("endpointsummary.bytes");
+		final String wifiAct = rb.getString("rrc.wifiActive");
+		final String wifiTail = rb.getString("rrc.WifiTail");
+		final String wifiIdle = rb.getString("rrc.WiFiIdle");
+
+		for (int i = 0; i <= 1; i++) {
+			writer.append(commaSep);
+		}
+		writer = addContinuousHeader(writer, bestPractices, (this.bestPractices.size() * 2) - 1);
+
+		for (int i = 0; i <= 3; i++) {
+			writer.append(commaSep);
+		}
+		writer = addContinuousHeader(writer, rrcStatMachSim, 5);
+		writer = addContinuousHeader(writer, energySimulation, 7);
+
+		for (int i = 0; i <= 7; i++) {
+			writer.append(commaSep);
+		}
+		writer = addContinuousHeader(writer, burstAnalysis, 55);
+
+		for (int i = 0; i <= 14; i++) {
+			writer.append(commaSep);
+		}
+		writer = addContinuousHeader(writer, rb.getString("overview.traceoverview.title"), 5);
+
+		for (int i = 0; i <= 22; i++) {
+			writer.append(commaSep);
+		}
+		writer = addContinuousHeader(writer, rb.getString("datadump.cachenoncache"), 3);
+		writer = addContinuousHeader(writer, rb.getString("datadump.cacheCacheSim"), 19);
+		writer = addContinuousHeader(writer, rb.getString("datadump.dupFile"), 7);
+
+		writer.append(lineSep);
+
+		for (int i = 0; i <= 1; i++) {
+			writer.append(commaSep);
+		}
+
+		// Write best practice titles
+		for (BestPracticeDisplay bp : this.bestPractices) {
+			writer = addContinuousHeader(writer, createCSVEntry(bp.getDetailTitle()), 1);
+		}
+
+		writer = addContinuousHeader(writer, basicStat, 3);
+
+		writer.append(commaSep);
+		writer.append(wifiAct);
+		writer.append(commaSep);
+		writer.append(wifiAct);
+		writer.append(commaSep);
+		writer.append(wifiTail);
+		writer.append(commaSep);
+		writer.append(wifiTail);
+		writer.append(commaSep);
+		writer.append(wifiIdle);
+		writer.append(commaSep);
+		writer.append(wifiIdle);
+
+		for (int i = 0; i <= 1; i++) {
+			writer.append(commaSep);
+		}
+
+		writer.append(wifiAct);
+		writer.append(commaSep);
+		writer.append(wifiAct);
+		writer.append(commaSep);
+		writer.append(wifiTail);
+		writer.append(commaSep);
+		writer.append(wifiTail);
+		writer.append(commaSep);
+		writer.append(wifiIdle);
+		writer.append(commaSep);
+		writer.append(wifiIdle);
+		writer.append(commaSep);
+
+		writer = addContinuousHeader(writer, rb.getString("datadump.energytitle"), 7);
+		writer = addContinuousHeader(writer, userInput, 6);
+		writer = addContinuousHeader(writer, app, 6);
+		writer = addContinuousHeader(writer, tcpControl, 6);
+		writer = addContinuousHeader(writer, tcpLossRec, 6);
+		writer = addContinuousHeader(writer, srvrNetDelay, 6);
+		writer = addContinuousHeader(writer, largeBurst, 6);
+		writer = addContinuousHeader(writer, periodical, 6);
+		writer = addContinuousHeader(writer, nonTarget, 6);
+
+		for (int i = 1; i <= 5; i++) {
+			for (int j = 1; j <= 3; j++) {
+				writer.append(commaSep);
+				writer.append(filetype + i);
+			}
+		}
+
+		writer = addContinuousHeader(writer, rb.getString("Export.traceoverview.throughput"), 1);
+		writer = addContinuousHeader(writer, rb.getString("Export.traceoverview.jpkb"), 1);
+		writer = addContinuousHeader(writer, rb.getString("Export.traceoverview.promoratio"), 1);
+
+		for (int j = 0; j <= 4; j++) {
+			writer.append(commaSep);
+			writer.append(conStats);
+		}
+
+		for (int j = 0; j <= 2; j++) {
+			writer.append(commaSep);
+			writer.append(appScore);
+		}
+
+		for (int i = 1; i <= 5; i++) {
+			for (int j = 1; j <= 3; j++) {
+				writer.append(commaSep);
+				writer.append(endpntSumm + " " + i);
+			}
+		}
+
+		writer = addContinuousHeader(writer, rb.getString("cache.cacheable"), 1);
+		writer = addContinuousHeader(writer, rb.getString("cache.nonCachable"), 1);
+		writer = addContinuousHeader(writer, rb.getString("cache.cacheMiss"), 1);
+		writer = addContinuousHeader(writer, rb.getString("cache.notCacheable"), 1);
+		writer = addContinuousHeader(
+				writer,
+				rb.getString("cache.cacheHitExpiredDup304").replace(
+						rb.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(
+				writer,
+				rb.getString("cache.cacheHitRespChanged").replace(
+						rb.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, rb.getString("cache.cacheHitNotExpiredDup"), 1);
+		writer = addContinuousHeader(writer, rb.getString("cache.cacheHitExpiredClientDup")
+				.replace(rb.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, rb.getString("cache.cacheHitExpiredServerDup")
+				.replace(rb.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, rb.getString("cache.partialHitNotExpiredDup"), 1);
+		writer = addContinuousHeader(writer, rb.getString("cache.partialHitExpiredClientDup")
+				.replace(rb.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, rb.getString("cache.partialHitExpiredServerDup")
+				.replace(rb.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, rb.getString("cache.notExpired"), 1);
+		writer = addContinuousHeader(writer, rb.getString("cache.notExpiredHeur"), 1);
+		writer = addContinuousHeader(writer, rb.getString("cache.expired"), 1);
+		writer = addContinuousHeader(writer, rb.getString("cache.expiredHeur"), 1);
+
+		writer.append(lineSep);
+
+		writer.append(rb.getString("datadump.tracename"));
+		writer.append(commaSep);
+		writer.append(rb.getString("datadump.appVersion"));
+		writer.append(commaSep);
+		writer.append(rb.getString("datadump.appnamever"));
+
+		// Write best practice column headers
+		for (int i = 0; i < this.bestPractices.size(); i++) {
+			writer.append(commaSep);
+			writer.append(createCSVEntry(bpPassFail));
+			writer.append(commaSep);
+			writer.append(createCSVEntry(bpAssoData));
+		}
+
+		writer.append(commaSep);
+		writer.append(rb.getString("datadump.sizeinbyte"));
+		writer.append(commaSep);
+		writer.append(rb.getString("datadump.durationinsec"));
+		writer.append(commaSep);
+		writer.append(rb.getString("datadump.packets"));
+		writer.append(commaSep);
+		writer.append(rb.getString("datadump.avgrate"));
+
+		for (int i = 0; i <= 2; i++) {
+			writer.append(commaSep);
+			writer.append(rrcSec);
+			writer.append(commaSep);
+			writer.append(rrcPCT);
+		}
+
+		writer.append(commaSep);
+		writer.append(rb.getString("datadump.totalE"));
+
+		for (int i = 0; i <= 2; i++) {
+			writer.append(commaSep);
+			writer.append(energyJ);
+			writer.append(commaSep);
+			writer.append(rrcPCT);
+		}
+
+		writer.append(commaSep);
+		writer.append(rb.getString("burstAnalysis.jpkb"));
+		writer.append(commaSep);
+		writer.append(rb.getString("energy.gpsActive"));
+		writer.append(commaSep);
+		writer.append(rb.getString("energy.gpsStandby"));
+		writer.append(commaSep);
+		writer.append(rb.getString("energy.gpsTotal"));
+		writer.append(commaSep);
+		writer.append(rb.getString("energy.cameraTotal"));
+		writer.append(commaSep);
+		writer.append(rb.getString("energy.bluetoothActive"));
+		writer.append(commaSep);
+		writer.append(rb.getString("energy.bluetoothStandby"));
+		writer.append(commaSep);
+		writer.append(rb.getString("energy.bluetoothTotal"));
+		writer.append(commaSep);
+		writer.append(rb.getString("energy.screenTotal"));
+
+		for (int i = 0; i <= 7; i++) {
+			writer.append(commaSep);
+			writer.append(burstbytes);
+			writer.append(commaSep);
+			writer.append(burstbytpct);
+			writer.append(commaSep);
+			writer.append(burstEner);
+			writer.append(commaSep);
+			writer.append(burstEngpct);
+			writer.append(commaSep);
+			writer.append(wifiActive);
+			writer.append(commaSep);
+			writer.append(pctwifiActive);
+			writer.append(commaSep);
+			writer.append(burstjpkb);
+		}
+
+		for (int i = 0; i <= 4; i++) {
+			writer.append(commaSep);
+			writer.append(packettype);
+			writer.append(commaSep);
+			writer.append(pct);
+			writer.append(commaSep);
+			writer.append(burstbytes);
+		}
+
+		for (int i = 0; i <= 2; i++) {
+			writer.append(commaSep);
+			writer.append(value);
+			writer.append(commaSep);
+			writer.append(percentile);
+		}
+
+		writer.append(commaSep);
+		writer.append(rb.getString("Export.sessionoverview.sessionTerm"));
+		writer.append(commaSep);
+		writer.append(rb.getString("Export.sessionoverview.longBurstTerm"));
+		writer.append(commaSep);
+		writer.append(rb.getString("Export.sessionoverview.tightlyGroupedBurstTerm"));
+		writer.append(commaSep);
+		writer.append(rb.getString("Export.sessionoverview.periodicBurstTerm"));
+		writer.append(commaSep);
+		writer.append(rb.getString("Export.sessionoverview.nonPeriodicBurstTerm"));
+		writer.append(commaSep);
+		writer.append(rb.getString("appscore.subtitle.causes"));
+		writer.append(commaSep);
+		writer.append(rb.getString("appscore.subtitle.effects"));
+		writer.append(commaSep);
+		writer.append(rb.getString("appscore.subtitle.total"));
+
+		for (int i = 0; i <= 4; i++) {
+			writer.append(commaSep);
+			writer.append(endpntapp);
+			writer.append(commaSep);
+			writer.append(endpntpkt);
+			writer.append(commaSep);
+			writer.append(endpntbyte);
+		}
+
+		for (int j = 0; j <= 15; j++) {
+			writer.append(commaSep);
+			writer.append(rb.getString("statics.csvFormat.response"));
+			writer.append(commaSep);
+			writer.append(rb.getString("statics.csvFormat.bytes"));
+		}
+
+		return writer;
+	}
+
+	/**
 	 * Adds Continuous headers in CSV.
 	 * 
 	 * @param writer
@@ -1854,4 +2147,30 @@ public class DataDump {
 		}
 		return writer;
 	}
+
+	/**
+	 * Method to convert the {@link Object} values in to {@link String} values.
+	 * 
+	 * @param val
+	 *            {@link Object} value retrieved from the table cell.
+	 * @return Cell data in string format.
+	 */
+	private String createCSVEntry(Object val) {
+		StringBuffer writer = new StringBuffer();
+		String str = val != null ? val.toString() : "";
+		writer.append('"');
+		for (char c : str.toCharArray()) {
+			switch (c) {
+			case '"':
+				// Add an extra
+				writer.append("\"\"");
+				break;
+			default:
+				writer.append(c);
+			}
+		}
+		writer.append('"');
+		return writer.toString();
+	}
+
 }

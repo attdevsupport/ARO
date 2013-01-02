@@ -61,6 +61,7 @@ public class EnergyModel implements Serializable {
 							* (gps.getEndTimeStamp() - gps.getBeginTimeStamp());
 					break;
 				}
+			}
 		}
 		this.totalGpsEnergy = gpsActiveEnergy + gpsStandbyEnergy;
 
@@ -76,7 +77,6 @@ public class EnergyModel implements Serializable {
 					totalCameraEnergy += profile.getPowerCameraOn()
 							* (camera.getEndTimeStamp() - camera.getBeginTimeStamp());
 				}
-
 			}
 		}
 
@@ -109,8 +109,7 @@ public class EnergyModel implements Serializable {
 							* (screenInfo.getEndTimeStamp() - screenInfo.getBeginTimeStamp());
 				}
 			}
-		}}
-
+		}
 	}
 
 	/**

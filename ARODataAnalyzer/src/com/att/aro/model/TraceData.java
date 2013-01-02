@@ -50,6 +50,7 @@ import com.att.aro.model.PacketInfo.Direction;
 import com.att.aro.model.ScreenStateInfo.ScreenState;
 import com.att.aro.model.UserEvent.UserEventType;
 import com.att.aro.model.WifiInfo.WifiState;
+import com.att.aro.pcap.DomainNameSystem;
 import com.att.aro.pcap.IPPacket;
 import com.att.aro.pcap.NetmonAdapter;
 import com.att.aro.pcap.PCapAdapter;
@@ -61,7 +62,7 @@ import com.att.aro.pcap.PacketListener;
  * trace folder, and convert it to Lists of Data Analyzer bean objects.
  */
 public class TraceData implements Serializable {
-
+	
 	private static final long serialVersionUID = 1L;
 	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
@@ -1577,7 +1578,7 @@ public class TraceData implements Serializable {
 	private PacketListener packetListener = new PacketListener() {
 
 		@Override
-		public void packetArrived(Packet packet) {
+		public void packetArrived(String appName, Packet packet) {
 			if (packet instanceof IPPacket) { // Replaces GetPacketInfo(...)
 				IPPacket ip = (IPPacket) packet;
 				if (ip.getIPVersion() != 4) {
@@ -1592,7 +1593,7 @@ public class TraceData implements Serializable {
 				addIpCount(ip.getSourceIPAddress());
 				addIpCount(ip.getDestinationIPAddress());
 			}
-			allPackets.add(new PacketInfo(packet));
+			allPackets.add(new PacketInfo(appName, packet));
 
 		}
 	};
@@ -1626,7 +1627,7 @@ public class TraceData implements Serializable {
 		} else {
 
 			// Read PCAP file only
-			readPcapTrace(traceDir, null, null, null, true);
+			readPcapTrace(traceDir, null, null, null);
 		}
 
 	}
@@ -1836,16 +1837,34 @@ public class TraceData implements Serializable {
 		File file = new File(traceDir, APPNAME_FILE);
 		if (!file.exists()) {
 			this.missingFiles.add(APPNAME_FILE);
+			logger.fine("Application info file does not exists.");
 		}
 
 		BufferedReader br = new BufferedReader(new FileReader(file));
 		try {
 			for (String s = br.readLine(); s != null; s = br.readLine()) {
-				String strFields[] = s.split(" ");
-				this.appInfos.add(strFields[0]);
-				if (strFields.length > 1) {
-					this.appVersionMap.put(strFields[0], strFields[1]);
+				String strFields[];
+				String appName;
+				String appVer = "n/a";
+				if (s.charAt(0) == '"') {
+					// Application name is surrounded by double quotes
+					strFields = s.split("\"");
+					appName = strFields[1];
+					if (strFields.length > 2) {
+						appVer = strFields[2];
+						this.appVersionMap.put(appName, appVer);
+					}
+				} else {
+					// Application name is surrounded by spaces
+					strFields = s.split(" ");
+					appName = strFields[0];
+					if (strFields.length > 1) {
+						appVer = strFields[1];
+						this.appVersionMap.put(appName, appVer);
+					}
 				}
+				this.appInfos.add(appName);
+				logger.fine("App name: " + appName + " ver: " + appVer);
 			}
 		} finally {
 			br.close();
@@ -1910,11 +1929,11 @@ public class TraceData implements Serializable {
 		// Read the pcap files to get default times
 		File pcap = new File(traceDir, PCAP_FILE);
 		List<Integer> appIds = readAppIDs();
-		readPcapTrace(pcap, appIds, startTime, duration, false);
+		readPcapTrace(pcap, appIds, startTime, duration);
 		for (int i = 1;; i++) {
 			File pcapFile = new File(traceDir, TRAFFIC + i + CAP_EXT);
 			if (pcapFile.exists()) {
-				readPcapTrace(pcapFile, appIds, startTime, duration, false);
+				readPcapTrace(pcapFile, appIds, startTime, duration);
 			} else {
 				break;
 			}
@@ -2040,8 +2059,8 @@ public class TraceData implements Serializable {
 	 * @throws FileNotFoundException
 	 *             when file does not exist or is empty
 	 */
-	private void readPcapTrace(File pcap, List<Integer> appIds, Double startTime, Double duration,
-			boolean isFile) throws IOException, FileNotFoundException, UnsatisfiedLinkError {
+	private void readPcapTrace(File pcap, List<Integer> appIds, Double startTime, Double duration)
+			throws IOException, FileNotFoundException, UnsatisfiedLinkError {
 
 		if (!pcap.exists()) {
 			logger.severe("No TCP data found in trace");
@@ -2054,7 +2073,7 @@ public class TraceData implements Serializable {
 			new PCapAdapter(pcap, packetListener);
 		} catch (IOException e) {
 			String osname = System.getProperty("os.name");
-			if (isFile && osname != null && osname.contains("Windows")) {
+			if (osname != null && osname.contains("Windows")) {
 				try {
 					new NetmonAdapter(pcapFile, packetListener);
 				} catch (UnsatisfiedLinkError er) {
@@ -2099,25 +2118,27 @@ public class TraceData implements Serializable {
 						ip.getDestinationIPAddress()));
 				packet.setTimestamp(ip.getTimeStamp() - this.pcapTime0);
 
-				String appName;
-				if (i < appIds.size()) {
-					int appId = appIds.get(i);
+				String appName = packet.getAppName();
+				if (appName == null) {
+					if (i < appIds.size()) {
+						int appId = appIds.get(i);
 
-					// Check for valid application
-					if (appId >= 0) {
-						assert (appId < appInfos.size());
+						// Check for valid application
+						if (appId >= 0) {
+							assert (appId < appInfos.size());
 
-						appName = appId < appInfos.size() ? appInfos.get(appId) : null;
+							appName = appId < appInfos.size() ? appInfos.get(appId) : null;
+						} else {
+
+							// Should indicate unknown app ID
+							assert (appId == PACKET_UNKNOWN_APP);
+							appName = null;
+						}
 					} else {
-
-						// Should indicate unknown app ID
-						assert (appId == PACKET_UNKNOWN_APP);
-						appName = null;
+						appName = pcapAppName;
 					}
-				} else {
-					appName = pcapAppName;
+					packet.setAppName(appName);
 				}
-				packet.setAppName(appName);
 				this.allAppNames.add(appName);
 
 				// Group IPs by app

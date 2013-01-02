@@ -18,6 +18,7 @@ package com.att.android.arodatacollector.main;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -154,24 +155,6 @@ public class ARODataCollector extends Application {
 	/** Event properties logged during ARO application for use by Flurry Analytics. Application context scope. */
 	public Map<String, String> flurryError = new HashMap<String, String>();
 	
-	/**
-	 * Boolean variable to hold value true and false to check if tcpdump is
-	 * active and taking trace
-	 */
-	private boolean isARODataCollectorStopped;
-
-	/**
-	 * Boolean variable to keep true and false value for SD card mounted during
-	 * mid trace
-	 */
-	private boolean mMidTraceMediaMounted = false;
-	
-	/**
-	 * Boolean variable to keep true and false value for SD card mounted during
-	 * mid trace
-	 */
-	private boolean mMidTraceAirplaneModeEnabled = false;
-
 	/** The ARO Data Collector trace folder name */
 	private String mTraceFolderName;
 
@@ -205,20 +188,8 @@ public class ARODataCollector extends Application {
 	/** tcpdump stop time which is read from TIME file */
 	private Double pcapStopTime;
 
-	/** Boolean value to check if the tcpdump has been started */
-	private boolean isTcpdumpStarted;
-
-	/** Holds the boolean value for video capture in progress */
-	private boolean isVideoCaptureRunning;
-
 	/** Variable to hold value */
 	private boolean isVideoCaptureFailed = false;
-
-	/**
-	 * Boolean value hold the value in the ARO Data Collector trace start is in
-	 * progress this is first 15 sec after start collector is clicked
-	 */
-	private boolean isDataCollectorStartInProgress;
 
 	/**
 	 * Stores true and false value to notify change in network interface bearer
@@ -237,7 +208,7 @@ public class ARODataCollector extends Application {
 
 	/** ARO Data Collector is wifi lost flag */
 	private boolean requestDataCollectorStop = false;
-
+		
 	/**
 	 * Handles processing when an ARODataCollector object is created. Overrides
 	 * the android.app.Application#onCreate method.
@@ -259,11 +230,13 @@ public class ARODataCollector extends Application {
 	 * @throws IOException
 	 */
 	public void initARODataCollector() {
+		
 		try {
 			for (int resId = 0; resId < mARODataCollectorNativeExe.length; resId++) {
 				PushDataCollectorExeToNative(resId, mARODataCollectorNativeExe[resId]);
 			}
 			PushDataCollectorFFmpegToNative();
+				
 		} catch (IOException e) {
 			Log.e(TAG, "Exception in initARODataCollector", e);
 		}
@@ -444,6 +417,7 @@ public class ARODataCollector extends Application {
 				myOutput.write(buffer, 0, length);
 			}
 			myOutput.flush();
+			
 		} finally {
 			if (myOutput != null) {
 				myOutput.close();
@@ -723,7 +697,6 @@ public class ARODataCollector extends Application {
 	 * @return A string that is the trace folder name that contains errors.
 	 */
 	public String getErrorTraceFoldername() {
-
 		return traceFolderNamehasError;
 	}
 
@@ -735,7 +708,10 @@ public class ARODataCollector extends Application {
 	 *            "false" otherwise.
 	 */
 	public void setTcpDumpStartFlag(boolean flag) {
-		isTcpdumpStarted = flag;
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putBoolean("isTcpdumpStarted", flag);
+		editor.commit();
 	}
 
 	/**
@@ -746,7 +722,10 @@ public class ARODataCollector extends Application {
 	 *            progress, and false if it is not.
 	 */
 	public void setDataCollectorInProgressFlag(boolean flag) {
-		isDataCollectorStartInProgress = flag;
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putBoolean("isDataCollectorStartInProgress", flag);
+		editor.commit();
 	}
 
 	/**
@@ -756,6 +735,8 @@ public class ARODataCollector extends Application {
 	 *         Collector is in progress.
 	 */
 	public boolean getDataCollectorInProgressFlag() {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		final boolean isDataCollectorStartInProgress = prefs.getBoolean("isDataCollectorStartInProgress", false);
 		return isDataCollectorStartInProgress;
 	}
 
@@ -766,6 +747,8 @@ public class ARODataCollector extends Application {
 	 *         started.
 	 */
 	public boolean getTcpDumpStartFlag() {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		final boolean isTcpdumpStarted = prefs.getBoolean("isTcpdumpStarted", false);
 		return isTcpdumpStarted;
 	}
 
@@ -778,7 +761,10 @@ public class ARODataCollector extends Application {
 	 *            during the trace, and "false" if it is not.
 	 */
 	public void setARODataCollectorStopFlag(boolean flag) {
-		isARODataCollectorStopped = flag;
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putBoolean("isARODataCollectorStopped", flag);
+		editor.commit();
 	}
 
 	/**
@@ -788,9 +774,36 @@ public class ARODataCollector extends Application {
 	 *         Collector is stopped.
 	 */
 	public boolean getARODataCollectorStopFlag() {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		final boolean isARODataCollectorStopped = prefs.getBoolean("isARODataCollectorStopped", false);
 		return isARODataCollectorStopped;
 	}
 
+	/**
+	 * Gets the elapsedTimeStartTime which is the start time of the timer on the home page.
+	 * 
+	 * @return A long integer that represents when the trace started for the home page timer.
+	 */
+	public long getElapsedTimeStartTime() {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		final long elapsedTimeStartTime = prefs.getLong("elapsedTimeStartTime", 0);
+		return elapsedTimeStartTime;
+	}
+		
+	/**
+	 * Sets elapsedTimeStartTime which is the start time of the timer on the home page.
+	 * 
+	 * @param paramElapsedTimeStartTime
+	 *            A long integer that represents when the trace started for the home page timer.
+	 */
+	public void setElapsedTimeStartTime(long paramElapsedTimeStartTime) {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putLong("elapsedTimeStartTime", paramElapsedTimeStartTime);
+		editor.commit();
+	}
+	
+	
 	/**
 	 * Gets the flag that indicates whether the SD card is mounted during
 	 * mid-trace.
@@ -799,6 +812,8 @@ public class ARODataCollector extends Application {
 	 *         mounted during mid-trace.
 	 */
 	public boolean getAROMediaMountedMidTraceFlag() {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		final boolean mMidTraceMediaMounted = prefs.getBoolean("mMidTraceMediaMounted", false);
 		return mMidTraceMediaMounted;
 	}
 
@@ -811,7 +826,10 @@ public class ARODataCollector extends Application {
 	 *            during mid-trace, and "false" if it is not.
 	 */
 	public void setMediaMountedMidAROTrace(boolean flag) {
-		mMidTraceMediaMounted = flag;
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putBoolean("mMidTraceMediaMounted", flag);
+		editor.commit();
 	}
 	
 	/**
@@ -821,7 +839,9 @@ public class ARODataCollector extends Application {
 	 * @return A boolean value that indicates if Airplane mode was enabled mid-trace.
 	 */
 	public boolean getAirplaneModeEnabledMidAROTrace() {
-		return mMidTraceAirplaneModeEnabled;
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		final boolean mMidTraceMediaMounted = prefs.getBoolean("mMidTraceAirplaneModeEnabled", false);
+		return mMidTraceMediaMounted;
 	}
 	
 	/**
@@ -833,7 +853,10 @@ public class ARODataCollector extends Application {
 	 *            during mid-trace, and "false" if it is not.
 	 */
 	public void setAirplaneModeEnabledMidAROTrace(boolean flag) {
-		mMidTraceAirplaneModeEnabled = flag;
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putBoolean("mMidTraceAirplaneModeEnabled", flag);
+		editor.commit();
 	}
 
 	/**
@@ -845,7 +868,10 @@ public class ARODataCollector extends Application {
 	 *            during the trace, and "false" if it is not.
 	 */
 	public void setAROVideoCaptureRunningFlag(boolean flag) {
-		isVideoCaptureRunning = flag;
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putBoolean("isVideoCaptureRunning", flag);
+		editor.commit();
 	}
 
 	/**
@@ -856,7 +882,10 @@ public class ARODataCollector extends Application {
 	 *         is running during the trace.
 	 */
 	public boolean getAROVideoCaptureRunningFlag() {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		final boolean isVideoCaptureRunning = prefs.getBoolean("isVideoCaptureRunning", false);
 		return isVideoCaptureRunning;
+		
 	}
 
 	/**
@@ -866,7 +895,10 @@ public class ARODataCollector extends Application {
 	 *         failed.
 	 */
 	public boolean getVideoCaptureFailed() {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		isVideoCaptureFailed = prefs.getBoolean("isVideoCaptureFailed", false);
 		return isVideoCaptureFailed;
+
 	}
 
 	/**
@@ -877,7 +909,10 @@ public class ARODataCollector extends Application {
 	 *            and "false" if it has not.
 	 */
 	public void setVideoCaptureFailed(boolean flag) {
-		isVideoCaptureFailed = flag;
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putBoolean("isVideoCaptureFailed", flag);
+		editor.commit();
 	}
 
 	/**
@@ -889,7 +924,10 @@ public class ARODataCollector extends Application {
 	 *            bearer has changed, and is "false" otherwise.
 	 */
 	public void setDataCollectorBearerChange(boolean flag) {
-		mDataCollectorBearerChange = flag;
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putBoolean("mDataCollectorBearerChange", flag);
+		editor.commit();
 	}
 
 	/**
@@ -900,6 +938,8 @@ public class ARODataCollector extends Application {
 	 *         Collector data bearer changed during the trace cycle.
 	 */
 	public boolean getDataCollectorBearerChange() {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		mDataCollectorBearerChange = prefs.getBoolean("mDataCollectorBearerChange", false);
 		return mDataCollectorBearerChange;
 	}
 
@@ -1029,6 +1069,43 @@ public class ARODataCollector extends Application {
 				Log.d(TAG, "writeToFlurry()" + "hashMapToWriteTo()-" + comment + " not updated due to-currentState: " + currentState + "-existingState: " + existingState);
 			}
 		}
+	}
+
+	/**
+	 * check whether the device has root access
+	 */
+	public boolean hasRootAccess() {
+		Process sh = null;
+		DataOutputStream os = null;
+		int exitValue = -1;
+		boolean hasRootAccess = false;
+		try {
+			sh = Runtime.getRuntime().exec("su");
+			os = new DataOutputStream(sh.getOutputStream());
+			
+			String command = "exit\n";
+			os.writeBytes(command);
+			os.flush();
+			
+			exitValue = sh.waitFor();
+			
+			if (DEBUG){
+				Log.d(TAG, "exitValue=" + exitValue);
+			}
+			if (exitValue == 0){
+				//successful return value, has root access
+				hasRootAccess = true;
+			}
+			else {
+				Log.e(TAG, "root access denied");
+				hasRootAccess = false;
+			}
+			
+		} catch (Exception e){
+			Log.e(TAG, "does not have root access");
+		}
+		
+		return hasRootAccess;
 	}
 }
 

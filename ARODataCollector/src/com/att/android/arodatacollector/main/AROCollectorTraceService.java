@@ -124,7 +124,7 @@ public class AROCollectorTraceService extends Service {
 	 * The boolean value to enable logs depending on if production build or
 	 * debug build
 	 */
-	private static boolean mIsProduction = true;
+	private static boolean mIsProduction = false;
 
 	/**
 	 * The boolean value to enable logs depending on if production build or
@@ -145,7 +145,7 @@ public class AROCollectorTraceService extends Service {
 	private static int AIRPLANE_TARCE_TIMER_REPATE_TIME = 1000;
 
 	/** AROCollectorTraceService object */
-	private static AROCollectorTraceService mDataCollectorService;
+	private static AROCollectorTraceService mDataCollectorTraceService;
 
 	/**
 	 * The Application context of the ARo-Data Collector to gets and sets the
@@ -304,9 +304,14 @@ public class AROCollectorTraceService extends Service {
 	@Override
 	public void onCreate() {
 		super.onCreate();
-		mDataCollectorService = this;
-		mApp = (ARODataCollector) getApplication();
 		mAroUtils = new AROCollectorUtils();
+		
+		if (DEBUG){
+			Log.i(TAG, "starting AROCollectorTraceService at timestamp=" + mAroUtils.getDataCollectorEventTimeStamp());
+		}
+		
+		mDataCollectorTraceService = this;
+		mApp = (ARODataCollector) getApplication();
 		initializeFlurryObjects();
 		startARODataTraceCollection();
 	}
@@ -320,11 +325,13 @@ public class AROCollectorTraceService extends Service {
 	@Override
 	public void onDestroy() {
 		if (DEBUG) {
-			Log.d(TAG, "onDestroy called");
+			Log.d(TAG, "onDestroy called for AROCollectorTraceService");
 		}
 		super.onDestroy();
 		stopARODataTraceCollection();
 		mApp.cancleAROAlertNotification();
+		
+		mDataCollectorTraceService = null;
 	}
 
 	/**
@@ -333,7 +340,7 @@ public class AROCollectorTraceService extends Service {
 	 * @return An AROCollectorTraceService object.
 	 */
 	public static AROCollectorTraceService getServiceObj() {
-		return mDataCollectorService;
+		return mDataCollectorTraceService;
 	}
 
 	/**
@@ -344,6 +351,9 @@ public class AROCollectorTraceService extends Service {
 	 */
 	private void startARODataTraceCollection() {
 		try {
+			if (DEBUG){
+				Log.i(TAG, "starting ARO peripheral trace at timestamp=" + mAroUtils.getDataCollectorEventTimeStamp());
+			}
 			initAROTraceFile();
 			startAROScreenTraceMonitor();
 			startAROGpsTraceMonitor();
@@ -422,9 +432,11 @@ public class AROCollectorTraceService extends Service {
 
 	/**
 	 * Stops the ARO-Data Collector peripherals trace collection
-	 * 
 	 */
 	private void stopARODataTraceCollection() {
+		if (DEBUG){
+			Log.i(TAG, "stopping aro trace collection");
+		}
 		stopAROScreenTraceMonitor();
 		stopAROGpsTraceMonitor();
 		stopAROBatteryLevelMonitor();
@@ -478,29 +490,29 @@ public class AROCollectorTraceService extends Service {
 		if (DEBUG) {
 			Log.d(TAG, "mAroTraceDatapath=" + mAroTraceDatapath);
 		}
-		mWifiTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outWifiFileName);
+		mWifiTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outWifiFileName ,true);
 		mWifiTracewriter = new BufferedWriter(new OutputStreamWriter(mWifiTraceOutputFile));
-		mRadioTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outRadioFileName);
+		mRadioTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outRadioFileName , true);
 		mRadioTracewriter = new BufferedWriter(new OutputStreamWriter(mRadioTraceOutputFile));
-		mCameraTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outCameraFileName);
+		mCameraTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outCameraFileName , true);
 		mCameraTracewriter = new BufferedWriter(new OutputStreamWriter(mCameraTraceOutputFile));
-		mBatteryTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outBatteryFileName);
+		mBatteryTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outBatteryFileName , true);
 		mBatteryTracewriter = new BufferedWriter(new OutputStreamWriter(mBatteryTraceOutputFile));
-		mGPSTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outGPSFileName);
+		mGPSTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outGPSFileName ,true);
 		mGPSTracewriter = new BufferedWriter(new OutputStreamWriter(mGPSTraceOutputFile));
-		mScreenOutputFile = new FileOutputStream(mAroTraceDatapath + outScreenFileName);
-		mNetworkDetailsOutputFile = new FileOutputStream(mAroTraceDatapath + outNetworkDetailsFileName);
+		mScreenOutputFile = new FileOutputStream(mAroTraceDatapath + outScreenFileName,true);
+		mNetworkDetailsOutputFile = new FileOutputStream(mAroTraceDatapath + outNetworkDetailsFileName ,true);
 		
-		mScreenRotationOutputFile = new FileOutputStream(mAroTraceDatapath+ outScreenRotationFileName);
+		mScreenRotationOutputFile = new FileOutputStream(mAroTraceDatapath+ outScreenRotationFileName,true);
 		mScreenTracewriter = new BufferedWriter(new OutputStreamWriter(mScreenOutputFile));
 		mNetworkTracewriter = new BufferedWriter(new OutputStreamWriter(mNetworkDetailsOutputFile));
 		mScreenRotationTracewriter = new BufferedWriter(new OutputStreamWriter(mScreenRotationOutputFile));
-		mActiveProcessOutputFile = new FileOutputStream(mAroTraceDatapath+ outActiveProcessFileName);
+		mActiveProcessOutputFile = new FileOutputStream(mAroTraceDatapath+ outActiveProcessFileName, true);
 		mActiveProcessTracewriter = new BufferedWriter(new OutputStreamWriter(mActiveProcessOutputFile));
-		mBluetoohTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outBluetoothFileName);
+		mBluetoohTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outBluetoothFileName, true);
 		mBluetoothTracewriter = new BufferedWriter(new OutputStreamWriter(mBluetoohTraceOutputFile));
-		mDeviceInfoOutputFile = new FileOutputStream(mAroTraceDatapath + outDeviceInfoFileName);
-		mDeviceDetailsOutputFile = new FileOutputStream(mAroTraceDatapath+ outDeviceDetailsFileName);
+		mDeviceInfoOutputFile = new FileOutputStream(mAroTraceDatapath + outDeviceInfoFileName, true);
+		mDeviceDetailsOutputFile = new FileOutputStream(mAroTraceDatapath+ outDeviceDetailsFileName, true);
 		mDeviceInfoWriter = new BufferedWriter(new OutputStreamWriter(mDeviceInfoOutputFile));
 		mDeviceDetailsWriter = new BufferedWriter(new OutputStreamWriter(mDeviceDetailsOutputFile));
 
@@ -598,10 +610,11 @@ public class AROCollectorTraceService extends Service {
 		try {
 			final String eol = System.getProperty("line.separator");
 			if (timestamp) {
-				outputfilewriter.write(mAroUtils.getDataCollectorEventTimeStamp() + " " + content
-						+ eol);
+				outputfilewriter.write(mAroUtils.getDataCollectorEventTimeStamp() + " " + content + eol);
+				outputfilewriter.flush();
 			} else {
 				outputfilewriter.write(content + eol);
+				outputfilewriter.flush();
 			}
 		} catch (IOException e) {
 			// TODO: Need to display the exception error instead of Mid Trace
@@ -641,8 +654,10 @@ public class AROCollectorTraceService extends Service {
 	 * Stops the SD Card memory check timer during the trace
 	 */
 	private void stopARODeviceSDCardSpaceMidTrace() {
-		checkSDCardSpace.cancel();
-		checkSDCardSpace = null;
+		if (checkSDCardSpace != null){
+			checkSDCardSpace.cancel();
+			checkSDCardSpace = null;
+		}
 
 	}
 	
@@ -699,8 +714,10 @@ public class AROCollectorTraceService extends Service {
 	 * Stops the Airplane mode enabled check timer during the trace
 	 */
 	private void stopAROAirplaneModeMidTrace() {
-		checkAirplaneModeEnabled.cancel();
-		checkAirplaneModeEnabled = null;
+		if (checkAirplaneModeEnabled != null){
+			checkAirplaneModeEnabled.cancel();
+			checkAirplaneModeEnabled = null;
+		}
 	}
 
 	/**
@@ -831,6 +848,7 @@ public class AROCollectorTraceService extends Service {
 				//bearer change, signaling a failover
 				mAROPrevBearer = currentBearer;
 				writeTraceLineToAROTraceFile(mNetworkTracewriter,Integer.toString(currentNetworkType), true);
+				
 				if (DEBUG){
 					Log.i(TAG, "failover, wrote networkType=" + currentNetworkType + " to networkdetails completed at timestamp: " + mAroUtils.getDataCollectorEventTimeStamp());
 				}
@@ -852,6 +870,7 @@ public class AROCollectorTraceService extends Service {
 				//log the 4G-3G-2G network switch
 				final String tempNetworkFlurryState = mAROActiveNetworkInfo.getSubtypeName();
 				writeToFlurryAndMaintainStateAndLogEvent(networkTypeFlurryEvent, getString(R.string.flurry_param_status), tempNetworkFlurryState, true);
+				
 				mAROPrevNetworkType = currentNetworkType;
 			}
 			// device_details trace file
@@ -1189,32 +1208,46 @@ public class AROCollectorTraceService extends Service {
 		mGPSStatesManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 		mGPSStatesListner = new GPSStatesListener();
 		mGPSStatesManager.addGpsStatusListener(mGPSStatesListner);
+		
+		//write the initial gps state to the trace file
+		final boolean initialGpsState = isLocationServiceEnabled();
+		writeGpsStateToTraceFile(initialGpsState);
+		prevGpsEnabledState = initialGpsState;
+		
 		checkLocationService.scheduleAtFixedRate(new TimerTask() {
 			public void run() {
 				// Current GPS enabled state
 				final boolean currentGpsEnabledState = isLocationServiceEnabled();
 				if (currentGpsEnabledState != prevGpsEnabledState) {
-					if (currentGpsEnabledState) {
-						if (DEBUG) {
-							Log.d(TAG, "gps enabled: ");
-						}
-						if (!mGPSActive) {
-							writeTraceLineToAROTraceFile(mGPSTracewriter, AroTraceFileConstants.STANDBY, true);
-							writeToFlurryAndMaintainStateAndLogEvent(gpsFlurryEvent, 
-									getString(R.string.flurry_param_status), AroTraceFileConstants.STANDBY, true);
-						}
-					} else {
-						if (DEBUG) {
-							Log.d(TAG, "gps Disabled: ");
-						}
-						writeTraceLineToAROTraceFile(mGPSTracewriter, AroTraceFileConstants.OFF, true);
-						writeToFlurryAndMaintainStateAndLogEvent(gpsFlurryEvent, 
-								getString(R.string.flurry_param_status), AroTraceFileConstants.OFF, true);
-					}
+					writeGpsStateToTraceFile(currentGpsEnabledState);
 				}
 				prevGpsEnabledState = currentGpsEnabledState;
 			}
 		}, HALF_SECOND_TARCE_TIMER_REPATE_TIME, HALF_SECOND_TARCE_TIMER_REPATE_TIME);
+	}
+	
+	/**
+	 * write the gps state to trace file
+	 * @param currentGpsEnabledState
+	 */
+	private void writeGpsStateToTraceFile(final boolean currentGpsEnabledState) {
+		if (currentGpsEnabledState) {
+			if (DEBUG) {
+				Log.d(TAG, "gps enabled: ");
+			}
+			if (!mGPSActive) {
+				writeTraceLineToAROTraceFile(mGPSTracewriter, AroTraceFileConstants.STANDBY, true);
+				writeToFlurryAndMaintainStateAndLogEvent(gpsFlurryEvent, 
+						getString(R.string.flurry_param_status), AroTraceFileConstants.STANDBY, true);
+			}
+		} else {
+			if (DEBUG) {
+				Log.d(TAG, "gps Disabled: ");
+			}
+			writeTraceLineToAROTraceFile(mGPSTracewriter, AroTraceFileConstants.OFF, true);
+			writeToFlurryAndMaintainStateAndLogEvent(gpsFlurryEvent, 
+					getString(R.string.flurry_param_status), AroTraceFileConstants.OFF, true);
+		}
 	}
 
 	/**
@@ -1406,8 +1439,10 @@ public class AROCollectorTraceService extends Service {
 	 */
 	private void stopARODataBearerChangeNotification() {
 		try {
-			unregisterReceiver(mAROBearerChangeReceiver);
-			mAROBearerChangeReceiver = null;
+			if (mAROBearerChangeReceiver != null){
+				unregisterReceiver(mAROBearerChangeReceiver);
+				mAROBearerChangeReceiver = null;
+			}
 		} catch (IllegalArgumentException e) {
 			Log.e(TAG, "IllegalArgumentException at unregister mAROBearerChangeReceiver");
 		}
@@ -1660,11 +1695,30 @@ public class AROCollectorTraceService extends Service {
 	}
 
 	/**
+	 * method to record the screen rotation. Called when:
+	 * 1. on trace start to record initial rotation
+	 * 2. during trace, upon screen rotation changes
+	 */
+	private void recordScreenRotation() {
+		final Configuration newConfig = getResources().getConfiguration();
+		if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+			writeTraceLineToAROTraceFile(mScreenRotationTracewriter,LANDSCAPE_MODE, true);
+		} else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+			writeTraceLineToAROTraceFile(mScreenRotationTracewriter, PORTRAIT_MODE,
+					true);
+		}
+	}
+	
+	/**
 	 * Creates and registers the broad cast receiver that listens for the screen
 	 * rotation and and writes the screen rotation time to the
 	 * "screen_rotations" file.
 	 */
 	private void startAroScreenRotationMonitor() {
+		
+		//record the initial screen rotation - uncomment to capture initial state.
+		//recordScreenRotation();
+		
 		if (mScreenRotationReceiver == null) {
 
 			mScreenRotationReceiver = new BroadcastReceiver() {
@@ -1673,16 +1727,8 @@ public class AROCollectorTraceService extends Service {
 				public void onReceive(Context context, Intent intent) {
 					if (intent.getAction().equals(Intent.ACTION_CONFIGURATION_CHANGED)) {
 
-						final Configuration newConfig = getResources().getConfiguration();
-						if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-							writeTraceLineToAROTraceFile(mScreenRotationTracewriter,LANDSCAPE_MODE, true);
-						} else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
-							writeTraceLineToAROTraceFile(mScreenRotationTracewriter, PORTRAIT_MODE,
-									true);
-						}
-
+						recordScreenRotation();
 					}
-
 				}
 			};
 		}
@@ -1696,8 +1742,10 @@ public class AROCollectorTraceService extends Service {
 	 */
 	private void stopAroScreenRotationMonitor() {
 		try {
-			unregisterReceiver(mScreenRotationReceiver);
-			mScreenRotationReceiver = null;
+			if (mScreenRotationReceiver != null){
+				unregisterReceiver(mScreenRotationReceiver);
+				mScreenRotationReceiver = null;
+			}
 		} catch (IllegalArgumentException e) {
 			Log.e(TAG, "IllegalArgumentException at unregister mScreenRotationReceiver");
 		}

@@ -35,6 +35,7 @@ public class UserPreferences {
 	private static final String PROFILE = "PROFILE";
 	private static final String PROFILE_3G = "PROFILE_3G";
 	private static final String PROFILE_LTE = "PROFILE_LTE";
+	private static final String PROFILE_WIFI = "PROFILE_WIFI";
 	private static final String CHART_PLOT_OPTIONS = "CHART_PLOT_OPTIONS";
 	private static final String EXPORT_PATH = "EXPORT_PATH";
 
@@ -110,6 +111,8 @@ public class UserPreferences {
 				return prefs.get(PROFILE_3G, null);
 			case LTE:
 				return prefs.get(PROFILE_LTE, null);
+			case WIFI:
+				return prefs.get(PROFILE_WIFI, null);
 			default:
 				return null;
 			}
@@ -131,6 +134,8 @@ public class UserPreferences {
 				prefs.put(PROFILE_3G, name);
 			} else if (profile instanceof ProfileLTE) {
 				prefs.put(PROFILE_LTE, name);
+			} else if (profile instanceof ProfileWiFi) {
+				prefs.put(PROFILE_WIFI, name);
 			}
 		}
 	}

@@ -15,7 +15,14 @@
 */
 package com.att.aro.model;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
+
+import com.att.aro.model.HttpRequestResponseInfo.Direction;
 
 /**
  * A bean class that contains the information that appears on the Best Practices tab, 
@@ -30,6 +37,9 @@ public class BestPractices {
 
 	private int http1_0HeaderCount = 0;
 	private TCPSession http10Session = null;
+
+	private SortedMap<Integer, Integer> httpErrorCounts = new TreeMap<Integer, Integer>();
+	private Map<Integer, HttpRequestResponseInfo> firstErrorRespMap = new HashMap<Integer, HttpRequestResponseInfo>();
 
 	private boolean multipleTcpCon = true;
 	private boolean periodicTrans = true;
@@ -60,6 +70,7 @@ public class BestPractices {
 	private double screenRotationBurstTime = 0.0;
 	private PacketInfo noCacheHeaderFirstPacket;
 	private PacketInfo dupContentFirstPacket;
+	private PacketInfo cacheControlFirstPacket = null;
 
 	/**
 	 * Initializes an instance of the BestPractices class, using the specified set of 
@@ -130,13 +141,29 @@ public class BestPractices {
 			this.largestEnergyTime = largestEnergyTime;
 		}
 
-		// Check HTTP 1.0 best practice
+		// Check HTTP 1.0 best practice and HTTP 4xx/5xx best practice
 		for (TCPSession s : analysisData.getTcpSessions()) {
 			for (HttpRequestResponseInfo reqRessInfo : s.getRequestResponseInfo()) {
 				if (HttpRequestResponseInfo.HTTP10.equals(reqRessInfo.getVersion())) {
 					++http1_0HeaderCount;
 					if (null == http10Session) {
 						http10Session = s;
+					}
+				}
+				
+				if (reqRessInfo.getDirection() == Direction.RESPONSE
+						&& HttpRequestResponseInfo.HTTP_SCHEME
+								.equals(reqRessInfo.getScheme())
+						&& reqRessInfo.getStatusCode() >= 400) {
+					Integer status = Integer.valueOf(reqRessInfo.getStatusCode());
+					Integer count = httpErrorCounts.get(status);
+					if (count != null) {
+						httpErrorCounts.put(status, count + 1);
+					} else {
+						httpErrorCounts.put(status, 1);
+					}
+					if (firstErrorRespMap.get(status) == null) {
+						firstErrorRespMap.put(status, reqRessInfo);
 					}
 				}
 			}
@@ -211,6 +238,10 @@ public class BestPractices {
 					}
 					++noCacheHeadersCount;
 				}
+			}
+			
+			if (this.cacheControlFirstPacket == null && hitNotExpiredDup > hitExpired304) {
+				this.cacheControlFirstPacket = entry.getSessionFirstPacket();
 			}
 		}
 		this.hitExpired304 = hitExpired304;
@@ -317,6 +348,15 @@ public class BestPractices {
 	 */
 	public PacketInfo getNoCacheHeaderStartTime() {
 		return noCacheHeaderFirstPacket;
+	}
+	
+	/**
+	 * Returns the PacketInfo of session with cache control. 
+	 * 
+	 * @return PacketInfo.
+	 */
+	public PacketInfo getCacheControlStartTime() {
+		return cacheControlFirstPacket;
 	}
 	
 	/**
@@ -528,6 +568,28 @@ public class BestPractices {
 	 */
 	public TCPSession getHttp1_0Session() {
 		return http10Session;
+	}
+
+	/**
+	 * Returns a sorted map of the counts of HTTP error status codes that 
+	 * occurred in the trace analysis.  Note that only status codes of 400+ are
+	 * included.
+	 * @return the httpErrorCounts map key is HTTP status code and value is
+	 * number of occurrences of the status code
+	 */
+	public SortedMap<Integer, Integer> getHttpErrorCounts() {
+		return Collections.unmodifiableSortedMap(httpErrorCounts);
+	}
+
+	/**
+	 * Returns map of HTTP status codes to first response instance in analysis
+	 * that has the specified error code.  Note that only status codes of 400+
+	 * are included.
+	 * @return the firstErrorRespMap map key is HTTP status code and value is
+	 * associated HTTP response
+	 */
+	public Map<Integer, HttpRequestResponseInfo> getFirstErrorRespMap() {
+		return Collections.unmodifiableMap(firstErrorRespMap);
 	}
 
 	/**

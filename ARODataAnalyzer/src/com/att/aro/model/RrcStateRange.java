@@ -884,14 +884,21 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 		// Truncate state ranges at end of trace
 		Iterator<RrcStateRange> iter = result.iterator();
 		double traceDuration = analysisData.getTraceData().getTraceDuration();
+		double prevTimeStamp = 0.0;
 		while (iter.hasNext()) {
 			RrcStateRange rrc = iter.next();
-			if (rrc.getBeginTime() >= traceDuration || rrc.getEndTime() == Double.MAX_VALUE) {
+			if (rrc.getBeginTime() >= traceDuration) {
 				iter.remove();
 			}
 			if (rrc.getEndTime() > traceDuration) {
 				rrc.endTime = traceDuration;
 			}
+			prevTimeStamp = rrc.endTime;
+		}
+		if (prevTimeStamp < traceDuration) {
+
+			// Add idle time to end of trace
+			result.add(new RrcStateRange(prevTimeStamp, traceDuration, RRCState.STATE_IDLE));
 		}
 
 		return result;

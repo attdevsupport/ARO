@@ -18,6 +18,10 @@ import java.util.logging.Logger;
 public class DomainNameSystem implements Serializable {
 	private static final long serialVersionUID = 1L;
 
+	private static final short TYPE_A = 1;
+	private static final short TYPE_CNAME = 5;
+	private static final short TYPE_AAAA = 28;
+	
 	private static final Logger logger = Logger.getLogger(DomainNameSystem.class.getName());
 	
 	private IPPacket packet;
@@ -112,7 +116,7 @@ public class DomainNameSystem implements Serializable {
 			domainName = readDomainName();
 			short qtype = bytes.getShort();
 			short qclass = bytes.getShort();
-			if (qtype != 1 || qclass != 1) {
+			if ((qtype != TYPE_A && qtype != TYPE_AAAA) || qclass != 1) {
 				logger.warning("Unrecognized DNS query:  qtype=" + qtype + ", qclass=" + qclass);
 				return;
 			}
@@ -146,8 +150,8 @@ public class DomainNameSystem implements Serializable {
 						continue;
 					}
 					switch (qtype) {
-					case 1 :
-					case 28 :
+					case TYPE_A :
+					case TYPE_AAAA :
 						// IPv4 (A) or IPv6 (AAAA)
 						byte[] b = new byte[len];
 						bytes.get(b, 0, len);
@@ -157,7 +161,7 @@ public class DomainNameSystem implements Serializable {
 							logger.warning("Unexpected exception reading IP address from DNS response");
 						}
 						break;
-					case 5 :
+					case TYPE_CNAME :
 						// CNAME (canonical domain name)
 						cname = readDomainName();
 						break;

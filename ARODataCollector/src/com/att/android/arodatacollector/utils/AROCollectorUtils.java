@@ -306,13 +306,21 @@ public class AROCollectorUtils {
 			}
 			// Waits for the command to finish.
 			process.waitFor();
-			process.destroy();
+			//no need to destroy the process since waitFor() will wait until all subprocesses exit
+			
 			line = output.toString();
 			return line;
 		} finally {
-			reader.close();
-			inputStream.close();
-			reader.close();
+			try {
+				reader.close();
+				inputStream.close();
+				reader.close();
+				
+			} catch (Exception e){
+				Log.e(TAG, "Exception caught while closing resources in executePS. Error msg=" + e.getMessage());
+				Log.e(TAG, "execution will be allowed to continue");
+			}
+			
 			if (DEBUG) {
 				Log.d(TAG, "exiting ps...");
 			}

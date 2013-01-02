@@ -19,9 +19,11 @@ package com.att.aro.main;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.Insets;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -39,6 +41,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.StringTokenizer;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
@@ -76,6 +79,7 @@ import com.att.aro.model.TimeRange;
 import com.att.aro.model.TraceData;
 import com.att.aro.model.UserPreferences;
 import com.att.aro.pcap.PCapAdapter;
+import com.att.aro.plugin.AnalyzerPlugin;
 import com.att.aro.video.AROVideoPlayer;
 
 /**
@@ -84,9 +88,13 @@ import com.att.aro.video.AROVideoPlayer;
 public class ApplicationResourceOptimizer extends JFrame {
 	private static final long serialVersionUID = 1L;
 
-	private static final Logger logger = Logger.getLogger(ApplicationResourceOptimizer.class
-			.getName());
-	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
+	private static final Logger logger = Logger
+			.getLogger(ApplicationResourceOptimizer.class.getName());
+	private static final ResourceBundle rb = ResourceBundleManager
+			.getDefaultBundle();
+	
+	private static final int DEFAULT_APP_WIDTH  = 849;
+	private static final int DEFAULT_APP_HEIGHT = 775;
 
 	// Menu bar
 	private JMenuBar jJMenuBar = null;
@@ -132,10 +140,12 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private JTabbedPane jMainTabbedPane;
 	private AROSimpleTabb aroSimpleTab = new AROSimpleTabb(this);
 	private AROAdvancedTabb aroAdvancedTab = new AROAdvancedTabb();
-	private AROAnalysisResultsTab analyisResultsPanel = new AROAnalysisResultsTab(this);
+	private AROAnalysisResultsTab analyisResultsPanel = new AROAnalysisResultsTab(
+			this);
 	private AROWaterfallTabb aroWaterfallTab = new AROWaterfallTabb(this);
 	private AROVideoPlayer aroVideoPlayer;
-	private AROBestPracticesTab aroBestPracticesPanel = new AROBestPracticesTab(this);
+	private AROBestPracticesTab aroBestPracticesPanel = new AROBestPracticesTab(
+			this);
 	private ChartPlotOptionsDialog chartPlotOptionsDialog;
 	private TimeRangeAnalysisDialog timeRangeAnalysisDialog;
 	private ExcludeTimeRangeAnalysisDialog excludeTimeRangeDialog;
@@ -153,7 +163,6 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private DatacollectorBridge aroDataCollectorBridge;
 
 	private Profile profile;
-	private boolean isCancel = false;
 
 	/**
 	 * Initializes a new instance of the ApplicationResourceOptimizer class.
@@ -280,8 +289,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 				missingFiles.append(file + "\n");
 			}
 
-			MessageDialogFactory.showMessageDialog(this,
-					MessageFormat.format(rb.getString("file.missingAlert"), missingFiles));
+			MessageDialogFactory.showMessageDialog(this, MessageFormat.format(
+					rb.getString("file.missingAlert"), missingFiles));
 		}
 
 		// Make sure profile type matches network type of trace
@@ -289,11 +298,13 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 			if (traceData.getNetworkType() == NetworkType.LTE) {
 				if (!(profile instanceof ProfileLTE)) {
-					this.profile = ProfileManager.getInstance().getLastUserProfile(ProfileType.LTE);
+					this.profile = ProfileManager.getInstance()
+							.getLastUserProfile(ProfileType.LTE);
 				}
 			} else {
 				if (!(profile instanceof Profile3G)) {
-					this.profile = ProfileManager.getInstance().getLastUserProfile(ProfileType.T3G);
+					this.profile = ProfileManager.getInstance()
+							.getLastUserProfile(ProfileType.T3G);
 				}
 			}
 		} catch (ProfileException e) {
@@ -308,7 +319,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 		userPreferences.setLastTraceDirectory(this.traceDirectory);
 
 		// Change window name to reflect trace directory
-		this.setTitle(MessageFormat.format(rb.getString("aro.title"), dir.toString()));
+		this.setTitle(MessageFormat.format(rb.getString("aro.title"),
+				dir.toString()));
 	}
 
 	/**
@@ -321,6 +333,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 		if (this.traceData != null) {
 
 			this.traceData = null;
+			this.setTitle(MessageFormat.format(rb.getString("aro.title"), ""));
+
 			clearAnalysis();
 		}
 	}
@@ -351,7 +365,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * @param pcap
 	 * @throws IOException
 	 */
-	private synchronized void openPcap(File pcap) throws IOException, UnsatisfiedLinkError {
+	private synchronized void openPcap(File pcap) throws IOException,
+			UnsatisfiedLinkError {
 
 		clearTrace();
 
@@ -364,7 +379,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 		userPreferences.setLastTraceDirectory(this.traceDirectory);
 
 		// Change window name to reflect trace directory
-		this.setTitle(MessageFormat.format(rb.getString("aro.title"), pcap.toString()));
+		this.setTitle(MessageFormat.format(rb.getString("aro.title"),
+				pcap.toString()));
 	}
 
 	/**
@@ -372,8 +388,9 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	private void filterAppAndIps() {
 		// Make sure trace is loaded
-		if (analysisData == null) {
-			MessageDialogFactory.showMessageDialog(ApplicationResourceOptimizer.this,
+		if (traceData == null) {
+			MessageDialogFactory.showMessageDialog(
+					ApplicationResourceOptimizer.this,
 					rb.getString("Error.notrace"), rb.getString("Error.title"),
 					JOptionPane.ERROR_MESSAGE);
 			return;
@@ -396,7 +413,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	public void dataCollectorStatusCallBack(DatacollectorBridge.Status status) {
 		switch (status) {
 		case STOPPED:
-			setDataCollectorMenuItems(false, false);
+			setDataCollectorMenuItems(true, false);
 			setStoppedRecordingIndicator();
 			this.setRecordingIndicatorVisible(false);
 			break;
@@ -471,7 +488,9 @@ public class ApplicationResourceOptimizer extends JFrame {
 						try {
 							setProfile(result);
 						} catch (IOException e) {
-							logger.log(Level.SEVERE, "Unexpected error loading new device profile",
+							logger.log(
+									Level.SEVERE,
+									"Unexpected error loading new device profile",
 									e);
 							MessageDialogFactory.showUnexpectedExceptionDialog(
 									ApplicationResourceOptimizer.this, e);
@@ -488,12 +507,14 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	private JMenuItem getJCustomizeMenuItem() {
 		if (jCustomizeMenuItem == null) {
-			jCustomizeMenuItem = new JMenuItem(rb.getString("menu.profile.customize"));
+			jCustomizeMenuItem = new JMenuItem(
+					rb.getString("menu.profile.customize"));
 			jCustomizeMenuItem.addActionListener(new ActionListener() {
 
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					new ConfigurationFrame(ApplicationResourceOptimizer.this).setVisible(true);
+					new ConfigurationFrame(ApplicationResourceOptimizer.this)
+							.setVisible(true);
 				}
 			});
 		}
@@ -524,7 +545,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	private JMenuItem getJRecordingIndicatorMenu() {
 		if (recordingIndicatorMenuItem == null) {
-			recordingIndicatorMenuItem = new JMenuItem(rb.getString("menu.recordingindicator")) {
+			recordingIndicatorMenuItem = new JMenuItem(
+					rb.getString("menu.recordingindicator")) {
 				private static final long serialVersionUID = 1L;
 
 				public JToolTip createToolTip() {
@@ -539,7 +561,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 			};
 			recordingIndicatorMenuItem.createToolTip();
-			recordingIndicatorMenuItem.setIcon(Images.RED_RECORDING_INDICATOR.getIcon());
+			recordingIndicatorMenuItem.setIcon(Images.RED_RECORDING_INDICATOR
+					.getIcon());
 			recordingIndicatorMenuItem.setToolTipText(rb
 					.getString("menu.tooltip.recordingindicator"));
 			recordingIndicatorMenuItem.setVisible(false);
@@ -557,7 +580,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
-					new AboutDialog(ApplicationResourceOptimizer.this).setVisible(true);
+					new AboutDialog(ApplicationResourceOptimizer.this)
+							.setVisible(true);
 				}
 			});
 		}
@@ -576,7 +600,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					try {
-						BrowserGenerator.openBrowser(rb.getString("help.faq.URL"));
+						BrowserGenerator.openBrowser(rb
+								.getString("help.faq.URL"));
 					} catch (IOException e) {
 						MessageDialogFactory.showUnexpectedExceptionDialog(
 								ApplicationResourceOptimizer.this, e);
@@ -598,7 +623,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					try {
-						BrowserGenerator.openBrowser(rb.getString("help.forum.URL"));
+						BrowserGenerator.openBrowser(rb
+								.getString("help.forum.URL"));
 					} catch (IOException e) {
 						MessageDialogFactory.showUnexpectedExceptionDialog(
 								ApplicationResourceOptimizer.this, e);
@@ -614,13 +640,15 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	private JMenuItem getUserGuideMenuItem() {
 		if (helpUserGuideMenuItem == null) {
-			helpUserGuideMenuItem = new JMenuItem(rb.getString("menu.help.userguide"));
+			helpUserGuideMenuItem = new JMenuItem(
+					rb.getString("menu.help.userguide"));
 			helpUserGuideMenuItem.addActionListener(new ActionListener() {
 
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					try {
-						BrowserGenerator.openBrowser(rb.getString("help.userguide.URL"));
+						BrowserGenerator.openBrowser(rb
+								.getString("help.userguide.URL"));
 					} catch (IOException e) {
 						MessageDialogFactory.showUnexpectedExceptionDialog(
 								ApplicationResourceOptimizer.this, e);
@@ -636,13 +664,15 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	private JMenuItem getLearnMoreMenuItem() {
 		if (helpLearnMoreMenuItem == null) {
-			helpLearnMoreMenuItem = new JMenuItem(rb.getString("menu.help.learnmore"));
+			helpLearnMoreMenuItem = new JMenuItem(
+					rb.getString("menu.help.learnmore"));
 			helpLearnMoreMenuItem.addActionListener(new ActionListener() {
 
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					try {
-						BrowserGenerator.openBrowser(rb.getString("help.learnmore.URL"));
+						BrowserGenerator.openBrowser(rb
+								.getString("help.learnmore.URL"));
 					} catch (IOException e) {
 						MessageDialogFactory.showUnexpectedExceptionDialog(
 								ApplicationResourceOptimizer.this, e);
@@ -658,13 +688,15 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	private JMenuItem getQuickGuideMenuItem() {
 		if (helpQuickGuideMenuItem == null) {
-			helpQuickGuideMenuItem = new JMenuItem(rb.getString("menu.help.analysisguide"));
+			helpQuickGuideMenuItem = new JMenuItem(
+					rb.getString("menu.help.analysisguide"));
 			helpQuickGuideMenuItem.addActionListener(new ActionListener() {
 
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					try {
-						BrowserGenerator.openBrowser(rb.getString("help.analysisguide.URL"));
+						BrowserGenerator.openBrowser(rb
+								.getString("help.analysisguide.URL"));
 					} catch (IOException e) {
 						MessageDialogFactory.showUnexpectedExceptionDialog(
 								ApplicationResourceOptimizer.this, e);
@@ -680,13 +712,15 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	private JMenuItem getHelpDependenciesMenuItem() {
 		if (helpDependenciesMenuItem == null) {
-			helpDependenciesMenuItem = new JMenuItem(rb.getString("menu.help.dependencies"));
+			helpDependenciesMenuItem = new JMenuItem(
+					rb.getString("menu.help.dependencies"));
 			helpDependenciesMenuItem.addActionListener(new ActionListener() {
 
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					try {
-						new NoticesDialog(ApplicationResourceOptimizer.this).setVisible(true);
+						new NoticesDialog(ApplicationResourceOptimizer.this)
+								.setVisible(true);
 					} catch (IOException e) {
 						MessageDialogFactory.showUnexpectedExceptionDialog(
 								ApplicationResourceOptimizer.this, e);
@@ -735,7 +769,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private JMenuItem getJdataCollectorStart() {
 		if (startDataCollectorMenuItem == null) {
 			startDataCollectorMenuItem = new JMenuItem();
-			startDataCollectorMenuItem.setText(rb.getString("menu.datacollector.start"));
+			startDataCollectorMenuItem.setText(rb
+					.getString("menu.datacollector.start"));
 			startDataCollectorMenuItem.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
@@ -757,7 +792,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private JMenuItem getJdataCollectorStop() {
 		if (stopDataCollectorMenuItem == null) {
 			stopDataCollectorMenuItem = new JMenuItem();
-			stopDataCollectorMenuItem.setText(rb.getString("menu.datacollector.stop"));
+			stopDataCollectorMenuItem.setText(rb
+					.getString("menu.datacollector.stop"));
 			stopDataCollectorMenuItem.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
@@ -776,7 +812,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	private JCheckBoxMenuItem getScreenShotsMenu() {
 		if (screenShotsMenu == null) {
-			screenShotsMenu = new JCheckBoxMenuItem(rb.getString("menu.view.video"), true);
+			screenShotsMenu = new JCheckBoxMenuItem(
+					rb.getString("menu.view.video"), true);
 			screenShotsMenu.addActionListener(new ActionListener() {
 
 				@Override
@@ -813,7 +850,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	private JMenuItem getViewOptionsMenuItem() {
 		if (viewOptionsMenuItem == null) {
-			viewOptionsMenuItem = new JMenuItem(rb.getString("menu.view.options"));
+			viewOptionsMenuItem = new JMenuItem(
+					rb.getString("menu.view.options"));
 			viewOptionsMenuItem.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
@@ -841,12 +879,46 @@ public class ApplicationResourceOptimizer extends JFrame {
 	}
 
 	/**
+	 * Load the configured plugin Tabs to Analyzer.
+	 * 
+	 * Adds tabs defined in the 'plugin.tools' resource bundle property. The
+	 * class/tab implements the AnalyzerPlugin interface.
+	 * 
+	 * @param tabPane
+	 */
+	private void loadPluginTabs(JTabbedPane tabPane) {
+		String pluginList = rb.getString("plugin.tools");
+		StringTokenizer pluginToken = new StringTokenizer(pluginList, ",");
+		String pluginPrefix = null;
+		String className = null;
+		while (pluginToken.hasMoreTokens()) {
+			try {
+				pluginPrefix = pluginToken.nextToken();
+				// create class for config'd plugin
+				className = rb.getString(pluginPrefix);
+				AnalyzerPlugin plugin = (AnalyzerPlugin) Class.forName(
+						className).newInstance();
+
+				// add plugin menu item
+				tabPane.addTab(rb.getString(pluginPrefix + ".title"), null,
+						plugin.getPanel(ApplicationResourceOptimizer.this),
+						null);
+
+			} catch (Exception e) {
+				logger.log(Level.SEVERE,
+						"Unexpected exception loading plugin tabs.", e);
+			}
+		}
+	}
+
+	/**
 	 * Initializes and returns the Pcap File Analysis menu item under the Tools
 	 * menu.
 	 */
 	private JMenuItem getWiresharkMenuItem() {
 		if (wiresharkMenuItem == null) {
-			wiresharkMenuItem = new JMenuItem(rb.getString("menu.tools.wireshark"));
+			wiresharkMenuItem = new JMenuItem(
+					rb.getString("menu.tools.wireshark"));
 			wiresharkMenuItem.addActionListener(new ActionListener() {
 
 				@Override
@@ -864,7 +936,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	private JMenuItem getTimeRangeAnalysisMenuItem() {
 		if (timeRangeAnalysisMenuItem == null) {
-			timeRangeAnalysisMenuItem = new JMenuItem(rb.getString("menu.tools.timerangeanalysis"));
+			timeRangeAnalysisMenuItem = new JMenuItem(
+					rb.getString("menu.tools.timerangeanalysis"));
 			timeRangeAnalysisMenuItem.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
@@ -881,7 +954,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	private JMenuItem getDataDump() {
 		if (dataDumpMenuItem == null) {
-			dataDumpMenuItem = new JMenuItem(rb.getString("menu.tools.dataDump"));
+			dataDumpMenuItem = new JMenuItem(
+					rb.getString("menu.tools.dataDump"));
 			dataDumpMenuItem.addActionListener(new ActionListener() {
 
 				@Override
@@ -892,8 +966,9 @@ public class ApplicationResourceOptimizer extends JFrame {
 						try {
 							startDataDump(fc.getSelectedFile());
 						} catch (IOException e1) {
-							MessageDialogFactory.showInvalidTraceDialog(fc.getSelectedFile()
-									.getPath(), ApplicationResourceOptimizer.this, e1);
+							MessageDialogFactory.showInvalidTraceDialog(fc
+									.getSelectedFile().getPath(),
+									ApplicationResourceOptimizer.this, e1);
 						}
 					}
 				}
@@ -910,12 +985,13 @@ public class ApplicationResourceOptimizer extends JFrame {
 		if (excludeTimeRangeAnalysisMenuItem == null) {
 			excludeTimeRangeAnalysisMenuItem = new JMenuItem(
 					rb.getString("menu.tools.excludetimerangeanalysis"));
-			excludeTimeRangeAnalysisMenuItem.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent arg0) {
-					initiateExcludeTimeRangeAnalysisDialog();
-				}
-			});
+			excludeTimeRangeAnalysisMenuItem
+					.addActionListener(new ActionListener() {
+						@Override
+						public void actionPerformed(ActionEvent arg0) {
+							initiateExcludeTimeRangeAnalysisDialog();
+						}
+					});
 		}
 		return excludeTimeRangeAnalysisMenuItem;
 	}
@@ -926,21 +1002,25 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	private void openPcapAnalysis() {
 		// Make sure trace is loaded
-		if (analysisData == null) {
-			MessageDialogFactory.showMessageDialog(this, rb.getString("Error.notrace"),
-					rb.getString("Error.title"), JOptionPane.ERROR_MESSAGE);
+		if (traceData == null) {
+			MessageDialogFactory.showMessageDialog(this,
+					rb.getString("Error.notrace"), rb.getString("Error.title"),
+					JOptionPane.ERROR_MESSAGE);
 			return;
 		}
 
 		// Open PCAP analysis tool
 		try {
-			Desktop.getDesktop().open(analysisData.getTraceData().getPcapFile());
+			Desktop.getDesktop().open(traceData.getPcapFile());
 		} catch (NullPointerException e) {
-			MessageDialogFactory.showErrorDialog(this, rb.getString("Error.noPcap"));
+			MessageDialogFactory.showErrorDialog(this,
+					rb.getString("Error.noPcap"));
 		} catch (IllegalArgumentException e) {
-			MessageDialogFactory.showErrorDialog(this, rb.getString("Error.noPcap"));
+			MessageDialogFactory.showErrorDialog(this,
+					rb.getString("Error.noPcap"));
 		} catch (IOException e) {
-			MessageDialogFactory.showErrorDialog(this, rb.getString("Error.noPcapApp"));
+			MessageDialogFactory.showErrorDialog(this,
+					rb.getString("Error.noPcapApp"));
 		}
 	}
 
@@ -951,7 +1031,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private void initiateExcludeTimeRangeAnalysisDialog() {
 		// Make sure trace is loaded
 		if (analysisData == null) {
-			MessageDialogFactory.showMessageDialog(ApplicationResourceOptimizer.this,
+			MessageDialogFactory.showMessageDialog(
+					ApplicationResourceOptimizer.this,
 					rb.getString("Error.notrace"), rb.getString("Error.title"),
 					JOptionPane.ERROR_MESSAGE);
 			return;
@@ -972,7 +1053,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private void initiateTimeRangeAnalysisDialog() {
 		// Make sure trace is loaded
 		if (analysisData == null) {
-			MessageDialogFactory.showMessageDialog(ApplicationResourceOptimizer.this,
+			MessageDialogFactory.showMessageDialog(
+					ApplicationResourceOptimizer.this,
 					rb.getString("Error.notrace"), rb.getString("Error.title"),
 					JOptionPane.ERROR_MESSAGE);
 			return;
@@ -1019,8 +1101,19 @@ public class ApplicationResourceOptimizer extends JFrame {
 						try {
 							openTrace(fc.getSelectedFile());
 						} catch (IOException e1) {
-							MessageDialogFactory.showInvalidTraceDialog(fc.getSelectedFile()
-									.getPath(), ApplicationResourceOptimizer.this, e1);
+							logger.log(Level.SEVERE, "Failed loading trace", e1);
+							MessageDialogFactory.showInvalidTraceDialog(fc
+									.getSelectedFile().getPath(),
+									ApplicationResourceOptimizer.this, e1);
+						} catch (UnsatisfiedLinkError er) {
+							MessageDialogFactory.showErrorDialog(
+									ApplicationResourceOptimizer.this,
+									rb.getString("Error.noNetmon"));
+						} catch (IllegalArgumentException e1) {
+							logger.log(Level.SEVERE, "Failed loading trace", e1);
+							MessageDialogFactory.showInvalidDirectoryDialog(fc
+									.getSelectedFile().getPath(),
+									ApplicationResourceOptimizer.this, e1);
 						}
 					}
 				}
@@ -1046,8 +1139,10 @@ public class ApplicationResourceOptimizer extends JFrame {
 						public boolean accept(File f) {
 							String name = f.getName();
 							return f.isDirectory()
-									|| name.endsWith(rb.getString("fileChooser.contentType.cap"))
-									|| name.endsWith(rb.getString("fileChooser.contentType.pcap"));
+									|| name.endsWith(rb
+											.getString("fileChooser.contentType.cap"))
+									|| name.endsWith(rb
+											.getString("fileChooser.contentType.pcap"));
 						}
 
 						@Override
@@ -1063,8 +1158,13 @@ public class ApplicationResourceOptimizer extends JFrame {
 							MessageDialogFactory.showUnexpectedExceptionDialog(
 									ApplicationResourceOptimizer.this, e1);
 						} catch (UnsatisfiedLinkError er) {
-							MessageDialogFactory.showErrorDialog(ApplicationResourceOptimizer.this,
+							MessageDialogFactory.showErrorDialog(
+									ApplicationResourceOptimizer.this,
 									rb.getString("Error.noNetmon"));
+						} catch (IllegalArgumentException e1) {
+							MessageDialogFactory.showInvalidDirectoryDialog(fc
+									.getSelectedFile().getPath(),
+									ApplicationResourceOptimizer.this, e1);
 						}
 					}
 				}
@@ -1111,9 +1211,11 @@ public class ApplicationResourceOptimizer extends JFrame {
 									try {
 										printJob.print();
 									} catch (PrinterException e) {
-										MessageDialogFactory.showErrorDialog(
-												ApplicationResourceOptimizer.this, MessageFormat
-														.format(rb.getString("Error.printer"),
+										MessageDialogFactory
+												.showErrorDialog(
+														ApplicationResourceOptimizer.this,
+														MessageFormat.format(
+																rb.getString("Error.printer"),
 																e.getMessage()));
 									}
 
@@ -1121,7 +1223,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 							}).start();
 						}
 					} else {
-						throw new IllegalStateException("Printable tab not selected");
+						throw new IllegalStateException(
+								"Printable tab not selected");
 					}
 				}
 			});
@@ -1151,7 +1254,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	private void initialize() {
 		this.setIconImage(Images.ICON.getImage());
-		this.setSize(849, 775);
+		this.setScreenSize();
 		this.setJMenuBar(getJJMenuBar());
 		this.setContentPane(getJTabbedPane());
 		this.setTitle(MessageFormat.format(rb.getString("aro.title"), ""));
@@ -1162,10 +1265,12 @@ public class ApplicationResourceOptimizer extends JFrame {
 			// system.
 			PCapAdapter.ping();
 		} catch (UnsatisfiedLinkError ule) {
-			MessageDialogFactory.showErrorDialog(this, rb.getString("aro.winpcap_error"));
+			MessageDialogFactory.showErrorDialog(this,
+					rb.getString("aro.winpcap_error"));
 			System.exit(-1);
 		} catch (Exception e) {
-			MessageDialogFactory.showErrorDialog(this, rb.getString("aro.winpcap_error"));
+			MessageDialogFactory.showErrorDialog(this,
+					rb.getString("aro.winpcap_error"));
 			System.exit(-1);
 		}
 
@@ -1181,16 +1286,18 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 		// Default profile loaded.
 		try {
-			this.profile = ProfileManager.getInstance().getLastUserProfile(null);
+			this.profile = ProfileManager.getInstance()
+					.getLastUserProfile(null);
 		} catch (ProfileException e) {
 			this.profile = ProfileManager.getInstance().getDefaultProfile();
 		} catch (IOException e) {
-			MessageDialogFactory.showErrorDialog(this, rb.getString("configuration.loaderror"));
+			MessageDialogFactory.showErrorDialog(this,
+					rb.getString("configuration.loaderror"));
 			this.profile = ProfileManager.getInstance().getDefaultProfile();
 		}
 
-		chartPlotOptionsDialog = new ChartPlotOptionsDialog(ApplicationResourceOptimizer.this,
-				aroAdvancedTab);
+		chartPlotOptionsDialog = new ChartPlotOptionsDialog(
+				ApplicationResourceOptimizer.this, aroAdvancedTab);
 
 		// Commented out because I think this is causing an error on JNLP
 		// startup
@@ -1231,6 +1338,17 @@ public class ApplicationResourceOptimizer extends JFrame {
 	}
 
 	/**
+	 *  Sets the application frame size based on the size of the screen.
+	 */
+	private void setScreenSize() {
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+		int width = (screenSize.width > DEFAULT_APP_WIDTH) ? DEFAULT_APP_WIDTH : screenSize.width;
+		int height = (screenSize.height > DEFAULT_APP_HEIGHT) ? DEFAULT_APP_HEIGHT : screenSize.height;
+		this.setBounds(0, 0, width, height);
+	}
+	
+	
+	/**
 	 * Enables or disables the Chart Options menu item in the View menu.
 	 * 
 	 * @param enable
@@ -1245,19 +1363,23 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * Initializes and returns the Tabbed Pane for the ARO frame.
 	 */
 	private JTabbedPane getJTabbedPane() {
-		UIManager.getDefaults().put("TabbedPane.contentBorderInsets", new Insets(0, 0, 0, 0));
+		UIManager.getDefaults().put("TabbedPane.contentBorderInsets",
+				new Insets(0, 0, 0, 0));
 		UIManager.getDefaults().put("TabbedPane.tabsOverlapBorder", true);
 		if (jMainTabbedPane == null) {
 			jMainTabbedPane = new JTabbedPane();
 			jMainTabbedPane.addTab(rb.getString("aro.tab.bestpractices"), null,
 					getBestPracticesPanel(), null);
-			jMainTabbedPane.addTab(rb.getString("aro.tab.simple"), null, getAroSimpleTab(), null);
-			jMainTabbedPane.addTab(rb.getString("aro.tab.advanced"), null, getAroAdvancedTab(),
-					null);
+			jMainTabbedPane.addTab(rb.getString("aro.tab.simple"), null,
+					getAroSimpleTab(), null);
+			jMainTabbedPane.addTab(rb.getString("aro.tab.advanced"), null,
+					getAroAdvancedTab(), null);
 			jMainTabbedPane.addTab(rb.getString("aro.tab.analysis"), null,
 					getAnalysisResultsPanel(), null);
-			jMainTabbedPane.addTab(rb.getString("aro.tab.waterfall"), null, getWaterfallPanel(),
-					null);
+			jMainTabbedPane.addTab(rb.getString("aro.tab.waterfall"), null,
+					getWaterfallPanel(), null);
+
+			loadPluginTabs(jMainTabbedPane);
 		}
 		return jMainTabbedPane;
 	}
@@ -1301,6 +1423,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * @throws IOException
 	 */
 	public void refresh(AnalysisFilter filter) throws IOException {
+		clearAnalysis();
 		refresh(this.profile, filter, null);
 	}
 
@@ -1315,18 +1438,40 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * Refreshes the view with updated app/ip settings. This method should be
 	 * run on the event dispatch thread
 	 */
-	private synchronized void refresh(final Profile profile, final AnalysisFilter filter,
-			final String msg) throws IOException {
+	private synchronized void refresh(final Profile profile,
+			final AnalysisFilter filter, final String msg) throws IOException {
 
 		if (traceData != null) {
-			final AROProgressDialog dialog = new AROProgressDialog(this,
-					rb.getString("progress.loadingTrace"));
-			dialog.setVisible(true);
-			final SwingWorker<TraceData.Analysis, Object> mySwingWorker = new SwingWorker<TraceData.Analysis, Object>() {
+			new SwingWorker<TraceData.Analysis, Object>() {
+
+				private AROProgressDialog dialog;
+				private WindowListener wl = new WindowAdapter() {
+
+					@Override
+					public void windowClosing(WindowEvent arg0) {
+						try {
+							cancel(true);
+						} catch (CancellationException cE) {
+							cE.printStackTrace();
+						}
+					}
+
+				};
+
+				{
+					dialog = new AROProgressDialog(
+							ApplicationResourceOptimizer.this,
+							rb.getString("progress.loadingTrace"));
+					dialog.addWindowListener(wl);
+					dialog.setVisible(true);
+				}
 
 				@Override
-				protected TraceData.Analysis doInBackground() throws IOException {
-					return traceData.runAnalysis(profile, filter);
+				protected TraceData.Analysis doInBackground()
+						throws IOException {
+					TraceData.Analysis analysis = traceData.runAnalysis(
+							profile, filter);
+					return isCancelled() ? null : analysis;
 				}
 
 				@Override
@@ -1339,15 +1484,19 @@ public class ApplicationResourceOptimizer extends JFrame {
 						}
 
 					} catch (IOException e) {
-						logger.log(Level.SEVERE, "Unexpected IOException analyzing trace", e);
+						logger.log(Level.SEVERE,
+								"Unexpected IOException analyzing trace", e);
 						MessageDialogFactory.showUnexpectedExceptionDialog(
 								ApplicationResourceOptimizer.this, e);
 					} catch (InterruptedException e) {
-						logger.log(Level.SEVERE, "Unexpected exception analyzing trace", e);
+						logger.log(Level.SEVERE,
+								"Unexpected exception analyzing trace", e);
 						MessageDialogFactory.showUnexpectedExceptionDialog(
 								ApplicationResourceOptimizer.this, e);
 					} catch (ExecutionException e) {
-						logger.log(Level.SEVERE, "Unexpected execution exception analyzing trace",
+						logger.log(
+								Level.SEVERE,
+								"Unexpected execution exception analyzing trace",
 								e);
 						if (e.getCause() instanceof OutOfMemoryError) {
 							MessageDialogFactory.showErrorDialog(null,
@@ -1357,56 +1506,12 @@ public class ApplicationResourceOptimizer extends JFrame {
 									ApplicationResourceOptimizer.this, e);
 						}
 					} finally {
-						if (!this.isCancelled()) {
-							dialog.dispose();
-						}
+						dialog.removeWindowListener(wl);
+						dialog.dispose();
 					}
 
 				}
-			};
-			mySwingWorker.execute();
-			dialog.addWindowListener(new WindowListener() {
-
-				@Override
-				public void windowOpened(WindowEvent arg0) {
-				}
-
-				@Override
-				public void windowIconified(WindowEvent arg0) {
-				}
-
-				@Override
-				public void windowDeiconified(WindowEvent arg0) {
-
-				}
-
-				@Override
-				public void windowDeactivated(WindowEvent arg0) {
-				}
-
-				@Override
-				public void windowClosing(WindowEvent arg0) {
-					dialog.setVisible(false);
-					try {
-						isCancel = true;
-						mySwingWorker.cancel(true);
-						clearTrace();
-					} catch (CancellationException cE) {
-						cE.printStackTrace();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-
-				@Override
-				public void windowClosed(WindowEvent arg0) {
-				}
-
-				@Override
-				public void windowActivated(WindowEvent arg0) {
-				}
-			});
+			}.execute();
 
 		} else {
 			displayAnalysis(null, profile, filter, msg);
@@ -1429,6 +1534,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 		if (this.analysisData != null) {
 			AnalysisFilter filter = analysisData.getFilter();
 			filter.setTimeRange(new TimeRange(beginTime, endTime));
+			clearAnalysis();
 			refresh(this.profile, filter, null);
 		}
 	}
@@ -1445,8 +1551,9 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 *            The collection of selected application/IPs.
 	 * 
 	 */
-	private synchronized void displayAnalysis(TraceData.Analysis analysis, Profile profile,
-			AnalysisFilter filter, String msg) throws IOException {
+	private synchronized void displayAnalysis(TraceData.Analysis analysis,
+			Profile profile, AnalysisFilter filter, String msg)
+			throws IOException {
 
 		this.analysisData = analysis;
 
@@ -1480,7 +1587,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 *            A boolean value that indicates whether or not the chart plot
 	 *            option was selected in the dialog.
 	 */
-	public void setExternalChartPlotSelection(ChartPlotOptions option, boolean selected) {
+	public void setExternalChartPlotSelection(ChartPlotOptions option,
+			boolean selected) {
 		// grab current list of options
 		List<ChartPlotOptions> options = new ArrayList<ChartPlotOptions>(
 				userPreferences.getChartPlotOptions());
@@ -1522,7 +1630,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * @throws IOException
 	 */
 	public void setProfile(Profile profile) throws IOException {
-		AnalysisFilter filter = this.analysisData != null ? analysisData.getFilter() : null;
+		AnalysisFilter filter = this.analysisData != null ? analysisData
+				.getFilter() : null;
 		clearAnalysis();
 		refresh(profile, filter, rb.getString("configuration.applied"));
 	}
@@ -1539,7 +1648,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 			int oldState = evt.getOldState();
 			int newState = evt.getNewState();
 
-			if ((oldState & Frame.MAXIMIZED_BOTH) == 0 && (newState & Frame.MAXIMIZED_BOTH) != 0) {
+			if ((oldState & Frame.MAXIMIZED_BOTH) == 0
+					&& (newState & Frame.MAXIMIZED_BOTH) != 0) {
 				// aroSimpleTab.resetSplitPanesSimpleTabb();
 				aroAdvancedTab.resetSplitPanesAdvancedTabb();
 			}
@@ -1560,8 +1670,10 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	private void setStartingRecordingIndicator() {
 		if (recordingIndicatorMenuItem != null) {
-			recordingIndicatorMenuItem.setText(rb.getString("menu.recordingindicatorstarting"));
-			recordingIndicatorMenuItem.setIcon(Images.YELLOW_RECORDING_INDICATOR.getIcon());
+			recordingIndicatorMenuItem.setText(rb
+					.getString("menu.recordingindicatorstarting"));
+			recordingIndicatorMenuItem
+					.setIcon(Images.YELLOW_RECORDING_INDICATOR.getIcon());
 			recordingIndicatorMenuItem.setVisible(true);
 		}
 	}
@@ -1572,8 +1684,10 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	private void setActiveRecordingIndicator() {
 		if (recordingIndicatorMenuItem != null) {
-			recordingIndicatorMenuItem.setText(rb.getString("menu.recordingindicator"));
-			recordingIndicatorMenuItem.setIcon(Images.RED_RECORDING_INDICATOR.getIcon());
+			recordingIndicatorMenuItem.setText(rb
+					.getString("menu.recordingindicator"));
+			recordingIndicatorMenuItem.setIcon(Images.RED_RECORDING_INDICATOR
+					.getIcon());
 			recordingIndicatorMenuItem.setVisible(true);
 		}
 	}
@@ -1583,8 +1697,10 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	private void setStoppedRecordingIndicator() {
 		if (recordingIndicatorMenuItem != null) {
-			recordingIndicatorMenuItem.setText(rb.getString("menu.recordingindicatorstopped"));
-			recordingIndicatorMenuItem.setIcon(Images.RED_RECORDING_INDICATOR.getIcon());
+			recordingIndicatorMenuItem.setText(rb
+					.getString("menu.recordingindicatorstopped"));
+			recordingIndicatorMenuItem.setIcon(Images.RED_RECORDING_INDICATOR
+					.getIcon());
 			recordingIndicatorMenuItem.setVisible(true);
 		}
 	}
@@ -1593,7 +1709,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * Sets the tool tip for the recording indicator.
 	 */
 	private void displayRecordingIndicatorToolTip() {
-		if ((recordingIndicatorToolTip != null) && (recordingIndicatorMenuItem != null)) {
+		if ((recordingIndicatorToolTip != null)
+				&& (recordingIndicatorMenuItem != null)) {
 			recordingIndicatorToolTip.setVisible(true);
 			ToolTipManager.sharedInstance().mouseMoved(
 					new MouseEvent(recordingIndicatorMenuItem, 0, 0, 0, 0, 0, // X-Y
@@ -1625,7 +1742,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * @throws IOException
 	 */
 	private void startDataDump(File dir) throws IOException {
-		new DataDump(dir, getProfile().getName());
+		new DataDump(dir, getProfile());
 	}
 
 }

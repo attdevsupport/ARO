@@ -25,6 +25,8 @@ import java.awt.Window;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -43,12 +45,15 @@ import com.att.aro.model.RequestResponseTimeline;
  */
 public class WaterfallPopup extends JDialog {
 	private static final long serialVersionUID = 1L;
+
+	private static Logger logger = Logger.getLogger(WaterfallPopup.class.getName());
 	
 	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 	private static final String NA = rb.getString("waterfall.na");
 	private static String S = rb.getString("waterfall.seconds");
 	private static String MS = rb.getString("waterfall.ms");
 	private static String KB = rb.getString("waterfall.kb");
+	private static int MAX_CHARS_TO_DISPLAY = 1000;
 
 	private JTabbedPane tabbedPane;
 	private JPanel detailsPanel;
@@ -80,7 +85,7 @@ public class WaterfallPopup extends JDialog {
 		this.setDefaultCloseOperation(HIDE_ON_CLOSE);
 		this.setSize(new Dimension(600, 400));
 		this.setMinimumSize(getDetailsPanel().getPreferredSize());
-		this.setTitle(rb.getString("waterfall.popupTitle"));
+		this.setLocationRelativeTo(parent);
 	}
 
 	/**
@@ -88,15 +93,20 @@ public class WaterfallPopup extends JDialog {
 	 * @param req The request/response pair.  Direction must be REQUEST and
 	 * response will be read from request.
 	 */
-	public synchronized void refresh(HttpRequestResponseInfo req) {
+	public synchronized void refresh(HttpRequestResponseInfo req, int index) {
+		
+		logger.entering("WaterfallPopup", "refresh");
 		
 		if (req != null) {
 			
+			this.setTitle(MessageFormat.format(rb.getString("waterfall.popupTitle"), index));
+			
 			// Check to see if request/response is already displayed
 			if (req == reqResp) {
+				logger.exiting("WaterfallPopup", "refresh");
 				return;
 			}
-			
+
 			// Check for valid argument - only HTTP requests
 			if (req.getDirection() != Direction.REQUEST || req.getWaterfallInfos() == null) {
 				throw new IllegalArgumentException("Invalid request object");
@@ -112,10 +122,10 @@ public class WaterfallPopup extends JDialog {
 			kbFmt.setMaximumFractionDigits(1);
 			
 			urlValueLabel.setText(req.getObjUri() != null ? req.getObjUri().toString() : req.getObjName());
-			hostValueLabel.setText(req.getSession().getRemoteHostName());
+			hostValueLabel.setText(req.getHostName());
 			ipValueLabel.setText(req.getSession().getRemoteIP().getHostAddress());
-			statusValueLabel.setText(String.valueOf(resp.getStatusCode()));
-			startValueLabel.setText(MessageFormat.format(S, secFmt.format(req.getTimeStamp())));
+			statusValueLabel.setText(resp.getStatusLine() != null ? resp.getStatusLine() : rb.getString("waterfall.unknownCode"));
+			startValueLabel.setText(MessageFormat.format(S, secFmt.format(wf.getStartTime())));
 			refreshWaterfallLabel(dnsValueLabel, wf.getDnsLookupDuration());
 			refreshWaterfallLabel(initConnValueLabel, wf.getInitialConnDuration());
 			refreshWaterfallLabel(sslValueLabel, wf.getSslNegotiationDuration());
@@ -130,6 +140,7 @@ public class WaterfallPopup extends JDialog {
 			setVisible(false);
 		}
 		this.reqResp = req;
+		logger.exiting("WaterfallPopup", "refresh");
 	}
 	
 	private void refreshWaterfallLabel(JLabel l, Double value) {
@@ -171,7 +182,7 @@ public class WaterfallPopup extends JDialog {
 			panel.add(createDetailRowPanel(new JLabel(rb.getString("waterfall.dns")), dnsValueLabel));
 			panel.add(createDetailRowPanel(new JLabel(rb.getString("waterfall.initConn")), initConnValueLabel));
 			panel.add(createDetailRowPanel(new JLabel(rb.getString("waterfall.ssl")), sslValueLabel));
-			panel.add(createDetailRowPanel(new JLabel(rb.getString("waterfall.reqTime")), reqTimeValueLabel));
+			panel.add(createDetailRowPanel(new JLabel(rb.getString("waterfall.requestTime")), reqTimeValueLabel));
 			panel.add(createDetailRowPanel(new JLabel(rb.getString("waterfall.firstByte")), firstByteValueLabel));
 			panel.add(createDetailRowPanel(new JLabel(rb.getString("waterfall.content")), contentValueLabel));
 			panel.add(createDetailRowPanel(new JLabel(rb.getString("waterfall.bytesIn")), bytesInValueLabel));
@@ -242,7 +253,20 @@ public class WaterfallPopup extends JDialog {
 		 * @param rr
 		 */
 		public void refresh(HttpRequestResponseInfo rr) {
-			textArea.setText(rr != null ? rr.getRequestResponseText() : null);
+			if (logger.isLoggable(Level.FINE)) {
+				logger.fine("Size of text to be displayed: "
+						+ rr.getRequestResponseText().length());
+			}
+			if (rr != null) {
+				if (rr.getRequestResponseText().length() > MAX_CHARS_TO_DISPLAY) {
+					textArea.setText(rr.getRequestResponseText().substring(0,
+							MAX_CHARS_TO_DISPLAY - 1));
+				} else {
+					textArea.setText(rr.getRequestResponseText());
+				}
+			} else {
+				textArea.setText(null);
+			}
 			textArea.setCaretPosition(0);
 		}
 

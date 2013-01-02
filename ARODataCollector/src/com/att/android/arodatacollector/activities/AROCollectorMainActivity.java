@@ -77,7 +77,7 @@ public class AROCollectorMainActivity extends Activity {
 	/**
 	 * The boolean value to enable logs based on production build or debug build
 	 */
-	private static boolean mIsProduction = true;
+	private static boolean mIsProduction = false;
 
 	/**
 	 * A boolean value that indicates whether or not to enable logging for this
@@ -114,7 +114,7 @@ public class AROCollectorMainActivity extends Activity {
 	/**
 	 * Initializes data members with a saved instance of an AROCollectorMainActivity 
 	 * object. Overrides the android.app.Activity#onCreate method. 
-	 * @param savedInstanceState – A saved instance of an AROCollectorMainActivity object.
+	 * @param savedInstanceState ï¿½ A saved instance of an AROCollectorMainActivity object.
 	 * @see android.app.Activity#onCreate(android.os.Bundle)
 	 */
 	@Override
@@ -162,8 +162,8 @@ public class AROCollectorMainActivity extends Activity {
 			public void onClick(View v) {
 				final String state = Environment.getExternalStorageState();
 				
-				final NetworkInfo.State wifiState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState();
-				final NetworkInfo.State mobileState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState();
+				NetworkInfo.State wifiState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState();
+				NetworkInfo.State mobileState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState();
 				if (DEBUG){
 					Log.d(TAG, "wifiState=" + wifiState + "; mobileState=" + mobileState);
 				}
@@ -220,6 +220,7 @@ public class AROCollectorMainActivity extends Activity {
 		final Timer aroDCStartTimer = new Timer();
 		// Task Killer process info class to manage and store all running
 		// process
+		
 		final AROCollectorTaskManagerProcessInfo mAROTaskManagerProcessInfo = new AROCollectorTaskManagerProcessInfo();
 		mApp.setARODataCollectorStopFlag(false);
 		mApp.setDataCollectorInProgressFlag(true);
@@ -227,57 +228,62 @@ public class AROCollectorMainActivity extends Activity {
 		mApp.setVideoCaptureFailed(false);
 		startDataCollector.setEnabled(false);
 		createAROTraceDirectory();
+		
 		if (mApp.getDumpTraceFolderName() != null) {
+		
+			//Takes a snap shoot of the time the system booted to be used for the timer on the home page.
+			mApp.setElapsedTimeStartTime(System.currentTimeMillis());
+			
 			// Starting the ARO Data collector service before tcpdump to record
 			// >=t(0)
 			startService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
 			// Starting the tcpdump service and starts the video capture
 			startService(new Intent(getApplicationContext(), AROCollectorService.class));
-		collectScreenVideo.setEnabled(false);
-		if (collectScreenVideo.isChecked()) {
-			mApp.setCollectVideoOption(true);
-		} else {
-			mApp.setCollectVideoOption(false);
-		}
-		mApp.showProgressDialog(this);
-		// ARO Watch timer for failed start message of data collector after 15
-		// sec
-		aroDCStartWatchTimer.schedule(new TimerTask() {
-			@Override
-			public void run() {
-				if (!mApp.getTcpDumpStartFlag()) {
-					stopService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
-					stopService(new Intent(getApplicationContext(), AROCollectorService.class));
-					// As we collect peripherals trace i.e wifi,GPs
-					// service before tcpdump trace so we making sure we delete
-					// all of the traces if we don't have tcpdump running
-					mAroUtils.deleteTraceFolder(new File(mApp.getTcpDumpTraceFolderName()));
-					mAROFailStartHandler.sendMessage(Message.obtain(mAROFailStartHandler,
-							NAVIGATE_HOME_SCREEN));
-				}
-				// Cancel the timers
-				aroDCStartWatchTimer.cancel();
-				aroDCStartTimer.cancel();
+			collectScreenVideo.setEnabled(false);
+			if (collectScreenVideo.isChecked()) {
+				mApp.setCollectVideoOption(true);
+			} else {
+				mApp.setCollectVideoOption(false);
 			}
-		}, ARO_START_WATCH_TIME);
-		// Timer to check start data collector kick-off within 15 seconds
-		aroDCStartTimer.scheduleAtFixedRate(new TimerTask() {
-			@Override
-			public void run() {
-				mApp.setTcpDumpStartFlag(mAROTaskManagerProcessInfo.pstcpdump());
-				if (mApp.getTcpDumpStartFlag()) {
-					mApp.hideProgressDialog();
-					mApp.setDataCollectorInProgressFlag(false);
-					mApp.triggerAROAlertNotification();
-					mAROHomeScreenHandler.sendMessage(Message.obtain(mAROHomeScreenHandler, 0));
+			mApp.showProgressDialog(this);
+			// ARO Watch timer for failed start message of data collector after 15
+			// sec
+			aroDCStartWatchTimer.schedule(new TimerTask() {
+				@Override
+				public void run() {
+					if (!mApp.getTcpDumpStartFlag()) {
+						stopService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
+						stopService(new Intent(getApplicationContext(), AROCollectorService.class));
+						// As we collect peripherals trace i.e wifi,GPs
+						// service before tcpdump trace so we making sure we delete
+						// all of the traces if we don't have tcpdump running
+						mAroUtils.deleteTraceFolder(new File(mApp.getTcpDumpTraceFolderName()));
+						mAROFailStartHandler.sendMessage(Message.obtain(mAROFailStartHandler,
+								NAVIGATE_HOME_SCREEN));
+					}
+					// Cancel the timers
 					aroDCStartWatchTimer.cancel();
 					aroDCStartTimer.cancel();
-					if (DEBUG) {
-						Log.i(TAG, "Failed to start ARODataCollector in 15 sec");
+				}
+			}, ARO_START_WATCH_TIME);
+			// Timer to check start data collector kick-off within 15 seconds
+			aroDCStartTimer.scheduleAtFixedRate(new TimerTask() {
+				@Override
+				public void run() {
+					mApp.setTcpDumpStartFlag(mAROTaskManagerProcessInfo.pstcpdump());
+					if (mApp.getTcpDumpStartFlag()) {
+						mApp.hideProgressDialog();
+						mApp.setDataCollectorInProgressFlag(false);
+						mApp.triggerAROAlertNotification();
+						mAROHomeScreenHandler.sendMessage(Message.obtain(mAROHomeScreenHandler, 0));
+						aroDCStartWatchTimer.cancel();
+						aroDCStartTimer.cancel();
+						if (DEBUG) {
+							Log.i(TAG, "Failed to start ARODataCollector in 15 sec");
+						}
 					}
 				}
-			}
-		}, ARO_START_TICK_TIME, ARO_START_TICK_TIME);
+			}, ARO_START_TICK_TIME, ARO_START_TICK_TIME);
 	   }
 	}
 
@@ -392,9 +398,9 @@ public class AROCollectorMainActivity extends Activity {
 	/**
 	 * Handles the result of an activity performed on the UI of the Landing screen. 
 	 * Overrides the android.app.Activity# onActivityResult method.
-	 * @param requestCode – A code representing a request to the UI of the Landing screen.
-	 * @param resultCode – A code representing the result of an activity performed on the UI of the Landing screen.
-	 * @param data – An Intent object that contains data associated with the result of the activity
+	 * @param requestCode ï¿½ A code representing a request to the UI of the Landing screen.
+	 * @param resultCode ï¿½ A code representing the result of an activity performed on the UI of the Landing screen.
+	 * @param data ï¿½ An Intent object that contains data associated with the result of the activity
 	 * @see android.app.Activity#onActivityResult(int, int,
 	 *      android.content.Intent)
 	 */

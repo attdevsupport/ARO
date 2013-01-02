@@ -46,7 +46,7 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	private static final String TAG = "AROCollectorCustomDialog";
 
 	/** BACK_KEY_PRESSED string **/
-	private static final String BACK_KEY_PRESSED = "BACK_KEY_PRESSED";
+	public static final String BACK_KEY_PRESSED = "BACK_KEY_PRESSED";
 
 	/** HOME_KEY_PRESSED string **/
 	private static final String HOME_KEY_PRESSED = "HOME_KEY_PRESSED";
@@ -127,7 +127,9 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		/**
 		 * A dialog indicating that both wifi and Mobile are off.
 		 */
-		WIFI_MOBILE_BOTH_OFF
+		WIFI_MOBILE_BOTH_OFF,
+		
+		NO_ROOT_ACCESS
 	}
 
 	/**
@@ -215,6 +217,7 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		m_current_dialog = type;
 		this.readyListener = readyListener;
 		keylistner = listner;
+		setOnKeyListener(this);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		lp.dimAmount = 0.5f;
 		this.getWindow().setAttributes(lp);
@@ -271,7 +274,20 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		case WIFI_MOBILE_BOTH_OFF:
 			createAROWifiMobileOffErrorDialog();
 			break;
+			
+		case NO_ROOT_ACCESS:
+			createARONoRootAccessErrorDialog();
+			break;
 		}
+	}
+
+	private void createARONoRootAccessErrorDialog() {
+		setContentView(R.layout.arocollector_errormessage);
+		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
+		mAroErrorText.setText(R.string.aro_norootaccess);
+		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
+
+		buttonOK.setOnClickListener(new OKListener());		
 	}
 
 	/**
@@ -437,18 +453,26 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 			}
 			AROCollectorCustomDialog.this.dismiss();
 			ret = false;
+			
+			try {
+				AROCollectorCustomDialog.this.dismiss();
+			} catch (IllegalArgumentException e) {
+				Log.e(TAG, "exception in onKey", e);
+			}
 		} else if (keyCode == KeyEvent.KEYCODE_HOME) {
 			if (keylistner != null) {
 				keylistner.HandleKeyEvent(HOME_KEY_PRESSED, m_current_dialog);
 			}
 			AROCollectorCustomDialog.this.dismiss();
 			ret = false;
+			
+			try {
+				AROCollectorCustomDialog.this.dismiss();
+			} catch (IllegalArgumentException e) {
+				Log.e(TAG, "exception in onKey", e);
+			}
 		}
-		try {
-			AROCollectorCustomDialog.this.dismiss();
-		} catch (IllegalArgumentException e) {
-			Log.e(TAG, "exception in onKey", e);
-		}
+
 		return ret;
 	}
 
@@ -556,6 +580,11 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 				case TRACE_SPECIALCHARERROR:
 					readyListener.ready(Dialog_CallBack_Error.CALLBACK_SHOWTRACENAMEERROR, false);
 					AROCollectorCustomDialog.this.dismiss();
+					break;
+					
+				case NO_ROOT_ACCESS:
+					AROCollectorCustomDialog.this.dismiss();
+					readyListener.ready(null, false);
 					break;
 
 				}

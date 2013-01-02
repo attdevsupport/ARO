@@ -1,7 +1,6 @@
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.util.ResourceBundle;
@@ -22,12 +21,11 @@ import com.att.aro.model.TraceData;
  * Represents a panel for displaying the EndPoint Summary Per Application and the End Point Summary 
  * Per IP Address tables in the Statistics tab of the ARO Data Analyzer. 
  */
-public class EndPointSummaryPanel extends JPanel {
+public class EndPointSummaryPanel extends JSplitPane {
 	private static final long serialVersionUID = 1L;
 
 	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
-	private JSplitPane jSummarySplitPane;
 	private JScrollPane scroll;
 	private JScrollPane ipScroll;
 	private ApplicationEndPointSummaryTableModel tableModel = new ApplicationEndPointSummaryTableModel();
@@ -45,7 +43,11 @@ public class EndPointSummaryPanel extends JPanel {
 	public EndPointSummaryPanel() {
 		super();
 		setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
-		initialize();
+		setOrientation(JSplitPane.HORIZONTAL_SPLIT);
+		setPreferredSize(new Dimension(700, 180));
+		setResizeWeight(0.5);
+		setLeftComponent(getApplicationSummaryPanel());
+		setRightComponent(getIPSummaryPanel());
 	}
 
 	/**
@@ -66,13 +68,6 @@ public class EndPointSummaryPanel extends JPanel {
 
 		if (analysis == null || analysis.getProfile() == null)
 			return;
-	}
-
-	/**
-	 * Initializes the EndPointSummaryPanel.
-	 */
-	private void initialize() {
-		this.add(createTablesPanel());
 	}
 
 	/**
@@ -112,7 +107,6 @@ public class EndPointSummaryPanel extends JPanel {
 	private JScrollPane getScroll() {
 		if (scroll == null) {
 			scroll = new JScrollPane(getTable());
-			scroll.setPreferredSize(new Dimension(250, 200));
 		}
 		return scroll;
 	}
@@ -123,7 +117,6 @@ public class EndPointSummaryPanel extends JPanel {
 	private JScrollPane getIPScroll() {
 		if (ipScroll == null) {
 			ipScroll = new JScrollPane(getIPTable());
-			ipScroll.setPreferredSize(new Dimension(250, 200));
 		}
 		return ipScroll;
 	}
@@ -136,7 +129,6 @@ public class EndPointSummaryPanel extends JPanel {
 	public DataTable<ApplicationPacketSummary> getTable() {
 		if (table == null) {
 			table = new DataTable<ApplicationPacketSummary>(tableModel);
-			table.setGridColor(Color.LIGHT_GRAY);
 		}
 		return table;
 	}
@@ -149,24 +141,8 @@ public class EndPointSummaryPanel extends JPanel {
 	public DataTable<IPPacketSummary> getIPTable() {
 		if (ipTable == null) {
 			ipTable = new DataTable<IPPacketSummary>(ipTableModel);
-			ipTable.setGridColor(Color.LIGHT_GRAY);
 		}
 		return ipTable;
-	}
-
-	/**
-	 * Initializes and returns the Split Pane that contains the tables.
-	 */
-	private JSplitPane createTablesPanel() {
-		if (jSummarySplitPane == null) {
-			jSummarySplitPane = new JSplitPane();
-			jSummarySplitPane.setOrientation(JSplitPane.HORIZONTAL_SPLIT);
-			jSummarySplitPane.setResizeWeight(0.5);
-			jSummarySplitPane.setLeftComponent(getApplicationSummaryPanel());
-			jSummarySplitPane.setRightComponent(getIPSummaryPanel());
-			jSummarySplitPane.setPreferredSize(new Dimension(750, 180));
-		}
-		return jSummarySplitPane;
 	}
 
 	/**

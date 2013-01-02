@@ -21,7 +21,6 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.event.MouseWheelListener;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
@@ -31,8 +30,6 @@ import java.util.ResourceBundle;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.UIManager;
 
 import com.att.aro.commonui.AROUIManager;
@@ -47,16 +44,10 @@ public class DateTraceAppDetailPanel extends JPanel {
 
 	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
-	private static void removeMouseWheelListeners(JScrollPane scrollPane) {
-		for (MouseWheelListener mwl : scrollPane.getMouseWheelListeners()) {
-			scrollPane.removeMouseWheelListener(mwl);
-		}
-	}
-	
 	private JPanel dataPanel;
 	private JLabel dateValueLabel;
 	private JLabel traceValueLabel;
-	private JTextArea applicationNameLabel;
+	private JLabel applicationNameLabel;
 	private JLabel appVersionValueLabel;
 	private JLabel deviceModelValueLabel;
 	private JLabel networkTypeValueLabel;
@@ -77,12 +68,8 @@ public class DateTraceAppDetailPanel extends JPanel {
 		dateValueLabel.setFont(TEXT_FONT);
 		traceValueLabel = new JLabel();
 		traceValueLabel.setFont(TEXT_FONT);
-		applicationNameLabel = new JTextArea();
-		applicationNameLabel.setEditable(false);
-		applicationNameLabel.setFont(traceValueLabel.getFont());
-		applicationNameLabel.setLineWrap(true);
-		applicationNameLabel.setWrapStyleWord(true);
-		applicationNameLabel.setMargin(new Insets(0, 0, 0, 0));
+		applicationNameLabel = new JLabel();
+		applicationNameLabel.setFont(TEXT_FONT);
 		appVersionValueLabel = new JLabel();
 		appVersionValueLabel.setFont(TEXT_FONT);
 		deviceModelValueLabel = new JLabel();
@@ -107,12 +94,12 @@ public class DateTraceAppDetailPanel extends JPanel {
 			DateFormat format = DateFormat.getDateTimeInstance();
 			dateValueLabel.setText(format.format(traceData.getTraceDateTime()));
 			traceValueLabel.setText(traceData.getTraceDir().getName());
-			StringBuffer apps = new StringBuffer();
+			StringBuffer apps = new StringBuffer("<html><body>");
 			for (String app : analysisData.getAppNames()) {
 				String appVersion = analysisData.getTraceData().getAppVersionMap().get(app);
 				apps.append((app != null ? app : rb.getString("aro.unknownApp"))
 						+ (appVersion != null ? " : " + appVersion : ""));
-				apps.append('\n');
+				apps.append("<br/>");
 			}
 			applicationNameLabel.setText(apps.toString());
 			appVersionValueLabel.setText(traceData.getCollectorVersion());
@@ -151,7 +138,7 @@ public class DateTraceAppDetailPanel extends JPanel {
 	 * 
 	 * @return A JLabel object containing the date value label.
 	 */
-	public JLabel getDateValueLabel() {
+	JLabel getDateValueLabel() {
 		return dateValueLabel;
 	}
 
@@ -160,7 +147,7 @@ public class DateTraceAppDetailPanel extends JPanel {
 	 * 
 	 * @return A JLabel object containing the trace value label.
 	 */
-	public JLabel getTraceValueLabel() {
+	JLabel getTraceValueLabel() {
 		return traceValueLabel;
 	}
 
@@ -169,7 +156,7 @@ public class DateTraceAppDetailPanel extends JPanel {
 	 * 
 	 * @return A JTextArea object containing the application name label.
 	 */
-	public JTextArea getApplicationNameLabel() {
+	JLabel getApplicationNameLabel() {
 		return applicationNameLabel;
 	}
 
@@ -205,11 +192,8 @@ public class DateTraceAppDetailPanel extends JPanel {
 			label.setFont(LABEL_FONT);
 			dataPanel.add(label, new GridBagConstraints(0, 2, 1, 1, 0.0, 0.0,
 					GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, insets, 0, 0));
-			JScrollPane scroll = new JScrollPane(applicationNameLabel);
-			scroll.setBorder(BorderFactory.createEmptyBorder());
-			removeMouseWheelListeners(scroll);
-			dataPanel.add(scroll, new GridBagConstraints(1, 2, 1, 1, 0.5, 0.0,
-					GridBagConstraints.NORTHWEST, GridBagConstraints.HORIZONTAL, insets, 0, 0));
+			dataPanel.add(applicationNameLabel, new GridBagConstraints(1, 2, 1, 1, 0.5, 0.0,
+					GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, insets, 0, 0));
 
 			label = new JLabel(rb.getString("bestPractices.applicationversion"));
 			label.setFont(LABEL_FONT);

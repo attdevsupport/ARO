@@ -328,18 +328,18 @@ public class ApplicationScorePanel extends JPanel {
 			totalScoreValueLabel.setText(String.valueOf(analysis.getApplicationScore()
 					.getTotalApplicationScore()));
 			
-			outOf50Label.setText(rb.getString("bestPractices.outofscrore3"));
-			outOf75Label.setText(rb.getString("bestPractices.outofscrore4"));
-			outOf75Label2.setText(rb.getString("bestPractices.outofscrore4"));
-			outOf125Label.setText(rb.getString("bestPractices.outofscrore6"));
-			outOf125Label2.setText(rb.getString("bestPractices.outofscrore6"));
-			outOf150Label.setText(rb.getString("bestPractices.outofscrore5"));
-			outOf150Label2.setText(rb.getString("bestPractices.outofscrore5"));
-			outOf500Label.setText(rb.getString("bestPractices.outofscrore1"));
-			outOf500Label2.setText(rb.getString("bestPractices.outofscrore1"));
-			outOf625Label.setText(rb.getString("bestPractices.outofscrore7"));
-			outOf1000Label.setText(rb.getString("bestPractices.outofscrore2"));
-			outOf1825Label.setText(rb.getString("bestPractices.outofscrore8"));
+			outOf50Label.setText(rb.getString("bestPractices.outofscore3"));
+			outOf75Label.setText(rb.getString("bestPractices.outofscore4"));
+			outOf75Label2.setText(rb.getString("bestPractices.outofscore4"));
+			outOf125Label.setText(rb.getString("bestPractices.outofscore6"));
+			outOf125Label2.setText(rb.getString("bestPractices.outofscore6"));
+			outOf150Label.setText(rb.getString("bestPractices.outofscore5"));
+			outOf150Label2.setText(rb.getString("bestPractices.outofscore5"));
+			outOf500Label.setText(rb.getString("bestPractices.outofscore1"));
+			outOf500Label2.setText(rb.getString("bestPractices.outofscore1"));
+			outOf625Label.setText(rb.getString("bestPractices.outofscore7"));
+			outOf1000Label.setText(rb.getString("bestPractices.outofscore2"));
+			outOf1825Label.setText(rb.getString("bestPractices.outofscore8"));
 		} else {
 			cathcControlScoreValueLabel.setText(null);
 			connectionClosingScoreValueLabel.setText(null);
@@ -391,7 +391,7 @@ public class ApplicationScorePanel extends JPanel {
 		writer = addKeyValue(writer, cacheControlScoreLabel.getText(), cathcControlScoreValueLabel
 				.getText().replace(rb.getString("statics.csvCell.seperator"), ""));
 		writer.append(rb.getString("statics.csvCell.seperator"));
-		writer.append(rb.getString("bestPractices.outofscrore4"));
+		writer.append(rb.getString("bestPractices.outofscore4"));
 		writer.append(lineSep);
 		writer = addKeyValue(
 				writer,
@@ -399,17 +399,17 @@ public class ApplicationScorePanel extends JPanel {
 				connectionClosingScoreValueLabel.getText().replace(
 						rb.getString("statics.csvCell.seperator"), ""));
 		writer.append(rb.getString("statics.csvCell.seperator"));
-		writer.append(rb.getString("bestPractices.outofscrore4"));
+		writer.append(rb.getString("bestPractices.outofscore4"));
 		writer.append(lineSep);
 		writer = addKeyValue(writer, tightlyGroupConnLabel.getText(), tightlyGroupConnValueLabel
 				.getText().replace(rb.getString("statics.csvCell.seperator"), ""));
 		writer.append(rb.getString("statics.csvCell.seperator"));
-		writer.append(rb.getString("bestPractices.outofscrore5"));
+		writer.append(rb.getString("bestPractices.outofscore5"));
 		writer.append(lineSep);
 		writer = addKeyValue(writer, periodicTransferLabel.getText(), periodicTransferValueLabel
 				.getText().replace(rb.getString("statics.csvCell.seperator"), ""));
 		writer.append(rb.getString("statics.csvCell.seperator"));
-		writer.append(rb.getString("bestPractices.outofscrore5"));
+		writer.append(rb.getString("bestPractices.outofscore5"));
 		writer.append(lineSep);
 		writer = addKeyValue(
 				writer,
@@ -417,12 +417,12 @@ public class ApplicationScorePanel extends JPanel {
 				contentExpirationScoreValueLabel.getText().replace(
 						rb.getString("statics.csvCell.seperator"), ""));
 		writer.append(rb.getString("statics.csvCell.seperator"));
-		writer.append(rb.getString("bestPractices.outofscrore3"));
+		writer.append(rb.getString("bestPractices.outofscore3"));
 		writer.append(lineSep);
 		writer = addKeyValue(writer, causeSubTotalLabel.getText(), causeSubTotalValueLabel
 				.getText().replace(rb.getString("statics.csvCell.seperator"), ""));
 		writer.append(rb.getString("statics.csvCell.seperator"));
-		writer.append(rb.getString("bestPractices.outofscrore1"));
+		writer.append(rb.getString("bestPractices.outofscore1"));
 		writer.append(lineSep);
 
 		// Effects scores added in to writer
@@ -431,32 +431,32 @@ public class ApplicationScorePanel extends JPanel {
 		writer = addKeyValue(writer, duplicateContentLabel.getText(), duplicateContentValueLabel
 				.getText().replace(rb.getString("statics.csvCell.seperator"), ""));
 		writer.append(rb.getString("statics.csvCell.seperator"));
-		writer.append(rb.getString("bestPractices.outofscrore6"));
+		writer.append(rb.getString("bestPractices.outofscore6"));
 		writer.append(lineSep);
 		writer = addKeyValue(writer, signalingOverheadLabel.getText(), signalingOverheadValueLabel
 				.getText().replace(rb.getString("statics.csvCell.seperator"), ""));
 		writer.append(rb.getString("statics.csvCell.seperator"));
-		writer.append(rb.getString("bestPractices.outofscrore6"));
+		writer.append(rb.getString("bestPractices.outofscore6"));
 		writer.append(lineSep);
 		writer = addKeyValue(writer, averageRateLabel.getText(), averageRateValueLabel.getText()
 				.replace(rb.getString("statics.csvCell.seperator"), ""));
 		writer.append(rb.getString("statics.csvCell.seperator"));
-		writer.append(rb.getString("bestPractices.outofscrore7"));
+		writer.append(rb.getString("bestPractices.outofscore7"));
 		writer.append(lineSep);
 		writer = addKeyValue(writer, energyConsumptionLabel.getText(), energyConsumptionValueLabel
 				.getText().replace(rb.getString("statics.csvCell.seperator"), ""));
 		writer.append(rb.getString("statics.csvCell.seperator"));
-		writer.append(rb.getString("bestPractices.outofscrore8"));
+		writer.append(rb.getString("bestPractices.outofscore8"));
 		writer.append(lineSep);
 		writer = addKeyValue(writer, effectSubTotalLabel.getText(), effectSubTotalValueLabel
 				.getText().replace(rb.getString("statics.csvCell.seperator"), ""));
 		writer.append(rb.getString("statics.csvCell.seperator"));
-		writer.append(rb.getString("bestPractices.outofscrore1"));
+		writer.append(rb.getString("bestPractices.outofscore1"));
 		writer.append(lineSep);
 		writer = addKeyValue(writer, totalScoreLabel.getText(), totalScoreValueLabel.getText()
 				.replace(rb.getString("statics.csvCell.seperator"), ""));
 		writer.append(rb.getString("statics.csvCell.seperator"));
-		writer.append(rb.getString("bestPractices.outofscrore2"));
+		writer.append(rb.getString("bestPractices.outofscore2"));
 		writer.append(lineSep);
 
 		return writer;

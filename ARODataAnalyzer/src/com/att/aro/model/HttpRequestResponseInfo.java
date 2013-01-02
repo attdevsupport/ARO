@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -73,6 +74,8 @@ public class HttpRequestResponseInfo implements
 	 * Returns the POST HTTP type.
 	 */
 	public static final String HTTP_POST = "POST";
+	
+	public static final String HTTP_SCHEME = "HTTP";
 
 	private static final String GZIP = "gzip";
 
@@ -81,9 +84,9 @@ public class HttpRequestResponseInfo implements
 	
 	private static final Map<String, Integer> wellKnownPorts = new HashMap<String, Integer>(5);
 	static {
-		wellKnownPorts.put("http", 80);
-		wellKnownPorts.put("https", 443);
-		wellKnownPorts.put("rtsp", 554);
+		wellKnownPorts.put(HTTP_SCHEME, 80);
+		wellKnownPorts.put("HTTPS", 443);
+		wellKnownPorts.put("RTSP", 554);
 	}
 
 	private PacketInfo.Direction packetDirection;
@@ -92,6 +95,7 @@ public class HttpRequestResponseInfo implements
 	private String scheme;
 	private int port;
 	private String version;
+	private String statusLine;
 	private String requestType; // e.g., HTTP_POST, HTTP_GET
 	private int statusCode; // e.g., 200
 	private String hostName; // e.g., a57.foxnews.com
@@ -114,7 +118,7 @@ public class HttpRequestResponseInfo implements
 	private String contentEncoding;
 	private int rrStart;
 	private int rawSize; // Includes headers
-	private boolean encrypted;
+	private boolean ssl;
 
 	// Map of the content offset/
 	private SortedMap<Integer, Integer> contentOffsetLength;
@@ -282,7 +286,11 @@ public class HttpRequestResponseInfo implements
 					}
 				}
 				
-				// TODO Figure out SSL negotiation for SSL support
+				Double sslNegTime = null;
+				PacketInfo handshake = session.getLastSslHandshakePacket();
+				if (handshake != null) {
+					sslNegTime = handshake.getTimeStamp();
+				}
 
 				// Associate requests/responses
 				List<HttpRequestResponseInfo> reqs = new ArrayList<HttpRequestResponseInfo>(
@@ -300,7 +308,7 @@ public class HttpRequestResponseInfo implements
 
 				// Build waterfall for each request/response pair
 				for (HttpRequestResponseInfo rr : result) {
-					if (rr.getDirection() != Direction.REQUEST || rr.getAssocReqResp() == null || rr.encrypted) {
+					if (rr.getDirection() != Direction.REQUEST || rr.getAssocReqResp() == null) {
 						// Only process non-HTTPS request/response pairs
 						continue;
 					}
@@ -338,14 +346,22 @@ public class HttpRequestResponseInfo implements
 						// Prevent from being added again
 						synTime = null;
 					}
-
+					
 					// Calculate request time
 					if (startTime < 0.0) {
 						startTime = firstReqPacket;
 					}
 					
 					// Store waterfall in request/response
-					rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, null, initConnDuration, lastReqPacket - firstReqPacket, firstRespPacket - lastReqPacket, lastRespPacket - firstRespPacket);
+					if (sslNegTime != null) {
+						rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, initConnDuration, sslNegTime - firstReqPacket, 0, 0, lastRespPacket - sslNegTime);
+					} else {
+						if (firstRespPacket >= lastReqPacket) {
+							rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, initConnDuration, null, lastReqPacket - firstReqPacket, firstRespPacket - lastReqPacket, lastRespPacket - firstRespPacket);
+						} else {
+							rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, initConnDuration, null, 0, 0, lastRespPacket - firstReqPacket);
+						}
+					}
 				}
 			}
 		}
@@ -455,7 +471,7 @@ public class HttpRequestResponseInfo implements
 					if (rrInfo.objUri != null && !rrInfo.objUri.isAbsolute()) {
 						try {
 							int port = Integer.valueOf(rrInfo.port).equals(wellKnownPorts.get(rrInfo.scheme)) ? -1 : rrInfo.port;
-							rrInfo.objUri = new URI(rrInfo.scheme, null, rrInfo.hostName, port, rrInfo.objUri.getPath(), rrInfo.objUri.getQuery(), rrInfo.objUri.getFragment());
+							rrInfo.objUri = new URI(rrInfo.scheme.toLowerCase(), null, rrInfo.hostName, port, rrInfo.objUri.getPath(), rrInfo.objUri.getQuery(), rrInfo.objUri.getFragment());
 						} catch (URISyntaxException e) {
 							// Just log warning
 							logger.log(Level.WARNING, "Unexpected exception creating URI for request", e);
@@ -613,20 +629,20 @@ public class HttpRequestResponseInfo implements
 				// Check for request type
 				matcher = strReRequestType.matcher(line);
 				if (matcher.lookingAt()) {
+					rrInfo.statusLine = line;
 					rrInfo.requestType = matcher.group(1);
 					rrInfo.direction = Direction.REQUEST;
 					rrInfo.objName = matcher.group(2);
 					try {
 						rrInfo.objUri = new URI(rrInfo.objName);
-						rrInfo.hostName = rrInfo.objUri.getHost();
+						if (rrInfo.objUri.getHost() != null) {
+							rrInfo.hostName = rrInfo.objUri.getHost();
+						}
 					} catch (URISyntaxException e) {
 						// Ignore since value does not have to be a URI
 					}
-					if (rrInfo.hostName == null) {
-						rrInfo.hostName = session.getRemoteHostName();
-					}
 					rrInfo.version = matcher.group(3);
-					rrInfo.scheme = rrInfo.version.split("/")[0].toLowerCase();
+					rrInfo.scheme = rrInfo.version.split("/")[0];
 					
 					switch (direction) {
 					case UPLINK:
@@ -642,16 +658,20 @@ public class HttpRequestResponseInfo implements
 				// Get response
 				matcher = strReResponseResults.matcher(line);
 				if (matcher.lookingAt()) {
+					rrInfo.statusLine = line;
 					rrInfo.direction = Direction.RESPONSE;
 					rrInfo.version = matcher.group(1);
+					rrInfo.scheme = rrInfo.version.split("/")[0];
 					rrInfo.statusCode = Integer.parseInt(matcher.group(2));
 					rrInfo.responseResult = matcher.group(3);
 				}
 
 				if (rrInfo.direction == null) {
 
-					// Assume HTTPS encrypted here
-					rrInfo.encrypted = true;
+					// Check for HTTPS
+					if (session.isSsl()) {
+						rrInfo.ssl = true;
+					}
 					while ((line = readLine()) != null && line.length() > 0)
 						;
 					rrInfo.rawSize = counter - index;
@@ -775,7 +795,7 @@ public class HttpRequestResponseInfo implements
 					}
 
 					// max-age
-					matcher = strReCacheMaxAge.matcher(line);
+					matcher = strReCacheMaxAge.matcher(directive);
 					if (matcher.lookingAt()) {
 						rrInfo.maxAge = Long.valueOf(matcher.group(1));
 						continue;
@@ -788,14 +808,14 @@ public class HttpRequestResponseInfo implements
 						}
 
 						// min-fresh
-						matcher = strReCacheMinFresh.matcher(line);
+						matcher = strReCacheMinFresh.matcher(directive);
 						if (matcher.lookingAt()) {
 							rrInfo.minFresh = Long.valueOf(matcher.group(1));
 							continue;
 						}
 
 						// max-stale
-						matcher = strReCacheMaxStale.matcher(line);
+						matcher = strReCacheMaxStale.matcher(directive);
 						if (matcher.lookingAt()) {
 							rrInfo.maxStale = matcher.group(1) != null ? Long
 									.valueOf(matcher.group(1)) : Long.MAX_VALUE;
@@ -818,7 +838,7 @@ public class HttpRequestResponseInfo implements
 						}
 
 						// s-maxage
-						matcher = strReCacheSMaxAge.matcher(line);
+						matcher = strReCacheSMaxAge.matcher(directive);
 						if (matcher.lookingAt()) {
 							rrInfo.sMaxAge = Long.valueOf(matcher.group(1));
 							continue;
@@ -970,6 +990,9 @@ public class HttpRequestResponseInfo implements
 		}
 		this.session = session;
 		this.packetDirection = direction;
+
+		// Initialize session remote host
+		this.hostName = session.getRemoteHostName();
 	}
 
 	/**
@@ -1047,6 +1070,13 @@ public class HttpRequestResponseInfo implements
 	 */
 	public Direction getDirection() {
 		return direction;
+	}
+
+	/**
+	 * @return the statusLine
+	 */
+	public String getStatusLine() {
+		return statusLine;
 	}
 
 	/**
@@ -1161,6 +1191,21 @@ public class HttpRequestResponseInfo implements
 	 */
 	public double getRawSizeInKB() {
 		return (double) rawSize / 1024;
+	}
+
+	/**
+	 * @return the encrypted
+	 */
+	public boolean isSsl() {
+		return ssl;
+	}
+
+	/**
+	 * Returns the protocol used (e.g http)
+	 * @return the scheme
+	 */
+	public String getScheme() {
+		return scheme;
 	}
 
 	/**
@@ -1390,15 +1435,8 @@ public class HttpRequestResponseInfo implements
 	 */
 	public byte[] getContent() throws ContentException, IOException {
 		if (contentOffsetLength != null) {
-			byte[] buffer;
-			switch (packetDirection) {
-			case DOWNLINK:
-				buffer = session.getStorageDl();
-				break;
-			case UPLINK:
-				buffer = session.getStorageUl();
-				break;
-			default:
+			byte[] buffer = getStorageBuffer();
+			if (buffer == null) {
 				return null;
 			}
 
@@ -1449,15 +1487,8 @@ public class HttpRequestResponseInfo implements
 			} catch (ContentException e) {
 
 				// If we get a ContentException, just save the bytes we have
-				byte[] buffer;
-				switch (packetDirection) {
-				case DOWNLINK:
-					buffer = session.getStorageDl();
-					break;
-				case UPLINK:
-					buffer = session.getStorageUl();
-					break;
-				default:
+				byte[] buffer = getStorageBuffer();
+				if (buffer == null) {
 					buffer = new byte[0];
 				}
 
@@ -1483,17 +1514,8 @@ public class HttpRequestResponseInfo implements
 	public long getActualByteCount() {
 		if (contentOffsetLength != null) {
 
-			int bufferSize;
-			switch (packetDirection) {
-			case DOWNLINK:
-				bufferSize = session.getStorageDl().length;
-				break;
-			case UPLINK:
-				bufferSize = session.getStorageUl().length;
-				break;
-			default:
-				return 0;
-			}
+			byte[] buffer = getStorageBuffer();
+			int bufferSize = buffer != null ? buffer.length : 0;
 
 			long result = 0;
 			for (Map.Entry<Integer, Integer> entry : contentOffsetLength
@@ -1513,6 +1535,75 @@ public class HttpRequestResponseInfo implements
 		}
 	}
 
+	/**
+	 * Determines whether the same content is contained in this request/response as in
+	 * the specified request/response
+	 * @param rr The request to compare to
+	 * @return true if the content is the same
+	 */
+	public boolean isSameContent(HttpRequestResponseInfo rr) {
+
+		// Check specified content length
+		if (contentLength > 0 && contentLength != rr.contentLength) {
+			return false;
+		}
+
+		long count = getActualByteCount();
+		if (count == rr.getActualByteCount()) {
+			
+			// If not data then they are the same
+			if (count == 0) {
+				return true;
+			}
+			
+			// Otherwise do byte by byte compare
+			byte[] b1 = getStorageBuffer();
+			byte[] b2 = rr.getStorageBuffer();
+
+			Iterator<Map.Entry<Integer, Integer>> it1 = contentOffsetLength.entrySet().iterator();
+			Iterator<Map.Entry<Integer, Integer>> it2 = rr.contentOffsetLength.entrySet().iterator();
+			
+			if (it1.hasNext() && it2.hasNext()) {
+				
+				Map.Entry<Integer, Integer> e1 = it1.next();
+				Map.Entry<Integer, Integer> e2 = it2.next();
+				
+				int i1 = e1.getKey();
+				int i2 = e2.getKey();
+				
+				do {
+					if (b1[i1] != b2[i2]) {
+						return false;
+					}
+
+					++i1; ++i2;
+					if (i1 >= b1.length || i2 >= b2.length) {
+						break;
+					}
+					if (i1 >= e1.getKey() + e1.getValue()) {
+						if (it1.hasNext()) {
+							e1 = it1.next();
+							i1 = e1.getKey();
+						} else {
+							break;
+						}
+					}
+					if (i2 >= e2.getKey() + e2.getValue()) {
+						if (it2.hasNext()) {
+							e2 = it2.next();
+							i2 = e2.getKey();
+						} else {
+							break;
+						}
+					}
+				} while (true);
+			}
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
 	/**
 	 * Returns the HTTP rangeResponse state.
 	 * 
@@ -1612,21 +1703,10 @@ public class HttpRequestResponseInfo implements
 	 * @return UTF-8 string or null if an error occurred
 	 */
 	public String getRequestResponseText() {
-		byte[] storage;
-		switch (packetDirection) {
-		case DOWNLINK:
-			storage = session.getStorageDl();
-			break;
-		case UPLINK:
-			storage = session.getStorageUl();
-			break;
-		default:
-
-			// This should not happen because value is checked on construction
-			logger.severe("Packet direction for request/response is has unexpected value");
+		byte[] storage = getStorageBuffer();
+		if (storage == null) {
 			return null;
 		}
-
 		try {
 			return new String(storage, rrStart, rawSize, "UTF-8");
 		} catch (UnsupportedEncodingException e) {
@@ -1635,5 +1715,25 @@ public class HttpRequestResponseInfo implements
 			logger.log(Level.SEVERE, "Unexpected error creating request/response string", e);
 			return null;
 		}
+	}
+
+	/**
+	 * Convenience method that gets the storage array in the session where this request/
+	 * response is located.
+	 * @return
+	 */
+	private byte[] getStorageBuffer() {
+		switch (packetDirection) {
+		case DOWNLINK:
+			return session.getStorageDl();
+		case UPLINK:
+			return session.getStorageUl();
+		default:
+
+			// This should not happen because value is checked on construction
+			logger.severe("Packet direction for request/response is has unexpected value");
+			return null;
+		}
+
 	}
 }

@@ -534,8 +534,9 @@ public class BurstCollectionAnalysis implements Serializable {
 
 			Double jpkb = catPayload > 0 ? catEnergy / (catPayload * 8 / 1000.0f) : null;
 			burstAnalysisInfo.add(new BurstAnalysisInfo(categ, catPayload,
-					((double) catPayload / totalPayload) * 100.0, catEnergy,
-					(catEnergy / totalEnergy) * 100.0, catActive, ((catActive / totalAct) * 100.0),
+					totalPayload > 0 ? (((double) catPayload / totalPayload) * 100.0) : 0, catEnergy,
+					totalEnergy > 0.0 ? ((catEnergy / totalEnergy) * 100.0) : 0.0, catActive, 
+					totalAct > 0.0 ? ((catActive / totalAct) * 100.0) : 0.0,
 					jpkb));
 
 		}

@@ -20,8 +20,6 @@ package com.att.aro.main;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Insets;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ResourceBundle;
@@ -47,21 +45,23 @@ import com.att.aro.model.TraceData;
  */
 public class DetailedResultRowPanel {
 
-	private static ImageIcon passIcon = Images.BP_PASS_DARK.getIcon();
-	private static ImageIcon failIcon = Images.BP_FAIL_DARK.getIcon();
-	private static ImageIcon notRunIcon = Images.BP_SELFTEST_TRIGGERED
+	private static final ImageIcon passIcon = Images.BP_PASS_DARK.getIcon();
+	private static final ImageIcon failIcon = Images.BP_FAIL_DARK.getIcon();
+	private static final ImageIcon notRunIcon = Images.BP_SELFTEST_TRIGGERED
 			.getIcon();
-	private static ImageIcon manualIcon = Images.BP_MANUAL.getIcon();
+	private static final ImageIcon manualIcon = Images.BP_MANUAL.getIcon();
 	private static final ResourceBundle rb = ResourceBundleManager
 			.getDefaultBundle();
-	private String PASS = rb.getString("bestPractice.tooltip.pass");
-	private String FAIL = rb.getString("bestPractice.tooltip.fail");
-	private String MANUAL = rb.getString("bestPractice.tooltip.manual");
+	private static final String PASS = rb.getString("bestPractice.tooltip.pass");
+	private static final String FAIL = rb.getString("bestPractice.tooltip.fail");
+	private static final String MANUAL = rb.getString("bestPractice.tooltip.manual");
 
-	private static Font textFont = new Font("TextFont", Font.PLAIN, 12);
+	private static final Font textFont = new Font("TextFont", Font.PLAIN, 12);
 	// private Font titleFont = new Font("TITLEFont", Font.BOLD, 18);
 	// private Font pageFont = new Font("TITLEFont", Font.BOLD, 14);
-	private static Font boldTextFont = new Font("BoldTextFont", Font.BOLD, 12);
+	private static final Font boldTextFont = new Font("BoldTextFont", Font.BOLD, 12);
+	
+	private static final int TEXT_WIDTH = 550;
 
 	private JLabel iconLabel;
 	private JLabel testLabel;
@@ -105,28 +105,36 @@ public class DetailedResultRowPanel {
 	public Boolean refresh(TraceData.Analysis analysisData) {
 		this.analysisData = analysisData;
 
+		Boolean result = null;
 		if (analysisData == null) {
 			iconLabel.setIcon(notRunIcon);
 			iconLabel.setToolTipText(null);
 			resultDetailsLabel.setText(bp.isSelfTest() ? bp.resultText(null) : null);
-			return null;
 		} else if (bp.isSelfTest()) {
 			iconLabel.setIcon(manualIcon);
 			iconLabel.setToolTipText(MANUAL);
-			return null;
 		} else {
 			if (bp.isPass(analysisData)) {
 				iconLabel.setIcon(passIcon);
 				iconLabel.setToolTipText(PASS);
 				resultDetailsLabel.setText(bp.resultText(analysisData));
-				return Boolean.TRUE;
+				result = Boolean.TRUE;
 			} else {
 				iconLabel.setIcon(failIcon);
 				iconLabel.setToolTipText(FAIL);
 				resultDetailsLabel.setText(bp.resultText(analysisData));
-				return Boolean.FALSE;
+				result = Boolean.FALSE;
 			}
 		}
+
+		// Recalculate preferred size of results text box
+		resultDetailsLabel.setPreferredSize(null);
+		resultDetailsLabel.setSize(TEXT_WIDTH, 9999);
+		Dimension d = resultDetailsLabel.getPreferredSize();
+		d.width = TEXT_WIDTH;
+		resultDetailsLabel.setPreferredSize(d);
+		resultDetailsLabel.setMinimumSize(d);
+		return result;
 	}
 
 	/**
@@ -217,15 +225,16 @@ public class DetailedResultRowPanel {
 						: rb.getString("bestPractices.results"));
 		resultLabel.setFont(boldTextFont);
 
-		this.resultDetailsLabel = createJTextPane();
-		resultDetailsLabel.setText(bp.isSelfTest() ? bp.resultText(null) : null);
-		resultDetailsLabel.addMouseListener(new MouseAdapter() {
+		this.resultDetailsLabel = createJTextPane(bp.isSelfTest() ? bp.resultText(null) : null);
+		resultDetailsLabel.addHyperlinkListener(new HyperlinkListener() {
 
 			@Override
-			public void mouseClicked(MouseEvent e) {
-				if (analysisData != null
-						&& !bp.isPass(analysisData)) {
-					bp.performAction(parent);
+			public void hyperlinkUpdate(HyperlinkEvent e) {
+				if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+					if (analysisData != null
+							&& !bp.isPass(analysisData)) {
+						bp.performAction(e, parent);
+					}
 				}
 			}
 
@@ -246,9 +255,8 @@ public class DetailedResultRowPanel {
 		jTextArea.setEditorKit(new HTMLEditorKit());
 		jTextArea.setStyledDocument(doc);
 		jTextArea.setMargin(new Insets(0, 0, 0, 0));
-		jTextArea.setPreferredSize(new Dimension(500, 70));
 		if (url != null) {
-			jTextArea.setText(textToDisplay + " <a href=\"#\">"
+			jTextArea.setText(textToDisplay + "&nbsp;" + " <a href=\"#\">"
 					+ rb.getString("bestPractices.learnMore") + "</a>");
 			jTextArea.addHyperlinkListener(new HyperlinkListener() {
 
@@ -269,10 +277,18 @@ public class DetailedResultRowPanel {
 		} else {
 			jTextArea.setText(textToDisplay);
 		}
+		
+		// Calculate preferred size
+		jTextArea.setSize(TEXT_WIDTH, 9999);
+		Dimension d = jTextArea.getPreferredSize();
+		d.width = TEXT_WIDTH;
+		jTextArea.setPreferredSize(d);
+		jTextArea.setMinimumSize(d);
+
 		return jTextArea;
 	}
 
-	private JTextPane createJTextPane() {
+	private JTextPane createJTextPane(String text) {
 		HTMLDocument doc = new HTMLDocument();
 		StyleSheet style = doc.getStyleSheet();
 		style.addRule("body { font-family: " + textFont.getFamily() + "; "
@@ -283,7 +299,16 @@ public class DetailedResultRowPanel {
 		jTextArea.setEditorKit(new HTMLEditorKit());
 		jTextArea.setStyledDocument(doc);
 		jTextArea.setMargin(new Insets(0, 0, 0, 0));
-		jTextArea.setPreferredSize(new Dimension(500, 50));
+		if (text != null) {
+			jTextArea.setText(text);
+			jTextArea.setSize(TEXT_WIDTH, 9999);
+			Dimension d = jTextArea.getPreferredSize();
+			d.width = TEXT_WIDTH;
+			jTextArea.setPreferredSize(d);
+			jTextArea.setMinimumSize(d);
+		} else {
+			jTextArea.setPreferredSize(new Dimension(500, 50));
+		}
 		return jTextArea;
 	}
 

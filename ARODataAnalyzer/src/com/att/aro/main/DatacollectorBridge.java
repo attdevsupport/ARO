@@ -667,7 +667,11 @@ public class DatacollectorBridge {
 						return;
 					}
 				} catch (IOException e) {
-					setStatus(Status.READY);
+					try {
+						stopTcpDump();
+					} catch (IOException e1) {
+						// Ignore since IOException is probably for same reason as original exception
+					}
 					MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.emulatorconnection"));
 					logger.log(Level.WARNING, "IOException occurred checking SD card space", e);
 				}
@@ -764,6 +768,7 @@ public class DatacollectorBridge {
 						// stopped
 						tcpdumpStartTime = System.currentTimeMillis();
 						mAndroidDevice.executeShellCommand(strTcpDumpCommand, tcpreceiver);
+						logger.info("tcpdump stopped");
 
 						return null;
 					}

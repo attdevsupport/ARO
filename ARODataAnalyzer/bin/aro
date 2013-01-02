@@ -33,5 +33,5 @@ if [ ! -x "$JAVACMD" ] ; then
   exit 1
 fi
 
-$JAVACMD -cp "../lib/*" -Dapple.awt.graphics.UseQuartz=true -Xms100m -Xmx512m com.att.aro.main.Launch
+$JAVACMD -cp "../lib/*" -Dapple.awt.graphics.UseQuartz=true -Xms100m -Xmx1024m com.att.aro.main.Launch
 

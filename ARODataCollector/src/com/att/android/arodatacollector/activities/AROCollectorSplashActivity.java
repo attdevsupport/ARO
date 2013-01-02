@@ -15,10 +15,6 @@
  */
 package com.att.android.arodatacollector.activities;
 
-import com.att.android.arodatacollector.R;
-import com.att.android.arodatacollector.main.AROCollectorService;
-import com.att.android.arodatacollector.main.ARODataCollector;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
@@ -30,6 +26,15 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import com.att.android.arodatacollector.R;
+import com.att.android.arodatacollector.main.AROCollectorCustomDialog;
+import com.att.android.arodatacollector.main.AROCollectorCustomDialog.DialogKeyListner;
+import com.att.android.arodatacollector.main.AROCollectorCustomDialog.Dialog_CallBack_Error;
+import com.att.android.arodatacollector.main.AROCollectorCustomDialog.Dialog_Type;
+import com.att.android.arodatacollector.main.AROCollectorCustomDialog.ReadyListener;
+import com.att.android.arodatacollector.main.AROCollectorService;
+import com.att.android.arodatacollector.main.ARODataCollector;
 
 /**
  * 
@@ -129,7 +134,7 @@ public class AROCollectorSplashActivity extends Activity {
 	/**
 	 * Initializes data members with a saved instance of an AROCollectorMainActivity object. 
 	 * Overrides the android.app.Activity#onCreate method. 
-	 * @param savedInstanceState – A saved instance of an AROCollectorSplashActivity object.
+	 * @param savedInstanceState ï¿½ A saved instance of an AROCollectorSplashActivity object.
 	 * @see android.app.Activity#onCreate(android.os.Bundle)
 	 */
 	@Override
@@ -199,8 +204,19 @@ public class AROCollectorSplashActivity extends Activity {
 				if (!mActivityFinished) {
 					mHandler.post(new Runnable() {
 						public void run() {
-							acceptLegalTerms();
-							// TODO : EULA Method Call
+							if (mApp != null){
+								
+								if (mApp.hasRootAccess()){
+									acceptLegalTerms();
+									// TODO : EULA Method Call
+								}
+								else {
+									showNoRootAccessDialog();
+								}
+							}
+							else {
+								Log.e(TAG, "mApp is null");
+							}
 						}
 					});
 				}
@@ -211,8 +227,9 @@ public class AROCollectorSplashActivity extends Activity {
 			public void run() {
 				Log.i(TAG, "initializing");
 				try {
-					if (mApp != null)
+					if (mApp != null){
 						mApp.initARODataCollector();
+					}
 				} finally {
 					Log.i(TAG, "initialization complete");
 					synchronized (mMutex) {
@@ -281,6 +298,40 @@ public class AROCollectorSplashActivity extends Activity {
 		// Close the current splash activity
 		startActivity(new Intent(this, AROCollectorHomeActivity.class));
 		finish();
+	}
+
+	/**
+	 * show a custom dialog notifying the user that ARO requires root access to run
+	 */
+	private void showNoRootAccessDialog() {
+		//this showNoRootAccessDialog() is called from a background thread, 
+		//need to use the main UI thread to show the dialog
+		AROCollectorSplashActivity.this.runOnUiThread(new Runnable(){
+			
+			public void run(){
+				Dialog_Type m_dialog = Dialog_Type.NO_ROOT_ACCESS;
+				
+				final AROCollectorCustomDialog myDialog = new AROCollectorCustomDialog(
+						AROCollectorSplashActivity.this, android.R.style.Theme_Translucent, m_dialog,
+						new ReadyListener(){ 
+							public void ready(Dialog_CallBack_Error errorcode, boolean success){
+								//on callback, just exit the activity
+								finish();
+							}
+						}, new DialogKeyListner(){
+
+							@Override
+							public void HandleKeyEvent(String key, Dialog_Type type) {
+								if (AROCollectorCustomDialog.BACK_KEY_PRESSED.equalsIgnoreCase(key)){
+									//exit aro
+									finish();
+								}
+							}
+						});
+				
+				myDialog.show();
+			}
+		});
 	}
 
 }

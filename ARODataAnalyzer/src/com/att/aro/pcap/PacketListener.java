@@ -23,9 +23,11 @@ public interface PacketListener {
 	/**
 	 * A method that is invoked for each received packet.
 	 * 
+	 * @param appName The name of the application that generated the packet or
+	 * null if not known.
 	 * @param packet
 	 *            - The packet that is received.
 	 */
-	public void packetArrived(Packet packet);
+	public void packetArrived(String appName, Packet packet);
 
 }

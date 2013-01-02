@@ -239,17 +239,18 @@ public class AROCollectorTaskManagerListAdapters {
 			} else {
 				holder = (ViewHolder) convertView.getTag();
 			}
+			holder.select_task.setTag(position);
+			
 			final AROCollectorTaskManagerDetailProcess dp = detailProcesslist.get(position);
 			convertView.setVisibility(View.VISIBLE);
 			holder.icon.setImageDrawable(dp.getAppinfo().loadIcon(packageManager));
 			holder.text_name.setText(dp.getTitle());
-			holder.select_task.setChecked(true);
 			if (mApp.getTaskKillerAllTasksSelected()) {
 				if (!dp.isCurrentApplication()) {
 					holder.select_task.setChecked(true);
 				}
 			} else {
-				holder.select_task.setChecked(false);
+				holder.select_task.setChecked(dp.getSelected());
 			}
 			if (dp.isCurrentApplication()) {
 				holder.text_name.setTextColor(Color.GREEN);
@@ -266,7 +267,7 @@ public class AROCollectorTaskManagerListAdapters {
 				if (mApp.getTaskKillerAllTasksSelected()) {
 					detailProcesslist.get(position).setSelected(true);
 				} else
-					detailProcesslist.get(position).setSelected(false);
+					detailProcesslist.get(position).setSelected(dp.getSelected());
 				if (dp.isCurrentApplication()) {
 					detailProcesslist.get(position).setSelected(false);
 				}

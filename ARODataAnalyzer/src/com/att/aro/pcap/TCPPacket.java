@@ -24,6 +24,11 @@ import java.nio.ByteBuffer;
 public class TCPPacket extends IPPacket implements Serializable {
 	private static final long serialVersionUID = 1L;
 
+	public static byte TLS_CHANGE_CIPHER_SPEC = 20;
+	public static byte TLS_ALERT = 21;
+	public static byte TLS_HANDSHAKE = 22;
+	public static byte TLS_APPLICATION = 23;
+	
 	private int sourcePort;
 	private int destinationPort;
 	private long sequenceNumber;
@@ -38,6 +43,10 @@ public class TCPPacket extends IPPacket implements Serializable {
 	private short urgentPointer;
 	private int dataOffset;
 	private int payloadLen;
+	
+	private boolean ssl;
+	private boolean sslHandshake;
+	private boolean sslApplicationData;
 
 	/**
 	 * Creates a new instance of the TCPPacket class using the specified parameters.
@@ -70,6 +79,11 @@ public class TCPPacket extends IPPacket implements Serializable {
 		FIN = (i & 0x0001) != 0;
 		window = bytes.getShort(headerOffset + 14) & 0xFFFF;
 		urgentPointer = bytes.getShort(headerOffset + 18);
+		
+		int offset = dataOffset;
+		do {
+			offset = parseSecureSocketsLayer(bytes, offset);
+		} while (offset >= 0);
 	}
 
 	/**
@@ -207,4 +221,63 @@ public class TCPPacket extends IPPacket implements Serializable {
 		return urgentPointer;
 	}
 
+	/**
+	 * Indicates whether this packet contains SSL
+	 * @return the ssl
+	 */
+	public boolean isSsl() {
+		return ssl;
+	}
+
+	/**
+	 * Indicates whether this packet contains SSL handshake records
+	 * @return the sslHandshake
+	 */
+	public boolean isSslHandshake() {
+		return sslHandshake;
+	}
+
+	/**
+	 * Indicates whether this packet contains SSL application data
+	 * @return the sslApplicationData
+	 */
+	public boolean isSslApplicationData() {
+		return sslApplicationData;
+	}
+
+	/**
+	 * Utility method that looks for TLS records in the TCP packet data
+	 * @param bytes
+	 * @param offset
+	 * @return
+	 */
+	private int parseSecureSocketsLayer(ByteBuffer bytes, int offset) {
+
+		if (bytes.array().length >= offset + 5) {
+			
+			// Check for TLS/SSL
+			bytes.position(offset);
+			byte contentType = bytes.get();
+			byte majorVersion = bytes.get();
+			byte minorVersion = bytes.get();
+			short tlsLen = bytes.getShort();
+			int result = offset + 5 + tlsLen;
+			if (majorVersion == 3
+					&& (minorVersion == 1 || minorVersion == 2 || minorVersion == 3)
+					&& (contentType == TLS_CHANGE_CIPHER_SPEC
+							|| contentType == TLS_ALERT
+							|| contentType == TLS_HANDSHAKE || contentType == TLS_APPLICATION)
+					&& bytes.array().length >= result) {
+				this.ssl = true;
+				if (contentType == TLS_HANDSHAKE) {
+					this.sslHandshake = true;
+				} else if (contentType == TLS_APPLICATION) {
+					this.sslApplicationData = true;
+				}
+				
+				return result;
+			}
+		}
+		return -1;
+	}
 }

@@ -248,10 +248,7 @@ public class CacheAnalysis implements Serializable {
 							&& cachedResponse.getLastModified() != null && !response
 							.getLastModified().equals(
 									cachedResponse.getLastModified()))
-							|| (response.getContentLength() > 0
-									&& cachedResponse.getContentLength() > 0 && response
-									.getContentLength() != cachedResponse
-									.getContentLength())) {
+							|| !response.isSameContent(cachedResponse)) {
 
 						newCacheEntry = new CacheEntry(request, response,
 								CacheEntry.Diagnosis.CACHING_DIAG_OBJ_CHANGED, 
@@ -308,10 +305,7 @@ public class CacheAnalysis implements Serializable {
 							&& cachedResponse.getLastModified() != null && !response
 							.getLastModified().equals(
 									cachedResponse.getLastModified()))
-							|| (response.getContentLength() > 0
-									&& cachedResponse.getContentLength() > 0 && response
-									.getContentLength() != cachedResponse
-									.getContentLength())) {
+							|| !response.isSameContent(cachedResponse)) {
 
 						newCacheEntry = new CacheEntry(request, response,
 								CacheEntry.Diagnosis.CACHING_DIAG_OBJ_CHANGED, 

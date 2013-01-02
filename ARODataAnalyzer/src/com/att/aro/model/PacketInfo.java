@@ -128,6 +128,17 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	 * @param packet A com.att.aro.pcap.Packet object containing the packet data.
 	 */
 	public PacketInfo(Packet packet) {
+		this(null, packet);
+	}
+
+	/**
+	 * Initializes an instance of the PacketInfo class, using the specified packet data.
+	 * 
+	 * @param appName The name of the application that produced the packet
+	 * @param packet A com.att.aro.pcap.Packet object containing the packet data.
+	 */
+	public PacketInfo(String appName, Packet packet) {
+		this.appName = appName;
 		this.packet = packet;
 		this.timestamp = packet.getTimeStamp();
 
@@ -136,6 +147,14 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 		}
 	}
 
+	public void clearAnalysis() {
+		setBurst(null);
+		setRequestResponseInfo(null);
+		setSession(null);
+		setStateMachine(null);
+		setTcpInfo(null);
+	}
+	
 	/**
 	 * Sets the packet id. 
 	 * 

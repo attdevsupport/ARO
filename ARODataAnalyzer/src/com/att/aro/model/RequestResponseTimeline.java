@@ -32,42 +32,21 @@ public class RequestResponseTimeline implements Serializable {
 	private double contentDownloadDuration;
 
 	/**
-	 * Initializing constructor
-	 * 
-	 * @param startTime
-	 *            Trace time when request/response started
-	 * @param dnsLookupDuration
-	 *            duration of DNS lookup or null if no DNS lookup
-	 * @param sslNegotiationDuration
-	 *            duration of SSL negotiation or null if N/A
-	 * @param initialConnDuration
-	 *            duration of session initiation or null if already initiated
-	 * @param requestDuration
-	 *            duration of request upload
-	 * @param timeToFirstByte
-	 *            wait time for response
-	 * @param contentDownloadDuration
-	 *            duration of response download
+	 * Initializing constructor.  All times are in seconds.
+	 * @param startTime Trace time when request/response started
+	 * @param dnsLookupDuration duration of DNS lookup or null if no DNS lookup
+	 * @param initialConnDuration duration of session initiation or null if already initiated
+	 * @param sslNegotiationDuration duration of SSL negotiation or null if N/A
+	 * @param requestDuration duration of request upload
+	 * @param timeToFirstByte wait time for response
+	 * @param contentDownloadDuration duration of response download
 	 */
-	public RequestResponseTimeline(double startTime, Double dnsLookupDuration,
-			Double sslNegotiationDuration, Double initialConnDuration, double requestDuration,
-			double timeToFirstByte, double contentDownloadDuration) {
+	public RequestResponseTimeline(double startTime, Double dnsLookupDuration, Double initialConnDuration,
+			Double sslNegotiationDuration, double requestDuration, double timeToFirstByte, double contentDownloadDuration) {
 		this.startTime = startTime;
-		if (dnsLookupDuration != null) {
-			this.dnsLookupDuration = dnsLookupDuration;
-		} else {
-			this.dnsLookupDuration = 0.0;
-		}
-		if (sslNegotiationDuration != null) {
-			this.sslNegotiationDuration = sslNegotiationDuration;
-		} else {
-			this.sslNegotiationDuration = 0.0;
-		}
-		if (initialConnDuration != null) {
-			this.initialConnDuration = initialConnDuration;
-		} else {
-			this.initialConnDuration = 0.0;
-		}
+		this.dnsLookupDuration = dnsLookupDuration;
+		this.initialConnDuration = initialConnDuration;
+		this.sslNegotiationDuration = sslNegotiationDuration;
 		this.requestDuration = requestDuration;
 		this.timeToFirstByte = timeToFirstByte;
 		this.contentDownloadDuration = contentDownloadDuration;
@@ -88,17 +67,17 @@ public class RequestResponseTimeline implements Serializable {
 	}
 
 	/**
-	 * @return the sslNegotiationDuration
-	 */
-	public Double getSslNegotiationDuration() {
-		return sslNegotiationDuration;
-	}
-
-	/**
 	 * @return the initialConnDuration
 	 */
 	public Double getInitialConnDuration() {
 		return initialConnDuration;
+	}
+
+	/**
+	 * @return the sslNegotiationDuration
+	 */
+	public Double getSslNegotiationDuration() {
+		return sslNegotiationDuration;
 	}
 
 	/**
@@ -122,4 +101,16 @@ public class RequestResponseTimeline implements Serializable {
 		return contentDownloadDuration;
 	}
 
+	/**
+	 * Convenience method that calculates the total time for the request/response in seconds
+	 * @return time in seconds
+	 */
+	public double getTotalTime() {
+		return (dnsLookupDuration != null ? dnsLookupDuration.doubleValue() : 0.0)
+				+ (initialConnDuration != null ? initialConnDuration.doubleValue() : 0.0)
+				+ (sslNegotiationDuration != null ? sslNegotiationDuration.doubleValue() : 0.0)
+				+ requestDuration
+				+ timeToFirstByte
+				+ contentDownloadDuration;
+	}
 }

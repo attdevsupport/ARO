@@ -44,7 +44,7 @@ import com.att.aro.model.TraceData;
 public class AROBpDetailedResultPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
-	private static Font textFont = new Font("TextFont", Font.PLAIN, 12);
+	private static final Font textFont = new Font("TextFont", Font.PLAIN, 12);
 
 	private static void removeMouseWheelListeners(JScrollPane scrollPane) {
 		for (MouseWheelListener mwl : scrollPane.getMouseWheelListeners()) {
@@ -95,7 +95,7 @@ public class AROBpDetailedResultPanel extends JPanel {
 		JScrollPane scroll = new JScrollPane(createJTextArea(desc));
 		scroll.setBorder(BorderFactory.createEmptyBorder());
 		removeMouseWheelListeners(scroll);
-		textPanel.add(scroll, BorderLayout.NORTH);
+		textPanel.add(scroll, BorderLayout.CENTER);
 		JPanel separator = new ImagePanel(Images.DIVIDER.getImage(), true,
 				Color.WHITE);
 		textPanel.add(separator, BorderLayout.SOUTH);
@@ -186,7 +186,11 @@ public class AROBpDetailedResultPanel extends JPanel {
 		jTextArea.setFont(textFont);
 		jTextArea.setWrapStyleWord(true);
 		jTextArea.setLineWrap(true);
-		// jTextArea.setPreferredSize(new Dimension(10, 10));
+		
+		// Determine appropriate size for text area
+		jTextArea.setSize(700, 9999);
+		jTextArea.setPreferredSize(jTextArea.getPreferredSize());
+		jTextArea.setMinimumSize(jTextArea.getPreferredSize());
 		return jTextArea;
 	}
 }

@@ -126,11 +126,11 @@ public class AROBpOverallResulsPanel extends JPanel {
 			for (BestPracticeDisplay bp : bps) {
 				BPResultRowPanel bpp = new BPResultRowPanel(bp, refer);
 				add(bpp.getIconLabel(), new GridBagConstraints(0, y, 1, 1, 0.0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insets, 0, 0));
+						GridBagConstraints.WEST, GridBagConstraints.NONE, insets, 0, 0));
 				add(bpp.getTitleLabel(), new GridBagConstraints(1, y, 1, 1, 0.0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insets, 0, 0));
+						GridBagConstraints.WEST, GridBagConstraints.NONE, insets, 0, 0));
 				add(bpp.getReferSectionLabel(), new GridBagConstraints(2, y, 1, 1, 0.0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insets, 0, 0));
+						GridBagConstraints.WEST, GridBagConstraints.NONE, insets, 0, 0));
 				panels.add(bpp);
 				list.add(bpp);
 				++y;
@@ -186,15 +186,15 @@ public class AROBpOverallResulsPanel extends JPanel {
 			causesScoreValueLabel.setText(MessageFormat.format(rb
 					.getString("bestPractices.scoreref"), analysisData.getApplicationScore()
 					.getCausesScore())
-					+ " " + rb.getString("bestPractices.outofscrore1"));
+					+ " " + rb.getString("bestPractices.outofscore1"));
 			effectsScoreValueLabel.setText(MessageFormat.format(rb
 					.getString("bestPractices.scoreref"), analysisData.getApplicationScore()
 					.getEffectScore())
-					+ " " + rb.getString("bestPractices.outofscrore1"));
+					+ " " + rb.getString("bestPractices.outofscore1"));
 			totalAppScoreValueLabel.setText(MessageFormat.format(rb
 					.getString("bestPractices.scoreref"), analysisData.getApplicationScore()
 					.getTotalApplicationScore())
-					+ " " + rb.getString("bestPractices.outofscrore2"));
+					+ " " + rb.getString("bestPractices.outofscore2"));
 			NumberFormat intf = NumberFormat.getIntegerInstance();
 			totalDataValueLabel.setText(MessageFormat.format(
 					rb.getString("bestPractices.totalDataTransferedValue"),

@@ -4,37 +4,43 @@
 #include <sys/timeb.h>
 #include <sys/stat.h>
 
-#define MAX_PIDS 4096
-#define MAX_CONNS 256
-#define MAX_PROCS 64
-#define MAX_APPS	256
+#define MAX_PIDS 8192
+#define MAX_CONNS 512
+#define MAX_PROCS 512
+#define MAX_APP   512
 
 #define PROT_TCP 6
 #define PROT_UDP 17
 
 #define TIMEOUT 30	//in sec
 
-double pcapTime;
-double userTime;
+extern double pcapTime;
+extern double userTime;
 extern int exitFlag;
-	
-FILE * ofsAppID;
-FILE * ofsAppName;
+int bearerChangedvalue;
+
+extern FILE * ofsAppID;
+extern FILE * ofsAppName;
+
 FILE * ofsEvents;
 FILE * ofsCPU;
 FILE * ofsTime;
 
 extern int captureMode;
-#include <android/log.h>
-#define DEBUG_TAG "TCPDUMP"
 
 /************** App Info (stored on sdcard) ****************/
+
+/************** App Info (stored on sdcard) ****************/
+typedef struct _APP_INFO APP_INFO;
 struct _APP_INFO {
 	char name[256];
-	int hash;
+	int hash;	
+	int appid;
+	APP_INFO * pNext;
 };
-typedef struct _APP_INFO APP_INFO;
-APP_INFO apps[MAX_APPS];
+
+#define APP_BINS 256
+APP_INFO * ppApps[APP_BINS];
 int nApps;
 
 /************** connection info ****************/
@@ -56,6 +62,7 @@ CONN_INFO conns[MAX_CONNS];
 int nConns;
 int nConnsWithPID;
 int nNewConns;
+int byteCounter;
 
 /************** process info ****************/
 
@@ -201,10 +208,7 @@ void GetSocketInfo(char * str, int len, DWORD * pIP, int * pPort) {
 				 
 	if (*pPort<0 || *pPort>65535) {
 		fprintf(stderr, "Invalid port nmber %d\n", *pPort);
-		__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Invalid port number EXIT:::::");
-		return;
-		//--- CODE CHANGE--------
-		//exit(0);
+		exit(0);
 	}
 }
 
@@ -281,7 +285,7 @@ void Init() {
 	for (i=0; i<nPort2connidSet; i++) {		
 		port2connid[port2connidSetList[i]] = -1;
 	}	
-	nPort2connidSet = 0;	
+	nPort2connidSet = 0;
 	
 	for (i=0; i<nIP2connidSet; i++) {
 		ip2connid[ip2connidSetList[i]] = -1;
@@ -365,20 +369,14 @@ void UpdatePort2Connid() {
 	int i;
 	
 	if (nPort2connidSet != 0) {
-		//fprintf(stderr, "nPort2connidSet is not zero\n");
-		__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "nPort2connidSet is not zero EXIT:::::");
-		return;
-		//--- CODE CHANGE--------
-		//exit(0);	
+		fprintf(stderr, "nPort2connidSet is not zero\n");	
+		exit(0);	
 	}
 	
 	for (i=0; i<nConns; i++) {
 			if (conns[i].appid == -1) {
 				fprintf(stderr, "Invalid connection entry with appid=-1\n");
-				__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Invalid connection entry with appid=-1 EXIT:::::");
-				return;
-				//--- CODE CHANGE--------
-				//exit(0);
+				exit(0);
 			}
 				
 			int localPort = conns[i].localPort;			
@@ -395,20 +393,14 @@ void UpdateIP2Connid() {
 	int i;
 	
 	if (nIP2connidSet != 0) {
-		//fprintf(stderr, "nIP2connidSet is not zero\n");
-		__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "nIP2connidSet is not zero EXIT:::::");
-		return;
-		//--- CODE CHANGE--------
-		//exit(0);
+		fprintf(stderr, "nIP2connidSet is not zero\n");
+		exit(0);
 	}
 	
 	for (i=0; i<nConns; i++) {
 		if (conns[i].appid == -1) {
 			fprintf(stderr, "Invalid connection entry with appid=-1\n");
-			__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Invalid connection entry with appid=-1 EXIT:::::");
-			return;
-			//--- CODE CHANGE--------
-			//exit(0);
+			exit(0);
 		}
 			
 		int hRemoteIP = IPHASH(conns[i].remoteIP);
@@ -422,25 +414,36 @@ void UpdateIP2Connid() {
 }
 
 int GetAppID(const char * procName) {
-	int h = GetStringHash(procName);
-	int i;
-	for (i=0; i<nApps; i++) {
-		if (h == apps[i].hash && !strcmp(apps[i].name, procName)) return i;
+	int h = GetStringHash(procName);	
+	int bin = h % APP_BINS;
+	
+	APP_INFO * pAppInfo = ppApps[bin];
+	while (pAppInfo != NULL) {
+		if (h == pAppInfo->hash && !strcmp(pAppInfo->name, procName))
+			return pAppInfo->appid;
+		else
+			pAppInfo = pAppInfo->pNext;
 	}
 	
-	//a new app entry
-	apps[nApps].hash = h;
-	strcpy(apps[nApps].name, procName);
-	return nApps++;
+	//new entry
+	pAppInfo = ppApps[bin];
+	
+	ppApps[bin] = (APP_INFO *)malloc(sizeof(APP_INFO));
+	strcpy(ppApps[bin]->name, procName);
+	ppApps[bin]->hash = h;
+	ppApps[bin]->appid = nApps++;
+	ppApps[bin]->pNext = pAppInfo;
+	
+	fprintf(ofsAppName, "%s\n", procName);
+	fflush(ofsAppName);	
+	
+	return ppApps[bin]->appid;
 }
 
 void UpdateNames() {
 	int i;
 	for (i=0; i<nConns; i++) {
-		if (conns[i].appid != -1)
-		{
-			continue;
-		}
+		if (conns[i].appid != -1) continue;
 			
 		const char * name = GetProcName(conns[i].pid);
 		if (name != NULL) {
@@ -496,20 +499,18 @@ void CleanConnectionInfo(time_t curSec) {
 
 void UpdateProcessSocketInfo(time_t curSec) {	
 	Init();
-	
+
 	ReadConnections("/proc/net/tcp",  PROT_TCP, curSec);
 	ReadConnections("/proc/net/tcp6", PROT_TCP, curSec);
-	ReadConnections("/proc/net/udp",	PROT_UDP, curSec);
+	ReadConnections("/proc/net/udp",  PROT_UDP, curSec);
 	ReadConnections("/proc/net/udp6", PROT_UDP, curSec);
-	
+
 	AttachProcessInfo();
 	UpdateNames();	
 	
 	CleanConnectionInfo(curSec);
-	
 	UpdatePort2Connid();
 	UpdateIP2Connid();
-	
 }
 
 CONN_INFO * SearchForConn(int localPort, int remotePort, DWORD remoteIP, int protocol) {
@@ -519,10 +520,7 @@ CONN_INFO * SearchForConn(int localPort, int remotePort, DWORD remoteIP, int pro
 	for (i=0; i<nConns; i++) {
 		if (conns[i].appid == -1) {
 			fprintf(stderr, "Invalid connection entry with appid=-1\n");
-			__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Invalid connection entry with appid");
-			return;
-			//--- CODE CHANGE--------
-			//exit(0);
+			exit(0);
 		}
 		
 		if (/*conns[i].localPort == localPort &&*/ conns[i].remotePort == remotePort && conns[i].remoteIP == remoteIP && conns[i].protocol == protocol)
@@ -558,7 +556,6 @@ int UpdatePacket_Core(int localPort, DWORD localIP, int remotePort, DWORD remote
 		}
 	}
 	
-	//printf("UpdateProcessSocketInfo...\n");
 	UpdateProcessSocketInfo(curSec);
 		
 	cid1 = port2connid[localPort];
@@ -588,7 +585,6 @@ int UpdatePacket(struct timeval * pTS, const u_char *sp,const char *currentInter
 	
 	if (captureMode != CAP_LINUX_MMAP && captureMode != CAP_LINUX_STANDARD) {
 		printf("Unknown capture mode\n");
-		__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Unknown capture mode EXIT:::::");
 		exit(0);
 	}
 	int ethernetHeaderByte=14;
@@ -626,19 +622,7 @@ int UpdatePacket(struct timeval * pTS, const u_char *sp,const char *currentInter
 	
 	
 	int appid;
-	/* 
-	//old implementation for cellular network - now we can use the "dir" parameter
-	
-	#define IS_UE_IP(ip)  (((ip) & 0xFF) == 0x0A)
-	#define NOT_UE_IP(ip) (((ip) & 0xFF) != 0x0A)
-	
-	if (IS_UE_IP(srcIP) && NOT_UE_IP(dstIP))	//uplink
-		appid = UpdatePacket_Core(srcPort, srcIP, dstPort, dstIP, protocol, pTS->tv_sec);
-	else if (NOT_UE_IP(srcIP) && IS_UE_IP(dstIP)) //downlink
-		appid = UpdatePacket_Core(dstPort, dstIP, srcPort, srcIP, protocol, pTS->tv_sec);
-	else
-		return PACKET_UNKNOWN_DIR;
-	*/
+
 	if (dir == 1)	//uplink
 		appid = UpdatePacket_Core(srcPort, srcIP, dstPort, dstIP, protocol, pTS->tv_sec);
 	else if (dir == 2) //downlink
@@ -646,22 +630,6 @@ int UpdatePacket(struct timeval * pTS, const u_char *sp,const char *currentInter
 	else
 		return PACKET_UNKNOWN_DIR;
 
-	/*
-	fprintf(stderr, "%d.%d.%d.%d:%d -> %d.%d.%d.%d:%d (%d) ",
-		(srcIP & 0x000000FF),
-		(srcIP & 0x0000FF00) >> 8,
-		(srcIP & 0x00FF0000) >> 16,
-		(srcIP & 0xFF000000) >> 24,
-		srcPort,
-		(dstIP & 0x000000FF),
-		(dstIP & 0x0000FF00) >> 8,
-		(dstIP & 0x00FF0000) >> 16,
-		(dstIP & 0xFF000000) >> 24,
-		dstPort,		
-		protocol
-	);	
-	*/
-	//printf("APPID = %d AppName = %s\n", appid, appid == -1 ? "???" : apps[appid].name);
 		
 	return appid;
 }
@@ -669,19 +637,12 @@ int UpdatePacket(struct timeval * pTS, const u_char *sp,const char *currentInter
 void SetCaptureDir(char * pcapFileDir) {
 	// Note: pcapFileDir sets the global ARO file directory
 	//       for this capture
-	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "SetCaptureDir: File Directory : %s", pcapFileDir);
-/*	//create dir
-	memset(gszFileDir, '\0', sizeof(gszFileDir));
-	sprintf(gszFileDir, "/sdcard/%s", pcapFilename);
-	if (mkdir(gszFileDir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0) {
-		printf("Can not create directory %s\n", gszFileDir);
-		exit(0);
-	}	
-*/
+	
 	memset(gszFileDir, '\0', sizeof(gszFileDir));
 	sprintf(gszFileDir, "%s", pcapFileDir);
-	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "SetCaptureDir: gszFileDir: %s", gszFileDir);
+	
 }
+
 
 void StartCapture(char * pcapFilename) {	
 	// Note: pcapFilename recieves full path to tcpdump file name at end of
@@ -720,75 +681,84 @@ void StartCapture(char * pcapFilename) {
 		pTM->tm_min,
 		pTM->tm_sec
 	);
-	
+
+	//We don't initialize the trace files during bearer change
+	//BearerChangedvalue =0 Bearer not changed
+	//Bearer change
+	if(bearerChangedvalue ==0 )
+	{
 	//sync time
-	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Time synchonized"); 
-
-	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "In StartCapture: gszFileDir: %s", gszFileDir);
-	sprintf(pcapFilename, "/sdcard/ARO/%s/time", gszFileDir);
-
-	printf("Synchronized timestamp file: %s\n", pcapFilename);
-	ofsTime = fopen(pcapFilename, "w");	
-	if (ofsTime == NULL) {
- 		__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Cannot write pcapfilname"); 
-		fprintf(stderr, "Cannot write %s\n", pcapFilename);
-		exit(0);
-	}
-	fprintf(ofsTime, "%s\n%.3lf\n%u\n", "Synchronized timestamps", pcapTime, (DWORD)(userTime * 1000.0f));
-
-	//event file
-	sprintf(pcapFilename, "/sdcard/ARO/%s/processed_events", gszFileDir);
-	printf("User event file: %s\n", pcapFilename);
-	ofsEvents = fopen(pcapFilename, "w");	
-	if (ofsEvents == NULL) {
- 		__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Cannot write processed_events"); 
-		fprintf(stderr, "Cannot write %s\n", pcapFilename);
-		exit(0);
-	}
-	//appid file
-	sprintf(pcapFilename, "/sdcard/ARO/%s/appid", gszFileDir);
-	printf("App ID file: %s\n", pcapFilename);
-	ofsAppID = fopen(pcapFilename, "w");	
-	if (ofsAppID == NULL) {
- 		__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Cannot write appid"); 
-		fprintf(stderr, "Cannot write %s\n", pcapFilename);
-		exit(0);
-	}	
+		sprintf(pcapFilename, "/sdcard/ARO/%s/time", gszFileDir);
 	
-	//appname file
-	sprintf(pcapFilename, "/sdcard/ARO/%s/appname", gszFileDir);
-	printf("App name file: %s\n", pcapFilename);
-	ofsAppName = fopen(pcapFilename, "w");	
-	if (ofsAppName == NULL) {
- 		__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Cannot write appname"); 
-		fprintf(stderr, "Cannot write %s\n", pcapFilename);
-		exit(0);
-	}		
+		printf("Synchronized timestamp file: %s\n", pcapFilename);
+		ofsTime = fopen(pcapFilename, "w");	
+		if (ofsTime == NULL) {
+			
+			fprintf(stderr, "Cannot write %s\n", pcapFilename);
+			exit(0);
+		}
+		fprintf(ofsTime, "%s\n%.3lf\n%u\n", "Synchronized timestamps", pcapTime, (DWORD)(userTime * 1000.0f));
 	
-	//cpu file
-	sprintf(pcapFilename, "/sdcard/ARO/%s/cpu", gszFileDir);
-	printf("CPU usage file name: %s\n", pcapFilename);
-	ofsCPU = fopen(pcapFilename, "w");
-	if (ofsCPU == NULL) {
- 		__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Cannot write cpu"); 
-		fprintf(stderr, "Cannot write %s\n", ofsCPU);
-		exit(0);
-	}
-	
+		//event file
+		sprintf(pcapFilename, "/sdcard/ARO/%s/processed_events", gszFileDir);
+		printf("User event file: %s\n", pcapFilename);
+		ofsEvents = fopen(pcapFilename, "w");	
+		if (ofsEvents == NULL) {
+			
+			fprintf(stderr, "Cannot write %s\n", pcapFilename);
+			exit(0);
+		}
+		//appid file
+		sprintf(pcapFilename, "/sdcard/ARO/%s/appid", gszFileDir);
+		printf("App ID file: %s\n", pcapFilename);
+		ofsAppID = fopen(pcapFilename, "w");	
+		if (ofsAppID == NULL) {
+			
+			fprintf(stderr, "Cannot write %s\n", pcapFilename);
+			exit(0);
+		}	
+		
+		//appname file
+		sprintf(pcapFilename, "/sdcard/ARO/%s/appname", gszFileDir);
+		printf("App name file: %s\n", pcapFilename);
+		ofsAppName = fopen(pcapFilename, "w");	
+		if (ofsAppName == NULL) {
+			
+			fprintf(stderr, "Cannot write %s\n", pcapFilename);
+			exit(0);
+		}		
+		
+		//cpu file
+		sprintf(pcapFilename, "/sdcard/ARO/%s/cpu", gszFileDir);
+		printf("CPU usage file name: %s\n", pcapFilename);
+		ofsCPU = fopen(pcapFilename, "w");
+		if (ofsCPU == NULL) {
+			
+			fprintf(stderr, "Cannot write %s\n", ofsCPU);
+			exit(0);
+		}
 	//pcap filename (the last filename to fill the buffer)
 	sprintf(pcapFilename, "/sdcard/ARO/%s/traffic.cap", gszFileDir);
 	printf("Pcap file: %s\n", pcapFilename);	
-	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "traffic.cap"); 
 	
 	//Init memory for socket-proc
 	memset(port2connid, 0xff, sizeof(port2connid));		
 	nPort2connidSet = 0;	
-	
 	memset(ip2connid, 0xff, sizeof(ip2connid));
 	nIP2connidSet = 0;
+	//Init appid-related data structures
 	nApps = 0;
-	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "StartCapture"); 
-	//printf("StartCapture()\n");
+	memset(ppApps, 0, sizeof(ppApps));
+	
+	}
+	else
+	{
+		sprintf(pcapFilename, "/sdcard/ARO/%s/traffic%d.cap", gszFileDir,bearerChangedvalue);
+		
+		printf("Pcap file: %s\n", pcapFilename);	
+		
+	}
+	
 }
 
 void TerminateCapture() {
@@ -796,11 +766,9 @@ void TerminateCapture() {
 	//Dump appid and names
 	
 	int i;
-	for (i=0; i<nApps; i++) {
-		fprintf(ofsAppName, "%s\n", apps[i].name);
-	}	
-
-
+//	for (i=0; i<nApps; i++) {
+//		fprintf(ofsAppName, "%s\n", apps[i].name);
+//	}	
 
 //Sync time
 	struct timeb t;
@@ -812,7 +780,8 @@ void TerminateCapture() {
 		exit(0);
 	}	
 	fscanf(ifs, "%lf", &userTime);
-	printf("Time synchronized: Network time = %.3lf User time = %.3lf\n", pcapTime, userTime);	
+	
+	printf("TerminateCapture()- Time synchronized: Network time = %.3lf User time = %.3lf\n", pcapTime, userTime);	
 	fclose(ifs);	
 
 	fprintf(ofsTime, "%.3lf\n", pcapTime);
@@ -826,4 +795,6 @@ void TerminateCapture() {
 	fclose(ofsAppName);
 	fclose(ofsEvents);
 	fclose(ofsCPU);
+	
+	
 }

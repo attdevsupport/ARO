@@ -85,14 +85,14 @@ public class NetmonAdapter {
 	 * @param data
 	 */
 	private void pcapHandler(int datalink, long seconds, long microSeconds,
-			int len, byte[] data) {
+			int len, byte[] data, String appName) {
 
 		// Ignore netmon datalink type frames
 		if (datalink >= 0xf000) {
 			return;
 		}
 
-		pl.packetArrived(Packet.createPacketFromNetmon(datalink, seconds, microSeconds,
+		pl.packetArrived(appName, Packet.createPacketFromNetmon(datalink, seconds, microSeconds,
 				len, data));
 	}
 

@@ -85,8 +85,8 @@ public class VideoCaptureThread extends Thread {
 					if (duration > 0) {
 						if (image == null) {
 							image = new BufferedImage(
-									device.getScreenshot().width,
-									device.getScreenshot().height,
+									rawImage.width,
+									rawImage.height,
 									BufferedImage.TYPE_INT_RGB);
 						}
 						convertImage(rawImage, image);

@@ -46,10 +46,14 @@ public class MessageDialogFactory extends JOptionPane {
 	 */
 	public static void showUnexpectedExceptionDialog(Component parentComponent, Throwable t) {
 		t.printStackTrace();
+		String msg = t.getLocalizedMessage();
+		if (msg != null && msg.length() > 200) {
+			msg = rb.getString("Error.defaultMsg");
+		}
 		showMessageDialog(
 				parentComponent,
 				MessageFormat.format(rb.getString("Error.unexpected"), t.getClass().getName(),
-						t.getLocalizedMessage()), rb.getString("Error.title"), ERROR_MESSAGE);
+						msg), rb.getString("Error.title"), ERROR_MESSAGE);
 	}
 
 	/**
@@ -69,6 +73,26 @@ public class MessageDialogFactory extends JOptionPane {
 		showMessageDialog(
 				parentComponent,
 				MessageFormat.format(rb.getString("Error.invalidTrace"), strTraceDir,
+						t.getLocalizedMessage()), rb.getString("Error.title"), ERROR_MESSAGE);
+	}
+	
+	/**
+	 * Displays an error dialog for the specified invalid directory. The
+	 * error dialog is associated with the specified parent window, and contains
+	 * the specified exception.
+	 * 
+	 * @param strTraceDir
+	 *            The invalid directory.
+	 * @param parentComponent
+	 *            The parent window to associate with this dialog.
+	 * @param t
+	 *            The exception that should be thrown for this error.
+	 */
+	public static void showInvalidDirectoryDialog(String strTraceDir, Component parentComponent,
+			Throwable t) {
+		showMessageDialog(
+				parentComponent,
+				MessageFormat.format(rb.getString("Error.invalidDirecotry"), strTraceDir,
 						t.getLocalizedMessage()), rb.getString("Error.title"), ERROR_MESSAGE);
 	}
 

@@ -674,7 +674,7 @@ pcap_lookupdev(errbuf)
 		/*
 		 * Return the name of the first device on the list.
 		 */
-		/*** CODE CHANGE FOR LG THRILL** TO Do : Better way to handle 2nd interface for LG Thrill as it comes part of avaible interface */
+		/*** CODE CHANGE FOR LG THRILL-Moto Atix2** TO Do : Better way to handle 2nd interface for LG Thrill as it comes part of avaible interface */
 		system("/system/bin/getprop > /sdcard/prop");
 		FILE * ifs = fopen("/sdcard/prop", "r");
 		char buf[1024];
@@ -688,10 +688,16 @@ pcap_lookupdev(errbuf)
 						printf("\n Device is LG Thrill, Taking 2nd Interface from list for Wifi trace");
 					}
 				}
+				else if (strstr(buf, "[edison]") != NULL) {
+					if(strcmp(alldevs->next->name, "tiwlan0") == 0)
+					{
+						alldevs=alldevs->next;
+						printf("\n Device is Atrix2, Taking 2nd Interface from list for Wifi trace(When mobile radio is STILL ON)");
+					}
+				}
 			}
 		}
-			 
-		/*** CODE CHANGE FOR LG THRILL**/
+		/*** CODE CHANGE FOR LG THRILL-Moto Atix2**/
 		
 		(void)strlcpy(device, alldevs->name, sizeof(device));
 		ret = device;

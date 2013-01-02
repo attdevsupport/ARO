@@ -78,7 +78,7 @@ public class PCapAdapter {
 	private void pcapHandler(int datalink, long seconds, long microSeconds,
 			int len, byte[] data) {
 		try {
-			pl.packetArrived(Packet.createPacketFromPcap(datalink, seconds, microSeconds,
+			pl.packetArrived(null, Packet.createPacketFromPcap(datalink, seconds, microSeconds,
 					len, data));
 		} catch (Throwable t) {
 

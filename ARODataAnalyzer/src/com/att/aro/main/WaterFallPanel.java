@@ -3,16 +3,18 @@ package com.att.aro.main;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Point;
-import java.awt.Window;
+import java.awt.FontMetrics;
+import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.DecimalFormat;
+import java.text.MessageFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.logging.Logger;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -25,8 +27,15 @@ import org.jfree.chart.ChartMouseEvent;
 import org.jfree.chart.ChartMouseListener;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.CategoryAnchor;
 import org.jfree.chart.axis.CategoryAxis;
+import org.jfree.chart.axis.CategoryLabelPosition;
+import org.jfree.chart.axis.CategoryLabelPositions;
+import org.jfree.chart.axis.CategoryLabelWidthType;
 import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.axis.NumberTickUnit;
+import org.jfree.chart.axis.TickUnit;
+import org.jfree.chart.axis.TickUnits;
 import org.jfree.chart.entity.CategoryItemEntity;
 import org.jfree.chart.labels.CategoryToolTipGenerator;
 import org.jfree.chart.labels.ItemLabelAnchor;
@@ -40,6 +49,9 @@ import org.jfree.data.Range;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.category.SlidingCategoryDataset;
+import org.jfree.text.TextBlockAnchor;
+import org.jfree.ui.RectangleAnchor;
+import org.jfree.ui.RectangleInsets;
 import org.jfree.ui.TextAnchor;
 
 import com.att.aro.images.Images;
@@ -49,22 +61,44 @@ import com.att.aro.model.RequestResponseTimeline;
 import com.att.aro.model.TCPSession;
 import com.att.aro.model.TraceData.Analysis;
 
-
+/**
+ * Panel that displays a waterfall view of the analysis data
+ */
 public class WaterFallPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
+	
+	private static Logger logger = Logger.getLogger(WaterFallPanel.class.getName());
 
 	private enum WaterFall {
-		NONE,
-		DNS_LOOKUP,
-		INITIAL_CONNECTION,
-		SSL_NEGOTIATION,
-		REQUEST_TIME,
-		TIME_TO_FIRST_BYTE,
-		CONTENT_DOWNLOAD,
+		BEFORE, DNS_LOOKUP, INITIAL_CONNECTION, SSL_NEGOTIATION, REQUEST_TIME, TIME_TO_FIRST_BYTE, CONTENT_DOWNLOAD, 
+		AFTER, AFTER_3XX, AFTER_4XX, HTTP_3XX_REDIRECTION, HTTP_4XX_CLIENTERROR;
+
+		@Override
+		public String toString() {
+			switch (this) {
+			case DNS_LOOKUP : 
+				return rb.getString("waterfall.dnsLookup");
+			case INITIAL_CONNECTION : 
+				return rb.getString("waterfall.initialConnection");
+			case SSL_NEGOTIATION : 
+				return rb.getString("waterfall.sslNeg");
+			case REQUEST_TIME : 
+				return rb.getString("waterfall.reqTime");
+			case TIME_TO_FIRST_BYTE : 
+				return rb.getString("waterfall.firstByteTime");
+			case CONTENT_DOWNLOAD : 
+				return rb.getString("waterfall.contentDownload");
+			case HTTP_3XX_REDIRECTION : 
+				return rb.getString("waterfall.3xxResult");
+			case HTTP_4XX_CLIENTERROR : 
+				return rb.getString("waterfall.4xxResult");
+			default :
+				return super.toString();
+			}
+		}		
 	}
 
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
 	private static final int DEFAULT_TIMELINE = 100;
 	private static final int CATEGORY_MAX_COUNT = 25;
@@ -77,9 +111,30 @@ public class WaterFallPanel extends JPanel {
 	private static final Color requestTimeColor = new Color(255, 255, 0);
 	private static final Color firstByteTimeColor = new Color(0, 255, 0);
 	private static final Color contentDownloadColor = new Color(70, 130, 180);
-	// private static final Color threexColor = new Color(255, 255, 0);
-	//private static final Color fourxColor = new Color(255, 0, 0);
+	private static final Color threexColor = Color.BLUE;
+	private static final Color fourxColor = Color.RED;
 
+	private static final NumberFormat format = new DecimalFormat();
+	private static final TickUnits units = new TickUnits();
+	static {
+		units.add(new NumberTickUnit(1000, format, 5));
+		units.add(new NumberTickUnit(500, format, 5));
+		units.add(new NumberTickUnit(250, format, 5));
+		units.add(new NumberTickUnit(100, format, 10));
+		units.add(new NumberTickUnit(50, format, 10));
+		units.add(new NumberTickUnit(25, format, 5));
+		units.add(new NumberTickUnit(10, format, 10));
+		units.add(new NumberTickUnit(5, format, 5));
+		units.add(new NumberTickUnit(2, format, 4));
+		units.add(new NumberTickUnit(1, format, 10));
+		units.add(new NumberTickUnit(.5, format, 5));
+		units.add(new NumberTickUnit(.25, format, 5));
+		units.add(new NumberTickUnit(.1, format, 10));
+		units.add(new NumberTickUnit(.05, format, 5));
+		units.add(new NumberTickUnit(.01, format, 10));
+	}
+
+	private ApplicationResourceOptimizer parent;
 	private SlidingCategoryDataset dataset;
 	private JButton zoomInButton;
 	private JButton zoomOutButton;
@@ -87,18 +142,21 @@ public class WaterFallPanel extends JPanel {
 	private JScrollBar verticalScroll;
 	private JScrollBar horizontalScroll;
 	private NumberAxis timeAxis;
-	private double traceDuration;
-	
+	private CategoryAxis categoryAxis;
+	private double traceDuration = DEFAULT_TIMELINE;
+
 	private WaterfallPopup popup;
 	private StackedBarRenderer renderer;
 
 	/**
 	 * Constructor
 	 */
-	public WaterFallPanel(Window parent) {
+	public WaterFallPanel(ApplicationResourceOptimizer parent) {
 
 		super(new BorderLayout());
-		this.dataset = new SlidingCategoryDataset(new DefaultCategoryDataset(), 0, CATEGORY_MAX_COUNT);
+		this.parent = parent;
+		this.dataset = new SlidingCategoryDataset(new DefaultCategoryDataset(), 0,
+				CATEGORY_MAX_COUNT);
 		this.popup = new WaterfallPopup(parent);
 
 		JPanel graphPanel = new JPanel(new BorderLayout());
@@ -113,173 +171,206 @@ public class WaterFallPanel extends JPanel {
 		add(buttonsPanel, BorderLayout.SOUTH);
 	}
 
+	/**
+	 * Refreshes the waterfall display with the specified analysis data
+	 * @param analysis The analysis data to be displayed
+	 */
 	public synchronized void refresh(Analysis analysis) {
 		
-		// Clear and hide the popup
-		popup.refresh(null);
-		popup.setVisible(false);
+		logger.entering("WaterFallPanel", "refresh");
 
-		List<WaterfallCategory> categoryList = new ArrayList<WaterfallCategory>();
+		// Clear and hide the popup
+		popup.refresh(null, 0);
+		popup.setVisible(false);
 
 		this.traceDuration = DEFAULT_TIMELINE;
 		double range = DEFAULT_TIMELINE;
+
+		// Create sorted list of request/response pairs
+		List<WaterfallCategory> categoryList = new ArrayList<WaterfallCategory>();
 		if (analysis != null) {
 			this.traceDuration = analysis.getTraceData().getTraceDuration();
 			range = Math.min(this.traceDuration, DEFAULT_TIMELINE);
 			for (TCPSession tcpSession : analysis.getTcpSessions()) {
-
-				for (HttpRequestResponseInfo reqRes : tcpSession
-						.getRequestResponseInfo()) {
-					if (reqRes.getDirection() == Direction.REQUEST && reqRes.getWaterfallInfos() != null) {
+				for (HttpRequestResponseInfo reqRes : tcpSession.getRequestResponseInfo()) {
+					if (reqRes.getDirection() == Direction.REQUEST
+							&& reqRes.getWaterfallInfos() != null) {
 						categoryList.add(new WaterfallCategory(reqRes));
 					}
-
 				}
 			}
+			
+			// Sort and set index
+			Collections.sort(categoryList);
+			int index = 0;
+			for (WaterfallCategory wc : categoryList) {
+				wc.index = ++index;
+			}
 		}
-		
-		JScrollBar h = getHorizontalScroll();
-		h.setValue(0);
-		h.setMaximum((int) Math.ceil(this.traceDuration));
-		h.setVisibleAmount((int) Math.round(range));
-		timeAxis.setRange(new Range(0, range));
 
+		// Horizontal scroll bar used to scroll through trace duration
+		JScrollBar h = getHorizontalScroll();
+		h.setMaximum((int) Math.ceil(this.traceDuration));
+
+		// Set the visible time range
+		setTimeRange(0, range);
+		
+		CategoryAxis cAxis = getCategoryAxis();
+		cAxis.clearCategoryLabelToolTips();
+
+		// Build the dataset
 		DefaultCategoryDataset underlying = new DefaultCategoryDataset();
 		for (WaterfallCategory wfc : categoryList) {
 			RequestResponseTimeline tl = wfc.reqResp.getWaterfallInfos();
 
-			underlying.addValue(tl.getStartTime(), WaterFall.NONE, wfc);
+			underlying.addValue(tl.getStartTime(), WaterFall.BEFORE, wfc);
 			underlying.addValue(tl.getDnsLookupDuration(), WaterFall.DNS_LOOKUP, wfc);
 			underlying.addValue(tl.getInitialConnDuration(), WaterFall.INITIAL_CONNECTION, wfc);
 			underlying.addValue(tl.getSslNegotiationDuration(), WaterFall.SSL_NEGOTIATION, wfc);
 			underlying.addValue(tl.getRequestDuration(), WaterFall.REQUEST_TIME, wfc);
 			underlying.addValue(tl.getTimeToFirstByte(), WaterFall.TIME_TO_FIRST_BYTE, wfc);
 			underlying.addValue(tl.getContentDownloadDuration(), WaterFall.CONTENT_DOWNLOAD, wfc);
+			underlying.addValue(null, WaterFall.HTTP_3XX_REDIRECTION, wfc);
+			underlying.addValue(null, WaterFall.HTTP_4XX_CLIENTERROR, wfc);
+
+			int code = wfc.reqResp.getAssocReqResp().getStatusCode();
+			double endTime = this.traceDuration - tl.getStartTime() - tl.getTotalTime();
+			if(code >= 300 && code < 400) {
+				underlying.addValue(endTime, WaterFall.AFTER_3XX, wfc);
+			} else if(code >= 400) {
+				underlying.addValue(endTime, WaterFall.AFTER_4XX, wfc);
+			} else {
+				underlying.addValue(endTime, WaterFall.AFTER, wfc);
+			}
+			
+			cAxis.addCategoryLabelToolTip(wfc, wfc.getTooltip());
 		}
-		
+
+		// Vertical scroll bar is used to scroll through data
 		JScrollBar v = getVerticalScroll();
 		int count = underlying.getColumnCount();
 		v.setValue(0);
 		v.setMaximum(count);
 		v.setVisibleAmount(count > 0 ? this.dataset.getMaximumCategoryCount() - 1 / count : 1);
 
+		// Add the dataset to the plot
 		CategoryPlot plot = getChartPanel().getChart().getCategoryPlot();
 		this.dataset = new SlidingCategoryDataset(underlying, 0, CATEGORY_MAX_COUNT);
 		plot.setDataset(this.dataset);
 
-		CategoryItemRenderer renderer = plot.getRenderer();
+		// Place proper colors on renderer for waterfall states
+		final CategoryItemRenderer renderer = plot.getRenderer();
 		for (Object o : underlying.getRowKeys()) {
 			WaterFall wf = (WaterFall) o;
 			int index = underlying.getRowIndex(wf);
-			
+
 			Color paint;
 			switch (wf) {
-			case DNS_LOOKUP :
+			case DNS_LOOKUP:
 				paint = dnsLoolupColor;
 				break;
-			case INITIAL_CONNECTION :
+			case INITIAL_CONNECTION:
 				paint = initiaConnColor;
 				break;
-			case SSL_NEGOTIATION :
+			case SSL_NEGOTIATION:
 				paint = sslNegColor;
 				break;
-			case REQUEST_TIME :
+			case REQUEST_TIME:
 				paint = requestTimeColor;
 				break;
-			case TIME_TO_FIRST_BYTE :
+			case TIME_TO_FIRST_BYTE:
 				paint = firstByteTimeColor;
 				break;
-			case CONTENT_DOWNLOAD :
+			case CONTENT_DOWNLOAD:
 				paint = contentDownloadColor;
 				break;
-			case NONE :
+			case AFTER_3XX:
+				paint = noneColor;
+				renderer.setSeriesItemLabelPaint(index, threexColor);
 				renderer.setSeriesVisibleInLegend(index, false);
-			default :
+				break;
+			case AFTER_4XX:
+				paint = noneColor;
+				renderer.setSeriesItemLabelPaint(index, fourxColor);
+				renderer.setSeriesVisibleInLegend(index, false);
+				break;
+			case HTTP_3XX_REDIRECTION:
+				paint = threexColor;
+				break;
+			case HTTP_4XX_CLIENTERROR:
+				paint = fourxColor;
+				break;
+			default:
+				renderer.setSeriesItemLabelPaint(index, Color.black);
+				renderer.setSeriesVisibleInLegend(index, false);
 				paint = noneColor;
 			}
 			renderer.setSeriesPaint(index, paint);
 		}
-		
+
 		// Adding the label at the end of bars
+		renderer.setBaseItemLabelGenerator(new StandardCategoryItemLabelGenerator() {
+			private static final long serialVersionUID = 1L;
 
-				Map<WaterfallCategory, WaterFall> plotLabelData = new HashMap<WaterfallCategory, WaterFall>();
+			@Override
+			public String generateLabel(CategoryDataset dataset, int row, int column) {
+				if (WaterFall.AFTER == dataset.getRowKey(row)
+						|| WaterFall.AFTER_3XX == dataset.getRowKey(row)
+						|| WaterFall.AFTER_4XX == dataset.getRowKey(row)) {
+					WaterfallCategory waterfallItem = (WaterfallCategory) dataset
+							.getColumnKey(column);
 
-				int lastRow = 0;
-
-				for (int i = 0; i < underlying.getColumnCount(); i++) {
-
-					for (int j = 0; j < underlying.getRowCount(); j++) {
-
-						if (underlying.getValue(j, i) != null
-								&& underlying.getValue(j, i).doubleValue() > 0) {
-
-							lastRow = j;
-						}
-					}
-
-					plotLabelData.put((WaterfallCategory) underlying.getColumnKey(i),
-							(WaterFall) underlying.getRowKey(lastRow));
+					RequestResponseTimeline waterfallInfos = waterfallItem.reqResp
+							.getWaterfallInfos();
+					DecimalFormat formatter = new DecimalFormat("#.##");
+					int code = waterfallItem.reqResp.getAssocReqResp().getStatusCode();
+					return MessageFormat.format(
+							rb.getString("waterfall.totalTime"),
+							formatter.format(waterfallInfos.getTotalTime()),
+							code > 0 ? waterfallItem.reqResp.getScheme() + " " + code : rb.getString("waterfall.unknownCode"));
 				}
-				final Map<WaterfallCategory, WaterFall> data = plotLabelData;
 
-				renderer.setBaseItemLabelGenerator(new StandardCategoryItemLabelGenerator() {
+				return null;
+			}
+		});
 
-					@Override
-					public String generateLabel(CategoryDataset dataset, int row, int column) {
-
-						if (data.get(dataset.getColumnKey(column)) == dataset.getRowKey(row)) {
-							WaterfallCategory waterfallItem = (WaterfallCategory) dataset
-									.getColumnKey(column);
-
-							RequestResponseTimeline waterfallInfos = waterfallItem.reqResp
-									.getWaterfallInfos();
-							double time = waterfallInfos.getDnsLookupDuration()
-									+ waterfallInfos.getInitialConnDuration()
-									+ waterfallInfos.getSslNegotiationDuration()
-									+ waterfallInfos.getRequestDuration()
-									+ waterfallInfos.getTimeToFirstByte()
-									+ waterfallInfos.getContentDownloadDuration();
-							DecimalFormat formatter = new DecimalFormat("#.##");
-							if (time > 0) {
-								return formatter.format(time) + "s";
-							}
-						}
-
-						return "";
-					}
-				});
-
-				renderer.setBaseItemLabelsVisible(true);
-				renderer.setBasePositiveItemLabelPosition(new ItemLabelPosition(ItemLabelAnchor.OUTSIDE3,
-						TextAnchor.CENTER_LEFT));
-
+		logger.exiting("WaterFallPanel", "refresh");
 
 	}
 
-	
 	private ChartPanel getChartPanel() {
+		
+		logger.entering("WaterFallPanel", "getChartPanel");
 
 		if (chartPanel == null) {
 
-		    renderer = new StackedBarRenderer();
-		    renderer.setShadowVisible(false);
+			renderer = new StackedBarRenderer();
+			renderer.setMaximumBarWidth(0.05);
+			renderer.setShadowVisible(false);
 			renderer.setBaseToolTipGenerator(new CategoryToolTipGenerator() {
 				@Override
 				public String generateToolTip(CategoryDataset dataset, int row, int column) {
 
 					WaterfallCategory c = (WaterfallCategory) dataset.getColumnKey(column);
-
-					return c.reqResp != null && c.reqResp.getObjUri() != null ? c.reqResp.getObjUri().toString() : "";
+					return c.getTooltip();
 				}
 			});
+			renderer.setBaseItemLabelsVisible(true);
+			renderer.setBasePositiveItemLabelPosition(new ItemLabelPosition(ItemLabelAnchor.INSIDE9,
+					TextAnchor.CENTER_LEFT));
+			renderer.setPositiveItemLabelPositionFallback(new ItemLabelPosition(ItemLabelAnchor.INSIDE9,
+					TextAnchor.CENTER_LEFT));
 
-			CategoryPlot plot = new CategoryPlot(new DefaultCategoryDataset(), new CategoryAxis(), getTimeAxis(), renderer);
+			// Set up plot
+			CategoryPlot plot = new CategoryPlot(new DefaultCategoryDataset(), getCategoryAxis(),
+					getTimeAxis(), renderer);
 			plot.setOrientation(PlotOrientation.HORIZONTAL);
+			plot.setDomainGridlinesVisible(true);
+			plot.setDomainGridlinePosition(CategoryAnchor.END);
 
 			JFreeChart chart = new JFreeChart(plot);
-			//chart.setBackgroundPaint(Color.white);
-
-			chartPanel = new ChartPanel(chart, 400, 200, 200, 200, 2000, 5000, true, false, false, false, false, true);
+			chartPanel = new ChartPanel(chart, 400, 200, 200, 200, 2000, 5000, true, false, false,
+					false, false, true);
 			chartPanel.setMouseZoomable(false);
 			chartPanel.setRangeZoomable(false);
 			chartPanel.setDomainZoomable(false);
@@ -293,16 +384,17 @@ public class WaterFallPanel extends JPanel {
 				@Override
 				public void chartMouseClicked(ChartMouseEvent event) {
 					if (event.getEntity() instanceof CategoryItemEntity) {
-						CategoryItemEntity xyitem = (CategoryItemEntity) event
-								.getEntity(); // get clicked entity
+						CategoryItemEntity xyitem = (CategoryItemEntity) event.getEntity();
 						WaterfallCategory wc = (WaterfallCategory) xyitem.getColumnKey();
 						if (wc != null && wc.reqResp != null) {
-							popup.refresh(wc.reqResp);
-							if (!popup.isVisible()) {
-								popup.setVisible(true);
-								Point p = event.getTrigger().getPoint();
-								Point pp = chartPanel.getLocationOnScreen();
-								popup.setLocation(pp.x + p.x + 10, pp.y + p.y + 10);
+							if (event.getTrigger().getClickCount() > 1) {
+								parent.displayAdvancedTab();
+								parent.getAroAdvancedTab().setHighlightedRequestResponse(wc.reqResp);
+							} else {
+								popup.refresh(wc.reqResp, wc.index);
+								if (!popup.isVisible()) {
+									popup.setVisible(true);
+								}
 							}
 						}
 					}
@@ -310,6 +402,7 @@ public class WaterFallPanel extends JPanel {
 				}
 			});
 		}
+		logger.exiting("WaterFallPanel", "getChartPanel");
 		return chartPanel;
 	}
 
@@ -318,10 +411,62 @@ public class WaterFallPanel extends JPanel {
 	 */
 	private NumberAxis getTimeAxis() {
 		if (timeAxis == null) {
-		    timeAxis = new NumberAxis(rb.getString("waterfall.time"));
-		    timeAxis.setRange(new Range(0 , DEFAULT_TIMELINE));
+			timeAxis = new NumberAxis(rb.getString("waterfall.time")) {
+				private static final long serialVersionUID = 1L;
+
+				/**
+				 * This override prevents the tick units from changing
+				 * as the timeline is scrolled to numbers with more digits
+				 */
+				@Override
+				protected double estimateMaximumTickLabelWidth(Graphics2D g2,
+						TickUnit unit) {
+
+					if (isVerticalTickLabels()) {
+						return super.estimateMaximumTickLabelWidth(g2, unit);
+					} else {
+						RectangleInsets tickLabelInsets = getTickLabelInsets();
+						double result = tickLabelInsets.getLeft()
+								+ tickLabelInsets.getRight();
+
+						// look at lower and upper bounds...
+						FontMetrics fm = g2.getFontMetrics(getTickLabelFont());
+						double upper = traceDuration;
+						String upperStr = "";
+						NumberFormat formatter = getNumberFormatOverride();
+						if (formatter != null) {
+							upperStr = formatter.format(upper);
+						} else {
+							upperStr = unit.valueToString(upper);
+						}
+						double w2 = fm.stringWidth(upperStr);
+						result += w2;
+						return result;
+					}
+
+
+				}
+				
+			};
+			timeAxis.setRange(new Range(0, DEFAULT_TIMELINE));
+			timeAxis.setStandardTickUnits(units);
 		}
 		return timeAxis;
+	}
+
+	/**
+	 * @return the categoryAxis
+	 */
+	private CategoryAxis getCategoryAxis() {
+		if (categoryAxis == null) {
+			categoryAxis = new CategoryAxis();
+			categoryAxis.setMaximumCategoryLabelWidthRatio(0.2f);
+			categoryAxis.setCategoryLabelPositions(CategoryLabelPositions.replaceLeftPosition(CategoryLabelPositions.STANDARD, new CategoryLabelPosition(
+                RectangleAnchor.LEFT, TextBlockAnchor.CENTER_LEFT, 
+                CategoryLabelWidthType.RANGE, 1.0f
+            )));
+		}
+		return categoryAxis;
 	}
 
 	/**
@@ -338,7 +483,7 @@ public class WaterFallPanel extends JPanel {
 						dataset.setFirstCategoryIndex(verticalScroll.getValue());
 					}
 				}
-				
+
 			});
 		}
 		return verticalScroll;
@@ -349,19 +494,20 @@ public class WaterFallPanel extends JPanel {
 	 */
 	private JScrollBar getHorizontalScroll() {
 		if (horizontalScroll == null) {
-			horizontalScroll = new JScrollBar(JScrollBar.HORIZONTAL, 0, 100, 0, 100);
+			horizontalScroll = new JScrollBar(JScrollBar.HORIZONTAL, 0, DEFAULT_TIMELINE, 0, DEFAULT_TIMELINE);
 			horizontalScroll.getModel().addChangeListener(new ChangeListener() {
 
 				@Override
 				public void stateChanged(ChangeEvent arg0) {
-					timeAxis.setRange(horizontalScroll.getValue(), horizontalScroll.getValue() + horizontalScroll.getVisibleAmount());
+					timeAxis.setRange(horizontalScroll.getValue(), horizontalScroll.getValue()
+							+ horizontalScroll.getVisibleAmount());
 				}
-				
+
 			});
 		}
 		return horizontalScroll;
 	}
-	
+
 	/**
 	 * Implements the graph zoom in functionality.
 	 */
@@ -405,10 +551,8 @@ public class WaterFallPanel extends JPanel {
 	private void zoomIn() {
 		Range r = timeAxis.getRange();
 		double l = r.getLowerBound();
-		r = new Range(l, l + (r.getUpperBound() - l) / ZOOM_FACTOR);
-		getHorizontalScroll().setVisibleAmount((int) Math.ceil(r.getUpperBound() - r.getLowerBound()));
-		timeAxis.setRange(r);
-		zoomOutButton.setEnabled(true);
+		double u = l + (r.getUpperBound() - l) / ZOOM_FACTOR;
+		setTimeRange(l,u);
 	}
 
 	/**
@@ -416,36 +560,54 @@ public class WaterFallPanel extends JPanel {
 	 */
 	private void zoomOut() {
 		Range r = timeAxis.getRange();
-		
+
 		double l = r.getLowerBound();
 		double u = l + (r.getUpperBound() - l) * ZOOM_FACTOR;
-
+		setTimeRange(l, u);
+	}
+	
+	private void setTimeRange(double l, double u) {
+		boolean zoomInEnabled = true;
+		boolean zoomOutEnabled = true;
+		
 		JScrollBar h = getHorizontalScroll();
-		boolean enabled = true;
 		if (u > traceDuration) {
 			double delta = u - traceDuration;
 			l -= delta;
 			u -= delta;
 			if (l < 0) {
 				l = 0.0;
-				enabled = false;
+				zoomOutEnabled = false;
 			}
 		}
-		zoomOutButton.setEnabled(enabled);
-		h.setVisibleAmount((int) Math.ceil(u - l));
-		timeAxis.setRange(new Range(l,u));
-	}
+		if (u - l <= 1.0) {
+			u = l + 1.0;
+			zoomInEnabled = false;
+		}
 
+		// Set the time range
+		timeAxis.setRange(new Range(l, u));
+		h.setValue((int) l);
+		h.setVisibleAmount((int) Math.ceil(u - l));
+		h.setBlockIncrement(h.getVisibleAmount());
+
+		// Enable zoom buttons appropriately
+		zoomOutButton.setEnabled(zoomOutEnabled);
+		zoomInButton.setEnabled(zoomInEnabled);
+	}
+	
 	private class WaterfallCategory implements Comparable<WaterfallCategory> {
 		private HttpRequestResponseInfo reqResp;
+		private int index;
 
 		public WaterfallCategory(HttpRequestResponseInfo reqResp) {
 			this.reqResp = reqResp;
 		}
-		
+
 		@Override
 		public int compareTo(WaterfallCategory arg0) {
-			return Double.valueOf(reqResp.getTimeStamp()).compareTo(arg0.reqResp.getTimeStamp());
+			return Double.valueOf(reqResp.getWaterfallInfos().getStartTime())
+					.compareTo(arg0.reqResp.getWaterfallInfos().getStartTime());
 		}
 
 		/**
@@ -453,9 +615,25 @@ public class WaterFallPanel extends JPanel {
 		 */
 		@Override
 		public String toString() {
-			return reqResp != null && reqResp.getObjName() != null ? reqResp.getObjName() : "";
+			return MessageFormat.format(
+					rb.getString("waterfall.categoryText"),
+					index,
+					reqResp.getHostName() != null ? reqResp.getHostName() : rb.getString("waterfall.unknownHost"),
+					(reqResp != null && reqResp.getObjName() != null ? reqResp
+							.getObjName() : ""));
 		}
-		
+
+		/**
+		 * Tooltip to be displayed for this item
+		 * @return
+		 */
+		public String getTooltip() {
+			if (reqResp.isSsl()) {
+				return rb.getString("waterfall.https");
+			} else {
+				return reqResp != null && reqResp.getObjUri() != null ? reqResp.getObjUri().toString() : rb.getString("waterfall.unknownHost");
+			}
+		}
 	}
 
 }

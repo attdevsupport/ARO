@@ -51,10 +51,15 @@ public class IPPacket extends Packet implements Serializable {
 		ByteBuffer bytes = ByteBuffer.wrap(data);
 		int headerOffset = super.getDataOffset();
 
-		ipVersion = (byte) ((bytes.get(super.getDataOffset()) & 0xf0) >> 4);
+		ipVersion = (byte) ((bytes.get(headerOffset) & 0xf0) >> 4);
 		int hlen = ((bytes.get(headerOffset) & 0x0f) << 2);
 		dataOffset = headerOffset + hlen;
 		packetLength = bytes.getShort(headerOffset + 2);
+		if (packetLength == 0) {
+			
+			// Assume TCP segmentation offload (TSO) so calculate our own packet length
+			packetLength = len - headerOffset;
+		}
 		payloadLen = packetLength - hlen;
 
 		short i = bytes.getShort(headerOffset + 6);

@@ -19,6 +19,7 @@
 	<string name="aro_traceduration">Duration :</string>
 	<string name="aro_failedvideo">Video failed to start</string>
 	<string name="splashmessageopensource">Built from Public code supplied by \n AT&amp;T Developer Program \n \n http://developer.att.com/aro</string>
+	<string name="aro_traceTimer">Duration:</string>
 	<!-- Error Dialog Message -->
 	<string name="aro_error">Error</string>
 	<string name="aro_foldername">Please enter trace folder name.</string>
@@ -32,6 +33,7 @@
 	<string name="aro_sdcarderror">SD Card memory full, stopping ARO Data Collector. </string>
 	<string name="aro_spcharerror">Trace folder name can not have special characters or spaces. </string>
 	<string name="aro_tracefolderexists">Trace folder already exists! Do you want to overwrite existing trace?</string>
+	<string name="aro_norootaccess">You do not have administrator-level permission (i.e., root level access) on this device. It is recommended that you use a device that is dedicated to experimentation and testing since rooting may have an adverse impact on device performance and/or manufacturer warranty.</string>
 	<!--  Button Text -->
 	<string name="aro_oktext">OK</string>
 	<string name="aro_yestext">Yes</string>

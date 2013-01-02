@@ -25,9 +25,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -44,7 +44,7 @@ import com.att.aro.pcap.UDPPacket;
  * extracting a list of sessions from a collection of packets, and analyzing a session to retrieve 
  * the TCP information. 
  */
-public class TCPSession implements Serializable {
+public class TCPSession implements Serializable, Comparable<TCPSession> {
 	private static final long serialVersionUID = 1L;
 
 	/**
@@ -101,11 +101,13 @@ public class TCPSession implements Serializable {
 	 */
 	private PacketInfo dnsRequestPacket;
 	private PacketInfo dnsResponsePacket;
+	private PacketInfo lastSslHandshakePacket;
 	private String domainName;
 	private int fileDownloadCount;
 	private long bytesTransferred;
 	private int remotePort;
 	private int localPort;
+	private boolean ssl;
 	private List<PacketInfo> packets = new ArrayList<PacketInfo>();
 	private Set<String> appNames = new HashSet<String>(1);
 	private Termination sessionTermination;
@@ -174,6 +176,7 @@ public class TCPSession implements Serializable {
 			Collection<PacketInfo> packets) throws IOException {
 		Map<String, TCPSession> sess = new LinkedHashMap<String, TCPSession>();
 		List<PacketInfo> dnsPackets = new ArrayList<PacketInfo>();
+		Map<InetAddress, String> hostMap = new HashMap<InetAddress, String>();
 		for (PacketInfo packet : packets) {
 
 			if (!(packet.getPacket() instanceof TCPPacket)) {
@@ -182,8 +185,13 @@ public class TCPSession implements Serializable {
 				if (packet.getPacket() instanceof UDPPacket) {
 					UDPPacket udp = (UDPPacket) packet.getPacket();
 					if (udp.isDNSPacket()) {
-						// Add packets to beginning of list so that they are in reverse order
-						dnsPackets.add(0, packet);
+						dnsPackets.add(packet);
+						DomainNameSystem dns = udp.getDns();
+						if (dns.isResponse()) {
+							for (InetAddress inet : dns.getIpAddresses()) {
+								hostMap.put(inet, dns.getDomainName());
+							}
+						}
 					}
 				}
 				continue;
@@ -222,32 +230,42 @@ public class TCPSession implements Serializable {
 				s = new TCPSession(remoteIP, remotePort, localPort);
 				
 				// Search for DNS request/response
-				Iterator<PacketInfo> iter = dnsPackets.iterator();
+				ListIterator<PacketInfo> iter = dnsPackets.listIterator(dnsPackets.size());
 				DomainNameSystem dns = null;
-				while (iter.hasNext()) {
-					PacketInfo p = iter.next();
+				while (iter.hasPrevious()) {
+					PacketInfo p = iter.previous();
 					UDPPacket udp = ((UDPPacket) p.getPacket());
 					dns = udp.getDns();
 					if (dns.isResponse() && dns.getIpAddresses().contains(remoteIP)) {
 						s.dnsResponsePacket = p;
-						iter.remove();
 						break;
 					}
 					dns = null;
 				}
 				if (dns != null) {
+					iter = dnsPackets.listIterator();
 					String domainName = dns.getDomainName();
 					while (iter.hasNext()) {
 						PacketInfo p = iter.next();
 						UDPPacket udp = ((UDPPacket) p.getPacket());
 						dns = udp.getDns();
-						if (!dns.isResponse() && domainName.equals(dns.getDomainName())) {
-							s.remoteHostName = domainName;
-							s.dnsRequestPacket = p;
+						if (domainName.equals(dns.getDomainName())) {
+							if (s.dnsRequestPacket == null && !dns.isResponse()) {
+								s.remoteHostName = domainName;
+								s.dnsRequestPacket = p;
+							}
+							
+							// Remove from DNS packets so that it is not used again
 							iter.remove();
-							break;
+							
+							// Stop processing once response is reached
+							if (p == s.dnsResponsePacket) {
+								break;
+							}
 						}
 					}
+				} else {
+					s.remoteHostName = hostMap.get(remoteIP);
 				}
 				
 				sess.put(key, s);
@@ -273,6 +291,9 @@ public class TCPSession implements Serializable {
 			PacketInfo lastPacket = null;
 			for (PacketInfo pi : session.packets) {
 				TCPPacket p = (TCPPacket) pi.getPacket();
+				if (p.isSsl()) {
+					session.ssl = true;
+				}
 
 				Reassembler xl;
 				switch (pi.getDir()) {
@@ -318,7 +339,7 @@ public class TCPSession implements Serializable {
 								session.localPort);
 						newSession.packets.addAll(currentList.subList(index,
 								currentList.size()));
-						sessions.add(session);
+						sessions.add(newSession);
 
 						// Break out of packet loop
 						break;
@@ -389,6 +410,9 @@ public class TCPSession implements Serializable {
 							xl.storage.write(data, dataOffset, l);
 							xl.seq += l;
 						}
+						if (p.isSslHandshake()) {
+							session.lastSslHandshakePacket = pi;
+						}
 					}
 					if (p.isSYN() || p.isFIN())
 						++xl.seq;
@@ -406,7 +430,7 @@ public class TCPSession implements Serializable {
 							}
 
 							if (seq == xl.seq) {
-								if (p.getPayloadLen() > 0) {
+								if (p1.getPayloadLen() > 0) {
 									pi1.setTcpInfo(TcpInfo.TCP_DATA);
 									byte[] data = p1.getData();
 									int l = p1.getPayloadLen();
@@ -416,6 +440,9 @@ public class TCPSession implements Serializable {
 												pi1);
 										xl.storage.write(data, dataOffset, l);
 										xl.seq += l;
+									}
+									if (p1.isSslHandshake()) {
+										session.lastSslHandshakePacket = pi1;
 									}
 								}
 								if (p1.isSYN() || p1.isFIN())
@@ -512,7 +539,20 @@ public class TCPSession implements Serializable {
 		}
 		ul.clear();
 		dl.clear();
+
+		Collections.sort(sessions);
 		return sessions;
+	}
+
+	/**
+	 * Returns the set of appli	 * Compares the specified HttpRequestResponseInfo object to this one.
+	 * 
+	 * @see java.lang.Comparable#compareTo(java.lang.Object)
+	 */
+	@Override
+	public int compareTo(TCPSession o) {
+		return Double.valueOf(getSessionStartTime()).compareTo(
+				Double.valueOf(o.getSessionStartTime()));
 	}
 
 	/**
@@ -552,6 +592,14 @@ public class TCPSession implements Serializable {
 	}
 
 	/**
+	 * Indicates whether SSL packets were detected in this session
+	 * @return the ssl
+	 */
+	public boolean isSsl() {
+		return ssl;
+	}
+
+	/**
 	 * Returns the name of the remote host. 
 	 * 
 	 * @return The remote host name.
@@ -572,6 +620,13 @@ public class TCPSession implements Serializable {
 	 */
 	public PacketInfo getDnsResponsePacket() {
 		return dnsResponsePacket;
+	}
+
+	/**
+	 * @return the lastSslHandshakePacket
+	 */
+	public PacketInfo getLastSslHandshakePacket() {
+		return lastSslHandshakePacket;
 	}
 
 	/**
