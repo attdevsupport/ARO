@@ -70,13 +70,11 @@ For Open Source ARO developers, two sample applications have been added. One sam
 
 
 **Known Issues:**
-
-+  All known issues from previous releases have been fixed in this release.
-+  The ARO Data Collector version 2.0.0.1 may experience intermittent errors if used on devices with Android ICS or Jellybean. To correct this issue, use the ARODataCollector_v2.0.0.3_ICS.apk included in this build. However, please note that version 2.0.0.3 will not record user input data from these devices.
-+  ARO may experience intermittent errors if used on devices with Android ICS or Jellybean. Until this issue is resolved we recommend that you use Gingerbread or older versions of the Android OS.
-+  The ARO Data Analyzer does not currently display user input/screen touch data in the Diagnostics chart for traces captured from an HTC One X or LG P925.
-+  When you open a trace in the ARO Data Analyzer that was collected using the ARO Windows 8 Collector, you will see a warning message informing you that files are missing from the trace directory. This is an expected warning, because the ARO Windows 8 Collector does not currently collect trace information from certain peripherals. You can click OK to proceed from this message.
-+  The ARO Windows 8 Collector does not uninstall cleanly from a Windows 8 tablet. After removing the program and rebooting, it will still instantiate.
+ 
++  The ARO Data Collector version 2.0.0.1 may experience intermittent errors if used on Android 4.0.X (ICS) or 4.1.X (Jellybean) devices. To correct this issue, use the ARODataCollector_v2.0.0.3_ICS.apk included in this build. However, please note that version 2.0.0.3 will not record user input data from these devices.  
++  The AT&T ARO Data Analyzer does not currently display user input/screen touch data in the Diagnostics chart for traces captured using ARO Data Collector version 2.0.0.1 from an HTC One X, LG P925, Samsung i747, or Samsung i777.  
++  When you open a trace in the ARO Data Analyzer that was collected using the ARO Windows 8 Collector, you will see a warning message informing you that files are missing from the trace directory. This is an expected warning, because the ARO Windows 8 Collector does not currently collect trace information from certain peripherals. You can click OK to proceed from this message.  
++  All known issues from previous releases have been fixed in this release. 
 
 
 ##Documentation:
