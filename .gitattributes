@@ -1,0 +1,2 @@
+# Declare .sh files to always have LF line endings on checkout.
+*.sh text eol=lf
