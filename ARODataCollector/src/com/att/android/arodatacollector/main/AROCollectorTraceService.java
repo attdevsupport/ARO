@@ -16,13 +16,16 @@
 
 package com.att.android.arodatacollector.main;
 
-import com.att.android.arodatacollector.R;
-import com.att.android.arodatacollector.utils.AROCollectorUtils;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
-
+import java.io.DataOutputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.SocketException;
@@ -32,17 +35,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import android.app.ActivityManager;
-import android.app.Service;
 import android.app.ActivityManager.RecentTaskInfo;
 import android.app.ActivityManager.RunningAppProcessInfo;
+import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.location.GpsStatus;
 import android.location.LocationManager;
@@ -59,6 +65,9 @@ import android.telephony.PhoneStateListener;
 import android.telephony.SignalStrength;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+
+import com.att.android.arodatacollector.R;
+import com.att.android.arodatacollector.utils.AROCollectorUtils;
 import com.flurry.android.FlurryAgent;
 
 /**
@@ -110,6 +119,9 @@ public class AROCollectorTraceService extends Service {
 
 	/** screen event trace file name */
 	private static final String outScreenRotationFileName = "screen_rotations";
+	
+	/** cpu event file name */
+	private static final String outCpuFileName = "cpu";
 
 	/**
 	 * LandScape Screen orientation
@@ -259,6 +271,8 @@ public class AROCollectorTraceService extends Service {
 	private BufferedWriter mDeviceDetailsWriter;
 	private OutputStream mNetworkDetailsOutputFile;
 	private BufferedWriter mNetworkTracewriter;
+	private OutputStream mCpuTraceOutputFile;
+	private BufferedWriter mCpuTraceWriter;
 	
 	/** ARO Data Collector utilities class object */
 	private AROCollectorUtils mAroUtils;
@@ -295,6 +309,31 @@ public class AROCollectorTraceService extends Service {
 	
 	public static FlurryEvent backgroundAppsFlurryEvent = null; //log Flurry event at end of trace
 	public static FlurryEvent makeModelEvent = null;			//log Flurry event at end of trace
+	
+	//for cpu tracing
+	private boolean columnHeaderLineProcessed = false, columnIndicesSet = false, totalCpuLineProcessed = false;
+	private boolean doneParsingProcessCpu = false;
+	private static int processCpuColumnIndex = -1, processNameColumnIndex = -1, curProcessCount = 0;
+	private static final int PROCESS_LIMIT = 8;
+	
+	private static final String CPU_HEADER = "CPU%";
+	private static final String PROCESS_NAME_HEADER = "Name";
+	
+	//private static final Pattern totalCpuLinePattern = Pattern.compile("^User (\\d+)%, System (\\d+)%, IOW (\\d+)%, IRQ (\\d+)%");
+	//total cpu line has pattern: "User 261 + Nice 1 + Sys 105 + Idle 388 + IOW 7 + IRQ 0 + SIRQ 0 = 762"
+	private static final Pattern totalCpuLinePattern = Pattern.compile("^User (\\d+) \\+ Nice (\\d+) \\+ Sys (\\d+) \\+ Idle (\\d+) \\+ IOW (\\d+) \\+ IRQ (\\d+) \\+ SIRQ (\\d+) = (\\d+)");
+	private static final int CPU_PATTERN_GROUP_COUNT = 8;
+	private static final int TOTAL_CPU_GROUP_NUMBER = 8;
+	private static final int IDLE_CPU_GROUP_NUMBER = 4;
+	
+	private static final String WHITE_SPACE_REG_EXP = "\\s+";
+	private static final int CPU_TRACE_INTERVAL_MILLIS = 5000;
+	private static final int CPU_TRACE_INITIAL_DELAY_MILLIS = 4000;
+	
+	Timer cpuProcessingTimer;
+	private final String CPU_DIR = "CpuFiles/";
+	private static final String CPU_SCRIPT_PID = "CPU_SCRIPT_PID";
+	
 	/**
 	 * Handles processing when an AROCollectorTraceService object is created.
 	 * Overrides the android.app.Service#onCreate method.
@@ -315,6 +354,7 @@ public class AROCollectorTraceService extends Service {
 		initializeFlurryObjects();
 		startARODataTraceCollection();
 	}
+	
 
 	/**
 	 * Handles processing when an AROCollectorTraceService object is destroyed.
@@ -325,7 +365,7 @@ public class AROCollectorTraceService extends Service {
 	@Override
 	public void onDestroy() {
 		if (DEBUG) {
-			Log.d(TAG, "onDestroy called for AROCollectorTraceService");
+			Log.d(TAG, "onDestroy called for AROCollectorTraceService " + mAroUtils.getSystemTimeinSeconds());
 		}
 		super.onDestroy();
 		stopARODataTraceCollection();
@@ -355,6 +395,7 @@ public class AROCollectorTraceService extends Service {
 				Log.i(TAG, "starting ARO peripheral trace at timestamp=" + mAroUtils.getDataCollectorEventTimeStamp());
 			}
 			initAROTraceFile();
+			startAROCpuTrace();
 			startAROScreenTraceMonitor();
 			startAROGpsTraceMonitor();
 			startAROBatteryLevelMonitor();
@@ -370,6 +411,347 @@ public class AROCollectorTraceService extends Service {
 		} catch (FileNotFoundException e) {
 			Log.e(TAG, "exception in initAROTraceFile: Failed to start ARO-Data Collector Trace", e);
 		}
+	}
+	
+	
+	public void setCpuScriptPid(String pid) {
+		int pidInt = -1;
+		try {
+			pidInt = Integer.parseInt(pid);
+		} catch (Exception e){
+			e.printStackTrace();
+		}
+		
+		final SharedPreferences prefs = getSharedPreferences(ARODataCollector.PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putInt(CPU_SCRIPT_PID, pidInt);
+		editor.commit();
+	}
+	
+	private String getCpuDirFullPath(){
+		return mApp.getTcpDumpTraceFolderName() + CPU_DIR;
+	}
+
+	/**
+	 * Gets the ARO Data Collector trace folder name.
+	 * 
+	 * @return A string that is the ARO Data Collector trace folder name.
+	 */
+	public int getCpuScriptPid() {
+		final SharedPreferences prefs = getSharedPreferences(ARODataCollector.PREFS, 0);
+		return prefs.getInt(CPU_SCRIPT_PID, -1);
+	}
+	
+	//1. give script executable permission
+	//2. make output dir
+	//3. execute script
+	private void startAROCpuTraceScript(){
+		final int cpuScriptPid = getCpuScriptPid();
+		
+		if (cpuScriptPid == -1){
+			//script NOT already running,  need to start it
+			String cpuDirFullPath = getCpuDirFullPath();
+			
+			DataOutputStream os = null;
+			try {
+				File cpuDir = new File(cpuDirFullPath);
+				if (!cpuDir.exists()){
+					cpuDir.mkdir();
+				}
+					
+				Process cpuMonProcess = Runtime.getRuntime().exec("su");
+				os = new DataOutputStream(cpuMonProcess.getOutputStream());
+				String Command = "chmod 777 " + ARODataCollector.INTERNAL_DATA_PATH + ARODataCollector.PROCESS_CPU_MON
+						+ "\n";
+				os.writeBytes(Command);
+					
+				Command = "sh " + ARODataCollector.INTERNAL_DATA_PATH + ARODataCollector.PROCESS_CPU_MON + " " + cpuDirFullPath + "\n";
+				os.writeBytes(Command);
+				os.flush();
+					
+				BufferedReader reader = new BufferedReader(new InputStreamReader(cpuMonProcess.getInputStream()));
+				//the pid is the first line of the output
+				String pid = reader.readLine();
+				setCpuScriptPid(pid);
+			} catch (Exception e){
+				e.printStackTrace();
+			}
+			finally {
+				if (os != null){
+					try {
+						os.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		else {
+			Log.d(TAG, "script already running under pid=" + cpuScriptPid);
+			writeTraceLineToAROTraceFile(mCpuDebugWriter, "script already running under pid=" + cpuScriptPid, true);
+		}
+	}
+	
+	private void startAROCpuTrace(){
+		//start the script
+		startAROCpuTraceScript();
+		
+		//start timer to process the script output files
+		cpuProcessingTimer = new Timer();
+				
+		TimerTask checkCpuUsageTask = new TimerTask(){
+		//Runnable cpuTrace = new Runnable(){
+			public void run(){
+				processCpuDirectory(); 
+			}
+
+		};
+		
+		cpuProcessingTimer.scheduleAtFixedRate(checkCpuUsageTask, CPU_TRACE_INITIAL_DELAY_MILLIS, CPU_TRACE_INTERVAL_MILLIS);
+	}
+	
+	private void processCpuDirectory() {
+		writeTraceLineToAROTraceFile(mCpuDebugWriter, "cpu file processing started", true);
+		try {
+			File cpuDir = new File(getCpuDirFullPath());
+			if (cpuDir.exists() && cpuDir.listFiles() != null){
+				for (File cpuFile : cpuDir.listFiles()){
+					processCpuFile(cpuFile);
+				}
+			}
+			
+		} catch (Exception e) {
+			writeTraceLineToAROTraceFile(mCpuDebugWriter, "Exception occurred in checkCpuUsageTask: " + e.getMessage(), true);
+			e.printStackTrace();
+		}
+	}
+	
+	
+	private void processCpuFile(File cpuFile){
+		writeTraceLineToAROTraceFile(mCpuDebugWriter, "start processing " + cpuFile.getName(), true);
+		long start = System.currentTimeMillis();
+		//reset columnHeaderLineProcessed, totalCpuLineProcessed
+		columnHeaderLineProcessed = false;
+		totalCpuLineProcessed = false;
+		curProcessCount = 0;
+		doneParsingProcessCpu = false;
+		
+		String line = "";
+		boolean isDelete = true;
+		StringBuffer content = new StringBuffer();
+		BufferedReader input =  null;
+		try {
+			input =  new BufferedReader(new FileReader(cpuFile));
+			while ((!doneParsingProcessCpu && curProcessCount < PROCESS_LIMIT) 
+					&& ( line = input.readLine()) != null){
+				
+				parseCpuInfo(content, line);
+			}
+			
+			String contentStr = content.toString().trim();
+			if (contentStr.length() > 0){
+				double traceFileTimestamp = Double.parseDouble(cpuFile.getName());
+				writeTraceLineToAROTraceFile(mCpuTraceWriter, traceFileTimestamp + " " + contentStr, false);
+			}
+			else {
+				isDelete = false;
+			}
+			
+			long end = System.currentTimeMillis();
+			writeTraceLineToAROTraceFile(mCpuDebugWriter, (end - start) + "ms| " + contentStr, true);
+			
+		} catch (Exception e){
+			//this file has error, allow processing to continue to the next file
+			writeTraceLineToAROTraceFile(mCpuDebugWriter, cpuFile.getName() + ": Exception: " + e.getMessage() + ". Line: " + line, true);
+			e.printStackTrace();
+		}
+		finally {
+			try {
+				input.close();
+				if (isDelete){
+					cpuFile.delete();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	private void parseCpuInfo(StringBuffer content, String line) {
+		//writeTraceLineToAROTraceFile(mCpuDebugWriter, "parseCpuInfo for line=: " + line, false);
+
+		line = line.replaceAll("\r", "").replaceAll("\n", "").trim();
+		if (line.length() > 0){
+			if (!columnHeaderLineProcessed){
+				if (!totalCpuLineProcessed && parseTotalCpuLine(content, line)){
+					totalCpuLineProcessed = true;
+				}
+					
+				else if (isColumnHeaderLine(line)){
+					if (!columnIndicesSet){
+						setColumnHeaderIndices(line);
+					}
+					
+					columnHeaderLineProcessed = true;
+				}
+			}
+	
+			else if (!doneParsingProcessCpu && curProcessCount < PROCESS_LIMIT){
+				//get process cpu info
+				getProcessCpuInfo(content, line);
+			}
+		} 
+	}
+
+	private void getProcessCpuInfo(StringBuffer content, String line) {
+		String[] cpuInfoComp = line.split(WHITE_SPACE_REG_EXP);
+		
+		String processName = "";
+		String processCpu = cpuInfoComp[processCpuColumnIndex].replace("%", "");
+		
+		//workaround for blank column values
+		if (cpuInfoComp.length > processNameColumnIndex){
+			processName = cpuInfoComp[processNameColumnIndex];
+		}
+		else {
+			processName = cpuInfoComp[cpuInfoComp.length - 1];
+		}
+		
+		if (Integer.parseInt(processCpu) == 0){
+			//the top command returns process ordered by cpu usage,
+			//we only want non-zero processes, so we can stop when the processCpu is 0.
+			doneParsingProcessCpu = true;
+		}
+		else {
+			content.append(processName + "=" + processCpu + " ");
+			++curProcessCount;
+		}
+	}
+
+	/**
+	 * need to set the col header indices because different
+	 * android devices/platform returns the header in different order
+	 * @param line
+	 */
+	private void setColumnHeaderIndices(String line) {
+		String[] colHeaders = line.split(WHITE_SPACE_REG_EXP);
+		int colHeaderIndex = 0;
+		
+		for (int i = 0; i < colHeaders.length; ++i){
+			String curHeader = colHeaders[i].trim();
+			
+			if (curHeader.length() > 0){
+				if (curHeader.equalsIgnoreCase(CPU_HEADER)){
+					processCpuColumnIndex = colHeaderIndex;
+				}
+				else if (curHeader.equalsIgnoreCase(PROCESS_NAME_HEADER)){
+					processNameColumnIndex = colHeaderIndex;
+				}
+				
+				++colHeaderIndex;
+			}
+		}
+		
+		if (processCpuColumnIndex != -1 && processNameColumnIndex != -1){
+			columnIndicesSet = true;
+		}
+		else {
+			Log.w(TAG, "could not set processCpuColumnIndex/processNameColumnIndex for line=" + line);
+			writeTraceLineToAROTraceFile(mCpuDebugWriter, "could not set processCpuColumnIndex/processNameColumnIndex for line=" + line, false);
+		}
+	}
+
+	
+	/**
+	 * check if the line matches the total cpu line.
+	 * if yes, parse the cpu line and return true.
+	 * Otherwise, return false.
+	 * @param content
+	 * @param line
+	 */
+	private boolean parseTotalCpuLine(StringBuffer content, String line) {
+
+		Matcher totalCpuLineMatcher = totalCpuLinePattern.matcher(line);
+		
+		boolean isTotalCpuLine = totalCpuLineMatcher.find();
+		if (isTotalCpuLine){
+			//capturing group is numbered starting at 1 from left to right based on placement of opening parenthesis
+			//total cpu group = 8, idle cpu group = 4
+			
+			if (totalCpuLineMatcher.groupCount() == CPU_PATTERN_GROUP_COUNT){
+				
+				int total = Integer.parseInt(totalCpuLineMatcher.group(TOTAL_CPU_GROUP_NUMBER));
+				int idle = Integer.parseInt(totalCpuLineMatcher.group(IDLE_CPU_GROUP_NUMBER));
+				int usage = total - idle;
+				int usagePercent = usage * 100 / total;
+				content.append(usagePercent + " ");
+				
+			}
+			else {
+				Log.w(TAG, "totalCpuLineMatcher doesn't return 8 capturing groups for line=" + line);
+			}
+		}
+
+		
+		return isTotalCpuLine;
+	}
+	
+	
+	private boolean isColumnHeaderLine(String line) {
+		return line.contains("PID") && line.contains("CPU%") && line.contains("Name");
+	}
+
+
+	private void stopAROCpuTrace(){
+		/*if (cpuTimeOutTimer != null){
+			cpuTimeOutTimer.cancel();
+			cpuTimeOutTimer = null;
+		}*/
+		
+		/*if (scheduler != null){
+			cpuTraceHandle.cancel(false);
+			scheduler.shutdown();
+		}*/
+		try {
+			Process sh = null;
+			DataOutputStream os = null;
+			int pid = getCpuScriptPid();
+			
+			if (pid != -1) {
+				sh = Runtime.getRuntime().exec("su");
+				os = new DataOutputStream(sh.getOutputStream());
+				String command = "kill -15 " + pid + "\n";
+				os.writeBytes(command);
+				
+				command = "exit\n";
+				os.writeBytes(command);
+				os.flush();
+				
+				//clear out the sharedpref
+				setCpuScriptPid("-1");
+			}
+		}
+		catch (Exception e){
+			e.printStackTrace();
+		}
+		
+		if (cpuProcessingTimer != null){
+			cpuProcessingTimer.cancel();
+			cpuProcessingTimer = null;
+		}
+		
+		//process the directory for any files that hasnt been processed
+		processCpuDirectory();
+		
+		//delete the directory
+		File cpuDir = new File(getCpuDirFullPath());
+		if (cpuDir.listFiles() != null){
+			for (File cpuFile : cpuDir.listFiles()){
+				cpuFile.delete();
+			}
+		}
+		cpuDir.delete();
+
 	}
 
 	/** 
@@ -446,6 +828,7 @@ public class AROCollectorTraceService extends Service {
 		stopCameraTrace();
 		stopARODataBearerChangeNotification();
 		stopAroScreenRotationMonitor();
+		stopAROCpuTrace();
 		try {
 			closeAROTraceFile();
 		} catch (IOException e) {
@@ -453,7 +836,6 @@ public class AROCollectorTraceService extends Service {
 		}
 		stopARODeviceSDCardSpaceMidTrace();
 		stopAROAirplaneModeMidTrace();
-
 	}
 
 	/**
@@ -477,7 +859,9 @@ public class AROCollectorTraceService extends Service {
 	}
 
 	 
-
+	private OutputStream mCpuTraceDebugFile;
+	private BufferedWriter mCpuDebugWriter; 
+	
 	/**
 	 * Method will initialize all the trace files Streams and open it for
 	 * writing (i.e wifi/ Baterry/Gps trace files etc)
@@ -502,6 +886,8 @@ public class AROCollectorTraceService extends Service {
 		mGPSTracewriter = new BufferedWriter(new OutputStreamWriter(mGPSTraceOutputFile));
 		mScreenOutputFile = new FileOutputStream(mAroTraceDatapath + outScreenFileName,true);
 		mNetworkDetailsOutputFile = new FileOutputStream(mAroTraceDatapath + outNetworkDetailsFileName ,true);
+		mCpuTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outCpuFileName ,true);
+		//mCpuTraceDebugFile = new FileOutputStream(mAroTraceDatapath + "cpu_debug.txt" ,true);
 		
 		mScreenRotationOutputFile = new FileOutputStream(mAroTraceDatapath+ outScreenRotationFileName,true);
 		mScreenTracewriter = new BufferedWriter(new OutputStreamWriter(mScreenOutputFile));
@@ -512,82 +898,98 @@ public class AROCollectorTraceService extends Service {
 		mBluetoohTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outBluetoothFileName, true);
 		mBluetoothTracewriter = new BufferedWriter(new OutputStreamWriter(mBluetoohTraceOutputFile));
 		mDeviceInfoOutputFile = new FileOutputStream(mAroTraceDatapath + outDeviceInfoFileName, true);
-		mDeviceDetailsOutputFile = new FileOutputStream(mAroTraceDatapath+ outDeviceDetailsFileName, true);
+		mDeviceDetailsOutputFile = new FileOutputStream(mAroTraceDatapath+ outDeviceDetailsFileName, false);
 		mDeviceInfoWriter = new BufferedWriter(new OutputStreamWriter(mDeviceInfoOutputFile));
 		mDeviceDetailsWriter = new BufferedWriter(new OutputStreamWriter(mDeviceDetailsOutputFile));
+		mCpuTraceWriter = new BufferedWriter(new OutputStreamWriter(mCpuTraceOutputFile));
+		//mCpuDebugWriter = new BufferedWriter(new OutputStreamWriter(mCpuTraceDebugFile));
 
 	}
 
 	/**
-	 * Method will close all trace file Streams and closes the files
+	 * Method will close all trace file Streams and closes the files.
+	 * Should set the writer to null after closing, so that a check to 
+	 * verify an open writer can be performed in writeTraceLineToAROTraceFile
 	 * 
 	 * @throws IOException
 	 */
 	private void closeAROTraceFile() throws IOException {
 		if (mWifiTracewriter != null) {
 			mWifiTracewriter.close();
-			mWifiTraceOutputFile.flush();
+			mWifiTracewriter = null;
 			mWifiTraceOutputFile.close();
 		}
 		if (mRadioTracewriter != null) {
 			mRadioTracewriter.close();
-			mRadioTraceOutputFile.flush();
+			mRadioTracewriter = null;
 			mRadioTraceOutputFile.close();
 		}
 		if (mCameraTracewriter != null) {
 			mCameraTracewriter.close();
-			mCameraTraceOutputFile.flush();
+			mCameraTracewriter = null;
 			mCameraTraceOutputFile.close();
 		}
 		if (mBluetoothTracewriter != null) {
 
 			mBluetoothTracewriter.close();
-			mBluetoohTraceOutputFile.flush();
+			mBluetoothTracewriter = null;
 			mBluetoohTraceOutputFile.close();
 		}
 		if (mBatteryTracewriter != null) {
 			mBatteryTracewriter.close();
-			mBatteryTraceOutputFile.flush();
+			mBatteryTracewriter = null;
 			mBatteryTraceOutputFile.close();
 		}
 		if (mGPSTracewriter != null) {
 			mGPSTracewriter.close();
-			mGPSTraceOutputFile.flush();
+			mGPSTracewriter = null;
 			mGPSTraceOutputFile.close();
 		}
 		if (mScreenTracewriter != null) {
 			mScreenTracewriter.close();
-			mScreenOutputFile.flush();
+			mScreenTracewriter = null;
 			mScreenOutputFile.close();
 		}
 		if (mScreenRotationTracewriter != null) {
 			mScreenRotationTracewriter.close();
-			mScreenRotationOutputFile.flush();
+			mScreenRotationTracewriter = null;
 			mScreenRotationOutputFile.close();
 		}
 		if (mActiveProcessTracewriter != null) {
 			mActiveProcessTracewriter.close();
-			mActiveProcessOutputFile.flush();
+			mActiveProcessTracewriter = null;
 			mActiveProcessOutputFile.close();
 		}
 		if (mDeviceInfoWriter != null) {
 			mDeviceInfoWriter.close();
-			mDeviceInfoOutputFile.flush();
+			mDeviceInfoWriter = null;
 			mDeviceInfoOutputFile.close();
 		}
 		if (mDeviceDetailsWriter != null) {
 			mDeviceDetailsWriter.close();
-			mDeviceDetailsOutputFile.flush();
+			mDeviceDetailsWriter = null;
 			mDeviceDetailsOutputFile.close();
 		}
 		if (mNetworkTracewriter != null) {
 			mNetworkTracewriter.close();
-			mNetworkDetailsOutputFile.flush();
+			mNetworkTracewriter = null;
 			mNetworkDetailsOutputFile.close();
 			
 		}
-
+		
+		if (mCpuTraceWriter != null){
+			mCpuTraceOutputFile.close();
+			mCpuTraceWriter.close();
+			mCpuTraceWriter = null;
+		}
+		
+		if (mCpuDebugWriter != null){
+			mCpuTraceDebugFile.close();
+			mCpuDebugWriter.close();
+			mCpuDebugWriter = null;
+		}
 	}
+
 
 	/**
 	 * Notify the SD card error during trace collection and displays the error
@@ -608,13 +1010,16 @@ public class AROCollectorTraceService extends Service {
 	private void writeTraceLineToAROTraceFile(BufferedWriter outputfilewriter, String content,
 			boolean timestamp) {
 		try {
-			final String eol = System.getProperty("line.separator");
-			if (timestamp) {
-				outputfilewriter.write(mAroUtils.getDataCollectorEventTimeStamp() + " " + content + eol);
-				outputfilewriter.flush();
-			} else {
-				outputfilewriter.write(content + eol);
-				outputfilewriter.flush();
+			if (outputfilewriter != null){
+				
+				final String eol = System.getProperty("line.separator");
+				if (timestamp) {
+					outputfilewriter.write(mAroUtils.getDataCollectorEventTimeStamp() + " " + content + eol);
+					outputfilewriter.flush();
+				} else {
+					outputfilewriter.write(content + eol);
+					outputfilewriter.flush();
+				}
 			}
 		} catch (IOException e) {
 			// TODO: Need to display the exception error instead of Mid Trace
@@ -1846,5 +2251,90 @@ public class AROCollectorTraceService extends Service {
 		
 		writeToFlurryAndMaintainStateAndLogEvent(wifiFlurryEvent, getString(R.string.flurry_param_status), 
 				AroTraceFileConstants.CONNECTED_NETWORK, true);
+	}
+	
+	
+	class CPUTraceRunner implements Runnable {
+		private String outFileName;
+		public CPUTraceRunner(String outFileName){
+			this.outFileName = outFileName;
+		}
+		
+		public void run(){
+			try {
+				final ProcessBuilder processBuilder = new ProcessBuilder("/system/bin/sh", "-c", "top -n 1 > " + outFileName);
+				processBuilder.redirectErrorStream(true);
+				processBuilder.start();
+			} catch (IOException e) {
+				e.printStackTrace();
+				writeTraceLineToAROTraceFile(mCpuDebugWriter, "Exception occurred in CPUTraceRunner: " + e.getMessage(), false);
+			}
+		}
+	}
+	
+	class CPUStreamProcessor implements Runnable {
+		InputStreamReader isr = null;
+		boolean logStream = false;
+		double startTimestamp;
+		
+		public CPUStreamProcessor(InputStream is, double startTimestamp, boolean logStream){
+			this.isr = new InputStreamReader(is);
+			this.logStream = logStream;
+			this.startTimestamp = startTimestamp;
+		}
+
+		
+		private int readline(StringBuffer line){
+			int charRead = -1;
+			try {
+				
+				while (0 <= (charRead = isr.read())) {
+					if (charRead == '\n') {
+						break;
+					} 
+					else {
+						line.append((char) charRead);  
+					}
+				}
+				
+			} catch (Exception e){
+				writeTraceLineToAROTraceFile(mCpuDebugWriter, "exception occurred in readline(): " + e.getMessage(), true);
+			}
+			 
+			 return charRead;
+		}
+		
+		public void run(){
+			long start = System.currentTimeMillis();
+			
+			StringBuffer content = new StringBuffer();
+			StringBuffer line = new StringBuffer();
+			
+			try {
+				
+				writeTraceLineToAROTraceFile(mCpuDebugWriter, "processing command output", true);
+				while(readline(line) != -1) {
+					//writeTraceLineToAROTraceFile(mCpuDebugWriter, "line read: " + line, true);
+					parseCpuInfo(content, line.toString());
+					line = new StringBuffer();
+				}
+								
+				writeTraceLineToAROTraceFile(mCpuDebugWriter, "done processing command output", true);
+				
+				writeTraceLineToAROTraceFile(mCpuTraceWriter, startTimestamp + " " + content.toString(), false);
+				
+				long end = System.currentTimeMillis();
+				writeTraceLineToAROTraceFile(mCpuDebugWriter, (end - start) + "ms| " + content.toString(), true);
+	
+				//reset columnHeaderLineProcessed, totalCpuLineProcessed for next call
+				columnHeaderLineProcessed = false;
+				totalCpuLineProcessed = false;
+				curProcessCount = 0;
+				doneParsingProcessCpu = false;
+			} catch (Exception e) {
+				e.printStackTrace();
+				writeTraceLineToAROTraceFile(mCpuDebugWriter, "Exception caught" + e.getMessage(), true);
+			}
+		}
 	}
 }

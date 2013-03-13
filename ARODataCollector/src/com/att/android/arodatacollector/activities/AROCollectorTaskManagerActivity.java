@@ -123,7 +123,7 @@ public class AROCollectorTaskManagerActivity extends Activity {
 	/**
 	 * Initializes data members with a saved instance of an AROCollectorTaskManagerActivity 
 	 * object. Overrides the android.app.Activity#onCreate method.
-	 * @param savedInstanceState – A saved instance of an AROCollectorTaskManagerActivity object.
+	 * @param savedInstanceState  A saved instance of an AROCollectorTaskManagerActivity object.
 	 * @see android.app.Activity#onCreate(android.os.Bundle)
 	 */
 	@Override

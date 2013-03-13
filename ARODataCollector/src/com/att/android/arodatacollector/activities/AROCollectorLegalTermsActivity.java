@@ -49,7 +49,7 @@ public class AROCollectorLegalTermsActivity extends Activity {
 	/**
 	 * Initializes data members with a saved instance of an AROCollectorLegalTermsActivity object. 
 	 * Overrides the android.app.Activity#onCreate method. 
-	 * @param savedInstanceState – A saved instance of an AROCollectorLegalTermsActivity object.
+	 * @param savedInstanceState  A saved instance of an AROCollectorLegalTermsActivity object.
 	 * @see android.app.Activity#onCreate(android.os.Bundle)
 	 */
 	@Override

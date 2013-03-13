@@ -327,6 +327,7 @@ void ReadProcFD(const char * dir, int pid) {
 			;
 		}
 	}
+	if(d != NULL)
 	closedir(d);
 }
 
@@ -355,6 +356,8 @@ void AttachProcessInfo() {
 	} else {
 		fprintf(stderr, "Cannot access /proc\n");
 	}
+	
+	if(d != NULL)
 	closedir(d);
 	
 	int i;
@@ -729,6 +732,7 @@ void StartCapture(char * pcapFilename) {
 		}		
 		
 		//cpu file
+		/*
 		sprintf(pcapFilename, "/sdcard/ARO/%s/cpu", gszFileDir);
 		printf("CPU usage file name: %s\n", pcapFilename);
 		ofsCPU = fopen(pcapFilename, "w");
@@ -736,7 +740,7 @@ void StartCapture(char * pcapFilename) {
 			
 			fprintf(stderr, "Cannot write %s\n", ofsCPU);
 			exit(0);
-		}
+		}*/
 	//pcap filename (the last filename to fill the buffer)
 	sprintf(pcapFilename, "/sdcard/ARO/%s/traffic.cap", gszFileDir);
 	printf("Pcap file: %s\n", pcapFilename);	
@@ -789,12 +793,12 @@ void TerminateCapture() {
 
 	fprintf(ofsAppName, ".");	
 	fprintf(ofsAppID, "%d\n", PACKET_EOF);
-	fprintf(ofsCPU, "-1 -1\n");
+	//fprintf(ofsCPU, "-1 -1\n");
 	
 	fclose(ofsAppID);
 	fclose(ofsAppName);
 	fclose(ofsEvents);
-	fclose(ofsCPU);
+	//fclose(ofsCPU);
 	
 	
 }

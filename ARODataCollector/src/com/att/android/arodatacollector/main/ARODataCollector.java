@@ -80,12 +80,14 @@ public class ARODataCollector extends Application {
 	 * unexpectedly stops.
 	 */
 	public static final String ERRODIALOGID = "ERRORDIALOGID";
+	
+	public static final String PROCESS_CPU_MON = "processcpumon.sh";
 
 	/**
 	 * The name of native libs to be pushed to internal data path in sequence as
 	 * per the resource id in R file
 	 */
-	private static final String mARODataCollectorNativeExe[] = { "key.db", "tcpdump" };
+	private static final String mARODataCollectorNativeExe[] = { "key.db", PROCESS_CPU_MON, "tcpdump" };
 
 	/**
 	 * The boolean value to enable logs depending on if production build or
@@ -109,7 +111,7 @@ public class ARODataCollector extends Application {
 	private static final String outVideoTimeFileName = "video_time";
 
 	/** The name of shared preference name for local persistence  */
-	private static final String PREFS = "AROPrefs";
+	public static final String PREFS = "AROPrefs";
 	
 	/** The ARO alert menu notification id used with notification manager */
 	private static final int NOTIFICATION_ID = 1;
@@ -554,8 +556,13 @@ public class ARODataCollector extends Application {
 			if (mAROVideoCaptureStartTime == null) {
 				mAROVideoCaptureStartTime = 0.0;
 			}
-			bufferReader.close();
-			ffmpegOutFile.close();
+			if (bufferReader != null){
+				bufferReader.close();
+			}
+			
+			if (ffmpegOutFile != null){
+				ffmpegOutFile.close();
+			}
 		}
 	}
 

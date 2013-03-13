@@ -177,6 +177,7 @@ public class AROCollectorService extends Service {
  
 		FlurryAgent.onStartSession(this, mApp.app_flurry_api_key); //don't use mAroCollectorService as context
 		if (DEBUG) {
+			Log.d(TAG, "onCreate called: " + mAroUtils.getSystemTimeinSeconds());
 			Log.d(TAG, "flurry-called onStartSession");
 		}
 		
@@ -212,6 +213,7 @@ public class AROCollectorService extends Service {
 		//flurry end session
 		FlurryAgent.onEndSession(this);
 		if (DEBUG) {
+			Log.d(TAG, "onDestroy called: " + mAroUtils.getSystemTimeinSeconds());
 			Log.d(TAG, "flurry-called onEndSession");
 		}
 		
@@ -329,10 +331,10 @@ public class AROCollectorService extends Service {
 			try {
 				mApp.setTcpDumpStartFlag(false);
 				os.close();
-			} catch (IOException e) {
+				sh.destroy();
+			} catch (Exception e) {
 				Log.e(TAG, "exception in startTcpDump DataOutputStream close", e);
 			}
-			sh.destroy();
 		}
 	}
 

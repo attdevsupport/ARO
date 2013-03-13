@@ -87,6 +87,7 @@ extern int SIZE_BUF;
 double pcapTime;
 double userTime;
 int exitFlag;
+
 int bearerChangedvalue;
 extern int sockfd;
 int sleeptimeforbearerchange = 8 ;
@@ -767,8 +768,8 @@ int tcpdumpstartcapture(int isBearerChange)
 	if(isBearerChange ==0)
 	pthread_create(&thread_socket_server, NULL, start_server_socket, NULL);
 
-//	if(isBearerChange ==0)
-//	pthread_create(&thread_cpu, NULL, CaptureCPUUsage, NULL);
+	//if(isBearerChange ==0)
+	//pthread_create(&thread_cpu, NULL, CaptureCPUUsage, NULL);
 
 	/************************ CODE CHANGED **************************/
 	
