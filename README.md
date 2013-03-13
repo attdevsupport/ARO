@@ -108,7 +108,7 @@ The ARO Open Source code package contains the following:
 
 
 
-**.gitattributes** - Specifies the proper line ending format.
+**.gitattributes** - Specifies the proper line ending format.  
 **ARO Compilation and Build Guide.pdf** - Describes how to compile and build the ARO components.  
 **ARODataCollector_OpenSource_v2.1.0.9.apk** - Compiled open source version of the ARO Data Collector.  
 **Adding Custom Best Practices in Open Source ARO.pdf** - Describes how to add custom Best Practices to the ARO Data Analyzer.  
