@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.att.aro.main;
+package com.att.aro.main.menu.view;
 
 import java.awt.BorderLayout;
 import java.awt.GridBagConstraints;
@@ -35,6 +35,8 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import com.att.aro.commonui.MessageDialogFactory;
+import com.att.aro.main.ApplicationResourceOptimizer;
+import com.att.aro.main.ResourceBundleManager;
 import com.att.aro.model.TimeRange;
 import com.att.aro.model.TraceData;
 
@@ -46,7 +48,7 @@ import com.att.aro.model.TraceData;
 public class ExcludeTimeRangeAnalysisDialog extends JDialog {
 	private static final long serialVersionUID = 1L;
 
-	private static final DecimalFormat decimalFormat = new DecimalFormat("0.00");
+	private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.00");
 	private static ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
 	private JPanel timeRangeSelectionPanel;
@@ -210,7 +212,7 @@ public class ExcludeTimeRangeAnalysisDialog extends JDialog {
 						// Rounding traceEndTime as getEndTimeTextField() to
 						// handle time comparison
 						Double traceEndTimeRounded = Double
-								.valueOf(decimalFormat.format(traceEndTime));
+								.valueOf(DECIMAL_FORMAT.format(traceEndTime));
 						if (startTime < endTime) {
 							if (((startTime >= 0.0) && (startTime <= traceEndTimeRounded))
 									&& ((endTime >= 0.0) && (endTime <= traceEndTimeRounded))) {
@@ -226,7 +228,7 @@ public class ExcludeTimeRangeAnalysisDialog extends JDialog {
 							} else {
 								String strErrorMessage = MessageFormat.format(
 										rb.getString("timerangeanalysis.rangeError"),
-										0.00, decimalFormat
+										0.00, DECIMAL_FORMAT
 												.format(traceEndTimeRounded));
 								MessageDialogFactory.showMessageDialog(
 										ExcludeTimeRangeAnalysisDialog.this,
@@ -267,8 +269,8 @@ public class ExcludeTimeRangeAnalysisDialog extends JDialog {
 
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
-                 startTimeTextField.setText(decimalFormat.format(0.0));
-                 endTimeTextField.setText(decimalFormat.format(traceEndTime));
+                 startTimeTextField.setText(DECIMAL_FORMAT.format(0.0));
+                 endTimeTextField.setText(DECIMAL_FORMAT.format(traceEndTime));
 				}
 
 			});
@@ -301,7 +303,7 @@ public class ExcludeTimeRangeAnalysisDialog extends JDialog {
 	private JTextField getStartTimeTextField() {
 		if (startTimeTextField == null) {
 			startTimeTextField = new JTextField(8);
-			String strStartTime = decimalFormat.format(timeRangeStartTime);
+			String strStartTime = DECIMAL_FORMAT.format(timeRangeStartTime);
 			startTimeTextField.setText(strStartTime);
 		}
 		return startTimeTextField;
@@ -320,7 +322,7 @@ public class ExcludeTimeRangeAnalysisDialog extends JDialog {
 	private JTextField getEndTimeTextField() {
 		if (endTimeTextField == null) {
 			endTimeTextField = new JTextField(8);
-			String strEndTime = decimalFormat.format(timeRangeEndTime);
+			String strEndTime = DECIMAL_FORMAT.format(timeRangeEndTime);
 			endTimeTextField.setText(strEndTime);
 		}
 		return endTimeTextField;

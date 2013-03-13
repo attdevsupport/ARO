@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package com.att.aro.main;
 
 import java.util.ArrayList;
@@ -29,6 +28,11 @@ import java.util.logging.Logger;
  * marking individual check boxes in the View Options dialog box.
  */
 public enum ChartPlotOptions {
+	
+	/**
+	 *  The CPU usage plot option.
+	 */
+	CPU,
 	/**
 	 * The Burst Colors chart plot option.
 	 */

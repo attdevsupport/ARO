@@ -19,11 +19,10 @@ package com.att.aro.main;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Desktop;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Frame;
+import java.awt.GraphicsEnvironment;
 import java.awt.Insets;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -62,12 +61,18 @@ import javax.swing.ToolTipManager;
 import javax.swing.UIManager;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileFilter;
 
 import com.att.aro.commonui.AROProgressDialog;
 import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.datadump.DataDump;
 import com.att.aro.images.Images;
+import com.att.aro.main.menu.view.ChartPlotOptionsDialog;
+import com.att.aro.main.menu.view.ExcludeTimeRangeAnalysisDialog;
+import com.att.aro.main.menu.view.FilterApplicationsAndIpDialog;
+import com.att.aro.main.menu.view.FilterProcessesDialog;
 import com.att.aro.model.AnalysisFilter;
 import com.att.aro.model.NetworkType;
 import com.att.aro.model.Profile;
@@ -88,10 +93,8 @@ import com.att.aro.video.AROVideoPlayer;
 public class ApplicationResourceOptimizer extends JFrame {
 	private static final long serialVersionUID = 1L;
 
-	private static final Logger logger = Logger
-			.getLogger(ApplicationResourceOptimizer.class.getName());
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
+	private static final Logger logger = Logger	.getLogger(ApplicationResourceOptimizer.class.getName());
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 	
 	private static final int DEFAULT_APP_WIDTH  = 849;
 	private static final int DEFAULT_APP_HEIGHT = 775;
@@ -123,6 +126,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private JMenuItem selectAppsMenuItem;
 	private JMenuItem excludeTimeRangeAnalysisMenuItem;
 	private JMenuItem viewOptionsMenuItem;
+	private JMenuItem selectProcessesMenuItem;
 
 	// Help menu
 	private JMenu jHelpMenu;
@@ -140,13 +144,12 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private JTabbedPane jMainTabbedPane;
 	private AROSimpleTabb aroSimpleTab = new AROSimpleTabb(this);
 	private AROAdvancedTabb aroAdvancedTab = new AROAdvancedTabb();
-	private AROAnalysisResultsTab analyisResultsPanel = new AROAnalysisResultsTab(
-			this);
+	private AROAnalysisResultsTab analyisResultsPanel = new AROAnalysisResultsTab(this);
 	private AROWaterfallTabb aroWaterfallTab = new AROWaterfallTabb(this);
 	private AROVideoPlayer aroVideoPlayer;
-	private AROBestPracticesTab aroBestPracticesPanel = new AROBestPracticesTab(
-			this);
+	private AROBestPracticesTab aroBestPracticesPanel = new AROBestPracticesTab(this);
 	private ChartPlotOptionsDialog chartPlotOptionsDialog;
+	private FilterProcessesDialog selectProcessesDialog;
 	private TimeRangeAnalysisDialog timeRangeAnalysisDialog;
 	private ExcludeTimeRangeAnalysisDialog excludeTimeRangeDialog;
 
@@ -243,6 +246,16 @@ public class ApplicationResourceOptimizer extends JFrame {
 	}
 
 	/**
+	 * Returns the Select Processes dialog. This dialog appears when the
+	 * Select Processes menu item in the View menu is clicked.
+	 * 
+	 * @return An SelectProcessesDialog object that creates the Select Processes dialog.
+	 */
+	public FilterProcessesDialog getSelectProcessesDialog() {
+		return selectProcessesDialog;
+	}
+	
+	/**
 	 * Sets a value that indicates the visibility of the
 	 * ApplicationResourceOptimizer window.
 	 * 
@@ -313,7 +326,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 			logger.log(Level.WARNING, "Error switching profile type", e);
 		}
 
-		refresh(this.profile, null, null);
+		runAnalysisFirstTime();
 
 		// Save selected directory for traces
 		userPreferences.setLastTraceDirectory(this.traceDirectory);
@@ -735,6 +748,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * Initializes and returns the View menu.
 	 */
 	private JMenu getJViewMenu() {
+		logger.fine("Getting View Menu JMenu object");
 		if (jViewMenu == null) {
 			jViewMenu = new JMenu(rb.getString("menu.view"));
 			jViewMenu.setMnemonic(KeyEvent.VK_UNDEFINED);
@@ -742,7 +756,37 @@ public class ApplicationResourceOptimizer extends JFrame {
 			jViewMenu.addSeparator();
 			jViewMenu.add(getSelectAppsMenuItem());
 			jViewMenu.add(getExcludeTimeRangeAnalysisMenuItem());
+			jViewMenu.add(getSelectProcessesMenuItem());
+			jViewMenu.addSeparator();
 			jViewMenu.add(getViewOptionsMenuItem());
+			jViewMenu.addMenuListener( new MenuListener() {
+				
+				@Override
+				public void menuSelected(MenuEvent e) {
+					logger.fine("View Menu was selected");
+					boolean traceWasLoaded = (null != getAnalysisData());
+					if (isCpuCheckBoxEnabled() && traceWasLoaded) {
+						logger.fine("CPU CheckBox is selected");
+						enableSelectProcessesMenuItem(true);
+					} else {
+						logger.fine("CPU CheckBox is NOT selected");
+						enableSelectProcessesMenuItem(false);
+					}					
+				}
+
+				@Override
+				public void menuCanceled(MenuEvent e) {
+				}
+
+				@Override
+				public void menuDeselected(MenuEvent e) {
+				}
+				
+			});
+		
+			
+			
+
 		}
 		return jViewMenu;
 	}
@@ -845,8 +889,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 	}
 
 	/**
-	 * Initializes and returns the Start Collector menu item under the Data
-	 * Collector menu.
+	 * Initializes and returns the Options menu item under
+	 * under the View menu.
 	 */
 	private JMenuItem getViewOptionsMenuItem() {
 		if (viewOptionsMenuItem == null) {
@@ -863,6 +907,24 @@ public class ApplicationResourceOptimizer extends JFrame {
 	}
 
 	/**
+	 * Initializes and returns the Select Processes item
+	 * under the View menu.
+	 */
+	private JMenuItem getSelectProcessesMenuItem() {
+		if (selectProcessesMenuItem == null) {
+
+			selectProcessesMenuItem = new JMenuItem(rb.getString("menu.view.processes"));
+			selectProcessesMenuItem.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					selectProcessesDialog = new FilterProcessesDialog(ApplicationResourceOptimizer.this);
+					selectProcessesDialog.setVisibleToUser(true);
+				}
+			});
+		}
+		return selectProcessesMenuItem;
+	}
+	/**
 	 * Initializes and returns the Tools menu.
 	 */
 	private JMenu getJToolMenu() {
@@ -874,6 +936,9 @@ public class ApplicationResourceOptimizer extends JFrame {
 			}
 			jToolMenu.add(getTimeRangeAnalysisMenuItem());
 			jToolMenu.add(getDataDump());
+			
+			//plugin menus
+			loadPluginMenus(jToolMenu);
 		}
 		return jToolMenu;
 	}
@@ -887,7 +952,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * @param tabPane
 	 */
 	private void loadPluginTabs(JTabbedPane tabPane) {
-		String pluginList = rb.getString("plugin.tools");
+		String pluginList = rb.getString("plugin.tabs");
 		StringTokenizer pluginToken = new StringTokenizer(pluginList, ",");
 		String pluginPrefix = null;
 		String className = null;
@@ -911,6 +976,37 @@ public class ApplicationResourceOptimizer extends JFrame {
 		}
 	}
 
+	/**
+	 * Load the configured plugin Menus to Analyzer.
+	 * 
+	 * Adds menus defined in the 'plugin.tools' resource bundle property. The
+	 * class/menu implements the AnalyzerPlugin interface.
+	 * 
+	 * @param menu
+	 */
+	private void loadPluginMenus(JMenu menu) {
+		String pluginList = rb.getString("plugin.tools");
+		StringTokenizer pluginToken = new StringTokenizer(pluginList, ",");
+		String pluginPrefix = null;
+		String className = null;
+		while (pluginToken.hasMoreTokens()) {
+			try {
+				pluginPrefix = pluginToken.nextToken();
+				// create class for config'd plugin
+				className = rb.getString(pluginPrefix);
+				AnalyzerPlugin plugin = (AnalyzerPlugin) Class.forName(
+						className).newInstance();
+
+				// add plugin menu item
+				menu.add(plugin.getMenuItem(ApplicationResourceOptimizer.this));
+
+			} catch (Exception e) {
+				logger.log(Level.SEVERE,
+						"Unexpected exception loading plugin menus.", e);
+			}
+		}
+	}
+	
 	/**
 	 * Initializes and returns the Pcap File Analysis menu item under the Tools
 	 * menu.
@@ -1106,6 +1202,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 									.getSelectedFile().getPath(),
 									ApplicationResourceOptimizer.this, e1);
 						} catch (UnsatisfiedLinkError er) {
+							logger.log(Level.SEVERE, "Failed loading trace", er);
 							MessageDialogFactory.showErrorDialog(
 									ApplicationResourceOptimizer.this,
 									rb.getString("Error.noNetmon"));
@@ -1155,13 +1252,21 @@ public class ApplicationResourceOptimizer extends JFrame {
 						try {
 							openPcap(fc.getSelectedFile());
 						} catch (IOException e1) {
+							logger.log(Level.SEVERE, "Failed loading trace", e1);
 							MessageDialogFactory.showUnexpectedExceptionDialog(
 									ApplicationResourceOptimizer.this, e1);
 						} catch (UnsatisfiedLinkError er) {
+							logger.log(Level.SEVERE, "Failed loading trace", er);
+							MessageDialogFactory.showErrorDialog(
+									ApplicationResourceOptimizer.this,
+									rb.getString("Error.noNetmon"));
+						} catch (NoClassDefFoundError er) {
+							logger.log(Level.SEVERE, "Failed loading trace", er);
 							MessageDialogFactory.showErrorDialog(
 									ApplicationResourceOptimizer.this,
 									rb.getString("Error.noNetmon"));
 						} catch (IllegalArgumentException e1) {
+							logger.log(Level.SEVERE, "Failed loading trace", e1);
 							MessageDialogFactory.showInvalidDirectoryDialog(fc
 									.getSelectedFile().getPath(),
 									ApplicationResourceOptimizer.this, e1);
@@ -1296,8 +1401,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 			this.profile = ProfileManager.getInstance().getDefaultProfile();
 		}
 
-		chartPlotOptionsDialog = new ChartPlotOptionsDialog(
-				ApplicationResourceOptimizer.this, aroAdvancedTab);
+		chartPlotOptionsDialog = new ChartPlotOptionsDialog(ApplicationResourceOptimizer.this, aroAdvancedTab);
+		
 
 		// Commented out because I think this is causing an error on JNLP
 		// startup
@@ -1341,9 +1446,11 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 *  Sets the application frame size based on the size of the screen.
 	 */
 	private void setScreenSize() {
-		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-		int width = (screenSize.width > DEFAULT_APP_WIDTH) ? DEFAULT_APP_WIDTH : screenSize.width;
-		int height = (screenSize.height > DEFAULT_APP_HEIGHT) ? DEFAULT_APP_HEIGHT : screenSize.height;
+	    int screenWidth = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds().width;
+	    int screenHeight = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds().height;
+	    
+		int width = (screenWidth > DEFAULT_APP_WIDTH) ? DEFAULT_APP_WIDTH : screenWidth;
+		int height = (screenHeight > DEFAULT_APP_HEIGHT) ? DEFAULT_APP_HEIGHT : screenHeight;
 		this.setBounds(0, 0, width, height);
 	}
 	
@@ -1355,10 +1462,23 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 *            When this boolean value is true, the Chart Options menu item
 	 *            is visible, when it is false, the menu item is invisible.
 	 */
-	protected void enableChartOptionsMenuItem(boolean enable) {
+	public void enableChartOptionsMenuItem(boolean enable) {
 		this.viewOptionsMenuItem.setEnabled(enable);
 	}
 
+	/**
+	 * Enables or disables the Select Processes menu item in the View menu.
+	 * 
+	 * @param enable
+	 *            When this boolean value is true, the Select Processes menu item
+	 *            is visible, when it is false, the menu item is invisible.
+	 */
+	public void enableSelectProcessesMenuItem(boolean enable) {
+		this.selectProcessesMenuItem.setEnabled(enable);
+		logger.log(Level.FINE,"Select Process Menu was enabled: {0} ", enable);
+	}
+	
+	
 	/**
 	 * Initializes and returns the Tabbed Pane for the ARO frame.
 	 */
@@ -1428,12 +1548,33 @@ public class ApplicationResourceOptimizer extends JFrame {
 	}
 
 	/**
+	 * Refreshes the analysis using a new filter
+	 * 
+	 * @throws IOException
+	 */
+	public void refresh() throws IOException {
+		clearAnalysis();
+		AnalysisFilter filter = this.analysisData != null ? analysisData.getFilter() : null;
+		refresh(this.profile, filter, null);
+	}
+	
+	/**
 	 * Returns the Best Practices tab screen.
 	 */
 	public AROBestPracticesTab getBestPracticesPanel() {
 		return this.aroBestPracticesPanel;
 	}
 
+	/**
+	 * Called when the analysis is performed for a first time, right after the trace file is opened.
+	 *
+	 * @throws IOException
+	 */
+	private void runAnalysisFirstTime() throws IOException {
+		FilterProcessesDialog.initializeFilteredProcessSelection();
+		refresh(this.profile, null, null);
+	}
+	
 	/**
 	 * Refreshes the view with updated app/ip settings. This method should be
 	 * run on the event dispatch thread
@@ -1630,8 +1771,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * @throws IOException
 	 */
 	public void setProfile(Profile profile) throws IOException {
-		AnalysisFilter filter = this.analysisData != null ? analysisData
-				.getFilter() : null;
+		AnalysisFilter filter = this.analysisData != null ? analysisData.getFilter() : null;
 		clearAnalysis();
 		refresh(profile, filter, rb.getString("configuration.applied"));
 	}
@@ -1745,4 +1885,13 @@ public class ApplicationResourceOptimizer extends JFrame {
 		new DataDump(dir, getProfile());
 	}
 
+	/** 
+	 * Return status of the CPU check box from the View Options dialog
+	 * 
+	 * @return Returns true is selected, false if not selected.
+	 */
+	private boolean isCpuCheckBoxEnabled() {
+		return this.getChartPlotOptionsDialog().isCpuCheckBoxSelected();
+	}
+	
 }

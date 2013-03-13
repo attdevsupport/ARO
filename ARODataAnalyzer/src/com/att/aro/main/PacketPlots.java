@@ -295,13 +295,10 @@ public class PacketPlots {
 	 * 
 	 * @param plot
 	 *            The XYPlot for the uplink/downlink plots.
-	 * @param filter
-	 *            The filter settings for the analysis
 	 * @param dataset
 	 *            The uplink/downlink datasets.
 	 */
-	private void populatePacketPlot(XYPlot plot,
-			LinkedHashMap<Color, PacketSeries> dataset) {
+	private void populatePacketPlot(XYPlot plot, LinkedHashMap<Color, PacketSeries> dataset) {
 
 		// Create the XY data set
 		YIntervalSeriesCollection coll = new YIntervalSeriesCollection();

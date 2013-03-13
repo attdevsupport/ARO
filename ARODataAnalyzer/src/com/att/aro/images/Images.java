@@ -19,6 +19,7 @@ package com.att.aro.images;
 
 import java.awt.Image;
 import java.util.ResourceBundle;
+import java.util.logging.Logger;
 
 import javax.swing.ImageIcon;
 
@@ -77,6 +78,10 @@ public enum Images {
 	 */
 	BP_SELFTEST_TRIGGERED("bpSeftTestTriggered"),
 	/**
+	 * The NA active gray image key.
+	 */
+	NA_GRAY("naGray"),
+	/**
 	 * The default video player image.
 	 */
 	NO_VIDEO_AVAILABLE("noVideoAvailable"),
@@ -125,6 +130,8 @@ public enum Images {
 	 */
 	RED_RECORDING_INDICATOR("redRecordingIndicator");
 
+	private static Logger logger = Logger.getLogger(Images.class.getName());
+
 	private static final String PREFIX = "Image.";
 	private static final ResourceBundle rb = ResourceBundleManager
 			.getDefaultBundle();
@@ -150,8 +157,9 @@ public enum Images {
 	 */
 	public ImageIcon getIcon() {
 		if (imageIcon == null) {
-			this.imageIcon = new ImageIcon(getClass().getResource(
-					basePath + rb.getString(PREFIX + this.resourceKey)));
+			String resourceName = basePath + rb.getString(PREFIX + this.resourceKey);
+			logger.fine("Creating ImageIcon: " +  resourceName);
+			this.imageIcon = new ImageIcon(getClass().getResource(resourceName));
 		}
 		return imageIcon;
 	}

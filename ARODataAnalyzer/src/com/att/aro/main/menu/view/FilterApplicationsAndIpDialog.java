@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.att.aro.main;
+package com.att.aro.main.menu.view;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
@@ -34,6 +34,10 @@ import javax.swing.event.TableModelListener;
 
 import com.att.aro.commonui.DataTable;
 import com.att.aro.commonui.MessageDialogFactory;
+import com.att.aro.main.ApplicationResourceOptimizer;
+import com.att.aro.main.FilterApplicationsTableModel;
+import com.att.aro.main.FilterIpAddressesTableModel;
+import com.att.aro.main.ResourceBundleManager;
 import com.att.aro.model.AnalysisFilter;
 import com.att.aro.model.ApplicationSelection;
 import com.att.aro.model.TraceData;
@@ -47,7 +51,7 @@ import com.att.aro.model.TraceData;
 public class FilterApplicationsAndIpDialog extends JDialog {
 	private static final long serialVersionUID = 1L;
 
-	private static final ResourceBundle rb = ResourceBundleManager
+	private static final ResourceBundle RB = ResourceBundleManager
 			.getDefaultBundle();
 
 	private JPanel jButtonPanel = null;
@@ -153,7 +157,7 @@ public class FilterApplicationsAndIpDialog extends JDialog {
 	private void initialize() {
 		this.setSize(600, 420);
 		this.setModal(true);
-		this.setTitle(rb.getString("filter.title"));
+		this.setTitle(RB.getString("filter.title"));
 		this.setLayout(new BorderLayout());
 		this.add(getMainPanel(), BorderLayout.CENTER);
 		this.setLocationRelativeTo(getOwner());
@@ -193,7 +197,7 @@ public class FilterApplicationsAndIpDialog extends JDialog {
 	private JButton getOkButton() {
 		if (okButton == null) {
 			okButton = new JButton();
-			okButton.setText(rb.getString("Button.ok"));
+			okButton.setText(RB.getString("Button.ok"));
 			okButton.addActionListener(new ActionListener() {
 
 				@Override
@@ -217,7 +221,7 @@ public class FilterApplicationsAndIpDialog extends JDialog {
 	private JButton getCancelButton() {
 		if (cancelButton == null) {
 			cancelButton = new JButton();
-			cancelButton.setText(rb.getString("Button.cancel"));
+			cancelButton.setText(RB.getString("Button.cancel"));
 			cancelButton.addActionListener(new ActionListener() {
 
 				@Override

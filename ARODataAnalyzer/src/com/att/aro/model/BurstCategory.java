@@ -47,10 +47,6 @@ public enum BurstCategory {
 	 */
 	BURSTCAT_SERVER("server"),
 	/**
-	 * A background burst. 
-	 */
-	BURSTCAT_BKG("bkg"),
-	/**
 	 * A Long burst. A Long burst has a duration of more than 5 seconds, and typically 
 	 * transfers large amounts of data. 
 	 */

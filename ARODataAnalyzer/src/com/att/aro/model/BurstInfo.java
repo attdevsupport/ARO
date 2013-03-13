@@ -21,10 +21,6 @@ package com.att.aro.model;
  */
 public enum BurstInfo {
 	/**
-	 * A back log burst. 
-	 */
-	BURST_BKG,
-	/**
 	 * A finishing burst. 
 	 */
 	BURST_FIN,

@@ -3,8 +3,11 @@ com.att.aro.commonui
 com.att.aro.datadump
 com.att.aro.images
 com.att.aro.main
+com.att.aro.main.menu.view
 com.att.aro.model
+com.att.aro.model.cpu
 com.att.aro.pcap
 com.att.aro.plugin
+com.att.aro.util
 com.att.aro.video
 com.att.aro.videocapture

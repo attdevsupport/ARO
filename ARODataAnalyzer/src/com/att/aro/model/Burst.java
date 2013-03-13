@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import com.att.aro.main.ResourceBundleManager;
 
@@ -33,6 +34,9 @@ import com.att.aro.main.ResourceBundleManager;
  * Diagnostics View Chart and the Burst Analysis panel of the Statistics tab.
  */
 public class Burst implements Serializable {
+
+	@SuppressWarnings("unused")
+	private static final Logger LOGGER = Logger.getLogger(Burst.class.getName());
 
 	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle(); // Resource
 																						// Bundle
@@ -254,59 +258,41 @@ public class Burst implements Serializable {
 	 *         the burst.
 	 */
 	public BurstCategory getBurstCategory() {
-		boolean multipleCategories = (burstInfos.size() > 1);
 
 		if (burstInfos.contains(BurstInfo.BURST_LOSS_RECOVER)) {
-			assert multipleCategories : rb.getString("burst.categoryWarning");
 			return BurstCategory.BURSTCAT_LOSS;
 		}
 		if (burstInfos.contains(BurstInfo.BURST_LOSS_DUP)) {
-			assert multipleCategories : rb.getString("burst.categoryWarning");
 			return BurstCategory.BURSTCAT_LOSS;
 		}
 		if (burstInfos.contains(BurstInfo.BURST_USER_INPUT)) {
-			assert multipleCategories : rb.getString("burst.categoryWarning");
 			return BurstCategory.BURSTCAT_USER;
 		}
 		if (burstInfos.contains(BurstInfo.BURST_SCREEN_ROTATION_INPUT)) {
-			assert multipleCategories : rb.getString("burst.categoryWarning");
 			return BurstCategory.BURSTCAT_SCREEN_ROTATION;
 		}
 		if (burstInfos.contains(BurstInfo.BURST_SERVER_DELAY)) {
-			assert multipleCategories : rb.getString("burst.categoryWarning");
 			return BurstCategory.BURSTCAT_SERVER;
 		}
 		if (burstInfos.contains(BurstInfo.BURST_CLIENT_DELAY)) {
-			assert multipleCategories : rb.getString("burst.categoryWarning");
 			return BurstCategory.BURSTCAT_CLIENT;
 		}
 		if (burstInfos.contains(BurstInfo.BURST_PERIODICAL)) {
-			assert multipleCategories : rb.getString("burst.categoryWarning");
 			return BurstCategory.BURSTCAT_PERIODICAL;
 		}
 		if (burstInfos.contains(BurstInfo.BURST_UNKNOWN)) {
-			assert multipleCategories : rb.getString("burst.categoryWarning");
 			return BurstCategory.BURSTCAT_UNKNOWN;
 		}
-		if (burstInfos.contains(BurstInfo.BURST_BKG)) {
-			assert multipleCategories : rb.getString("burst.categoryWarning");
-			return BurstCategory.BURSTCAT_BKG;
-		}
 		if (burstInfos.contains(BurstInfo.BURST_LONG)) {
-			assert multipleCategories : rb.getString("burst.categoryWarning");
 			return BurstCategory.BURSTCAT_LONG;
 		}
-
 		if (burstInfos.contains(BurstInfo.BURST_USERDEF1)) {
-			assert multipleCategories : rb.getString("burst.categoryWarning");
 			return BurstCategory.BURSTCAT_USERDEF1;
 		}
 		if (burstInfos.contains(BurstInfo.BURST_USERDEF2)) {
-			assert multipleCategories : rb.getString("burst.categoryWarning");
 			return BurstCategory.BURSTCAT_USERDEF2;
 		}
 		if (burstInfos.contains(BurstInfo.BURST_USERDEF3)) {
-			assert multipleCategories : rb.getString("burst.categoryWarning");
 			return BurstCategory.BURSTCAT_USERDEF3;
 		}
 		return BurstCategory.BURSTCAT_PROTOCOL;

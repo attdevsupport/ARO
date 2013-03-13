@@ -221,7 +221,7 @@ public class DatacollectorBridge {
 			boolean mRecordTraceVideo) {
 
 		// Make sure proper status of bridge
-		if (status == Status.READY) {
+		if (getStatus() == Status.READY) {
 
 			// Check that valid device is connected
 			this.mAndroidDevice = checkAROEmulatorBridge();
@@ -347,7 +347,7 @@ public class DatacollectorBridge {
 						MessageFormat.format(rb.getString("Error.withretrievingsdcardinfo"),
 								e.getLocalizedMessage()));
 			}
-		} else if (status == Status.STARTING && traceFolderName.equals(this.traceFolderName)
+		} else if (getStatus() == Status.STARTING && traceFolderName.equals(this.traceFolderName)
 				&& mRecordTraceVideo == mARORecordTraceVideo) {
 			// Selected to start with same arguments
 			return;
@@ -364,7 +364,7 @@ public class DatacollectorBridge {
 	 */
 	public synchronized void stopARODataCollector() {
 
-		if (status == Status.STARTED) {
+		if (getStatus() == Status.STARTED) {
 			// Display progress dialog
 			this.progress = new AROProgressDialog(mAROAnalyzer,
 					rb.getString("Message.stopcollector"));
@@ -380,7 +380,7 @@ public class DatacollectorBridge {
 						appendAppVersion();
 						
 						// Wait until data collector is stopped
-						while (status != Status.STOPPED) {
+						while (getStatus() != Status.STOPPED) {
 							Thread.sleep(1000);
 						}
 					} catch (IOException e) {
@@ -398,7 +398,7 @@ public class DatacollectorBridge {
 					startPullAROTraceFiles();
 				}
 			}.execute();
-		} else if (status == Status.STOPPING || status == Status.STOPPED) {
+		} else if (getStatus() == Status.STOPPING || getStatus() == Status.STOPPED) {
 			// Ignore
 		} else {
 			throw new IllegalStateException(rb.getString("Error.datacollectostop"));
@@ -412,7 +412,7 @@ public class DatacollectorBridge {
 	 * displayed.
 	 */
 	public synchronized void startPullAROTraceFiles() {
-		if (status == Status.STOPPED) {
+		if (getStatus() == Status.STOPPED) {
 
 			setStatus(Status.PULLING);
 
@@ -533,7 +533,7 @@ public class DatacollectorBridge {
 				}
 			}.execute();
 			// }
-		} else if (status == Status.PULLING) {
+		} else if (getStatus() == Status.PULLING) {
 			// Ignore
 		} else {
 			throw new IllegalStateException(rb.getString("Error.datacollectorpull"));
@@ -672,8 +672,8 @@ public class DatacollectorBridge {
 					} catch (IOException e1) {
 						// Ignore since IOException is probably for same reason as original exception
 					}
-					MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.emulatorconnection"));
-					logger.log(Level.WARNING, "IOException occurred checking SD card space", e);
+					MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.emulatorunexpectederror"));
+					logger.log(Level.SEVERE, "IOException occurred checking SD card space", e);
 				}
 			}
 		}, 60000, 60000);
@@ -842,7 +842,7 @@ public class DatacollectorBridge {
 					e.printStackTrace();
 				}
 				synchronized (DatacollectorBridge.this) {
-					if (status != Status.STARTING) {
+					if (getStatus() != Status.STARTING) {
 						return rb.getString("Error.datacollectostart");
 					}
 					checkSDCardStatus();
@@ -873,6 +873,14 @@ public class DatacollectorBridge {
 		mAROAnalyzer.dataCollectorStatusCallBack(status);
 	}
 
+	
+	/**
+	 * Gets the status of the data collector bridge
+	 */
+	private Status getStatus() {
+		return this.status;
+	}	
+	
 	/**
 	 * This function connects to the server socket started by tcpdump and ends
 	 * the tcpdump. The thread in which tcpdump is running will then be allowed
@@ -904,10 +912,11 @@ public class DatacollectorBridge {
 	 * Class to get the output from the native emulator process and check it for
 	 * errors.
 	 */
-	private static class ShellOutputReceiver extends MultiLineReceiver {
+	static class ShellOutputReceiver extends MultiLineReceiver {
 		private static final Pattern FAILURE = Pattern.compile("failed");
 		private static final Pattern SDCARDFULL = Pattern.compile("No space left on device");
 		private static final Pattern ERROR = Pattern.compile("error");
+		private static final Pattern SEG_ERROR = Pattern.compile("Segmentation fault");
 
 		private boolean shellError;
 		private boolean sdcardFull;
@@ -917,26 +926,54 @@ public class DatacollectorBridge {
 			for (String line : lines) {
 				logger.info(line);
 				if (line.length() > 0) {
+					
+					// set Android SD card memory full flag
 					Matcher sdcardfull = SDCARDFULL.matcher(line);
 					if (sdcardfull.find()) {
 						sdcardFull = true;
 						return;
 					}
-					Matcher failureMatcher = FAILURE.matcher(line);
-					if (failureMatcher.find() && !sdcardFull) {
-						shellError = true;
+					
+					// set Android shell error flag
+					if (setShellError(FAILURE.matcher(line))) {
+						return;
 					}
-					Matcher errorMatcher = ERROR.matcher(line);
-					if (errorMatcher.find()) {
-						shellError = true;
+					if (setShellError(ERROR.matcher(line))) {
+						return;
+					}
+					if (setShellError(SEG_ERROR.matcher(line))) {
+						return;
 					}
 				}
 			}
+		}
+		
+		/**
+		 * Sets shell error flag in case of a failure.
+		 * 
+		 * @param errorMatcher
+		 * @return
+		 */
+		private boolean setShellError(Matcher errorMatcher) {
+			if (errorMatcher.find()) {
+				this.shellError = true;
+				logger.log(Level.SEVERE, "Reading from emulator failed: {0}", errorMatcher.pattern().toString());
+				return true;
+			}
+			return false;
 		}
 
 		@Override
 		public boolean isCancelled() {
 			return false;
+		}
+
+		public boolean isShellError() {
+			return shellError;
+		}
+
+		public boolean isSdcardFull() {
+			return sdcardFull;
 		}
 
 	}

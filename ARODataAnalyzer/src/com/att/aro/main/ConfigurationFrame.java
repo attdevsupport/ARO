@@ -238,6 +238,7 @@ public class ConfigurationFrame extends JDialog implements Serializable {
 	 * Initializes the table which shows the profile details on the dialog.
 	 */
 	private void initialize(Profile profile) {
+		setModal(true);
 		setPreferredSize(new Dimension(475, 600));
 		setLocationRelativeTo(getOwner());
 		setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);

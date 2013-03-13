@@ -129,6 +129,8 @@ public class CacheAnalysis implements Serializable {
 	 * @throws java.io.IOException
 	 */
 	public CacheAnalysis(Collection<TCPSession> sessions) throws IOException {
+		
+		logger.fine("Starting CacheAnalysis with number of sessions: " + sessions.size());
 
 		// Initialize cache expiration lists
 		for (CacheExpiration expiration : CacheExpiration.values()) {
@@ -356,7 +358,7 @@ public class CacheAnalysis implements Serializable {
 			newCacheEntry.setCacheHit(cacheEntry);
 			addToCache(newCacheEntry);
 
-		}
+		} // END: Iterate through responses looking for duplicates
 
 		// Get cache problems
 		Set<CacheEntry> dupsWithOrig = new HashSet<CacheEntry>();

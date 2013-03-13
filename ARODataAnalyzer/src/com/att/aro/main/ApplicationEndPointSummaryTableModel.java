@@ -3,8 +3,6 @@ package com.att.aro.main;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.NumberFormat;
-import java.util.ResourceBundle;
-
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
@@ -12,6 +10,7 @@ import com.att.aro.commonui.DataTable;
 import com.att.aro.commonui.DataTableModel;
 import com.att.aro.commonui.NumberFormatRenderer;
 import com.att.aro.model.ApplicationPacketSummary;
+import com.att.aro.util.Util;
 
 /**
  * Represents the data table model for end point summary statistics. This class
@@ -23,9 +22,8 @@ public class ApplicationEndPointSummaryTableModel extends DataTableModel<Applica
 	private static final int APPNAME_COL = 0;
 	private static final int PACKET_COL = 1;
 	private static final int BYTES_COL = 2;
-	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
-	private static final String[] columns = { rb.getString("endpointsummary.appname"),
-			rb.getString("endpointsummary.packets"), rb.getString("endpointsummary.bytes") };
+	private static final String[] columns = { Util.RB.getString("endpointsummary.appname"),
+			Util.RB.getString("endpointsummary.packets"), Util.RB.getString("endpointsummary.bytes") };
 
 	TableColumnModel cols = null;
 
@@ -90,7 +88,7 @@ public class ApplicationEndPointSummaryTableModel extends DataTableModel<Applica
 	protected Object getColumnValue(ApplicationPacketSummary item, int columnIndex) {
 		switch (columnIndex) {
 		case APPNAME_COL:
-			return item.getAppName() != null ? item.getAppName() : rb.getString("aro.unknownApp");
+			return Util.getDefaultAppName(item.getAppName());
 		case PACKET_COL:
 			return item.getPacketCount();
 		case BYTES_COL:
@@ -117,12 +115,12 @@ public class ApplicationEndPointSummaryTableModel extends DataTableModel<Applica
 	 */
 	public FileWriter addEndPointSummaryPerAppTable(FileWriter writer,
 			DataTable<ApplicationPacketSummary> table) throws IOException {
-		final String lineSep = System.getProperty(rb.getString("statics.csvLine.seperator"));
+		final String lineSep = System.getProperty(Util.RB.getString("statics.csvLine.seperator"));
 
 		// Write headers
 		for (int i = 0; i < table.getColumnCount(); ++i) {
 			if (i > 0) {
-				writer.append(rb.getString("statics.csvCell.seperator"));
+				writer.append(Util.RB.getString("statics.csvCell.seperator"));
 			}
 			writer.append(createCSVEntry(table.getColumnModel().getColumn(i).getHeaderValue()));
 		}
@@ -131,7 +129,7 @@ public class ApplicationEndPointSummaryTableModel extends DataTableModel<Applica
 		for (int i = 0; i < table.getRowCount(); ++i) {
 			for (int j = 0; j < table.getColumnCount(); ++j) {
 				if (j > 0) {
-					writer.append(rb.getString("statics.csvCell.seperator"));
+					writer.append(Util.RB.getString("statics.csvCell.seperator"));
 				}
 				writer.append(createCSVEntry(table.getValueAt(i, j)));
 			}

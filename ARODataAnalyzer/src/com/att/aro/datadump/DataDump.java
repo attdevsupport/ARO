@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ResourceBundle;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -50,7 +49,6 @@ import com.att.aro.commonui.AROUIManager;
 import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.main.ApplicationResourceOptimizer;
 import com.att.aro.main.ProfileManager;
-import com.att.aro.main.ResourceBundleManager;
 import com.att.aro.model.ApplicationPacketSummary;
 import com.att.aro.model.BurstAnalysisInfo;
 import com.att.aro.model.BurstCategory;
@@ -67,15 +65,14 @@ import com.att.aro.model.RRCStateMachine;
 import com.att.aro.model.TraceData;
 import com.att.aro.model.TraceData.Analysis;
 import com.att.aro.model.UserPreferences;
+import com.att.aro.util.Util;
 
 /**
  * Manages export functionality of multiple traces.
  */
 public class DataDump {
 
-	private static final Logger logger = Logger.getLogger(ApplicationResourceOptimizer.class
-			.getName());
-	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
+	private static final Logger logger = Logger.getLogger(ApplicationResourceOptimizer.class.getName());
 
 	private File traceDir;
 	private File fileToSave;
@@ -93,9 +90,8 @@ public class DataDump {
 
 	private static final Window msgWindow = new Window(new Frame());
 
-	private static final String lineSep = System.getProperty(rb
-			.getString("statics.csvLine.seperator"));
-	private static final String commaSep = rb.getString("statics.csvCell.seperator");
+	private static final String lineSep = System.getProperty(Util.RB.getString("statics.csvLine.seperator"));
+	private static final String commaSep = Util.RB.getString("statics.csvCell.seperator");
 	private static final String quoteSep = "\"";
 
 	private static final NumberFormat nf = new DecimalFormat("0.00");
@@ -114,7 +110,7 @@ public class DataDump {
 		
 		if(!this.traceDir.exists()) {
 			MessageDialogFactory.showErrorDialog(msgWindow,
-					rb.getString("datadump.invalidfolder"));
+					Util.RB.getString("datadump.invalidfolder"));
 			return;
 		}
 
@@ -127,7 +123,7 @@ public class DataDump {
 
 		if (traceFolders.size() == 0) {
 			MessageDialogFactory.showErrorDialog(msgWindow,
-					rb.getString("Error.dataDump.valideFolder"));
+					Util.RB.getString("Error.dataDump.valideFolder"));
 			return;
 		} else {
 
@@ -157,7 +153,7 @@ public class DataDump {
 						MessageDialogFactory.showUnexpectedExceptionDialog(msgWindow, e);
 					} catch (UnsupportedOperationException unsupportedException) {
 						MessageDialogFactory.showMessageDialog(msgWindow,
-								rb.getString("Error.unableToOpen"));
+								Util.RB.getString("Error.unableToOpen"));
 					} catch (InterruptedException e) {
 						logger.log(Level.SEVERE, "Unexpected exception analyzing trace", e);
 						MessageDialogFactory.showUnexpectedExceptionDialog(msgWindow, e);
@@ -166,7 +162,7 @@ public class DataDump {
 								e);
 						if (e.getCause() instanceof OutOfMemoryError) {
 							MessageDialogFactory.showErrorDialog(null,
-									rb.getString("Error.outOfMemory"));
+									Util.RB.getString("Error.outOfMemory"));
 						} else {
 							MessageDialogFactory.showUnexpectedExceptionDialog(msgWindow, e);
 						}
@@ -185,7 +181,7 @@ public class DataDump {
 //		// TODO need to verify the folder names with spaces
 //		if (args.length == 0) {
 //			MessageDialogFactory.showErrorDialog(msgWindow,
-//					rb.getString("datadump.Error.argumentfaliure"));
+//					Util.RB.getString("datadump.Error.argumentfaliure"));
 //			return;
 //		}
 //		final File dataDumpDir = new File(args[0]);
@@ -202,10 +198,10 @@ public class DataDump {
 	private boolean showSaveChooser() {
 		JFileChooser chooser = new JFileChooser(UserPreferences.getInstance()
 				.getLastExportDirectory());
-		chooser.addChoosableFileFilter(new FileNameExtensionFilter(rb
-				.getString("fileChooser.desc.csv"), rb.getString("fileChooser.contentType.csv")));
-		chooser.setDialogTitle(rb.getString("fileChooser.Title"));
-		chooser.setApproveButtonText(rb.getString("fileChooser.Save"));
+		chooser.addChoosableFileFilter(new FileNameExtensionFilter(Util.RB.getString("fileChooser.desc.csv"),
+				Util.RB.getString("fileChooser.contentType.csv")));
+		chooser.setDialogTitle(Util.RB.getString("fileChooser.Title"));
+		chooser.setApproveButtonText(Util.RB.getString("fileChooser.Save"));
 		chooser.setMultiSelectionEnabled(false);
 
 		if (chooser.showSaveDialog(msgWindow) != JFileChooser.APPROVE_OPTION) {
@@ -215,17 +211,17 @@ public class DataDump {
 		fileToSave = chooser.getSelectedFile();
 		if (fileToSave.getName().length() >= 50) {
 			MessageDialogFactory.showErrorDialog(msgWindow,
-					rb.getString("exportall.errorLongFileName"));
+					Util.RB.getString("exportall.errorLongFileName"));
 			return false;
 		}
 		if (!chooser.getFileFilter().accept(fileToSave)) {
 			fileToSave = new File(fileToSave.getAbsolutePath() + "."
-					+ rb.getString("fileChooser.contentType.csv"));
+					+ Util.RB.getString("fileChooser.contentType.csv"));
 		}
 		if (fileToSave.exists()) {
 			if (MessageDialogFactory.showConfirmDialog(
 					msgWindow,
-					MessageFormat.format(rb.getString("fileChooser.fileExists"),
+					MessageFormat.format(Util.RB.getString("fileChooser.fileExists"),
 							fileToSave.getAbsolutePath()), JOptionPane.YES_NO_OPTION) == JOptionPane.NO_OPTION) {
 				return false;
 			}
@@ -248,7 +244,7 @@ public class DataDump {
 			Profile currentProfile = profile != null ? profile : ProfileManager
 					.getInstance().getLastUserProfile(ProfileType.T3G);
 
-			writer.append(rb.getString("menu.profile") + ":" + currentProfile.getName());
+			writer.append(Util.RB.getString("menu.profile") + ":" + currentProfile.getName());
 			writer.append(lineSep);
 
 			if (currentProfile instanceof Profile3G) {
@@ -290,14 +286,12 @@ public class DataDump {
 	 *            - List of valid trace folder names.
 	 */
 	private void GetValidFolderList(List<File> traceFolders, List<File> validFolderList) {
-		String trafficFile = rb.getString("datadump.trafficFile");
+		String trafficFile = Util.RB.getString("datadump.trafficFile");
 		for (File traceDir : traceFolders) {
 
 			// Check if it is a valid trace folder or not
 			if (new File(traceDir, trafficFile).exists()) {
 				validFolderList.add(traceDir);
-			} else {
-				// Invalid trace sub-folder. Skip it silently.
 			}
 
 			// Check if it has sub-folders or not
@@ -310,7 +304,7 @@ public class DataDump {
 			if (subfolderAccess && allFolders.size() > 0) {
 				if (!userConfirmation
 						&& MessageDialogFactory.showConfirmDialog(msgWindow,
-								rb.getString("datadump.subfolder"), JOptionPane.YES_NO_OPTION) == JOptionPane.NO_OPTION) {
+								Util.RB.getString("datadump.subfolder"), JOptionPane.YES_NO_OPTION) == JOptionPane.NO_OPTION) {
 
 					subfolderAccess = false;
 					continue;
@@ -362,7 +356,6 @@ public class DataDump {
 		writer = addBurstAnalysis(writer, analysis, BurstCategory.BURSTCAT_SERVER);
 		writer = addBurstAnalysis(writer, analysis, BurstCategory.BURSTCAT_LONG);
 		writer = addBurstAnalysis(writer, analysis, BurstCategory.BURSTCAT_PERIODICAL);
-		writer = addBurstAnalysis(writer, analysis, BurstCategory.BURSTCAT_BKG);
 
 		// Burst analysis
 		writer = addFileTypes(writer, analysis);
@@ -572,12 +565,14 @@ public class DataDump {
 		ArrayList<ApplicationPacketSummary> appList = new ArrayList<ApplicationPacketSummary>(
 				analysis.getApplicationPacketSummary());
 		Collections.sort(appList, new AppPacketSummaryBytesComparator());
+		String appName;
 		for (int i = 0; i < 5; i++) {
 			if (i < analysis.getApplicationPacketSummary().size()) {
 				ApplicationPacketSummary appSummary = appList.get(i);
 				if (appSummary != null) {
-					writer.append(appSummary.getAppName() != null ? appSummary.getAppName() : rb
-							.getString("aro.unknownApp"));
+					appName = appSummary.getAppName();
+					appName = com.att.aro.util.Util.getDefaultAppName(appName);
+					writer.append(appName);
 					writer.append(commaSep);
 					writer.append(quoteSep + appSummary.getPacketCount() + quoteSep);
 					writer.append(commaSep);
@@ -678,10 +673,13 @@ public class DataDump {
 		writer.append(quoteSep + analysis.getTraceData().getCollectorVersion() + quoteSep);
 		writer.append(commaSep);
 		StringBuffer apps = new StringBuffer();
+		String appName;
 		for (String app : analysis.getAppNames()) {
 			String appVersion = analysis.getTraceData().getAppVersionMap().get(app);
-			apps.append((app != null ? app : rb.getString("aro.unknownApp"))
-					+ (appVersion != null ? " : " + appVersion : "") + ", ");
+			appName = com.att.aro.util.Util.getDefaultAppName(app);
+			apps.append(appName);
+			apps.append(appVersion != null ? " : " + appVersion : "");
+			apps.append(", ");
 		}
 		if (apps.length() >= 2) {
 			apps.deleteCharAt(apps.length() - 2);
@@ -773,8 +771,8 @@ public class DataDump {
 	 * @throws IOException
 	 */
 	private FileWriter addBestPractices(FileWriter writer, Analysis analysis) throws IOException {
-		final String bpPass = rb.getString("bestPractices.pass");
-		final String bpFail = rb.getString("bestPractices.fail");
+		final String bpPass = Util.RB.getString("bestPractices.pass");
+		final String bpFail = Util.RB.getString("bestPractices.fail");
 		final String commaSepWithSpace = commaSep + " ";
 		
 		for (BestPracticeDisplay bp : this.bestPractices) {
@@ -1113,47 +1111,47 @@ public class DataDump {
 	 */
 	private FileWriter add3GHeader(FileWriter writer) throws IOException {
 
-		final String basicStat = rb.getString("datadump.basicstat");
-		final String rrcStatMachSim = rb.getString("datadump.rrcstatmcsimulation");
-		final String rrcIdle = rb.getString("datadump.idle");
-		final String rrcCellDCH = rb.getString("datadump.celldch");
-		final String rrcCellFACH = rb.getString("datadump.cellfach");
-		final String rrcIdleDCH = rb.getString("datadump.idledch");
-		final String rrcFACHDCH = rb.getString("datadump.fachdch");
-		final String rrcSec = rb.getString("datadump.seconds");
-		final String rrcPCT = rb.getString("datadump.pct");
-		final String energySimulation = rb.getString("datadump.energysimulation");
-		final String energyJ = rb.getString("statics.csvUnits.j");
-		final String burstAnalysis = rb.getString("burstAnalysis.title");
-		final String userInput = rb.getString("chart.userInput");
-		final String app = rb.getString("burst.type.App");
-		final String tcpControl = rb.getString("datadump.tcpcontrol");
-		final String tcpLossRec = rb.getString("datadump.tcplossrec");
-		final String srvrNetDelay = rb.getString("burst.type.SvrNetDelay");
-		final String largeBurst = rb.getString("datadump.largeburst");
-		final String periodical = rb.getString("burst.type.Periodical");
-		final String nonTarget = rb.getString("burst.type.NonTarget");
-		final String bestPractices = createCSVEntry(rb.getString("datadump.bpractices"));
-		final String bpPassFail = rb.getString("datadump.bppassfail");
-		final String bpAssoData = rb.getString("datadump.bpassodata");
-		final String filetype = rb.getString("datadump.filetype");
-		final String value = rb.getString("overview.traceoverview.value");
-		final String percentile = rb.getString("overview.traceoverview.percentile");
-		final String conStats = rb.getString("overview.sessionoverview.title");
-		final String appScore = rb.getString("appscore.title");
-		final String endpntSumm = rb.getString("endpointsummary.title");
-		final String burstbytes = rb.getString("burstAnalysis.bytes");
-		final String burstbytpct = rb.getString("burstAnalysis.bytesPct");
-		final String burstEner = rb.getString("burstAnalysis.energy");
-		final String burstEngpct = rb.getString("burstAnalysis.energyPct");
-		final String dch = rb.getString("datadump.dch");
-		final String pctdch = rb.getString("datadump.pctdch");
-		final String burstjpkb = rb.getString("burstAnalysis.jpkb");
-		final String packettype = rb.getString("packet.type");
-		final String pct = rb.getString("simple.percent");
-		final String endpntapp = rb.getString("endpointsummary.appname");
-		final String endpntpkt = rb.getString("endpointsummary.packets");
-		final String endpntbyte = rb.getString("endpointsummary.bytes");
+		final String basicStat = Util.RB.getString("datadump.basicstat");
+		final String rrcStatMachSim = Util.RB.getString("datadump.rrcstatmcsimulation");
+		final String rrcIdle = Util.RB.getString("datadump.idle");
+		final String rrcCellDCH = Util.RB.getString("datadump.celldch");
+		final String rrcCellFACH = Util.RB.getString("datadump.cellfach");
+		final String rrcIdleDCH = Util.RB.getString("datadump.idledch");
+		final String rrcFACHDCH = Util.RB.getString("datadump.fachdch");
+		final String rrcSec = Util.RB.getString("datadump.seconds");
+		final String rrcPCT = Util.RB.getString("datadump.pct");
+		final String energySimulation = Util.RB.getString("datadump.energysimulation");
+		final String energyJ = Util.RB.getString("statics.csvUnits.j");
+		final String burstAnalysis = Util.RB.getString("burstAnalysis.title");
+		final String userInput = Util.RB.getString("chart.userInput");
+		final String app = Util.RB.getString("burst.type.App");
+		final String tcpControl = Util.RB.getString("datadump.tcpcontrol");
+		final String tcpLossRec = Util.RB.getString("datadump.tcplossrec");
+		final String srvrNetDelay = Util.RB.getString("burst.type.SvrNetDelay");
+		final String largeBurst = Util.RB.getString("datadump.largeburst");
+		final String periodical = Util.RB.getString("burst.type.Periodical");
+		final String nonTarget = Util.RB.getString("burst.type.NonTarget");
+		final String bestPractices = createCSVEntry(Util.RB.getString("datadump.bpractices"));
+		final String bpPassFail = Util.RB.getString("datadump.bppassfail");
+		final String bpAssoData = Util.RB.getString("datadump.bpassodata");
+		final String filetype = Util.RB.getString("datadump.filetype");
+		final String value = Util.RB.getString("overview.traceoverview.value");
+		final String percentile = Util.RB.getString("overview.traceoverview.percentile");
+		final String conStats = Util.RB.getString("overview.sessionoverview.title");
+		final String appScore = Util.RB.getString("appscore.title");
+		final String endpntSumm = Util.RB.getString("endpointsummary.title");
+		final String burstbytes = Util.RB.getString("burstAnalysis.bytes");
+		final String burstbytpct = Util.RB.getString("burstAnalysis.bytesPct");
+		final String burstEner = Util.RB.getString("burstAnalysis.energy");
+		final String burstEngpct = Util.RB.getString("burstAnalysis.energyPct");
+		final String dch = Util.RB.getString("datadump.dch");
+		final String pctdch = Util.RB.getString("datadump.pctdch");
+		final String burstjpkb = Util.RB.getString("burstAnalysis.jpkb");
+		final String packettype = Util.RB.getString("packet.type");
+		final String pct = Util.RB.getString("simple.percent");
+		final String endpntapp = Util.RB.getString("endpointsummary.appname");
+		final String endpntpkt = Util.RB.getString("endpointsummary.packets");
+		final String endpntbyte = Util.RB.getString("endpointsummary.bytes");
 
 		for (int i = 0; i <= 1; i++) {
 			writer.append(commaSep);
@@ -1174,14 +1172,14 @@ public class DataDump {
 		for (int i = 0; i <= 14; i++) {
 			writer.append(commaSep);
 		}
-		writer = addContinuousHeader(writer, rb.getString("overview.traceoverview.title"), 5);
+		writer = addContinuousHeader(writer, Util.RB.getString("overview.traceoverview.title"), 5);
 
 		for (int i = 0; i <= 22; i++) {
 			writer.append(commaSep);
 		}
-		writer = addContinuousHeader(writer, rb.getString("datadump.cachenoncache"), 3);
-		writer = addContinuousHeader(writer, rb.getString("datadump.cacheCacheSim"), 19);
-		writer = addContinuousHeader(writer, rb.getString("datadump.dupFile"), 7);
+		writer = addContinuousHeader(writer, Util.RB.getString("datadump.cachenoncache"), 3);
+		writer = addContinuousHeader(writer, Util.RB.getString("datadump.cacheCacheSim"), 19);
+		writer = addContinuousHeader(writer, Util.RB.getString("datadump.dupFile"), 7);
 
 		writer.append(lineSep);
 
@@ -1229,13 +1227,13 @@ public class DataDump {
 		writer.append(commaSep);
 		writer.append(rrcIdle);
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.dch"));
+		writer.append(Util.RB.getString("datadump.dch"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.dch"));
+		writer.append(Util.RB.getString("datadump.dch"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.fach"));
+		writer.append(Util.RB.getString("datadump.fach"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.fach"));
+		writer.append(Util.RB.getString("datadump.fach"));
 		writer.append(commaSep);
 		writer.append(rrcIdleDCH);
 		writer.append(commaSep);
@@ -1245,16 +1243,16 @@ public class DataDump {
 		writer.append(commaSep);
 		writer.append(rrcFACHDCH);
 		writer.append(commaSep);
-		writer.append(rb.getString("RRCState.TAIL_DCH"));
+		writer.append(Util.RB.getString("RRCState.TAIL_DCH"));
 		writer.append(commaSep);
-		writer.append(rb.getString("RRCState.TAIL_DCH"));
+		writer.append(Util.RB.getString("RRCState.TAIL_DCH"));
 		writer.append(commaSep);
-		writer.append(rb.getString("RRCState.TAIL_FACH"));
+		writer.append(Util.RB.getString("RRCState.TAIL_FACH"));
 		writer.append(commaSep);
-		writer.append(rb.getString("RRCState.TAIL_FACH"));
+		writer.append(Util.RB.getString("RRCState.TAIL_FACH"));
 		writer.append(commaSep);
 
-		writer = addContinuousHeader(writer, rb.getString("datadump.energytitle"), 7);
+		writer = addContinuousHeader(writer, Util.RB.getString("datadump.energytitle"), 7);
 		writer = addContinuousHeader(writer, userInput, 6);
 		writer = addContinuousHeader(writer, app, 6);
 		writer = addContinuousHeader(writer, tcpControl, 6);
@@ -1271,9 +1269,9 @@ public class DataDump {
 			}
 		}
 
-		writer = addContinuousHeader(writer, rb.getString("Export.traceoverview.throughput"), 1);
-		writer = addContinuousHeader(writer, rb.getString("Export.traceoverview.jpkb"), 1);
-		writer = addContinuousHeader(writer, rb.getString("Export.traceoverview.promoratio"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("Export.traceoverview.throughput"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("Export.traceoverview.jpkb"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("Export.traceoverview.promoratio"), 1);
 
 		for (int j = 0; j <= 4; j++) {
 			writer.append(commaSep);
@@ -1292,40 +1290,40 @@ public class DataDump {
 			}
 		}
 
-		writer = addContinuousHeader(writer, rb.getString("cache.cacheable"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.nonCachable"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.cacheMiss"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.notCacheable"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.cacheable"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.nonCachable"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.cacheMiss"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.notCacheable"), 1);
 		writer = addContinuousHeader(
 				writer,
-				rb.getString("cache.cacheHitExpiredDup304").replace(
-						rb.getString("statics.csvCell.seperator"), ""), 1);
+				Util.RB.getString("cache.cacheHitExpiredDup304").replace(
+						Util.RB.getString("statics.csvCell.seperator"), ""), 1);
 		writer = addContinuousHeader(
 				writer,
-				rb.getString("cache.cacheHitRespChanged").replace(
-						rb.getString("statics.csvCell.seperator"), ""), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.cacheHitNotExpiredDup"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.cacheHitExpiredClientDup")
-				.replace(rb.getString("statics.csvCell.seperator"), ""), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.cacheHitExpiredServerDup")
-				.replace(rb.getString("statics.csvCell.seperator"), ""), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.partialHitNotExpiredDup"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.partialHitExpiredClientDup")
-				.replace(rb.getString("statics.csvCell.seperator"), ""), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.partialHitExpiredServerDup")
-				.replace(rb.getString("statics.csvCell.seperator"), ""), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.notExpired"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.notExpiredHeur"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.expired"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.expiredHeur"), 1);
+				Util.RB.getString("cache.cacheHitRespChanged").replace(
+						Util.RB.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.cacheHitNotExpiredDup"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.cacheHitExpiredClientDup")
+				.replace(Util.RB.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.cacheHitExpiredServerDup")
+				.replace(Util.RB.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.partialHitNotExpiredDup"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.partialHitExpiredClientDup")
+				.replace(Util.RB.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.partialHitExpiredServerDup")
+				.replace(Util.RB.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.notExpired"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.notExpiredHeur"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.expired"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.expiredHeur"), 1);
 
 		writer.append(lineSep);
 
-		writer.append(rb.getString("datadump.tracename"));
+		writer.append(Util.RB.getString("datadump.tracename"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.appVersion"));
+		writer.append(Util.RB.getString("datadump.appVersion"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.appnamever"));
+		writer.append(Util.RB.getString("datadump.appnamever"));
 
 		// Write best practice column headers
 		for (int i = 0; i < this.bestPractices.size(); i++) {
@@ -1336,13 +1334,13 @@ public class DataDump {
 		}
 
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.sizeinbyte"));
+		writer.append(Util.RB.getString("datadump.sizeinbyte"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.durationinsec"));
+		writer.append(Util.RB.getString("datadump.durationinsec"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.packets"));
+		writer.append(Util.RB.getString("datadump.packets"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.avgrate"));
+		writer.append(Util.RB.getString("datadump.avgrate"));
 
 		for (int i = 0; i <= 3; i++) {
 			writer.append(commaSep);
@@ -1352,21 +1350,21 @@ public class DataDump {
 		}
 
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.hash"));
+		writer.append(Util.RB.getString("datadump.hash"));
 		writer.append(commaSep);
 		writer.append(rrcSec);
 		writer.append(commaSep);
 		writer.append(rrcPCT);
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.hash"));
+		writer.append(Util.RB.getString("datadump.hash"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.dchtail"));
+		writer.append(Util.RB.getString("datadump.dchtail"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.fachtail"));
+		writer.append(Util.RB.getString("datadump.fachtail"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.promoratio"));
+		writer.append(Util.RB.getString("datadump.promoratio"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.totalE"));
+		writer.append(Util.RB.getString("datadump.totalE"));
 
 		for (int i = 0; i <= 6; i++) {
 			writer.append(commaSep);
@@ -1376,23 +1374,23 @@ public class DataDump {
 		}
 
 		writer.append(commaSep);
-		writer.append(rb.getString("burstAnalysis.jpkb"));
+		writer.append(Util.RB.getString("burstAnalysis.jpkb"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.gpsActive"));
+		writer.append(Util.RB.getString("energy.gpsActive"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.gpsStandby"));
+		writer.append(Util.RB.getString("energy.gpsStandby"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.gpsTotal"));
+		writer.append(Util.RB.getString("energy.gpsTotal"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.cameraTotal"));
+		writer.append(Util.RB.getString("energy.cameraTotal"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.bluetoothActive"));
+		writer.append(Util.RB.getString("energy.bluetoothActive"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.bluetoothStandby"));
+		writer.append(Util.RB.getString("energy.bluetoothStandby"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.bluetoothTotal"));
+		writer.append(Util.RB.getString("energy.bluetoothTotal"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.screenTotal"));
+		writer.append(Util.RB.getString("energy.screenTotal"));
 
 		for (int i = 0; i <= 7; i++) {
 			writer.append(commaSep);
@@ -1428,21 +1426,21 @@ public class DataDump {
 		}
 
 		writer.append(commaSep);
-		writer.append(rb.getString("Export.sessionoverview.sessionTerm"));
+		writer.append(Util.RB.getString("Export.sessionoverview.sessionTerm"));
 		writer.append(commaSep);
-		writer.append(rb.getString("Export.sessionoverview.longBurstTerm"));
+		writer.append(Util.RB.getString("Export.sessionoverview.longBurstTerm"));
 		writer.append(commaSep);
-		writer.append(rb.getString("Export.sessionoverview.tightlyGroupedBurstTerm"));
+		writer.append(Util.RB.getString("Export.sessionoverview.tightlyGroupedBurstTerm"));
 		writer.append(commaSep);
-		writer.append(rb.getString("Export.sessionoverview.periodicBurstTerm"));
+		writer.append(Util.RB.getString("Export.sessionoverview.periodicBurstTerm"));
 		writer.append(commaSep);
-		writer.append(rb.getString("Export.sessionoverview.nonPeriodicBurstTerm"));
+		writer.append(Util.RB.getString("Export.sessionoverview.nonPeriodicBurstTerm"));
 		writer.append(commaSep);
-		writer.append(rb.getString("appscore.subtitle.causes"));
+		writer.append(Util.RB.getString("appscore.subtitle.causes"));
 		writer.append(commaSep);
-		writer.append(rb.getString("appscore.subtitle.effects"));
+		writer.append(Util.RB.getString("appscore.subtitle.effects"));
 		writer.append(commaSep);
-		writer.append(rb.getString("appscore.subtitle.total"));
+		writer.append(Util.RB.getString("appscore.subtitle.total"));
 
 		for (int i = 0; i <= 4; i++) {
 			writer.append(commaSep);
@@ -1455,9 +1453,9 @@ public class DataDump {
 
 		for (int j = 0; j <= 15; j++) {
 			writer.append(commaSep);
-			writer.append(rb.getString("statics.csvFormat.response"));
+			writer.append(Util.RB.getString("statics.csvFormat.response"));
 			writer.append(commaSep);
-			writer.append(rb.getString("statics.csvFormat.bytes"));
+			writer.append(Util.RB.getString("statics.csvFormat.bytes"));
 		}
 
 		return writer;
@@ -1473,48 +1471,48 @@ public class DataDump {
 	 */
 	private FileWriter addLTEHeader(FileWriter writer) throws IOException {
 
-		final String basicStat = rb.getString("datadump.basicstat");
-		final String rrcStatMachSim = rb.getString("datadump.rrcstatmcsimulation");
-		final String rrcContRecep = rb.getString("rrc.continuousReception");
-		final String rrcContReceptail = rb.getString("rrc.continuousReceptionTail");
-		final String rrcSDRX = rb.getString("rrc.shortDRX");
-		final String rrcLDRX = rb.getString("rrc.longDRX");
-		final String rrcIdleToCont = rb.getString("rrc.continuousReceptionIdle");
-		final String rrcIdle = rb.getString("datadump.idle");
-		final String rrcSec = rb.getString("datadump.seconds");
-		final String rrcPCT = rb.getString("datadump.pct");
-		final String energySimulation = rb.getString("datadump.energysimulation");
-		final String energyJ = rb.getString("statics.csvUnits.j");
-		final String burstAnalysis = rb.getString("burstAnalysis.title");
-		final String userInput = rb.getString("chart.userInput");
-		final String app = rb.getString("burst.type.App");
-		final String tcpControl = rb.getString("datadump.tcpcontrol");
-		final String tcpLossRec = rb.getString("datadump.tcplossrec");
-		final String srvrNetDelay = rb.getString("burst.type.SvrNetDelay");
-		final String largeBurst = rb.getString("datadump.largeburst");
-		final String periodical = rb.getString("burst.type.Periodical");
-		final String nonTarget = rb.getString("burst.type.NonTarget");
-		final String bestPractices = createCSVEntry(rb.getString("datadump.bpractices"));
-		final String bpPassFail = rb.getString("datadump.bppassfail");
-		final String bpAssoData = rb.getString("datadump.bpassodata");
-		final String filetype = rb.getString("datadump.filetype");
-		final String value = rb.getString("overview.traceoverview.value");
-		final String percentile = rb.getString("overview.traceoverview.percentile");
-		final String conStats = rb.getString("overview.sessionoverview.title");
-		final String appScore = rb.getString("appscore.title");
-		final String endpntSumm = rb.getString("endpointsummary.title");
-		final String burstbytes = rb.getString("burstAnalysis.bytes");
-		final String burstbytpct = rb.getString("burstAnalysis.bytesPct");
-		final String burstEner = rb.getString("burstAnalysis.energy");
-		final String burstEngpct = rb.getString("burstAnalysis.energyPct");
-		final String burstjpkb = rb.getString("burstAnalysis.jpkb");
-		final String packettype = rb.getString("packet.type");
-		final String pct = rb.getString("simple.percent");
-		final String endpntapp = rb.getString("endpointsummary.appname");
-		final String endpntpkt = rb.getString("endpointsummary.packets");
-		final String endpntbyte = rb.getString("endpointsummary.bytes");
-		final String ltecr = rb.getString("burstAnalysis.lteCr");
-		final String ltecrpct = rb.getString("burstAnalysis.lteCrPct");
+		final String basicStat = Util.RB.getString("datadump.basicstat");
+		final String rrcStatMachSim = Util.RB.getString("datadump.rrcstatmcsimulation");
+		final String rrcContRecep = Util.RB.getString("rrc.continuousReception");
+		final String rrcContReceptail = Util.RB.getString("rrc.continuousReceptionTail");
+		final String rrcSDRX = Util.RB.getString("rrc.shortDRX");
+		final String rrcLDRX = Util.RB.getString("rrc.longDRX");
+		final String rrcIdleToCont = Util.RB.getString("rrc.continuousReceptionIdle");
+		final String rrcIdle = Util.RB.getString("datadump.idle");
+		final String rrcSec = Util.RB.getString("datadump.seconds");
+		final String rrcPCT = Util.RB.getString("datadump.pct");
+		final String energySimulation = Util.RB.getString("datadump.energysimulation");
+		final String energyJ = Util.RB.getString("statics.csvUnits.j");
+		final String burstAnalysis = Util.RB.getString("burstAnalysis.title");
+		final String userInput = Util.RB.getString("chart.userInput");
+		final String app = Util.RB.getString("burst.type.App");
+		final String tcpControl = Util.RB.getString("datadump.tcpcontrol");
+		final String tcpLossRec = Util.RB.getString("datadump.tcplossrec");
+		final String srvrNetDelay = Util.RB.getString("burst.type.SvrNetDelay");
+		final String largeBurst = Util.RB.getString("datadump.largeburst");
+		final String periodical = Util.RB.getString("burst.type.Periodical");
+		final String nonTarget = Util.RB.getString("burst.type.NonTarget");
+		final String bestPractices = createCSVEntry(Util.RB.getString("datadump.bpractices"));
+		final String bpPassFail = Util.RB.getString("datadump.bppassfail");
+		final String bpAssoData = Util.RB.getString("datadump.bpassodata");
+		final String filetype = Util.RB.getString("datadump.filetype");
+		final String value = Util.RB.getString("overview.traceoverview.value");
+		final String percentile = Util.RB.getString("overview.traceoverview.percentile");
+		final String conStats = Util.RB.getString("overview.sessionoverview.title");
+		final String appScore = Util.RB.getString("appscore.title");
+		final String endpntSumm = Util.RB.getString("endpointsummary.title");
+		final String burstbytes = Util.RB.getString("burstAnalysis.bytes");
+		final String burstbytpct = Util.RB.getString("burstAnalysis.bytesPct");
+		final String burstEner = Util.RB.getString("burstAnalysis.energy");
+		final String burstEngpct = Util.RB.getString("burstAnalysis.energyPct");
+		final String burstjpkb = Util.RB.getString("burstAnalysis.jpkb");
+		final String packettype = Util.RB.getString("packet.type");
+		final String pct = Util.RB.getString("simple.percent");
+		final String endpntapp = Util.RB.getString("endpointsummary.appname");
+		final String endpntpkt = Util.RB.getString("endpointsummary.packets");
+		final String endpntbyte = Util.RB.getString("endpointsummary.bytes");
+		final String ltecr = Util.RB.getString("burstAnalysis.lteCr");
+		final String ltecrpct = Util.RB.getString("burstAnalysis.lteCrPct");
 
 		for (int i = 0; i <= 1; i++) {
 			writer.append(commaSep);
@@ -1535,14 +1533,14 @@ public class DataDump {
 		for (int i = 0; i <= 14; i++) {
 			writer.append(commaSep);
 		}
-		writer = addContinuousHeader(writer, rb.getString("overview.traceoverview.title"), 5);
+		writer = addContinuousHeader(writer, Util.RB.getString("overview.traceoverview.title"), 5);
 
 		for (int i = 0; i <= 22; i++) {
 			writer.append(commaSep);
 		}
-		writer = addContinuousHeader(writer, rb.getString("datadump.cachenoncache"), 3);
-		writer = addContinuousHeader(writer, rb.getString("datadump.cacheCacheSim"), 19);
-		writer = addContinuousHeader(writer, rb.getString("datadump.dupFile"), 7);
+		writer = addContinuousHeader(writer, Util.RB.getString("datadump.cachenoncache"), 3);
+		writer = addContinuousHeader(writer, Util.RB.getString("datadump.cacheCacheSim"), 19);
+		writer = addContinuousHeader(writer, Util.RB.getString("datadump.dupFile"), 7);
 
 		writer.append(lineSep);
 
@@ -1611,7 +1609,7 @@ public class DataDump {
 		writer.append(rrcLDRX);
 		writer.append(commaSep);
 
-		writer = addContinuousHeader(writer, rb.getString("datadump.energytitle"), 7);
+		writer = addContinuousHeader(writer, Util.RB.getString("datadump.energytitle"), 7);
 		writer = addContinuousHeader(writer, userInput, 6);
 		writer = addContinuousHeader(writer, app, 6);
 		writer = addContinuousHeader(writer, tcpControl, 6);
@@ -1628,9 +1626,9 @@ public class DataDump {
 			}
 		}
 
-		writer = addContinuousHeader(writer, rb.getString("Export.traceoverview.throughput"), 1);
-		writer = addContinuousHeader(writer, rb.getString("Export.traceoverview.jpkb"), 1);
-		writer = addContinuousHeader(writer, rb.getString("Export.traceoverview.promoratio"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("Export.traceoverview.throughput"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("Export.traceoverview.jpkb"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("Export.traceoverview.promoratio"), 1);
 
 		for (int j = 0; j <= 4; j++) {
 			writer.append(commaSep);
@@ -1649,40 +1647,40 @@ public class DataDump {
 			}
 		}
 
-		writer = addContinuousHeader(writer, rb.getString("cache.cacheable"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.nonCachable"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.cacheMiss"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.notCacheable"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.cacheable"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.nonCachable"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.cacheMiss"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.notCacheable"), 1);
 		writer = addContinuousHeader(
 				writer,
-				rb.getString("cache.cacheHitExpiredDup304").replace(
-						rb.getString("statics.csvCell.seperator"), ""), 1);
+				Util.RB.getString("cache.cacheHitExpiredDup304").replace(
+						Util.RB.getString("statics.csvCell.seperator"), ""), 1);
 		writer = addContinuousHeader(
 				writer,
-				rb.getString("cache.cacheHitRespChanged").replace(
-						rb.getString("statics.csvCell.seperator"), ""), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.cacheHitNotExpiredDup"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.cacheHitExpiredClientDup")
-				.replace(rb.getString("statics.csvCell.seperator"), ""), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.cacheHitExpiredServerDup")
-				.replace(rb.getString("statics.csvCell.seperator"), ""), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.partialHitNotExpiredDup"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.partialHitExpiredClientDup")
-				.replace(rb.getString("statics.csvCell.seperator"), ""), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.partialHitExpiredServerDup")
-				.replace(rb.getString("statics.csvCell.seperator"), ""), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.notExpired"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.notExpiredHeur"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.expired"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.expiredHeur"), 1);
+				Util.RB.getString("cache.cacheHitRespChanged").replace(
+						Util.RB.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.cacheHitNotExpiredDup"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.cacheHitExpiredClientDup")
+				.replace(Util.RB.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.cacheHitExpiredServerDup")
+				.replace(Util.RB.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.partialHitNotExpiredDup"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.partialHitExpiredClientDup")
+				.replace(Util.RB.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.partialHitExpiredServerDup")
+				.replace(Util.RB.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.notExpired"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.notExpiredHeur"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.expired"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.expiredHeur"), 1);
 
 		writer.append(lineSep);
 
-		writer.append(rb.getString("datadump.tracename"));
+		writer.append(Util.RB.getString("datadump.tracename"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.appVersion"));
+		writer.append(Util.RB.getString("datadump.appVersion"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.appnamever"));
+		writer.append(Util.RB.getString("datadump.appnamever"));
 
 		// Write best practice column headers
 		for (int i = 0; i < this.bestPractices.size(); i++) {
@@ -1693,13 +1691,13 @@ public class DataDump {
 		}
 
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.sizeinbyte"));
+		writer.append(Util.RB.getString("datadump.sizeinbyte"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.durationinsec"));
+		writer.append(Util.RB.getString("datadump.durationinsec"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.packets"));
+		writer.append(Util.RB.getString("datadump.packets"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.avgrate"));
+		writer.append(Util.RB.getString("datadump.avgrate"));
 
 		for (int i = 0; i <= 5; i++) {
 			writer.append(commaSep);
@@ -1709,15 +1707,15 @@ public class DataDump {
 		}
 
 		writer.append(commaSep);
-		writer.append(rb.getString("rrc.crTailRatio"));
+		writer.append(Util.RB.getString("rrc.crTailRatio"));
 		writer.append(commaSep);
-		writer.append(rb.getString("rrc.longDRXRatio"));
+		writer.append(Util.RB.getString("rrc.longDRXRatio"));
 		writer.append(commaSep);
-		writer.append(rb.getString("rrc.shortDRXRatio"));
+		writer.append(Util.RB.getString("rrc.shortDRXRatio"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.promoratio"));
+		writer.append(Util.RB.getString("datadump.promoratio"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.totalE"));
+		writer.append(Util.RB.getString("datadump.totalE"));
 
 		for (int i = 0; i <= 5; i++) {
 			writer.append(commaSep);
@@ -1727,23 +1725,23 @@ public class DataDump {
 		}
 
 		writer.append(commaSep);
-		writer.append(rb.getString("burstAnalysis.jpkb"));
+		writer.append(Util.RB.getString("burstAnalysis.jpkb"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.gpsActive"));
+		writer.append(Util.RB.getString("energy.gpsActive"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.gpsStandby"));
+		writer.append(Util.RB.getString("energy.gpsStandby"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.gpsTotal"));
+		writer.append(Util.RB.getString("energy.gpsTotal"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.cameraTotal"));
+		writer.append(Util.RB.getString("energy.cameraTotal"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.bluetoothActive"));
+		writer.append(Util.RB.getString("energy.bluetoothActive"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.bluetoothStandby"));
+		writer.append(Util.RB.getString("energy.bluetoothStandby"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.bluetoothTotal"));
+		writer.append(Util.RB.getString("energy.bluetoothTotal"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.screenTotal"));
+		writer.append(Util.RB.getString("energy.screenTotal"));
 
 		for (int i = 0; i <= 7; i++) {
 			writer.append(commaSep);
@@ -1779,21 +1777,21 @@ public class DataDump {
 		}
 
 		writer.append(commaSep);
-		writer.append(rb.getString("Export.sessionoverview.sessionTerm"));
+		writer.append(Util.RB.getString("Export.sessionoverview.sessionTerm"));
 		writer.append(commaSep);
-		writer.append(rb.getString("Export.sessionoverview.longBurstTerm"));
+		writer.append(Util.RB.getString("Export.sessionoverview.longBurstTerm"));
 		writer.append(commaSep);
-		writer.append(rb.getString("Export.sessionoverview.tightlyGroupedBurstTerm"));
+		writer.append(Util.RB.getString("Export.sessionoverview.tightlyGroupedBurstTerm"));
 		writer.append(commaSep);
-		writer.append(rb.getString("Export.sessionoverview.periodicBurstTerm"));
+		writer.append(Util.RB.getString("Export.sessionoverview.periodicBurstTerm"));
 		writer.append(commaSep);
-		writer.append(rb.getString("Export.sessionoverview.nonPeriodicBurstTerm"));
+		writer.append(Util.RB.getString("Export.sessionoverview.nonPeriodicBurstTerm"));
 		writer.append(commaSep);
-		writer.append(rb.getString("appscore.subtitle.causes"));
+		writer.append(Util.RB.getString("appscore.subtitle.causes"));
 		writer.append(commaSep);
-		writer.append(rb.getString("appscore.subtitle.effects"));
+		writer.append(Util.RB.getString("appscore.subtitle.effects"));
 		writer.append(commaSep);
-		writer.append(rb.getString("appscore.subtitle.total"));
+		writer.append(Util.RB.getString("appscore.subtitle.total"));
 
 		for (int i = 0; i <= 4; i++) {
 			writer.append(commaSep);
@@ -1806,9 +1804,9 @@ public class DataDump {
 
 		for (int j = 0; j <= 15; j++) {
 			writer.append(commaSep);
-			writer.append(rb.getString("statics.csvFormat.response"));
+			writer.append(Util.RB.getString("statics.csvFormat.response"));
 			writer.append(commaSep);
-			writer.append(rb.getString("statics.csvFormat.bytes"));
+			writer.append(Util.RB.getString("statics.csvFormat.bytes"));
 		}
 
 		return writer;
@@ -1824,45 +1822,45 @@ public class DataDump {
 	 */
 	private FileWriter addWiFiHeader(FileWriter writer) throws IOException {
 
-		final String basicStat = rb.getString("datadump.basicstat");
-		final String rrcStatMachSim = rb.getString("datadump.rrcstatmcsimulation");
-		final String rrcSec = rb.getString("datadump.seconds");
-		final String rrcPCT = rb.getString("datadump.pct");
-		final String energySimulation = rb.getString("datadump.energysimulation");
-		final String energyJ = rb.getString("statics.csvUnits.j");
-		final String burstAnalysis = rb.getString("burstAnalysis.title");
-		final String userInput = rb.getString("chart.userInput");
-		final String app = rb.getString("burst.type.App");
-		final String tcpControl = rb.getString("datadump.tcpcontrol");
-		final String tcpLossRec = rb.getString("datadump.tcplossrec");
-		final String srvrNetDelay = rb.getString("burst.type.SvrNetDelay");
-		final String largeBurst = rb.getString("datadump.largeburst");
-		final String periodical = rb.getString("burst.type.Periodical");
-		final String nonTarget = rb.getString("burst.type.NonTarget");
-		final String bestPractices = createCSVEntry(rb.getString("datadump.bpractices"));
-		final String bpPassFail = rb.getString("datadump.bppassfail");
-		final String bpAssoData = rb.getString("datadump.bpassodata");
-		final String filetype = rb.getString("datadump.filetype");
-		final String value = rb.getString("overview.traceoverview.value");
-		final String percentile = rb.getString("overview.traceoverview.percentile");
-		final String conStats = rb.getString("overview.sessionoverview.title");
-		final String appScore = rb.getString("appscore.title");
-		final String endpntSumm = rb.getString("endpointsummary.title");
-		final String burstbytes = rb.getString("burstAnalysis.bytes");
-		final String burstbytpct = rb.getString("burstAnalysis.bytesPct");
-		final String burstEner = rb.getString("burstAnalysis.energy");
-		final String burstEngpct = rb.getString("burstAnalysis.energyPct");
-		final String wifiActive = rb.getString("burstAnalysis.wifiActive");
-		final String pctwifiActive = rb.getString("burstAnalysis.wifiActivePct");
-		final String burstjpkb = rb.getString("burstAnalysis.jpkb");
-		final String packettype = rb.getString("packet.type");
-		final String pct = rb.getString("simple.percent");
-		final String endpntapp = rb.getString("endpointsummary.appname");
-		final String endpntpkt = rb.getString("endpointsummary.packets");
-		final String endpntbyte = rb.getString("endpointsummary.bytes");
-		final String wifiAct = rb.getString("rrc.wifiActive");
-		final String wifiTail = rb.getString("rrc.WifiTail");
-		final String wifiIdle = rb.getString("rrc.WiFiIdle");
+		final String basicStat = Util.RB.getString("datadump.basicstat");
+		final String rrcStatMachSim = Util.RB.getString("datadump.rrcstatmcsimulation");
+		final String rrcSec = Util.RB.getString("datadump.seconds");
+		final String rrcPCT = Util.RB.getString("datadump.pct");
+		final String energySimulation = Util.RB.getString("datadump.energysimulation");
+		final String energyJ = Util.RB.getString("statics.csvUnits.j");
+		final String burstAnalysis = Util.RB.getString("burstAnalysis.title");
+		final String userInput = Util.RB.getString("chart.userInput");
+		final String app = Util.RB.getString("burst.type.App");
+		final String tcpControl = Util.RB.getString("datadump.tcpcontrol");
+		final String tcpLossRec = Util.RB.getString("datadump.tcplossrec");
+		final String srvrNetDelay = Util.RB.getString("burst.type.SvrNetDelay");
+		final String largeBurst = Util.RB.getString("datadump.largeburst");
+		final String periodical = Util.RB.getString("burst.type.Periodical");
+		final String nonTarget = Util.RB.getString("burst.type.NonTarget");
+		final String bestPractices = createCSVEntry(Util.RB.getString("datadump.bpractices"));
+		final String bpPassFail = Util.RB.getString("datadump.bppassfail");
+		final String bpAssoData = Util.RB.getString("datadump.bpassodata");
+		final String filetype = Util.RB.getString("datadump.filetype");
+		final String value = Util.RB.getString("overview.traceoverview.value");
+		final String percentile = Util.RB.getString("overview.traceoverview.percentile");
+		final String conStats = Util.RB.getString("overview.sessionoverview.title");
+		final String appScore = Util.RB.getString("appscore.title");
+		final String endpntSumm = Util.RB.getString("endpointsummary.title");
+		final String burstbytes = Util.RB.getString("burstAnalysis.bytes");
+		final String burstbytpct = Util.RB.getString("burstAnalysis.bytesPct");
+		final String burstEner = Util.RB.getString("burstAnalysis.energy");
+		final String burstEngpct = Util.RB.getString("burstAnalysis.energyPct");
+		final String wifiActive = Util.RB.getString("burstAnalysis.wifiActive");
+		final String pctwifiActive = Util.RB.getString("burstAnalysis.wifiActivePct");
+		final String burstjpkb = Util.RB.getString("burstAnalysis.jpkb");
+		final String packettype = Util.RB.getString("packet.type");
+		final String pct = Util.RB.getString("simple.percent");
+		final String endpntapp = Util.RB.getString("endpointsummary.appname");
+		final String endpntpkt = Util.RB.getString("endpointsummary.packets");
+		final String endpntbyte = Util.RB.getString("endpointsummary.bytes");
+		final String wifiAct = Util.RB.getString("rrc.wifiActive");
+		final String wifiTail = Util.RB.getString("rrc.WifiTail");
+		final String wifiIdle = Util.RB.getString("rrc.WiFiIdle");
 
 		for (int i = 0; i <= 1; i++) {
 			writer.append(commaSep);
@@ -1883,14 +1881,14 @@ public class DataDump {
 		for (int i = 0; i <= 14; i++) {
 			writer.append(commaSep);
 		}
-		writer = addContinuousHeader(writer, rb.getString("overview.traceoverview.title"), 5);
+		writer = addContinuousHeader(writer, Util.RB.getString("overview.traceoverview.title"), 5);
 
 		for (int i = 0; i <= 22; i++) {
 			writer.append(commaSep);
 		}
-		writer = addContinuousHeader(writer, rb.getString("datadump.cachenoncache"), 3);
-		writer = addContinuousHeader(writer, rb.getString("datadump.cacheCacheSim"), 19);
-		writer = addContinuousHeader(writer, rb.getString("datadump.dupFile"), 7);
+		writer = addContinuousHeader(writer, Util.RB.getString("datadump.cachenoncache"), 3);
+		writer = addContinuousHeader(writer, Util.RB.getString("datadump.cacheCacheSim"), 19);
+		writer = addContinuousHeader(writer, Util.RB.getString("datadump.dupFile"), 7);
 
 		writer.append(lineSep);
 
@@ -1935,7 +1933,7 @@ public class DataDump {
 		writer.append(wifiIdle);
 		writer.append(commaSep);
 
-		writer = addContinuousHeader(writer, rb.getString("datadump.energytitle"), 7);
+		writer = addContinuousHeader(writer, Util.RB.getString("datadump.energytitle"), 7);
 		writer = addContinuousHeader(writer, userInput, 6);
 		writer = addContinuousHeader(writer, app, 6);
 		writer = addContinuousHeader(writer, tcpControl, 6);
@@ -1952,9 +1950,9 @@ public class DataDump {
 			}
 		}
 
-		writer = addContinuousHeader(writer, rb.getString("Export.traceoverview.throughput"), 1);
-		writer = addContinuousHeader(writer, rb.getString("Export.traceoverview.jpkb"), 1);
-		writer = addContinuousHeader(writer, rb.getString("Export.traceoverview.promoratio"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("Export.traceoverview.throughput"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("Export.traceoverview.jpkb"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("Export.traceoverview.promoratio"), 1);
 
 		for (int j = 0; j <= 4; j++) {
 			writer.append(commaSep);
@@ -1973,40 +1971,40 @@ public class DataDump {
 			}
 		}
 
-		writer = addContinuousHeader(writer, rb.getString("cache.cacheable"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.nonCachable"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.cacheMiss"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.notCacheable"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.cacheable"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.nonCachable"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.cacheMiss"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.notCacheable"), 1);
 		writer = addContinuousHeader(
 				writer,
-				rb.getString("cache.cacheHitExpiredDup304").replace(
-						rb.getString("statics.csvCell.seperator"), ""), 1);
+				Util.RB.getString("cache.cacheHitExpiredDup304").replace(
+						Util.RB.getString("statics.csvCell.seperator"), ""), 1);
 		writer = addContinuousHeader(
 				writer,
-				rb.getString("cache.cacheHitRespChanged").replace(
-						rb.getString("statics.csvCell.seperator"), ""), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.cacheHitNotExpiredDup"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.cacheHitExpiredClientDup")
-				.replace(rb.getString("statics.csvCell.seperator"), ""), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.cacheHitExpiredServerDup")
-				.replace(rb.getString("statics.csvCell.seperator"), ""), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.partialHitNotExpiredDup"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.partialHitExpiredClientDup")
-				.replace(rb.getString("statics.csvCell.seperator"), ""), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.partialHitExpiredServerDup")
-				.replace(rb.getString("statics.csvCell.seperator"), ""), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.notExpired"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.notExpiredHeur"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.expired"), 1);
-		writer = addContinuousHeader(writer, rb.getString("cache.expiredHeur"), 1);
+				Util.RB.getString("cache.cacheHitRespChanged").replace(
+						Util.RB.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.cacheHitNotExpiredDup"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.cacheHitExpiredClientDup")
+				.replace(Util.RB.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.cacheHitExpiredServerDup")
+				.replace(Util.RB.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.partialHitNotExpiredDup"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.partialHitExpiredClientDup")
+				.replace(Util.RB.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.partialHitExpiredServerDup")
+				.replace(Util.RB.getString("statics.csvCell.seperator"), ""), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.notExpired"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.notExpiredHeur"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.expired"), 1);
+		writer = addContinuousHeader(writer, Util.RB.getString("cache.expiredHeur"), 1);
 
 		writer.append(lineSep);
 
-		writer.append(rb.getString("datadump.tracename"));
+		writer.append(Util.RB.getString("datadump.tracename"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.appVersion"));
+		writer.append(Util.RB.getString("datadump.appVersion"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.appnamever"));
+		writer.append(Util.RB.getString("datadump.appnamever"));
 
 		// Write best practice column headers
 		for (int i = 0; i < this.bestPractices.size(); i++) {
@@ -2017,13 +2015,13 @@ public class DataDump {
 		}
 
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.sizeinbyte"));
+		writer.append(Util.RB.getString("datadump.sizeinbyte"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.durationinsec"));
+		writer.append(Util.RB.getString("datadump.durationinsec"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.packets"));
+		writer.append(Util.RB.getString("datadump.packets"));
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.avgrate"));
+		writer.append(Util.RB.getString("datadump.avgrate"));
 
 		for (int i = 0; i <= 2; i++) {
 			writer.append(commaSep);
@@ -2033,7 +2031,7 @@ public class DataDump {
 		}
 
 		writer.append(commaSep);
-		writer.append(rb.getString("datadump.totalE"));
+		writer.append(Util.RB.getString("datadump.totalE"));
 
 		for (int i = 0; i <= 2; i++) {
 			writer.append(commaSep);
@@ -2043,23 +2041,23 @@ public class DataDump {
 		}
 
 		writer.append(commaSep);
-		writer.append(rb.getString("burstAnalysis.jpkb"));
+		writer.append(Util.RB.getString("burstAnalysis.jpkb"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.gpsActive"));
+		writer.append(Util.RB.getString("energy.gpsActive"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.gpsStandby"));
+		writer.append(Util.RB.getString("energy.gpsStandby"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.gpsTotal"));
+		writer.append(Util.RB.getString("energy.gpsTotal"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.cameraTotal"));
+		writer.append(Util.RB.getString("energy.cameraTotal"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.bluetoothActive"));
+		writer.append(Util.RB.getString("energy.bluetoothActive"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.bluetoothStandby"));
+		writer.append(Util.RB.getString("energy.bluetoothStandby"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.bluetoothTotal"));
+		writer.append(Util.RB.getString("energy.bluetoothTotal"));
 		writer.append(commaSep);
-		writer.append(rb.getString("energy.screenTotal"));
+		writer.append(Util.RB.getString("energy.screenTotal"));
 
 		for (int i = 0; i <= 7; i++) {
 			writer.append(commaSep);
@@ -2095,21 +2093,21 @@ public class DataDump {
 		}
 
 		writer.append(commaSep);
-		writer.append(rb.getString("Export.sessionoverview.sessionTerm"));
+		writer.append(Util.RB.getString("Export.sessionoverview.sessionTerm"));
 		writer.append(commaSep);
-		writer.append(rb.getString("Export.sessionoverview.longBurstTerm"));
+		writer.append(Util.RB.getString("Export.sessionoverview.longBurstTerm"));
 		writer.append(commaSep);
-		writer.append(rb.getString("Export.sessionoverview.tightlyGroupedBurstTerm"));
+		writer.append(Util.RB.getString("Export.sessionoverview.tightlyGroupedBurstTerm"));
 		writer.append(commaSep);
-		writer.append(rb.getString("Export.sessionoverview.periodicBurstTerm"));
+		writer.append(Util.RB.getString("Export.sessionoverview.periodicBurstTerm"));
 		writer.append(commaSep);
-		writer.append(rb.getString("Export.sessionoverview.nonPeriodicBurstTerm"));
+		writer.append(Util.RB.getString("Export.sessionoverview.nonPeriodicBurstTerm"));
 		writer.append(commaSep);
-		writer.append(rb.getString("appscore.subtitle.causes"));
+		writer.append(Util.RB.getString("appscore.subtitle.causes"));
 		writer.append(commaSep);
-		writer.append(rb.getString("appscore.subtitle.effects"));
+		writer.append(Util.RB.getString("appscore.subtitle.effects"));
 		writer.append(commaSep);
-		writer.append(rb.getString("appscore.subtitle.total"));
+		writer.append(Util.RB.getString("appscore.subtitle.total"));
 
 		for (int i = 0; i <= 4; i++) {
 			writer.append(commaSep);
@@ -2122,9 +2120,9 @@ public class DataDump {
 
 		for (int j = 0; j <= 15; j++) {
 			writer.append(commaSep);
-			writer.append(rb.getString("statics.csvFormat.response"));
+			writer.append(Util.RB.getString("statics.csvFormat.response"));
 			writer.append(commaSep);
-			writer.append(rb.getString("statics.csvFormat.bytes"));
+			writer.append(Util.RB.getString("statics.csvFormat.bytes"));
 		}
 
 		return writer;

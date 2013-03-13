@@ -22,8 +22,10 @@ import java.util.Iterator;
 import java.util.ResourceBundle;
 import java.util.Set;
 
+import javax.swing.SwingConstants;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
@@ -52,6 +54,8 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 			rb.getString("tcp.packetcount") };
 
 	private Set<TCPSession> highlighted = new HashSet<TCPSession>();
+
+	private TableColumnModel cols = null;
 
 	/**
 	 * Constructor
@@ -83,9 +87,18 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 	 */
 	@Override
 	public TableColumnModel createDefaultTableColumnModel() {
-		TableColumnModel cols = super.createDefaultTableColumnModel();
-		TableColumn col = cols.getColumn(TIME_COL);
-		col.setCellRenderer(new NumberFormatRenderer(new DecimalFormat("0.000")));
+		if (cols == null) {
+			cols = super.createDefaultTableColumnModel();
+			TableColumn col = cols.getColumn(TIME_COL);
+			col.setCellRenderer(new NumberFormatRenderer(new DecimalFormat(
+					"0.000")));
+
+			TableColumn appCol = cols.getColumn(APP_COL);
+			DefaultTableCellRenderer r = new DefaultTableCellRenderer();
+			r.setHorizontalAlignment(SwingConstants.RIGHT);
+			appCol.setCellRenderer(r);
+
+		}
 		return cols;
 	}
 
@@ -127,13 +140,34 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 		case TIME_COL:
 			return item.getPackets().get(0).getTimeStamp();
 		case APP_COL:
+			TableColumn appCol = cols.getColumn(APP_COL);
+			int width = appCol.getWidth();
+
 			Iterator<String> it = item.getAppNames().iterator();
 			if (!it.hasNext()) {
 				return rb.getString("aro.unknownApp");
 			}
 
+			//not pretty, but intended to dynamically determine how
+			// many characters will fit in a cell based on column width in
+			// pixels, then substring app name and prefix with ...
+			// start with 16% and add another .5% for each 70 pixels
+			double basePct = .16;
+			int units = width / 70;
+			if (units > 0){
+				basePct = basePct + (units * .005);
+			}
+			
+			double shortLength = width * basePct;
+			
 			String app = it.next();
 			if (!it.hasNext()) {
+				int appStrLength = app.length();
+				
+				if (appStrLength > shortLength + 2) {					
+					app = "..."
+							+ app.substring(appStrLength - (int) shortLength);
+				}
 				return app;
 			}
 
@@ -143,7 +177,15 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 					sb.append(stringListSeparator);
 					sb.append(it.next());
 				}
-				return sb.toString();
+				
+				int appStrLength = sb.length();
+				
+				if (appStrLength > shortLength + 2) {					
+					return "..."
+							+ sb.substring(appStrLength - (int) shortLength);
+				} else {
+					return sb.toString();
+				}
 			}
 		case DOMAIN_COL:
 			return item.getDomainName();

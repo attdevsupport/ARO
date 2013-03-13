@@ -156,7 +156,7 @@ public class AROVideoPlayer extends JFrame {
 		setDefaultCloseOperation(HIDE_ON_CLOSE);
 		Dimension frameDim = new Dimension(350, 500);
 		setMinimumSize(frameDim);
-		setResizable(false);
+		setResizable(true);
 		jVideoLabel = new JLabel(Images.NO_VIDEO_AVAILABLE.getIcon());
 		aroVideoPanel = new JPanel();
 		aroVideoPanel.setLayout(new BorderLayout());
@@ -361,9 +361,12 @@ public class AROVideoPlayer extends JFrame {
 					if (!fileFullPathFFMPEGProgram.canExecute()) {
 						fileFullPathFFMPEGProgram.setExecutable(true);
 					}
-					convertMp4ToMov(videoFileFromDevice, videoFile,
-							fileFullPathFFMPEGProgram.getAbsolutePath());
-					fileFullPathFFMPEGProgram.delete();
+					
+					try {
+						convertMp4ToMov(videoFileFromDevice, videoFile, fileFullPathFFMPEGProgram.getAbsolutePath());
+					} finally {
+						fileFullPathFFMPEGProgram.delete();
+					}
 				}
 			}
 			if (videoFile.canRead()) {
@@ -438,6 +441,13 @@ public class AROVideoPlayer extends JFrame {
 				.getAbsolutePath();
 		BufferedReader bufReaderInput = null;
 		try {
+			if(logger.isLoggable(Level.FINE))
+			{
+				logger.log(Level.FINE, "Converting MP4 to MOV: ");
+				for (int i = 0; i < aArgs.length; i++) {
+					logger.log(Level.FINE, "    {0}", aArgs[i]);
+				}
+			}
 			Process p = Runtime.getRuntime().exec(aArgs);
 
 			InputStream stderr = p.getErrorStream();
@@ -453,6 +463,7 @@ public class AROVideoPlayer extends JFrame {
 				}
 			}
 		} finally {
+			logger.log(Level.FINE, "Converting MP4 to MOV was completed");
 			if (bufReaderInput != null) {
 				bufReaderInput.close();
 			}

@@ -23,7 +23,7 @@ public enum NetworkType {
 	/**
 	 * Identifies an unknown network type.
 	 */
-	UNKNOWN,
+	none,
 	
 	/**
 	 * Identifies the Wireless Fidelity (Wi-Fi) network.
@@ -39,6 +39,11 @@ public enum NetworkType {
 	 * Identifies the Universal Mobile Telecommunications System (UMTS) network.
 	 */
 	UMTS,
+	
+	/**
+	 * Identifies the Ethernet network.
+	 */
+	ETHERNET,
 	
 	/**
 	 * Identifies the High-Speed Downlink Packet Access (HSDPA) network.

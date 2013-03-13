@@ -21,6 +21,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
+import javax.swing.Icon;
 import javax.swing.JLabel;
 
 /**
@@ -58,6 +59,16 @@ public class HyperlinkLabel extends JLabel {
 	 */
 	public HyperlinkLabel(String text, int horizontalAlignment) {
 		super(text, horizontalAlignment);
+		init();
+	}
+
+	/**
+	 * Initializes a new instance of the HyperlinkLabel class using the 
+	 * specified icon.
+	 * @param icon - Icon image.
+	 */
+	public HyperlinkLabel(Icon icon) {
+		super(icon);
 		init();
 	}
 

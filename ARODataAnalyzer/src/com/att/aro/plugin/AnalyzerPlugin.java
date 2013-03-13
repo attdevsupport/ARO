@@ -15,7 +15,8 @@
  */
 package com.att.aro.plugin;
 
-import javax.swing.JPanel;
+import javax.swing.JMenuItem;
+import javax.swing.JScrollPane;
 
 import com.att.aro.main.ApplicationResourceOptimizer;
 
@@ -27,5 +28,7 @@ import com.att.aro.main.ApplicationResourceOptimizer;
  */
 public interface AnalyzerPlugin {
 		
-	JPanel getPanel(final ApplicationResourceOptimizer parent);
+	JScrollPane getPanel(final ApplicationResourceOptimizer parent);
+	
+	JMenuItem getMenuItem(final ApplicationResourceOptimizer parent);
 }

@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
@@ -125,6 +126,8 @@ import com.att.aro.model.UserEvent.UserEventType;
 import com.att.aro.model.UserPreferences;
 import com.att.aro.model.WifiInfo;
 import com.att.aro.model.WifiInfo.WifiState;
+import com.att.aro.model.cpu.CpuActivity;
+import com.att.aro.model.cpu.CpuActivityList;
 
 /**
  * Represents the Graph Panel that contains the graph in the Diagnostics tab.
@@ -296,6 +299,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 	private static final Logger logger = Logger.getLogger(GraphPanel.class.getName());
 
 	private static final Shape DEFAULT_POINT_SHAPE = new Ellipse2D.Double(-2, -2, 4, 4);
+	private static final Shape CPU_PLOT_POINT_SHAPE = new Ellipse2D.Double(-3, -3, 6, 6);
 
 	private static final String ZOOM_IN_ACTION = "zoomIn";
 	private static final String ZOOM_OUT_ACTION = "zoomOut";
@@ -309,25 +313,70 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 
 	private static final int MIN_SIGNAL = -121;
 	private static final int MAX_SIGNAL = -25;
+	
+	private static final int MIN_CPU_USAGE = -10;
+	private static final int MAX_CPU_USAGE = 110;
 
-	private static final NumberFormat format = new DecimalFormat();
-	private static final TickUnits units = new TickUnits();
+	private static final int FIVE      = 5;
+	private static final int FIVE0     = 50;
+	private static final int FIVE00    = 500;
+	private static final int FIVE000   = 5000;
+	private static final int FIVE0000  = 50000;
+	private static final int FIVE00000 = 500000;
+	
+	private static final int TVENTYFIVE     = 25;
+	private static final int TVENTYFIVE0    = 250;
+	private static final int TVENTYFIVE00   = 2500;
+	private static final int TVENTYFIVE000  = 25000;
+	private static final int TVENTYFIVE0000 = 250000;
+	
+	private static final int ONE = 1;
+	private static final int ONE0 = 10;
+	private static final int ONE00 = 100;
+	private static final int ONE000 = 1000;
+	private static final int ONE0000 = 10000;
+	private static final int ONE00000 = 100000;
+	
+	private static final int TWO = 2;
+	
+	private static final double POINT5  = 0.5;
+	private static final double POINT25 = .25;
+	private static final double POINT1  = .1;
+	private static final double POINT05 = .05;
+	private static final double POINT01 = .01;
+
+	private static final NumberFormat FORMAT = new DecimalFormat();
+	private static final TickUnits UNITS = new TickUnits();
 	static {
-		units.add(new NumberTickUnit(1000, format, MINOR_TICK_COUNT_5));
-		units.add(new NumberTickUnit(500, format, MINOR_TICK_COUNT_5));
-		units.add(new NumberTickUnit(250, format, MINOR_TICK_COUNT_5));
-		units.add(new NumberTickUnit(100, format, MINOR_TICK_COUNT_10));
-		units.add(new NumberTickUnit(50, format, MINOR_TICK_COUNT_10));
-		units.add(new NumberTickUnit(25, format, MINOR_TICK_COUNT_5));
-		units.add(new NumberTickUnit(10, format, MINOR_TICK_COUNT_10));
-		units.add(new NumberTickUnit(5, format, MINOR_TICK_COUNT_5));
-		units.add(new NumberTickUnit(2, format, MINOR_TICK_COUNT_4));
-		units.add(new NumberTickUnit(1, format, MINOR_TICK_COUNT_10));
-		units.add(new NumberTickUnit(.5, format, MINOR_TICK_COUNT_5));
-		units.add(new NumberTickUnit(.25, format, MINOR_TICK_COUNT_5));
-		units.add(new NumberTickUnit(.1, format, MINOR_TICK_COUNT_10));
-		units.add(new NumberTickUnit(.05, format, MINOR_TICK_COUNT_5));
-		units.add(new NumberTickUnit(.01, format, MINOR_TICK_COUNT_10));
+		UNITS.add(new NumberTickUnit(FIVE00000, FORMAT, MINOR_TICK_COUNT_5));
+		UNITS.add(new NumberTickUnit(TVENTYFIVE0000, FORMAT, MINOR_TICK_COUNT_5));
+		UNITS.add(new NumberTickUnit(ONE00000, FORMAT, MINOR_TICK_COUNT_10));
+
+		UNITS.add(new NumberTickUnit(FIVE0000, FORMAT, MINOR_TICK_COUNT_5));
+		UNITS.add(new NumberTickUnit(TVENTYFIVE000, FORMAT, MINOR_TICK_COUNT_5));
+		UNITS.add(new NumberTickUnit(ONE0000, FORMAT, MINOR_TICK_COUNT_10));
+		
+		UNITS.add(new NumberTickUnit(FIVE000, FORMAT, MINOR_TICK_COUNT_5));
+		UNITS.add(new NumberTickUnit(TVENTYFIVE00, FORMAT, MINOR_TICK_COUNT_5));
+		UNITS.add(new NumberTickUnit(ONE000, FORMAT, MINOR_TICK_COUNT_10));
+		
+		UNITS.add(new NumberTickUnit(FIVE00, FORMAT, MINOR_TICK_COUNT_5));
+		UNITS.add(new NumberTickUnit(TVENTYFIVE0, FORMAT, MINOR_TICK_COUNT_5));
+		UNITS.add(new NumberTickUnit(ONE00, FORMAT, MINOR_TICK_COUNT_10));
+		
+		UNITS.add(new NumberTickUnit(FIVE0, FORMAT, MINOR_TICK_COUNT_10));
+		UNITS.add(new NumberTickUnit(TVENTYFIVE, FORMAT, MINOR_TICK_COUNT_5));
+		UNITS.add(new NumberTickUnit(ONE0, FORMAT, MINOR_TICK_COUNT_10));
+		
+		UNITS.add(new NumberTickUnit(FIVE, FORMAT, MINOR_TICK_COUNT_5));
+		UNITS.add(new NumberTickUnit(TWO, FORMAT, MINOR_TICK_COUNT_4));
+		UNITS.add(new NumberTickUnit(ONE, FORMAT, MINOR_TICK_COUNT_10));
+		
+		UNITS.add(new NumberTickUnit(POINT5, FORMAT, MINOR_TICK_COUNT_5));
+		UNITS.add(new NumberTickUnit(POINT25, FORMAT, MINOR_TICK_COUNT_5));
+		UNITS.add(new NumberTickUnit(POINT1, FORMAT, MINOR_TICK_COUNT_10));
+		UNITS.add(new NumberTickUnit(POINT05, FORMAT, MINOR_TICK_COUNT_5));
+		UNITS.add(new NumberTickUnit(POINT01, FORMAT, MINOR_TICK_COUNT_10));
 	}
 
 	private static final List<ChartPlotOptions> plotOrder = new ArrayList<ChartPlotOptions>(
@@ -347,6 +396,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		plotOrder.add(ChartPlotOptions.BURSTS);
 		plotOrder.add(ChartPlotOptions.USER_INPUT);
 		plotOrder.add(ChartPlotOptions.RRC);
+		plotOrder.add(ChartPlotOptions.CPU);
 	}
 
 	private static String graphPanelSaveDirectory;
@@ -384,37 +434,19 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 	 */
 	public GraphPanel() {
 
-		subplotMap.put(ChartPlotOptions.GPS, new GraphPanelPlotLabels(rb.getString("chart.gps"),
-				createBarPlot(Color.gray), 1));
-		subplotMap.put(ChartPlotOptions.RADIO, new GraphPanelPlotLabels(
-				rb.getString("chart.radio"), createRadioPlot(), 2));
-		subplotMap.put(ChartPlotOptions.BLUETOOTH,
-				new GraphPanelPlotLabels(rb.getString("chart.bluetooth"),
-						createBarPlot(Color.gray), 1));
-		subplotMap
-				.put(ChartPlotOptions.CAMERA, new GraphPanelPlotLabels(
-						rb.getString("chart.camera"), createBarPlot(Color.gray), 1));
-		subplotMap.put(ChartPlotOptions.SCREEN,
-				new GraphPanelPlotLabels(rb.getString("chart.screen"), createBarPlot(new Color(34,
-						177, 76)), 1));
-		subplotMap.put(ChartPlotOptions.BATTERY,
-				new GraphPanelPlotLabels(rb.getString("chart.battery"), createBatteryPlot(), 2));
-		subplotMap.put(ChartPlotOptions.WIFI, new GraphPanelPlotLabels(rb.getString("chart.wifi"),
-				createBarPlot(Color.gray), 1));
-		subplotMap.put(ChartPlotOptions.NETWORK_TYPE,
-				new GraphPanelPlotLabels(rb.getString("chart.networkType"),
-						createBarPlot(Color.gray), 1));
-		subplotMap.put(ChartPlotOptions.THROUGHPUT,
-				new GraphPanelPlotLabels(rb.getString("chart.throughput"), createThroughputPlot(),
-						2));
-		subplotMap.put(ChartPlotOptions.BURSTS,
-				new GraphPanelPlotLabels(rb.getString("chart.bursts"), createBurstPlot(), 1));
-		subplotMap
-				.put(ChartPlotOptions.USER_INPUT,
-						new GraphPanelPlotLabels(rb.getString("chart.userInput"),
-								createUserEventPlot(), 1));
-		subplotMap.put(ChartPlotOptions.RRC, new GraphPanelPlotLabels(rb.getString("chart.rrc"),
-				createRrcPlot(), 1));
+		subplotMap.put(ChartPlotOptions.GPS, new GraphPanelPlotLabels(rb.getString("chart.gps"), createBarPlot(Color.gray), 1));
+		subplotMap.put(ChartPlotOptions.RADIO, new GraphPanelPlotLabels(rb.getString("chart.radio"), createRadioPlot(), 2));
+		subplotMap.put(ChartPlotOptions.BLUETOOTH, new GraphPanelPlotLabels(rb.getString("chart.bluetooth"), createBarPlot(Color.gray), 1));
+		subplotMap.put(ChartPlotOptions.CAMERA, new GraphPanelPlotLabels(rb.getString("chart.camera"), createBarPlot(Color.gray), 1));
+		subplotMap.put(ChartPlotOptions.SCREEN, new GraphPanelPlotLabels(rb.getString("chart.screen"), createBarPlot(new Color(34, 177, 76)), 1));
+		subplotMap.put(ChartPlotOptions.BATTERY, new GraphPanelPlotLabels(rb.getString("chart.battery"), createBatteryPlot(), 2));
+		subplotMap.put(ChartPlotOptions.WIFI, new GraphPanelPlotLabels(rb.getString("chart.wifi"), createBarPlot(Color.gray), 1));
+		subplotMap.put(ChartPlotOptions.NETWORK_TYPE, new GraphPanelPlotLabels(rb.getString("chart.networkType"), createBarPlot(Color.gray), 1));
+		subplotMap.put(ChartPlotOptions.THROUGHPUT,	new GraphPanelPlotLabels(rb.getString("chart.throughput"), createThroughputPlot(), 2));
+		subplotMap.put(ChartPlotOptions.BURSTS,	new GraphPanelPlotLabels(rb.getString("chart.bursts"), createBurstPlot(), 1));
+		subplotMap.put(ChartPlotOptions.USER_INPUT, new GraphPanelPlotLabels(rb.getString("chart.userInput"), createUserEventPlot(), 1));
+		subplotMap.put(ChartPlotOptions.RRC, new GraphPanelPlotLabels(rb.getString("chart.rrc"), createRrcPlot(), 1));
+		subplotMap.put(ChartPlotOptions.CPU, new GraphPanelPlotLabels(rb.getString("chart.cpu"), createCpuPlot(), 1));
 
 		this.pp = new PacketPlots();
 		subplotMap.put(ChartPlotOptions.UL_PACKETS,
@@ -423,7 +455,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 				new GraphPanelPlotLabels(rb.getString("chart.dl"), pp.getDlPlot(), 1));
 
 		this.axis = new NumberAxis();
-		this.axis.setStandardTickUnits(units);
+		this.axis.setStandardTickUnits(UNITS);
 		this.axis.setRange(new Range(0, DEFAULT_TIMELINE));
 		this.axis.setLowerBound(0);
 
@@ -432,8 +464,8 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		this.axis.setTickMarkOutsideLength(1);
 
 		this.axis.setMinorTickMarksVisible(true);
-		this.axis.setMinorTickMarkInsideLength(2.75f);
-		this.axis.setMinorTickMarkOutsideLength(2.75f);
+		this.axis.setMinorTickMarkInsideLength(2f);
+		this.axis.setMinorTickMarkOutsideLength(2f);
 		this.axis.setTickMarkInsideLength(4f);
 		this.axis.setTickMarkOutsideLength(4f);
 
@@ -551,6 +583,11 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 				break;
 			case WIFI:
 				populateWifiPlot(entry.getValue().getPlot(), analysis);
+				break;
+			case CPU:
+				populateCpuPlot(entry.getValue().getPlot(), analysis);
+				break;
+			default:
 				break;
 			}
 		}
@@ -1712,7 +1749,150 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		return radioPlot;
 
 	}
+	
+	/**
+	 * Adds CPU data into plot.
+	 * 
+	 * @param plot
+	 *            CPU data are added to plot
+	 * @param analysis
+	 *            Contains CPU data
+	 */
+	private static void populateCpuPlot(XYPlot plot, TraceData.Analysis analysis) {
+		logger.fine("Starting populateCpuPlot()");
+		if (analysis != null) {
 
+			final CpuActivityList cpuAList = analysis.getCpuActivityList();
+			boolean filterByTime = cpuAList.isFilterByTime();
+			double beginTime = 0;
+			double endTime = 0;
+			if (filterByTime) {
+				beginTime = cpuAList.getBeginTraceTime();
+				endTime = cpuAList.getEndTraceTime();
+				logger.log(Level.FINE, "begin: {0} end time: {1}", new Object[] { beginTime, endTime });
+			}
+
+			final List<CpuActivity> cpuData = cpuAList.getCpuActivityList();
+			XYSeries series = new XYSeries(0);
+			logger.log(Level.FINE, "Size of CPU data: " + cpuData.size());
+
+			if (cpuData.size() > 0) {
+				for (CpuActivity cpu : cpuData) {
+					if (filterByTime) {
+						logger.log(Level.FINE, "timestamp: {0}", cpu.getTimeStamp());
+						if (cpu.getTimeStamp() >= beginTime && cpu.getTimeStamp() <= endTime) {
+							logger.log(Level.FINE, "CPU usage: {0}", cpu.getCpuUsageTotalFiltered());
+							series.add(cpu.getTimeStamp(), cpu.getCpuUsageTotalFiltered());
+						}
+
+					} else {
+						logger.log(Level.FINE, "CPU usage: {0}", cpu.getCpuUsageTotalFiltered());
+						series.add(cpu.getTimeStamp(), cpu.getCpuUsageTotalFiltered());
+					}
+				}
+			}
+
+			// Assign ToolTip to renderer
+			XYItemRenderer renderer = plot.getRenderer();
+
+			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
+				@Override
+				public String generateToolTip(XYDataset dataset, int series, int item) {
+					return GraphPanel.generateToolTip(cpuAList, cpuData, item);
+				}
+			});
+
+			plot.setDataset(new XYSeriesCollection(series));
+		}
+	}
+
+	public static String generateToolTip(CpuActivityList cpuAList, List<CpuActivity> cpuData, int item) {
+		CpuActivity cpuA = cpuData.get(item);
+		return constructCpuToolTipText(cpuAList, cpuA);
+	}
+
+	private static String constructCpuToolTipText(CpuActivityList cpuAList, CpuActivity cpuA) {
+
+		StringBuffer toolTip = new StringBuffer(rb.getString("cpu.tooltip.prefix"));
+
+		// generate initial opening total CPU tooltip
+		String totalCpuTxt = MessageFormat.format(rb.getString("cpu.tooltip.total"), cpuA.getCpuUsageTotalFiltered());
+		toolTip.append(totalCpuTxt);
+
+		// generate individual process CPU tooltip
+		String individualCpuToolTips = generateIndividualCpuToolTips(cpuAList, cpuA);
+		if (individualCpuToolTips != null) {
+			toolTip.append(individualCpuToolTips);
+		}
+
+		// generate other tooltip
+		if (cpuA.getCpuUsageOther() > 0) {
+			String otherCpu = MessageFormat.format(rb.getString("cpu.tooltip.other"), cpuA.getCpuUsageOther());
+			toolTip.append(otherCpu);
+		}
+
+		// generate closing tooltip
+		toolTip.append(rb.getString("cpu.tooltip.suffix"));
+
+		return toolTip.toString();
+	}
+
+	private static String generateIndividualCpuToolTips(CpuActivityList cpuAList, CpuActivity cpuA) {
+
+		List<String> processNames = cpuA.getProcessNames();
+		List<Double> indCpuUsages = cpuA.getCpuUsages();
+		String processName;
+		Double cpuUsage;
+		StringBuffer sb = new StringBuffer();
+		String toolTip;
+
+		if (processNames != null && indCpuUsages != null) {
+			if (processNames.size() == indCpuUsages.size() && processNames.size() > 0) {
+				for (int i = 0; i < processNames.size(); i++) {
+					processName = processNames.get(i);
+					cpuUsage = indCpuUsages.get(i);
+					if (cpuAList.isProcessSelected(processName)) {
+						toolTip = MessageFormat.format(rb.getString("cpu.tooltip.individual"), processName, cpuUsage);
+						sb.append(toolTip);
+					}
+				}
+				return sb.toString();
+			} else {
+				return null;
+			}
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * Sets up the CPU plot
+	 * 
+	 * @return plot CPU plot
+	 */
+	private static XYPlot createCpuPlot() {
+
+		// Set up renderer
+		StandardXYItemRenderer renderer = new StandardXYItemRenderer(StandardXYItemRenderer.SHAPES_AND_LINES);
+		renderer.setAutoPopulateSeriesShape(false);
+		renderer.setBaseShape(CPU_PLOT_POINT_SHAPE);
+		renderer.setSeriesPaint(0, Color.black);
+
+		// Normalize the throughput axis so that it represents max value
+		NumberAxis axis = new NumberAxis();
+		axis.setVisible(false);
+		axis.setAutoRange(false);
+		axis.setRange(MIN_CPU_USAGE, MAX_CPU_USAGE);
+
+		// Create plot
+		XYPlot plot = new XYPlot(null, null, axis, renderer);
+		plot.setRangeAxisLocation(AxisLocation.BOTTOM_OR_LEFT);
+		plot.getRangeAxis().setVisible(false);
+
+		return plot;
+	}	
+	
+	
 	private static void populateThroughputPlot(XYPlot plot, TraceData.Analysis analysis) {
 
 		XYSeries series = new XYSeries(0);
@@ -1840,8 +2020,6 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 
 			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_SERVER),
 					Color.yellow);
-			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_BKG),
-					Color.lightGray);
 
 			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_LONG),
 					Color.gray);
@@ -2001,22 +2179,17 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 	}
 
 	private static void populateNetworkTyesPlot(XYPlot plot, TraceData.Analysis analysis) {
-		final XYIntervalSeriesCollection networkData = new XYIntervalSeriesCollection();
 		if (analysis != null) {
 
-			// create the GPS dataset...
-			Map<NetworkType, XYIntervalSeries> seriesMap = new EnumMap<NetworkType, XYIntervalSeries>(
-					NetworkType.class);
-			for (NetworkType eventType : NetworkType.values()) {
-				XYIntervalSeries series = new XYIntervalSeries(eventType);
-				seriesMap.put(eventType, series);
-				networkData.addSeries(series);
-			}
+			final XYIntervalSeriesCollection networkDataSeries = new XYIntervalSeriesCollection();
+			final Map<NetworkType, XYIntervalSeries> seriesMap = new EnumMap<NetworkType, XYIntervalSeries>(NetworkType.class);
+			createDataSeriesForAllNetworkTypes(seriesMap, networkDataSeries);
+			
 			Iterator<NetworkBearerTypeInfo> iter = analysis.getNetworTypeInfos().iterator();
 			if (iter.hasNext()) {
 				while (iter.hasNext()) {
 					NetworkBearerTypeInfo networkInfo = iter.next();
-					if (networkInfo.getNetworkType() != NetworkType.UNKNOWN) {
+					if (networkInfo.getNetworkType() != NetworkType.none) {
 						seriesMap.get(networkInfo.getNetworkType()).add(
 								networkInfo.getBeginTimestamp(), networkInfo.getBeginTimestamp(),
 								networkInfo.getEndTimestamp(), 0.5, 0, 1);
@@ -2024,35 +2197,63 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 				}
 			} else {
 				NetworkType nt = analysis.getTraceData().getNetworkType();
-				if (nt != null && nt != NetworkType.UNKNOWN) {
+				if (nt != null && nt != NetworkType.none) {
 					seriesMap.get(nt).add(0, 0,
 							analysis.getTraceData().getTraceDuration(), 0.5, 0, 1);
 				}
 			}
 
 			XYItemRenderer renderer = plot.getRenderer();
-			renderer.setSeriesPaint(networkData.indexOf(NetworkType.LTE), Color.RED);
-			renderer.setSeriesPaint(networkData.indexOf(NetworkType.WIFI), Color.BLUE);
-			renderer.setSeriesPaint(networkData.indexOf(NetworkType.UMTS), Color.PINK);
-			renderer.setSeriesPaint(networkData.indexOf(NetworkType.HSDPA), Color.YELLOW);
-			renderer.setSeriesPaint(networkData.indexOf(NetworkType.HSPA), Color.ORANGE);
-			renderer.setSeriesPaint(networkData.indexOf(NetworkType.HSPAP), Color.MAGENTA);
-			renderer.setSeriesPaint(networkData.indexOf(NetworkType.HSUPA), Color.CYAN);
-			renderer.setSeriesPaint(networkData.indexOf(NetworkType.GPRS), Color.GRAY);
+			setRenderingColorForDataSeries(renderer, networkDataSeries);
 
 			// Assign ToolTip to renderer
 			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
 				@Override
 				public String generateToolTip(XYDataset dataset, int series, int item) {
-					NetworkType networkType = (NetworkType) networkData.getSeries(series).getKey();
+					NetworkType networkType = (NetworkType) networkDataSeries.getSeries(series).getKey();
 					return MessageFormat.format(rb.getString("network.tooltip"),
 							dataset.getX(series, item),
 							ResourceBundleManager.getEnumString(networkType));
 				}
 			});
-
+			
+			plot.setDataset(networkDataSeries);
+			
+		} else {
+			plot.setDataset(new XYIntervalSeriesCollection());
 		}
-		plot.setDataset(networkData);
+	}
+
+	/**
+	 * Creates data series for all network types
+	 * 
+	 * @param networkDataSeries Collection of data series
+	 */
+	static void createDataSeriesForAllNetworkTypes(final Map<NetworkType, XYIntervalSeries> seriesMap,
+			                                       final XYIntervalSeriesCollection networkDataSeries) {
+		for (NetworkType nt : NetworkType.values()) {
+			XYIntervalSeries series = new XYIntervalSeries(nt);
+			seriesMap.put(nt, series);
+			networkDataSeries.addSeries(series);
+		}
+	}
+
+	/**
+	 * Sets rendering color for all different network type data series. 
+	 * @param renderer Renderer for the data series
+	 * @param dataSeries Data series
+	 */
+	static void setRenderingColorForDataSeries(XYItemRenderer renderer, final XYIntervalSeriesCollection dataSeries) {
+		renderer.setSeriesPaint(dataSeries.indexOf(NetworkType.none), Color.WHITE);
+		renderer.setSeriesPaint(dataSeries.indexOf(NetworkType.LTE), Color.RED);
+		renderer.setSeriesPaint(dataSeries.indexOf(NetworkType.WIFI), Color.BLUE);
+		renderer.setSeriesPaint(dataSeries.indexOf(NetworkType.UMTS), Color.PINK);
+		renderer.setSeriesPaint(dataSeries.indexOf(NetworkType.ETHERNET), Color.BLACK);
+		renderer.setSeriesPaint(dataSeries.indexOf(NetworkType.HSDPA), Color.YELLOW);
+		renderer.setSeriesPaint(dataSeries.indexOf(NetworkType.HSPA), Color.ORANGE);
+		renderer.setSeriesPaint(dataSeries.indexOf(NetworkType.HSPAP), Color.MAGENTA);
+		renderer.setSeriesPaint(dataSeries.indexOf(NetworkType.HSUPA), Color.CYAN);
+		renderer.setSeriesPaint(dataSeries.indexOf(NetworkType.GPRS), Color.GRAY);
 	}
 
 	/**
@@ -2073,5 +2274,4 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		Rectangle2D rect = new Rectangle2D.Double(0, 0, 5, 5);
 		return new TexturePaint(bufferedImage, rect);
 	}
-
 }

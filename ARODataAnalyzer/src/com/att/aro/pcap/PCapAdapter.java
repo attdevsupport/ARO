@@ -54,7 +54,9 @@ public class PCapAdapter {
 	 * @throws java.io.IOException
 	 */
 	public PCapAdapter(File file, final PacketListener pl) throws IOException {
+		logger.fine("Creating a new instance of the PCapAdapter");
 		if (pl == null) {
+			logger.severe("PacketListener cannot be null");
 			throw new IllegalArgumentException("PacketListener cannot be null");
 		}
 
@@ -62,8 +64,10 @@ public class PCapAdapter {
 		String result = loopPacket(file.getAbsolutePath());
 
 		if (result != null) {
+			logger.info("Result from executing all pcap packets: " +  result);
 			throw new IOException(result);
 		}
+		logger.fine("Created PCapAdapter");
 	}
 
 	/**

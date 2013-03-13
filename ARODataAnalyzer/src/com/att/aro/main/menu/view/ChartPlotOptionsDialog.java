@@ -15,7 +15,7 @@
  */
 
 
-package com.att.aro.main;
+package com.att.aro.main.menu.view;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -43,6 +43,10 @@ import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
 
+import com.att.aro.main.AROAdvancedTabb;
+import com.att.aro.main.ApplicationResourceOptimizer;
+import com.att.aro.main.ChartPlotOptions;
+import com.att.aro.main.ResourceBundleManager;
 import com.att.aro.model.UserPreferences;
 
 /**
@@ -51,7 +55,7 @@ import com.att.aro.model.UserPreferences;
 public class ChartPlotOptionsDialog extends JDialog {
 
 	private static final long serialVersionUID = 1L;
-	private static final ResourceBundle rb = ResourceBundleManager
+	private static final ResourceBundle RB = ResourceBundleManager
 			.getDefaultBundle();
 	private UserPreferences userPreferences = UserPreferences.getInstance();
 
@@ -62,6 +66,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JButton cancelButton;
 	private JPanel optionsPanel;
 	private JPanel jAdvancedOptionsPanel;
+	private JCheckBox jCPUStateCheckBox;
 	private JCheckBox jGPSStateCheckBox;
 	private JCheckBox jRadioStateCheckBox;
 	private JCheckBox jBluetoothCheckBox;
@@ -76,7 +81,6 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox jBurstsCheckBox;
 	private JCheckBox jUserInputCheckBox;
 	private JCheckBox jRRCStateCheckBox;
-	// private JCheckBox jBurstTypesColorCheckBox;
 	private JCheckBox jDefaultsCheckBox;
 
 	private List<ChartPlotOptions> currentCheckedOptionList;
@@ -105,7 +109,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 		this.actionableClass = actionableClass;
 		// grab the selected options from the user pref's file
 		this.defaultOptions = ChartPlotOptions.getDefaultList();
-		this.defaultViewCheckBoxText = rb
+		this.defaultViewCheckBoxText = RB
 				.getString("chart.options.dialog.defaults");
 		this.selectedOptions = userPreferences.getChartPlotOptions();
 		// create a check box map to iterate through later
@@ -128,6 +132,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	}
 
 	private void enableOptions(boolean enabled) {
+		jCPUStateCheckBox.setEnabled(enabled);
 		jGPSStateCheckBox.setEnabled(enabled);
 		jRadioStateCheckBox.setEnabled(enabled);
 		jBluetoothCheckBox.setEnabled(enabled);
@@ -142,15 +147,13 @@ public class ChartPlotOptionsDialog extends JDialog {
 		jBurstsCheckBox.setEnabled(enabled);
 		jUserInputCheckBox.setEnabled(enabled);
 		jRRCStateCheckBox.setEnabled(enabled);
-		// jBurstTypesColorCheckBox.setEnabled(enabled);
 	}
 
 	/**
 	 * Initializes the dialog.
 	 */
 	private void initialize() {
-		this.setTitle(rb.getString("chart.options.dialog.title"));
-		// List<ChartPlotOptions> listOnDialogOpen = getCheckedOptions();
+		this.setTitle(RB.getString("chart.options.dialog.title"));
 		this.setContentPane(getJContentPane());
 		if (isUserPrefsSelected(ChartPlotOptions.DEFAULT_VIEW)) {
 			enableOptions(false);
@@ -210,8 +213,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 			gridLayout.setRows(1);
 			gridLayout.setHgap(10);
 			jButtonGrid = new JPanel();
-			jButtonGrid.setBorder(BorderFactory.createEmptyBorder(10, 10, 10,
-					10));
+			jButtonGrid.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 			jButtonGrid.setLayout(gridLayout);
 			jButtonGrid.add(getJDefaultsCheckBox());
 			jButtonGrid.add(getOkButton(), null);
@@ -226,7 +228,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JButton getOkButton() {
 		if (okButton == null) {
 			okButton = new JButton();
-			okButton.setText(rb.getString("chart.options.dialog.button.ok"));
+			okButton.setText(RB.getString("chart.options.dialog.button.ok"));
 			okButton.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
@@ -249,7 +251,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JButton getCancelButton() {
 		if (cancelButton == null) {
 			cancelButton = new JButton();
-			cancelButton.setText(rb
+			cancelButton.setText(RB
 					.getString("chart.options.dialog.button.cancel"));
 			cancelButton.addActionListener(new ActionListener() {
 				@Override
@@ -291,6 +293,12 @@ public class ChartPlotOptionsDialog extends JDialog {
 	 */
 	private JPanel getJAdvancedOptionsPanel() {
 		if (jAdvancedOptionsPanel == null) {
+
+			GridBagConstraints gridBagConstraints15 = new GridBagConstraints();
+			gridBagConstraints15.gridx = 0;
+			gridBagConstraints15.anchor = GridBagConstraints.WEST;
+			gridBagConstraints15.gridy = 14;
+
 			GridBagConstraints gridBagConstraints14 = new GridBagConstraints();
 			gridBagConstraints14.gridx = 0;
 			gridBagConstraints14.anchor = GridBagConstraints.WEST;
@@ -364,39 +372,27 @@ public class ChartPlotOptionsDialog extends JDialog {
 			jAdvancedOptionsPanel = new JPanel();
 			jAdvancedOptionsPanel.setLayout(new GridBagLayout());
 			jAdvancedOptionsPanel.setBorder(BorderFactory.createTitledBorder(
-					null, rb.getString("chart.options.dialog.legend"),
+					null, RB.getString("chart.options.dialog.legend"),
 					TitledBorder.DEFAULT_JUSTIFICATION,
 					TitledBorder.DEFAULT_POSITION, new Font("Dialog",
 							Font.BOLD, 12), new Color(51, 51, 51)));
-
-			jAdvancedOptionsPanel.add(getJGPSStateCheckBox(),
-					gridBagConstraints1);
-			jAdvancedOptionsPanel.add(getJRadioStateCheckBox(),
-					gridBagConstraints2);
-			jAdvancedOptionsPanel.add(getJBluetoothCheckBox(),
-					gridBagConstraints3);
-			jAdvancedOptionsPanel
-					.add(getJCameraCheckBox(), gridBagConstraints4);
-			jAdvancedOptionsPanel
-					.add(getJScreenCheckBox(), gridBagConstraints5);
-			jAdvancedOptionsPanel.add(getJBatteryCheckBox(),
-					gridBagConstraints6);
-			jAdvancedOptionsPanel.add(getJWifiStateCheckBox(),
-					gridBagConstraints7);
-			jAdvancedOptionsPanel.add(getJThroughputCheckBox(),
-					gridBagConstraints8);
-			jAdvancedOptionsPanel
-					.add(getJUplinkCheckBox(), gridBagConstraints9);
-			jAdvancedOptionsPanel.add(getJDownlinkCheckBox(),
-					gridBagConstraints10);
-			jAdvancedOptionsPanel.add(getJBurstsCheckBox(),
-					gridBagConstraints11);
-			jAdvancedOptionsPanel.add(getJUserInputCheckBox(),
-					gridBagConstraints12);
-			jAdvancedOptionsPanel.add(getJRRCStateCheckBox(),
-					gridBagConstraints13);
-			 jAdvancedOptionsPanel.add(getJNetworkTypeCheckBox(),
-			 gridBagConstraints14);
+			
+			
+			jAdvancedOptionsPanel.add(getJGPSStateCheckBox(), gridBagConstraints1);
+			jAdvancedOptionsPanel.add(getJRadioStateCheckBox(), gridBagConstraints2);
+			jAdvancedOptionsPanel.add(getJBluetoothCheckBox(), gridBagConstraints3);
+			jAdvancedOptionsPanel.add(getJCameraCheckBox(), gridBagConstraints4);
+			jAdvancedOptionsPanel.add(getJScreenCheckBox(), gridBagConstraints5);
+			jAdvancedOptionsPanel.add(getJBatteryCheckBox(), gridBagConstraints6);
+			jAdvancedOptionsPanel.add(getJWifiStateCheckBox(), gridBagConstraints7);
+			jAdvancedOptionsPanel.add(getJThroughputCheckBox(),gridBagConstraints8);
+			jAdvancedOptionsPanel.add(getJUplinkCheckBox(), gridBagConstraints9);
+			jAdvancedOptionsPanel.add(getJDownlinkCheckBox(), gridBagConstraints10);
+			jAdvancedOptionsPanel.add(getJBurstsCheckBox(), gridBagConstraints11);
+			jAdvancedOptionsPanel.add(getJUserInputCheckBox(), gridBagConstraints12);
+			jAdvancedOptionsPanel.add(getJRRCStateCheckBox(), gridBagConstraints13);
+			jAdvancedOptionsPanel.add(getJNetworkTypeCheckBox(), gridBagConstraints14);
+			jAdvancedOptionsPanel.add(getJCPUStateCheckBox(), gridBagConstraints15);
 
 		}
 		return jAdvancedOptionsPanel;
@@ -420,6 +416,30 @@ public class ChartPlotOptionsDialog extends JDialog {
 	}
 
 	/**
+	 * Initializes jCPUStateCheckBox
+	 * 
+	 * @return javax.swing.JCheckBox
+	 */
+	private JCheckBox getJCPUStateCheckBox() {
+		if (jCPUStateCheckBox == null) {
+			jCPUStateCheckBox = new JCheckBox();
+			jCPUStateCheckBox.setText(RB.getString("chart.options.dialog.cpu"));
+			jCPUStateCheckBox.setSelected(isUserPrefsSelected(ChartPlotOptions.CPU));
+			checkBoxPlots.put(jCPUStateCheckBox, ChartPlotOptions.CPU);
+		}
+		return jCPUStateCheckBox;
+	}
+	
+	/** 
+	 * Return status of the CPU check box from the View Options dialog
+	 * 
+	 * @return Returns true is selected, false if not selected.
+	 */
+	public boolean isCpuCheckBoxSelected(){
+		return getJCPUStateCheckBox().isSelected();
+	}
+
+	/**
 	 * Initializes jGPSStateCheckBox
 	 * 
 	 * @return javax.swing.JCheckBox
@@ -427,7 +447,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox getJGPSStateCheckBox() {
 		if (jGPSStateCheckBox == null) {
 			jGPSStateCheckBox = new JCheckBox();
-			jGPSStateCheckBox.setText(rb.getString("chart.options.dialog.gps"));
+			jGPSStateCheckBox.setText(RB.getString("chart.options.dialog.gps"));
 			jGPSStateCheckBox
 					.setSelected(isUserPrefsSelected(ChartPlotOptions.GPS));
 			checkBoxPlots.put(jGPSStateCheckBox, ChartPlotOptions.GPS);
@@ -444,7 +464,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox getJWifiStateCheckBox() {
 		if (jWifiStateCheckBox == null) {
 			jWifiStateCheckBox = new JCheckBox();
-			jWifiStateCheckBox.setText(rb
+			jWifiStateCheckBox.setText(RB
 					.getString("chart.options.dialog.wifi"));
 			jWifiStateCheckBox
 					.setSelected(isUserPrefsSelected(ChartPlotOptions.WIFI));
@@ -461,7 +481,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox getJNetworkTypeCheckBox() {
 		if (jNetworkTypeCheckBox == null) {
 			jNetworkTypeCheckBox = new JCheckBox();
-			jNetworkTypeCheckBox.setText(rb
+			jNetworkTypeCheckBox.setText(RB
 					.getString("chart.options.dialog.network"));
 			jNetworkTypeCheckBox
 					.setSelected(isUserPrefsSelected(ChartPlotOptions.NETWORK_TYPE));
@@ -478,7 +498,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox getJUplinkCheckBox() {
 		if (jUplinkCheckBox == null) {
 			jUplinkCheckBox = new JCheckBox();
-			jUplinkCheckBox.setText(rb
+			jUplinkCheckBox.setText(RB
 					.getString("chart.options.dialog.ulpackets"));
 			jUplinkCheckBox
 					.setSelected(isUserPrefsSelected(ChartPlotOptions.UL_PACKETS));
@@ -495,7 +515,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox getJDownlinkCheckBox() {
 		if (jDownlinkCheckBox == null) {
 			jDownlinkCheckBox = new JCheckBox();
-			jDownlinkCheckBox.setText(rb
+			jDownlinkCheckBox.setText(RB
 					.getString("chart.options.dialog.dlpackets"));
 			jDownlinkCheckBox
 					.setSelected(isUserPrefsSelected(ChartPlotOptions.DL_PACKETS));
@@ -513,7 +533,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 		if (jBurstsCheckBox == null) {
 			jBurstsCheckBox = new JCheckBox();
 			jBurstsCheckBox
-					.setText(rb.getString("chart.options.dialog.bursts"));
+					.setText(RB.getString("chart.options.dialog.bursts"));
 			jBurstsCheckBox
 					.setSelected(isUserPrefsSelected(ChartPlotOptions.BURSTS));
 			checkBoxPlots.put(jBurstsCheckBox, ChartPlotOptions.BURSTS);
@@ -529,7 +549,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox getJUserInputCheckBox() {
 		if (jUserInputCheckBox == null) {
 			jUserInputCheckBox = new JCheckBox();
-			jUserInputCheckBox.setText(rb
+			jUserInputCheckBox.setText(RB
 					.getString("chart.options.dialog.userinput"));
 			jUserInputCheckBox
 					.setSelected(isUserPrefsSelected(ChartPlotOptions.USER_INPUT));
@@ -546,7 +566,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox getJRRCStateCheckBox() {
 		if (jRRCStateCheckBox == null) {
 			jRRCStateCheckBox = new JCheckBox();
-			jRRCStateCheckBox.setText(rb.getString("chart.options.dialog.rrc"));
+			jRRCStateCheckBox.setText(RB.getString("chart.options.dialog.rrc"));
 			jRRCStateCheckBox
 					.setSelected(isUserPrefsSelected(ChartPlotOptions.RRC));
 			checkBoxPlots.put(jRRCStateCheckBox, ChartPlotOptions.RRC);
@@ -562,7 +582,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox getJRadioStateCheckBox() {
 		if (jRadioStateCheckBox == null) {
 			jRadioStateCheckBox = new JCheckBox();
-			jRadioStateCheckBox.setText(rb
+			jRadioStateCheckBox.setText(RB
 					.getString("chart.options.dialog.radio"));
 			jRadioStateCheckBox
 					.setSelected(isUserPrefsSelected(ChartPlotOptions.RADIO));
@@ -579,7 +599,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox getJBluetoothCheckBox() {
 		if (jBluetoothCheckBox == null) {
 			jBluetoothCheckBox = new JCheckBox();
-			jBluetoothCheckBox.setText(rb
+			jBluetoothCheckBox.setText(RB
 					.getString("chart.options.dialog.bluetooth"));
 			jBluetoothCheckBox
 					.setSelected(isUserPrefsSelected(ChartPlotOptions.BLUETOOTH));
@@ -596,7 +616,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox getJCameraCheckBox() {
 		if (jCameraStateCheckBox == null) {
 			jCameraStateCheckBox = new JCheckBox();
-			jCameraStateCheckBox.setText(rb
+			jCameraStateCheckBox.setText(RB
 					.getString("chart.options.dialog.camera"));
 			jCameraStateCheckBox
 					.setSelected(isUserPrefsSelected(ChartPlotOptions.CAMERA));
@@ -613,7 +633,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox getJBatteryCheckBox() {
 		if (jBatteryStateCheckBox == null) {
 			jBatteryStateCheckBox = new JCheckBox();
-			jBatteryStateCheckBox.setText(rb
+			jBatteryStateCheckBox.setText(RB
 					.getString("chart.options.dialog.battery"));
 			jBatteryStateCheckBox
 					.setSelected(isUserPrefsSelected(ChartPlotOptions.BATTERY));
@@ -630,7 +650,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox getJScreenCheckBox() {
 		if (jScreenStateCheckBox == null) {
 			jScreenStateCheckBox = new JCheckBox();
-			jScreenStateCheckBox.setText(rb
+			jScreenStateCheckBox.setText(RB
 					.getString("chart.options.dialog.screen"));
 			jScreenStateCheckBox
 					.setSelected(isUserPrefsSelected(ChartPlotOptions.SCREEN));
@@ -647,7 +667,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox getJThroughputCheckBox() {
 		if (jThroughputCheckBox == null) {
 			jThroughputCheckBox = new JCheckBox();
-			jThroughputCheckBox.setText(rb
+			jThroughputCheckBox.setText(RB
 					.getString("chart.options.dialog.throughput"));
 			jThroughputCheckBox
 					.setSelected(isUserPrefsSelected(ChartPlotOptions.THROUGHPUT));
@@ -657,14 +677,14 @@ public class ChartPlotOptionsDialog extends JDialog {
 	}
 
 	/**
-	 * Initializes jBurstTypesColorCheckBox
+	 * Initializes Default View check box
 	 * 
 	 * @return javax.swing.JCheckBox
 	 */
 	private JCheckBox getJDefaultsCheckBox() {
 		if (jDefaultsCheckBox == null) {
 			jDefaultsCheckBox = new JCheckBox();
-			jDefaultsCheckBox.setText(rb
+			jDefaultsCheckBox.setText(RB
 					.getString("chart.options.dialog.defaults"));
 			jDefaultsCheckBox
 					.setSelected(isUserPrefsSelected(ChartPlotOptions.DEFAULT_VIEW));
@@ -672,7 +692,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 			ItemListener itemListener = new ItemListener() {
 				public void itemStateChanged(ItemEvent itemEvent) {
 					boolean enableItems = !(itemEvent.getStateChange() == ItemEvent.SELECTED);
-					if (enableItems == false) {
+					if (!enableItems) {
 						updateDefaultCheckBoxes();
 					}
 					enableOptions(enableItems);
@@ -704,7 +724,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	 * Updates the state of the check boxes on the dialog based on current user
 	 * preferences.
 	 */
-	protected void updateFromUserPreferences() {
+	public void updateFromUserPreferences() {
 		// grab the selected options from the user pref's file
 		this.selectedOptions = userPreferences.getChartPlotOptions();
 		// loop on all check boxes and set selected status based on current/new

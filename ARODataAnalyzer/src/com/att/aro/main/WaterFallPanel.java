@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.ImageIcon;
@@ -117,6 +118,17 @@ public class WaterFallPanel extends JPanel {
 	private static final NumberFormat format = new DecimalFormat();
 	private static final TickUnits units = new TickUnits();
 	static {
+		units.add(new NumberTickUnit(500000, format, 5));
+		units.add(new NumberTickUnit(250000, format, 5));
+		units.add(new NumberTickUnit(100000, format, 10));
+
+		units.add(new NumberTickUnit(50000, format, 5));
+		units.add(new NumberTickUnit(25000, format, 5));
+		units.add(new NumberTickUnit(10000, format, 10));
+		
+		units.add(new NumberTickUnit(5000, format, 5));
+		units.add(new NumberTickUnit(2500, format, 5));
+		
 		units.add(new NumberTickUnit(1000, format, 5));
 		units.add(new NumberTickUnit(500, format, 5));
 		units.add(new NumberTickUnit(250, format, 5));
@@ -189,16 +201,28 @@ public class WaterFallPanel extends JPanel {
 		// Create sorted list of request/response pairs
 		List<WaterfallCategory> categoryList = new ArrayList<WaterfallCategory>();
 		if (analysis != null) {
+			
+			logger.info("Some Analysis data available");
+			logger.info("traceDuration: " + analysis.getTraceData().getTraceDuration());
 			this.traceDuration = analysis.getTraceData().getTraceDuration();
+			// add 20% to make sure labels close to the right edge of the screen are visible
+			this.traceDuration *= 1.2; 
 			range = Math.min(this.traceDuration, DEFAULT_TIMELINE);
+			
 			for (TCPSession tcpSession : analysis.getTcpSessions()) {
+				logger.fine("Got one TCP Session with number HTTP req/rsp: " + tcpSession.getRequestResponseInfo().size());
 				for (HttpRequestResponseInfo reqRes : tcpSession.getRequestResponseInfo()) {
 					if (reqRes.getDirection() == Direction.REQUEST
 							&& reqRes.getWaterfallInfos() != null) {
+						logger.fine("Found HTTP request with Waterfall info");
 						categoryList.add(new WaterfallCategory(reqRes));
+					} else {
+						logger.fine("Found HTTP request but w/o Waterfall info");
 					}
 				}
 			}
+			
+			logger.fine("Size of categoryList: " + categoryList.size());
 			
 			// Sort and set index
 			Collections.sort(categoryList);
@@ -206,6 +230,8 @@ public class WaterFallPanel extends JPanel {
 			for (WaterfallCategory wc : categoryList) {
 				wc.index = ++index;
 			}
+		} else {
+			logger.info("No Analysis data available");
 		}
 
 		// Horizontal scroll bar used to scroll through trace duration
@@ -499,10 +525,13 @@ public class WaterFallPanel extends JPanel {
 
 				@Override
 				public void stateChanged(ChangeEvent arg0) {
-					timeAxis.setRange(horizontalScroll.getValue(), horizontalScroll.getValue()
-							+ horizontalScroll.getVisibleAmount());
+					int scrollStart = horizontalScroll.getValue();
+					int scrollEnd = scrollStart + horizontalScroll.getVisibleAmount();
+					
+					logger.log(Level.FINE, "Change Event: Setting time range to {0} - {1}", new Object[] {scrollStart, scrollEnd});
+					// Set time axis range based on scroll bar new position 
+					timeAxis.setRange(scrollStart, scrollEnd);
 				}
-
 			});
 		}
 		return horizontalScroll;
@@ -515,7 +544,7 @@ public class WaterFallPanel extends JPanel {
 		if (zoomOutButton == null) {
 			ImageIcon zoomOutButtonIcon = Images.DEMAGNIFY.getIcon();
 			zoomOutButton = new JButton(zoomOutButtonIcon);
-			zoomOutButton.setEnabled(true);
+			zoomOutButton.setEnabled(false);
 			zoomOutButton.setPreferredSize(new Dimension(60, 30));
 			zoomOutButton.addActionListener(new ActionListener() {
 
@@ -550,9 +579,10 @@ public class WaterFallPanel extends JPanel {
 
 	private void zoomIn() {
 		Range r = timeAxis.getRange();
-		double l = r.getLowerBound();
-		double u = l + (r.getUpperBound() - l) / ZOOM_FACTOR;
-		setTimeRange(l,u);
+		logger.log(Level.FINE, "Time axis range in seconds is {0} - {1}",  new Object[] {r.getLowerBound(), r.getUpperBound()});
+		double lowl = r.getLowerBound();
+		double high = lowl + (r.getUpperBound() - lowl) / ZOOM_FACTOR;
+		setTimeRange(lowl, high);
 	}
 
 	/**
@@ -560,36 +590,43 @@ public class WaterFallPanel extends JPanel {
 	 */
 	private void zoomOut() {
 		Range r = timeAxis.getRange();
-
-		double l = r.getLowerBound();
-		double u = l + (r.getUpperBound() - l) * ZOOM_FACTOR;
-		setTimeRange(l, u);
+		logger.log(Level.FINE, "Time axis range in seconds is {0} - {1}",  new Object[] {r.getLowerBound(), r.getUpperBound()});
+		double low = r.getLowerBound();
+		double high = low + (r.getUpperBound() - low) * ZOOM_FACTOR;
+		setTimeRange(low, high);
 	}
 	
-	private void setTimeRange(double l, double u) {
+	private void setTimeRange(double low, double high) {
+		logger.log(Level.FINE, "NEW range to {0} - {1}", new Object[] {low, high});
+		logger.log(Level.FINE, "Trace duration is {0} seconds", traceDuration);
+
 		boolean zoomInEnabled = true;
 		boolean zoomOutEnabled = true;
-		
-		JScrollBar h = getHorizontalScroll();
-		if (u > traceDuration) {
-			double delta = u - traceDuration;
-			l -= delta;
-			u -= delta;
-			if (l < 0) {
-				l = 0.0;
-				zoomOutEnabled = false;
-			}
+		JScrollBar scrollBarr = getHorizontalScroll();
+		if (high > traceDuration) {
+			double delta = high - traceDuration;
+			low -= delta;
+			high -= delta;
+			if (low < 0) {
+				low = 0.0;
+			}				
 		}
-		if (u - l <= 1.0) {
-			u = l + 1.0;
+		
+		if (high - low <= 1.0) {
+			high = low + 1.0;
 			zoomInEnabled = false;
 		}
 
-		// Set the time range
-		timeAxis.setRange(new Range(l, u));
-		h.setValue((int) l);
-		h.setVisibleAmount((int) Math.ceil(u - l));
-		h.setBlockIncrement(h.getVisibleAmount());
+		if((high - low) < traceDuration){
+			zoomOutEnabled = true;
+		} else {
+			zoomOutEnabled = false;
+		}
+		
+		logger.log(Level.FINE, "Range set to {0} - {1}", new Object[] {low, high});
+		scrollBarr.setValue((int) low);
+		scrollBarr.setVisibleAmount((int) Math.ceil(high - low));
+		scrollBarr.setBlockIncrement(scrollBarr.getVisibleAmount());
 
 		// Enable zoom buttons appropriately
 		zoomOutButton.setEnabled(zoomOutEnabled);

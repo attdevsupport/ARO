@@ -25,6 +25,7 @@ import java.io.Serializable;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -35,7 +36,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -50,12 +50,14 @@ import com.att.aro.model.PacketInfo.Direction;
 import com.att.aro.model.ScreenStateInfo.ScreenState;
 import com.att.aro.model.UserEvent.UserEventType;
 import com.att.aro.model.WifiInfo.WifiState;
-import com.att.aro.pcap.DomainNameSystem;
+import com.att.aro.model.cpu.CpuActivity;
+import com.att.aro.model.cpu.CpuActivityList;
 import com.att.aro.pcap.IPPacket;
 import com.att.aro.pcap.NetmonAdapter;
 import com.att.aro.pcap.PCapAdapter;
 import com.att.aro.pcap.Packet;
 import com.att.aro.pcap.PacketListener;
+import com.att.aro.util.Util;
 
 /**
  * Encapsulates the trace data. Contains methods that parse the files in the
@@ -64,7 +66,6 @@ import com.att.aro.pcap.PacketListener;
 public class TraceData implements Serializable {
 	
 	private static final long serialVersionUID = 1L;
-	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
 	private static Pattern wifiPattern = Pattern
 			.compile("\\S*\\s*\\S*\\s*(\\S*)\\s*(\\S*)\\s*(.*)");
@@ -87,7 +88,7 @@ public class TraceData implements Serializable {
 
 		// Configuration/profile/filter
 		private Profile profile;
-		private AnalysisFilter filter;
+		private AnalysisFilter applicationFilter;
 
 		// List of packets included in analysis (application filtered)
 		private List<PacketInfo> packets;
@@ -113,9 +114,9 @@ public class TraceData implements Serializable {
 		private BurstCollectionAnalysis bcAnalysis;
 		
 		// CPU activity info
-		private List<CpuActivity> cpuActivityList = new ArrayList<CpuActivity>();
+		private CpuActivityList cpuActivityList;
 
-		// Gps Info
+		// GPS Info
 		private List<GpsInfo> gpsInfos = new ArrayList<GpsInfo>();
 
 		// Bearer Info
@@ -167,26 +168,19 @@ public class TraceData implements Serializable {
 			if (timeRange != null) {
 				double beginTime = timeRange.getBeginTime();
 				double endTime = timeRange.getEndTime();
-				this.cpuActivityList = getCpuInfosForTheTimeRange(TraceData.this.cpuActivityList,
-						beginTime, endTime);
-				this.gpsInfos = getGpsInfosForTheTimeRange(TraceData.this.gpsInfos, beginTime,
-						endTime);
-				this.bluetoothInfos = getBluetoothInfosForTheTimeRange(
-						TraceData.this.bluetoothInfos, beginTime, endTime);
-				this.wifiInfos = getWifiInfosForTheTimeRange(TraceData.this.wifiInfos, beginTime,
-						endTime);
-				this.batteryInfos = getBatteryInfosForTheTimeRange(TraceData.this.batteryInfos,
-						beginTime, endTime);
-				this.radioInfos = getRadioInfosForTheTimeRange(TraceData.this.radioInfos,
-						beginTime, endTime);
-				this.cameraInfos = getCameraInfosForTheTimeRange(TraceData.this.cameraInfos,
-						beginTime, endTime);
-				this.screenStateInfos = getScreenInfosForTheTimeRange(
-						TraceData.this.screenStateInfos, beginTime, endTime);
-				this.userEvents = getUserEventsForTheTimeRange(TraceData.this.userEvents,
-						beginTime, endTime);
-				this.networkTypeInfos = getNetworkInfosForTheTimeRange(
-						TraceData.this.networkTypeInfos, beginTime, endTime);
+				
+				this.cpuActivityList = TraceData.this.cpuActivityList;
+				cpuActivityList.updateTimeRange(beginTime, endTime);
+				
+				this.gpsInfos = getGpsInfosForTheTimeRange(TraceData.this.gpsInfos, beginTime, endTime);
+				this.bluetoothInfos = getBluetoothInfosForTheTimeRange(TraceData.this.bluetoothInfos, beginTime, endTime);
+				this.wifiInfos = getWifiInfosForTheTimeRange(TraceData.this.wifiInfos, beginTime, endTime);
+				this.batteryInfos = getBatteryInfosForTheTimeRange(TraceData.this.batteryInfos, beginTime, endTime);
+				this.radioInfos = getRadioInfosForTheTimeRange(TraceData.this.radioInfos, beginTime, endTime);
+				this.cameraInfos = getCameraInfosForTheTimeRange(TraceData.this.cameraInfos, beginTime, endTime);
+				this.screenStateInfos = getScreenInfosForTheTimeRange(TraceData.this.screenStateInfos, beginTime, endTime);
+				this.userEvents = getUserEventsForTheTimeRange(TraceData.this.userEvents, beginTime, endTime);
+				this.networkTypeInfos = getNetworkInfosForTheTimeRange(TraceData.this.networkTypeInfos, beginTime, endTime);
 
 			} else {
 				this.cpuActivityList = TraceData.this.cpuActivityList;
@@ -235,8 +229,8 @@ public class TraceData implements Serializable {
 				packets = TraceData.this.allPackets;
 			}
 
-			this.filter = filter != null ? new AnalysisFilter(filter) : new AnalysisFilter(
-					TraceData.this);
+			this.applicationFilter = filter != null ? new AnalysisFilter(filter) : new AnalysisFilter(TraceData.this);
+
 			runAnalysis();
 		}
 
@@ -319,7 +313,7 @@ public class TraceData implements Serializable {
 							if (contentLength > 0) {
 								String contentType = info.getContentType();
 								if (contentType == null || contentType.trim().length() == 0) {
-									contentType = rb.getString("chart.filetype.unknown");
+									contentType = Util.RB.getString("chart.filetype.unknown");
 								}
 								FileTypeSummary summary = content.get(contentType);
 								if (summary == null) {
@@ -350,7 +344,7 @@ public class TraceData implements Serializable {
 					iterator.remove();
 				}
 
-				FileTypeSummary other = new FileTypeSummary(rb.getString("chart.filetype.others"));
+				FileTypeSummary other = new FileTypeSummary(Util.RB.getString("chart.filetype.others"));
 				other.setBytes(otherValuesTotal);
 				result.add(other);
 
@@ -570,12 +564,12 @@ public class TraceData implements Serializable {
 		}
 
 		/**
-		 * Returns the cpu activity information.
+		 * Returns the cpu activity information belonging to Analysis class.
 		 * 
 		 * @return A List of CpuActivity objects containing the information.
 		 */
-		public List<CpuActivity> getCpuActivityList() {
-			return Collections.unmodifiableList(cpuActivityList);
+		public CpuActivityList getCpuActivityList() {
+			return cpuActivityList;
 		}
 
 		/**
@@ -623,7 +617,7 @@ public class TraceData implements Serializable {
 		public AnalysisFilter getFilter() {
 
 			// Returns a copy to prevent changes
-			return new AnalysisFilter(filter);
+			return new AnalysisFilter(applicationFilter);
 		}
 
 		/**
@@ -1138,37 +1132,6 @@ public class TraceData implements Serializable {
 		}
 
 		/**
-		 * Returns the list of cpu events filtered based on the time range.
-		 */
-		private List<CpuActivity> getCpuInfosForTheTimeRange(List<CpuActivity> cpuActivityList,
-				double beginTime, double endTime) {
-
-			List<CpuActivity> filteredCpuActivities = new ArrayList<CpuActivity>();
-			for (CpuActivity cpuActivity : cpuActivityList) {
-
-				if (cpuActivity.getBeginTimeStamp() >= beginTime
-						&& cpuActivity.getEndTimeStamp() <= endTime) {
-					filteredCpuActivities.add(cpuActivity);
-				} else if (cpuActivity.getBeginTimeStamp() <= beginTime
-						&& cpuActivity.getEndTimeStamp() <= endTime
-						&& cpuActivity.getEndTimeStamp() > beginTime) {
-					filteredCpuActivities.add(new CpuActivity(beginTime, cpuActivity
-							.getEndTimeStamp(), cpuActivity.getUsage()));
-				} else if (cpuActivity.getBeginTimeStamp() <= beginTime
-						&& cpuActivity.getEndTimeStamp() >= endTime) {
-					filteredCpuActivities.add(new CpuActivity(beginTime, endTime, cpuActivity
-							.getUsage()));
-				} else if (cpuActivity.getBeginTimeStamp() >= beginTime
-						&& cpuActivity.getBeginTimeStamp() < endTime
-						&& cpuActivity.getEndTimeStamp() >= endTime) {
-					filteredCpuActivities.add(new CpuActivity(cpuActivity.getBeginTimeStamp(),
-							endTime, cpuActivity.getUsage()));
-				}
-			}
-			return filteredCpuActivities;
-		}
-
-		/**
 		 * Returns the list of network bearers found in the trace filtered based
 		 * on the time range.
 		 */
@@ -1249,6 +1212,7 @@ public class TraceData implements Serializable {
 		private Double startTime;
 		private Double eventTime;
 		private Double duration;
+		private Integer timezoneOffset;
 
 		/**
 		 * Initializes an instance of the TraceData.Times class.
@@ -1284,6 +1248,14 @@ public class TraceData implements Serializable {
 			return duration;
 		}
 
+		/**
+		 * Returns the timezone.
+		 * 
+		 * @return The timezone offset value (in minutes).
+		 */
+		public Integer getTimezoneOffset() {
+			return timezoneOffset;
+		}
 	}
 
 	/**
@@ -1437,13 +1409,15 @@ public class TraceData implements Serializable {
 	private static final String SCREEN_OFF = "OFF";
 	private static final String SCREEN_ON = "ON";
 
-	private static final int PACKET_UNKNOWN_APP = -1;
+	static final int VALID_UNKNOWN_APP_ID = -1;
 	private static final int PACKET_EOF = -127;
 
 	// Trace network types
+	private static final int NONE = 0;
 	private static final int WIFI = -1;
 	private static final int GPRS = 1;
 	private static final int UMTS = 3;
+	private static final int ETHERNET = 5;
 	private static final int HSDPA = 8;
 	private static final int HSUPA = 9;
 	private static final int HSPA = 10;
@@ -1495,6 +1469,15 @@ public class TraceData implements Serializable {
 					result.duration = Double.valueOf(Double.parseDouble(s)
 							- result.startTime.doubleValue());
 				}
+				
+				s = br.readLine();
+				if (s != null) {
+					try {
+					result.timezoneOffset = Integer.valueOf(s);
+					}catch (NumberFormatException e){
+						logger.log(Level.WARNING, "Unable to parse Collector Timezone Offset - " + s);
+					}
+				}
 			}
 		} finally {
 			br.close();
@@ -1516,7 +1499,7 @@ public class TraceData implements Serializable {
 	private Map<String, String> appVersionMap = new HashMap<String, String>();
 
 	// CPU activity info
-	private List<CpuActivity> cpuActivityList = new ArrayList<CpuActivity>();
+	private CpuActivityList cpuActivityList = new CpuActivityList();
 
 	// Gps Info
 	private List<GpsInfo> gpsInfos = new ArrayList<GpsInfo>();
@@ -1560,6 +1543,7 @@ public class TraceData implements Serializable {
 	private double wifiActiveDuration;
 	private double bluetoothActiveDuration;
 	private double cameraActiveDuration;
+	private int captureOffset = -1;
 
 	private Set<String> missingFiles = new HashSet<String>();
 
@@ -1615,8 +1599,7 @@ public class TraceData implements Serializable {
 
 		// Check input directory
 		if (traceDir == null || !traceDir.exists()) {
-			throw new IllegalArgumentException(
-					"Argument must represent an existing directory or pcap file");
+			throw new IllegalArgumentException("Argument must represent an existing directory or pcap file.");
 		}
 		this.traceDir = traceDir;
 
@@ -1631,6 +1614,11 @@ public class TraceData implements Serializable {
 		}
 
 	}
+
+	/**
+	 * Non-argument constructor.
+	 */
+	public TraceData() { }
 
 	/**
 	 * Returns the trace directory.
@@ -1886,19 +1874,25 @@ public class TraceData implements Serializable {
 		}
 
 		List<Integer> appIds = new ArrayList<Integer>();
-		BufferedReader br = new BufferedReader(new FileReader(file));
+		BufferedReader bufferRead = new BufferedReader(new FileReader(file));
 		try {
-			for (String s = br.readLine(); s != null; s = br.readLine()) {
-				int appId = Integer.valueOf(s);
-
-				// Check for EOF indicator
-				if (appId == PACKET_EOF) {
-					break;
+			int appId;
+			for (String line = bufferRead.readLine(); line != null; line = bufferRead.readLine()) {
+				line = line.trim();
+				if (!(line.isEmpty())) {
+					appId = Integer.valueOf(line);
+					// Check for EOF indicator
+					if (appId == PACKET_EOF) {
+						break;
+					}
+					appIds.add(appId);
+				} else {
+					logger.warning("appid file contains a line not well formated");
 				}
-				appIds.add(appId);
+				
 			}
 		} finally {
-			br.close();
+			bufferRead.close();
 		}
 		return appIds;
 	}
@@ -1919,6 +1913,9 @@ public class TraceData implements Serializable {
 			startTime = times.startTime;
 			if (times.eventTime != null) {
 				this.eventTime0 = times.eventTime.doubleValue();
+			}
+			if (times.timezoneOffset != null){
+				this.captureOffset = times.timezoneOffset.intValue();
 			}
 			duration = times.duration;
 
@@ -1999,7 +1996,7 @@ public class TraceData implements Serializable {
 				}
 
 			} catch (NumberFormatException e) {
-				networkType = NetworkType.UNKNOWN;
+				networkType = NetworkType.none;
 			}
 			if (networkType != null) {
 				networkTypeInfos.add(new NetworkBearerTypeInfo(0, traceDuration, networkType));
@@ -2026,7 +2023,12 @@ public class TraceData implements Serializable {
 			String[] fields = line.split(" ");
 			if (fields.length == 2) {
 				beginTime = normalizeTime(Double.parseDouble(fields[0]));
-				networkType = getNetworkTypeFromCode(Integer.parseInt(fields[1]));
+				try {
+					networkType = getNetworkTypeFromCode(Integer.parseInt(fields[1]));
+				} catch (NumberFormatException e){
+					networkType = NetworkType.none;
+					logger.log(Level.WARNING, "Invalid network type ["+ fields[1] + "]");
+				}
 				networkTypesList.add(networkType);
 				while ((line = reader.readLine()) != null) {
 					fields = line.split(" ");
@@ -2034,7 +2036,12 @@ public class TraceData implements Serializable {
 						endTime = normalizeTime(Double.parseDouble(fields[0]));
 						networkTypeInfos.add(new NetworkBearerTypeInfo(beginTime, endTime,
 								networkType));
-						networkType = getNetworkTypeFromCode(Integer.parseInt(fields[1]));
+						try {
+							networkType = getNetworkTypeFromCode(Integer.parseInt(fields[1]));
+						} catch (NumberFormatException e){
+							networkType = NetworkType.none;
+							logger.log(Level.WARNING, "Invalid network type ["+ fields[1] + "]");
+						}
 						beginTime = endTime;
 						if (!networkTypesList.contains(networkType)) {
 							networkTypesList.add(networkType);
@@ -2047,7 +2054,7 @@ public class TraceData implements Serializable {
 
 			}
 		}
-
+		reader.close();
 	}
 
 	/**
@@ -2077,11 +2084,11 @@ public class TraceData implements Serializable {
 				try {
 					new NetmonAdapter(pcapFile, packetListener);
 				} catch (UnsatisfiedLinkError er) {
-					// TODO This indicates that NetMon is not installed on user
-					// PC
+					logger.severe("NetmonAdapter: UnsatisfiedLinkError, NetMon is not installed");
 					throw er;
 				} catch (IOException io) {
 					// Throw the original IOException
+					logger.severe("NetmonAdapter: IOException");
 					throw e;
 				}
 			}
@@ -2094,8 +2101,6 @@ public class TraceData implements Serializable {
 
 		// Determine application name associated with each packet
 		if (allPackets.size() > 0) {
-			int i = 0;
-			final String pcapAppName = "";
 			this.pcapTime0 = startTime != null ? startTime.doubleValue() : allPackets.get(0)
 					.getPacket().getTimeStamp();
 			this.traceDuration = duration != null ? duration.doubleValue() : allPackets
@@ -2104,7 +2109,18 @@ public class TraceData implements Serializable {
 			if (appIds == null) {
 				appIds = Collections.emptyList();
 			}
-			for (Iterator<PacketInfo> iter = allPackets.iterator(); iter.hasNext(); ++i) {
+			
+			//Determine if timezone difference needs to be accounted for
+			int tzDiff = 0;
+			if (captureOffset != -1) {
+				int localOffset = Calendar.getInstance().getTimeZone()
+						.getRawOffset() / 1000;
+				int collectorOffset = captureOffset * 60 * -1;
+				tzDiff = collectorOffset - localOffset;
+			}
+
+			int packetIdx = 0;
+			for (Iterator<PacketInfo> iter = allPackets.iterator(); iter.hasNext(); ++packetIdx) {
 				PacketInfo packet = iter.next();
 
 				// Filter out non-IP packets
@@ -2114,31 +2130,13 @@ public class TraceData implements Serializable {
 				}
 
 				IPPacket ip = (IPPacket) packet.getPacket();
-				packet.setDir(determinePacketDirection(ip.getSourceIPAddress(),
-						ip.getDestinationIPAddress()));
-				packet.setTimestamp(ip.getTimeStamp() - this.pcapTime0);
+				
+				packet.setDir(determinePacketDirection(ip.getSourceIPAddress(), ip.getDestinationIPAddress()));
+				packet.setTimestamp(ip.getTimeStamp() - this.pcapTime0 - tzDiff);
 
-				String appName = packet.getAppName();
-				if (appName == null) {
-					if (i < appIds.size()) {
-						int appId = appIds.get(i);
-
-						// Check for valid application
-						if (appId >= 0) {
-							assert (appId < appInfos.size());
-
-							appName = appId < appInfos.size() ? appInfos.get(appId) : null;
-						} else {
-
-							// Should indicate unknown app ID
-							assert (appId == PACKET_UNKNOWN_APP);
-							appName = null;
-						}
-					} else {
-						appName = pcapAppName;
-					}
-					packet.setAppName(appName);
-				}
+				//Associate application ID with the packet 
+				String appName = getAppNameForPacket(packetIdx, appIds, this.appInfos);
+				packet.setAppName(appName);
 				this.allAppNames.add(appName);
 
 				// Group IPs by app
@@ -2150,7 +2148,7 @@ public class TraceData implements Serializable {
 				ips.add(packet.getRemoteIPAddress());
 
 				// Set packet ID to match Wireshark ID
-				packet.setId(i + 1);
+				packet.setId(packetIdx + 1);
 
 			}
 
@@ -2163,6 +2161,40 @@ public class TraceData implements Serializable {
 		this.traceDateTime = new Date((long) (this.pcapTime0 * 1000));
 	}
 
+	/**
+	 * Associate app IDs with packets 
+	 */
+	static String getAppNameForPacket(int packetIdx, List<Integer> appIds, List<String> appInfos){
+		
+		String appName = Util.RB.getString("aro.unknownApp");
+		int numberOfAppIds = appIds.size();
+				
+		if (packetIdx < numberOfAppIds && packetIdx >= VALID_UNKNOWN_APP_ID ) {
+
+			int appIdIdx = appIds.get(packetIdx);
+			if (appIdIdx >= 0) {
+				if (appIdIdx < appInfos.size())
+				{
+					appName = appInfos.get(appIdIdx);
+				} else {
+					logger.log(Level.WARNING, "Invalid app ID {0} for packet {1}", new Object[] {appIdIdx, packetIdx});
+					assert false;
+				}
+			} else if (appIdIdx != VALID_UNKNOWN_APP_ID) {
+				logger.log(Level.WARNING, "Invalid app ID {0} for packet {1}", new Object[] {appIdIdx, packetIdx});
+				assert false;
+			}
+			
+		} else {
+			logger.log(Level.WARNING, "No app ID for packet {0}", packetIdx);
+			assert false;
+		}
+
+		return appName;
+		
+	}
+	
+	
 	/**
 	 * Parses the user event trace
 	 * 
@@ -2328,7 +2360,7 @@ public class TraceData implements Serializable {
 		try {
 			readAppInfo();
 		} catch (IOException e) {
-			logger.warning("*** Warning: no app information found ***");
+			logger.info("*** Warning: no app information found ***");
 		}
 
 		// Read the time file and PCAP trace
@@ -2337,131 +2369,129 @@ public class TraceData implements Serializable {
 		try {
 			readDeviceInfo();
 		} catch (IOException e) {
-			logger.warning("*** Warning: no device information found ***");
+			logger.info("*** Warning: no device information found ***");
 		}
 
 		try {
 			readDeviceDetails();
 		} catch (IOException e) {
-			logger.warning("*** Warning: no device detail information found ***");
+			logger.info("*** Warning: no device detail information found ***");
 		}
 
 		try {
 			readNetworkDetails();
 		} catch (IOException e) {
-			logger.warning("*** Warning: no network detail information found ***");
+			logger.info("*** Warning: no network detail information found ***");
 		}
 
 		try {
-			readCpu();
+			readCpuTraceFile();
 		} catch (IOException e) {
-			logger.warning("*** Warning: no CPU information found ***");
+			logger.info("*** Warning: no CPU information found ***");
 		}
 
 		try {
 			readGps();
 		} catch (IOException e) {
-			logger.warning("*** Warning: no GPS information found ***");
+			logger.info("*** Warning: no GPS information found ***");
 		}
 
 		try {
 			readBluetooth();
 		} catch (IOException e) {
-			logger.warning("*** Warning: no Bluetooth information found ***");
+			logger.info("*** Warning: no Bluetooth information found ***");
 		}
 
 		try {
 			readWifi();
 		} catch (IOException e) {
-			logger.warning("*** Warning: no Wifi information found ***");
+			logger.info("*** Warning: no Wifi information found ***");
 		}
 
 		try {
 			readCamera();
 		} catch (IOException e) {
-			logger.warning("*** Warning: no Camera information found ***");
+			logger.info("*** Warning: no Camera information found ***");
 		}
 
 		try {
 			readScreenState();
 		} catch (IOException e) {
-			logger.warning("*** Warning: no Screen State information found ***");
+			logger.info("*** Warning: no Screen State information found ***");
 		}
 
 		try {
 			readUserEvents();
 		} catch (IOException e) {
-			logger.warning("*** Warning: no user event information found ***");
+			logger.info("*** Warning: no user event information found ***");
 		}
 		try {
 			readScreenRotations();
 		} catch (IOException e) {
-			logger.warning("*** Warning: no screen rotations information found ***");
+			logger.info("*** Warning: no screen rotations information found ***");
 		}
 
 		try {
 			// Reads the battery information
 			readBattery();
 		} catch (IOException e) {
-			logger.warning("*** Warning: no battery information found ***");
+			logger.info("*** Warning: no battery information found ***");
 		}
 
 		try {
 			readRadioEvents();
 		} catch (IOException e) {
-			logger.warning("*** Warning: no Radio Events information found ***");
+			logger.info("*** Warning: no Radio Events information found ***");
 		}
 
 		try {
 			readVideoTime();
 		} catch (IOException e) {
-			logger.warning("*** Warning: no Video time information found ***");
+			logger.info("*** Warning: no Video time information found ***");
 		}
 
 	}
-
+	
 	/**
 	 * Reads the CPU trace information from the CPU file.
 	 * 
 	 * @throws IOException
 	 */
-	private void readCpu() throws IOException {
-		File file = new File(traceDir, CPU_FILE);
-		if (!file.exists()) {
+	public void readCpuTraceFile() throws IOException {
+		readCpuTraceFile(traceDir, CPU_FILE);
+	}
+
+	/**
+	 * Reads the CPU trace information from the CPU file.
+	 * 
+	 * @param traceDir
+	 * @patam cpuFileName
+	 * @throws IOException
+	 */
+	public void readCpuTraceFile(File traceDir, String cpuFileName) throws IOException {
+
+		logger.fine("Reading CPU file...");
+
+		File cpuFile = new File(traceDir, cpuFileName);
+
+		if (!cpuFile.exists()) {
+			logger.log(Level.FINE, "CPU file is missing: {0}: {1}", new Object[] { traceDir.getAbsolutePath(), cpuFileName });
 			this.missingFiles.add(CPU_FILE);
+			return;
 		}
-
-		BufferedReader br = new BufferedReader(new FileReader(file));
+		
+		BufferedReader br = new BufferedReader(new FileReader(cpuFile));
 		try {
-			double prevCpuUsage = 0.0;
-			double beginTime = 0.0;
-			double endTime = 0.0;
-			String firstLine = br.readLine();
-			if (firstLine != null) {
-				String strFieldsFirstLine[] = firstLine.split(" ");
-				if (strFieldsFirstLine.length == 2) {
-					beginTime = normalizeTime(Double.parseDouble(strFieldsFirstLine[0]));
-					prevCpuUsage = Double.parseDouble(strFieldsFirstLine[1]);
-
+			String line = br.readLine();
+			while (line != null) {
+				if (line.trim().length() > 0) {
+					cpuActivityList.add(CpuActivity.parseCpuLine(cpuActivityList, line, pcapTime0));
 				}
-
-				for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br
-						.readLine()) {
-					String strFields[] = strLineBuf.split(" ");
-					if (strFields.length == 2) {
-						endTime = normalizeTime(Double.parseDouble(strFields[0]));
-						double cpuUsage = Double.parseDouble(strFields[1]);
-						CpuActivity cpuActivity = new CpuActivity(beginTime, endTime, prevCpuUsage);
-						cpuActivityList.add(cpuActivity);
-
-						prevCpuUsage = cpuUsage;
-						beginTime = endTime;
-					}
-				}
-				cpuActivityList.add(new CpuActivity(beginTime, getTraceDuration(), prevCpuUsage));
+				line = br.readLine();
 			}
 		} finally {
 			br.close();
+			logger.fine("Done reading CPU file...");
 		}
 	}
 
@@ -3113,8 +3143,8 @@ public class TraceData implements Serializable {
 	 * variables.
 	 */
 	private void readVideoTime() throws IOException {
-		String videoDisplayFileName = rb.getString("video.videoDisplayFile");
-		String videoFileNameFromDevice = rb.getString("video.videoFileOnDevice");
+		String videoDisplayFileName = Util.RB.getString("video.videoDisplayFile");
+		String videoFileNameFromDevice = Util.RB.getString("video.videoFileOnDevice");
 		File videoDisplayFile = new File(traceDir, videoDisplayFileName);
 		File videoFileFromDevice = new File(traceDir, videoFileNameFromDevice);
 		if (videoDisplayFile.exists() || videoFileFromDevice.exists()) {
@@ -3216,24 +3246,14 @@ public class TraceData implements Serializable {
 	}
 
 	/**
-	 * Normalizes the collected time with respect to the trace start time. The
-	 * check done is for backward compatibility with traces created with early
-	 * test versions of the data collector which attempted to normalize on the
-	 * device. This normalization was moved here to make it consistent with all
-	 * analysis data.
+	 * Normalizes the collected time with respect to the trace start time.
 	 * 
-	 * @param time
-	 *            The time value to be normalized.
+	 * @param time The time value to be normalized.
+	 * @param pcapTime The trace start time.
 	 * @return The normalized time in double.
 	 */
 	private double normalizeTime(double time) {
-
-		// The comparison check here is for backward compatibility
-		time = time > 1.0E9 ? time - pcapTime0 : time;
-		if (time < 0) {
-			return 0.0;
-		}
-		return time;
+		return Util.normalizeTime(time, pcapTime0);
 	}
 
 	/**
@@ -3261,37 +3281,40 @@ public class TraceData implements Serializable {
 	}
 
 	private NetworkType getNetworkTypeFromCode(int networkTypeCode) {
-		NetworkType networkType;
 		switch (networkTypeCode) {
 		case WIFI:
-			networkType = NetworkType.WIFI;
-			break;
+			return NetworkType.WIFI;
 		case GPRS:
-			networkType = NetworkType.GPRS;
-			break;
+			return NetworkType.GPRS;
 		case UMTS:
-			networkType = NetworkType.UMTS;
-			break;
+			return NetworkType.UMTS;
+		case ETHERNET:
+			return NetworkType.ETHERNET;
 		case HSDPA:
-			networkType = NetworkType.HSDPA;
-			break;
+			return NetworkType.HSDPA;
 		case HSUPA:
-			networkType = NetworkType.HSUPA;
-			break;
+			return NetworkType.HSUPA;
 		case HSPA:
-			networkType = NetworkType.HSPA;
-			break;
+			return NetworkType.HSPA;
 		case HSPAP:
-			networkType = NetworkType.HSPAP;
-			break;
+			return NetworkType.HSPAP;
 		case LTE:
-			networkType = NetworkType.LTE;
-			break;
+			return NetworkType.LTE;
+		case NONE:
+			return NetworkType.none;
 		default:
-			networkType = NetworkType.UNKNOWN;
-			break;
+			return NetworkType.none;
 		}
-		return networkType;
 
 	}
+
+	/**
+	 * Returns CPU activity list
+	 * 
+	 * @return the cpuActivityList
+	 */
+	public CpuActivityList getCpuActivityList() {
+		return cpuActivityList;
+	}
+	
 }

@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.att.aro.model.HttpRequestResponseInfo.Direction;
 
@@ -29,6 +31,8 @@ import com.att.aro.model.HttpRequestResponseInfo.Direction;
  * such as the pass/fail status of the test, and the test results.
  */
 public class BestPractices {
+
+	private static final Logger LOGGER = Logger.getLogger(BestPractices.class.getName());
 
 	private static final int PERIPHERAL_ACTIVE_LIMIT = 5;
 
@@ -40,6 +44,8 @@ public class BestPractices {
 
 	private SortedMap<Integer, Integer> httpErrorCounts = new TreeMap<Integer, Integer>();
 	private Map<Integer, HttpRequestResponseInfo> firstErrorRespMap = new HashMap<Integer, HttpRequestResponseInfo>();
+	private SortedMap<Integer, Integer> httpRedirectCounts = new TreeMap<Integer, Integer>();
+	private Map<Integer, HttpRequestResponseInfo> firstRedirectRespMap = new HashMap<Integer, HttpRequestResponseInfo>();
 
 	private boolean multipleTcpCon = true;
 	private boolean periodicTrans = true;
@@ -91,13 +97,16 @@ public class BestPractices {
 		double largestBurstTime = 0.0;
 		double largestBurstBeginTime = 0.0;
 		int burstCategoryCount = 0;
-		int userInputBurstCount = 0;
+		int tmpUserInputBurstCount = 0;
 		double wastedBurstEnergy = 0.0;
 		double maxEnergy = 0.0;
 		double largestEnergyTime = 0.0;
 
 		// Burst Best practices.
 		for (Burst burst : analysisData.getBcAnalysis().getBurstCollection()) {
+			
+			LOGGER.log(Level.FINE, "Burst category: {0}", burst.getBurstCategory());
+			
 
 			// Largest burst time
 			double time = burst.getEndTime() - burst.getBeginTime();
@@ -106,13 +115,19 @@ public class BestPractices {
 				largestBurstBeginTime = burst.getBeginTime();
 			}
 
-			// To validate 5 user input bursts in a row
+			/*
+			 * Counts number of subsequent USER bursts.
+			 * Stores the highest number to be used for the best practice tab. 
+			 */
 			if (BurstCategory.BURSTCAT_USER == burst.getBurstCategory()) {
 				burstCategoryCount++;
 			} else {
 				burstCategoryCount = 0;
 			}
-			userInputBurstCount = Math.max(userInputBurstCount, burstCategoryCount);
+			LOGGER.log(Level.FINE, "burstCategoryCount set to: {0}", burstCategoryCount);
+			tmpUserInputBurstCount = Math.max(tmpUserInputBurstCount, burstCategoryCount);
+			LOGGER.log(Level.FINE, "tmpUserInputBurstCount set to: {0}", tmpUserInputBurstCount);
+
 
 			if (burst.getBurstCategory() == BurstCategory.BURSTCAT_PROTOCOL) {
 				double currentEnergy = burst.getEnergy();
@@ -131,7 +146,7 @@ public class BestPractices {
 			}
 		}
 		this.largeBurstTime = largestBurstBeginTime;
-		this.userInputBurstCount = userInputBurstCount;
+		this.userInputBurstCount = tmpUserInputBurstCount;
 		this.offloadingToWiFi = (bcAnalysis.getLongBurstCount() <= 3);
 		if (bcAnalysis.getTotalEnergy() > 0) {
 			double percentageWasted = wastedBurstEnergy / bcAnalysis.getTotalEnergy();
@@ -141,7 +156,7 @@ public class BestPractices {
 			this.largestEnergyTime = largestEnergyTime;
 		}
 
-		// Check HTTP 1.0 best practice and HTTP 4xx/5xx best practice
+		// Check HTTP 1.0 best practice and HTTP 301/302 and 4xx/5xx best practices
 		for (TCPSession s : analysisData.getTcpSessions()) {
 			for (HttpRequestResponseInfo reqRessInfo : s.getRequestResponseInfo()) {
 				if (HttpRequestResponseInfo.HTTP10.equals(reqRessInfo.getVersion())) {
@@ -164,6 +179,24 @@ public class BestPractices {
 					}
 					if (firstErrorRespMap.get(status) == null) {
 						firstErrorRespMap.put(status, reqRessInfo);
+					}
+				}
+				if (reqRessInfo.getDirection() == Direction.RESPONSE
+						&& HttpRequestResponseInfo.HTTP_SCHEME
+								.equals(reqRessInfo.getScheme())) {
+					int code = reqRessInfo.getStatusCode();
+					if ((code == 301) || (code == 302)) {
+						Integer status = Integer.valueOf(reqRessInfo
+								.getStatusCode());
+						Integer count = httpRedirectCounts.get(status);
+						if (count != null) {
+							httpRedirectCounts.put(status, count + 1);
+						} else {
+							httpRedirectCounts.put(status, 1);
+						}
+						if (firstRedirectRespMap.get(status) == null) {
+							firstRedirectRespMap.put(status, reqRessInfo);
+						}
 					}
 				}
 			}
@@ -283,8 +316,8 @@ public class BestPractices {
 	 * Returns a value indicating whether or not more than 5% of the total energy is being 
 	 * used for TCP control; a level that indicates a connection closing problem.
 	 * 
-	 * @return A boolean value that is true if the trace data shows a connection closing 
-	 * problem, and false otherwise.
+	 * @return A boolean value that is false if the trace data shows a connection closing 
+	 * problem, and true otherwise.
 	 */
 	public boolean getConnectionClosingProblem() {
 		return conClosingProb;
@@ -580,7 +613,7 @@ public class BestPractices {
 	public SortedMap<Integer, Integer> getHttpErrorCounts() {
 		return Collections.unmodifiableSortedMap(httpErrorCounts);
 	}
-
+	
 	/**
 	 * Returns map of HTTP status codes to first response instance in analysis
 	 * that has the specified error code.  Note that only status codes of 400+
@@ -590,6 +623,28 @@ public class BestPractices {
 	 */
 	public Map<Integer, HttpRequestResponseInfo> getFirstErrorRespMap() {
 		return Collections.unmodifiableMap(firstErrorRespMap);
+	}
+	
+	/**
+	 * Returns a sorted map of the counts of HTTP redirect status codes that 
+	 * occurred in the trace analysis.  Note that only status codes of 301/302
+	 * are included.
+	 * @return the httpRedirectCounts map key is HTTP status code and value is
+	 * number of occurrences of the status code
+	 */
+	public SortedMap<Integer, Integer> getHttpRedirectCounts() {
+		return Collections.unmodifiableSortedMap(httpRedirectCounts);
+	}
+
+	/**
+	 * Returns map of HTTP status codes to first response instance in analysis
+	 * that has the specified error code.  Note that only status codes of 301/302
+	 * are included.
+	 * @return the firstErrorRespMap map key is HTTP status code and value is
+	 * associated HTTP response
+	 */
+	public Map<Integer, HttpRequestResponseInfo> getFirstRedirectRespMap() {
+		return Collections.unmodifiableMap(firstRedirectRespMap);
 	}
 
 	/**

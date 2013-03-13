@@ -17,6 +17,7 @@ package com.att.aro.pcap;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
  * Encapsulates the logic used for parsing data from a Microsoft Network Monitor trace file 
@@ -24,6 +25,8 @@ import java.io.IOException;
  *
  */
 public class NetmonAdapter {
+	
+	private static final Logger logger = Logger.getLogger(NetmonAdapter.class.getName());
 
 	/**
 	 * A code that identifies a Microsoft Network Monitor related error.
@@ -49,7 +52,9 @@ public class NetmonAdapter {
 	 * @throws IOException
 	 */
 	public NetmonAdapter(File file, final PacketListener pl) throws IOException {
+		logger.info("Creating Netmon Adapter...");
 		if (pl == null) {
+			logger.severe("PacketListener cannot be null");
 			throw new IllegalArgumentException("PacketListener cannot be null");
 		}
 
@@ -61,6 +66,7 @@ public class NetmonAdapter {
 		case NETMON_TRACE_FILE_LOAD_ERROR:
 		case NETMON_ERROR:
 		default:
+			logger.severe("NetMon error code: " + retval);
 			throw new IOException("NetMon error code: " + retval);
 		}
 	}

@@ -20,7 +20,6 @@ package com.att.aro.main;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ResourceBundle;
 
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
@@ -34,6 +33,7 @@ import com.att.aro.main.FilterIpAddressesTableModel.AppIPAddressSelection;
 import com.att.aro.model.AnalysisFilter;
 import com.att.aro.model.ApplicationSelection;
 import com.att.aro.model.IPAddressSelection;
+import com.att.aro.util.Util;
 
 /**
  * Represents the table model for the Select Applications/IPs dialog 
@@ -88,10 +88,9 @@ public class FilterIpAddressesTableModel extends DataTableModel<AppIPAddressSele
 	 */
 	public static final int COLOR_COL = 3;
 
-	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
-	private static final String[] columns = { rb.getString("filter.select"),
-			rb.getString("filter.app"), rb.getString("filter.ip"),
-			rb.getString("filter.color") };
+	private static final String[] columns = { Util.RB.getString("filter.select"),
+			Util.RB.getString("filter.app"), Util.RB.getString("filter.ip"),
+			Util.RB.getString("filter.color") };
 
 	/**
 	 * Constructor that creates and initializes initializes the FilterIpAddressesTableModel 
@@ -129,7 +128,7 @@ public class FilterIpAddressesTableModel extends DataTableModel<AppIPAddressSele
 		case SELECT_COL:
 			return item.ipSelection.isSelected();
 		case APP_COL:
-			return item.appName != null ? item.appName : rb.getString("aro.unknownApp");
+			return Util.getDefaultAppName(item.appName);
 		case IP_COL:
 			return item.ipSelection.getIpAddress() != null ? item.ipSelection.getIpAddress().getHostAddress() : null;
 		case COLOR_COL:

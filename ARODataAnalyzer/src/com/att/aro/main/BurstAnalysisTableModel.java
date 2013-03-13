@@ -204,8 +204,6 @@ public class BurstAnalysisTableModel extends DataTableModel<BurstAnalysisInfo> {
 			return rb.getString("burst.type.App");
 		case BURSTCAT_SERVER:
 			return rb.getString("burst.type.SvrNetDelay");
-		case BURSTCAT_BKG:
-			return rb.getString("burst.type.NonTarget");
 		case BURSTCAT_LONG:
 			return rb.getString("burst.type.LargeBurst");
 		case BURSTCAT_PERIODICAL:

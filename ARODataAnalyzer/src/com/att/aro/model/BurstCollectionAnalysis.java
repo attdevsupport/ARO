@@ -28,10 +28,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import com.att.aro.model.PacketInfo.Direction;
 import com.att.aro.model.PacketInfo.TcpInfo;
 import com.att.aro.model.UserEvent.UserEventType;
+import com.att.aro.model.cpu.CpuActivity;
 import com.att.aro.pcap.IPPacket;
 import com.att.aro.pcap.Packet;
 
@@ -47,10 +49,12 @@ import com.att.aro.pcap.Packet;
 public class BurstCollectionAnalysis implements Serializable {
 
 	private static final long serialVersionUID = 1L;
+	
+	private static final Logger LOGGER = Logger.getLogger(BurstCollectionAnalysis.class.getName());
 
 	private static final double EPS = 1 * Math.pow(10, -6);
 	private static final double USER_EVENT_TOLERATE = 4.0f;
-	private static final double AVG_CPU_USAGE_THRESHOLD = 0.7;
+	private static final double AVG_CPU_USAGE_THRESHOLD = 70.0f;
 
 	private TraceData.Analysis analysis;
 	private Profile profile;
@@ -65,6 +69,8 @@ public class BurstCollectionAnalysis implements Serializable {
 	private double minimumPeriodicRepeatTime = 0.0;
 	private TCPSession shortestPeriodTCPSession = null;
 	private PacketInfo shortestPeriodPacketInfo = null;
+	
+	private static final String LOG_MSG1 = "Burst set to: {0}";
 
 	// Contains the burst analysis info
 	private List<BurstAnalysisInfo> burstAnalysisInfo = new ArrayList<BurstAnalysisInfo>();
@@ -521,11 +527,6 @@ public class BurstCollectionAnalysis implements Serializable {
 			burstCategoryToActive.put(category, d);
 
 		}
-		{
-			long p1 = getPayloadLenBkg();
-			burstCategoryToPayload.put(BurstCategory.BURSTCAT_BKG, p1);
-			totalPayload += p1;
-		}
 		for (Map.Entry<BurstCategory, Double> entry : burstCategoryToEnergy.entrySet()) {
 			BurstCategory categ = entry.getKey();
 			long catPayload = burstCategoryToPayload.get(categ);
@@ -543,11 +544,15 @@ public class BurstCollectionAnalysis implements Serializable {
 	}
 
 	/**
-	 * Method to assign the burst states.
+	 * Assigns burst category to each burst in a collection of bursts.
+	 * The collection of bursts have been populated prior to this API call.
 	 */
 	private void analyzeBursts() {
+		
+		LOGGER.fine("Entered analyzeBursts()");
+		
 		List<UserEvent> userEvents = analysis.getUserEvents();
-		List<CpuActivity> cpuEvents = analysis.getCpuActivityList();
+		List<CpuActivity> cpuEvents = analysis.getCpuActivityList().getCpuActivityList();
 		int userEventsSize = userEvents.size();
 		int cpuEventsSize = cpuEvents.size();
 		int userEventPointer = 0;
@@ -556,63 +561,80 @@ public class BurstCollectionAnalysis implements Serializable {
 		Burst b = null;
 		Burst lastBurst;
 		for (Iterator<Burst> i = burstCollection.iterator(); i.hasNext();) {
+			
+			LOGGER.fine("-----------------------------------------");
+			
 			lastBurst = b;
 			b = i.next();
-			// Step 1: Remove background packets
-			List<PacketInfo> pktIdx = new ArrayList<PacketInfo>(b.getPackets().size());
-			int payloadLen = 0;
-			Set<TcpInfo> tcpInfo = new HashSet<TcpInfo>();
+			List<PacketInfo> burstPacketCollection = new ArrayList<PacketInfo>(b.getPackets().size());
+			int burstPayloadLen = 0;
+			Set<TcpInfo> burstPacketTcpInfo = new HashSet<TcpInfo>();
 			for (PacketInfo p : b.getPackets()) {
-				if (p.getAppName() != null) {
-					payloadLen += p.getPayloadLen();
-					pktIdx.add(p);
-					TcpInfo tcp = p.getTcpInfo();
-					if (tcp != null) {
-						tcpInfo.add(tcp);
-					}
+				burstPayloadLen += p.getPayloadLen();
+				burstPacketCollection.add(p);
+				TcpInfo tcp = p.getTcpInfo();
+				if (tcp != null) {
+					burstPacketTcpInfo.add(tcp);
 				}
 			}
-			if (pktIdx.size() == 0) {
-				assert (payloadLen == 0);
-				b.addBurstInfo(BurstInfo.BURST_BKG);
-				continue;
+			
+			PacketInfo pkt0 = null;
+			TcpInfo info0 = null;
+			double time0 = 0;
+			if (0 != burstPacketCollection.size()) {
+				pkt0 = burstPacketCollection.get(0);
+				info0 = pkt0.getTcpInfo();
+				time0 = pkt0.getTimeStamp();
 			}
-			PacketInfo pkt0 = pktIdx.get(0);
-			TcpInfo info0 = pkt0.getTcpInfo();
-			double time0 = pkt0.getTimeStamp();
+			
 
-			// Step 2: a long burst?
+
+			/*
+			 * Mark the burst as Long Burst based on the
+			 * burst duration and size of the payload. 
+			 */
 			if (b.getEndTime() - b.getBeginTime() > profile.getLargeBurstDuration()
-					&& payloadLen > profile.getLargeBurstSize()) {
+					&& burstPayloadLen > profile.getLargeBurstSize()) {
 				b.addBurstInfo(BurstInfo.BURST_LONG);
 				++longBurstCount;
+				LOGGER.log(Level.FINE, LOG_MSG1, b.getBurstInfos());
 				continue;
 			}
 
-			// Step 3: Contains no payload?
-			if (payloadLen == 0) {
-				if (tcpInfo.contains(TcpInfo.TCP_CLOSE)) {
+			/*
+			 * For bursts with no payload assign burst type based on
+			 * the the type of TCP packets. 
+			 */
+			if (burstPayloadLen == 0) {
+				if (burstPacketTcpInfo.contains(TcpInfo.TCP_CLOSE)) {
 					b.addBurstInfo(BurstInfo.BURST_FIN);
+					LOGGER.log(Level.FINE, LOG_MSG1, b.getBurstInfos());
 				}
-				if (tcpInfo.contains(TcpInfo.TCP_ESTABLISH)) {
+				if (burstPacketTcpInfo.contains(TcpInfo.TCP_ESTABLISH)) {
 					b.addBurstInfo(BurstInfo.BURST_SYN);
+					LOGGER.log(Level.FINE, LOG_MSG1, b.getBurstInfos());
 				}
-				if (tcpInfo.contains(TcpInfo.TCP_RESET)) {
+				if (burstPacketTcpInfo.contains(TcpInfo.TCP_RESET)) {
 					b.addBurstInfo(BurstInfo.BURST_RST);
+					LOGGER.log(Level.FINE, LOG_MSG1, b.getBurstInfos());
 				}
-				if (tcpInfo.contains(TcpInfo.TCP_KEEP_ALIVE)
-						|| tcpInfo.contains(TcpInfo.TCP_KEEP_ALIVE_ACK)) {
+				if (burstPacketTcpInfo.contains(TcpInfo.TCP_KEEP_ALIVE)
+						|| burstPacketTcpInfo.contains(TcpInfo.TCP_KEEP_ALIVE_ACK)) {
 					b.addBurstInfo(BurstInfo.BURST_KEEPALIVE);
+					LOGGER.log(Level.FINE, LOG_MSG1, b.getBurstInfos());
 				}
-				if (tcpInfo.contains(TcpInfo.TCP_ZERO_WINDOW)) {
+				if (burstPacketTcpInfo.contains(TcpInfo.TCP_ZERO_WINDOW)) {
 					b.addBurstInfo(BurstInfo.BURST_ZEROWIN);
+					LOGGER.log(Level.FINE, LOG_MSG1, b.getBurstInfos());
 				}
-				if (tcpInfo.contains(TcpInfo.TCP_WINDOW_UPDATE)) {
+				if (burstPacketTcpInfo.contains(TcpInfo.TCP_WINDOW_UPDATE)) {
 					b.addBurstInfo(BurstInfo.BURST_WINUPDATE);
+					LOGGER.log(Level.FINE, LOG_MSG1, b.getBurstInfos());
 				}
 				if (b.getBurstInfos().size() == 0
 						&& (info0 == TcpInfo.TCP_ACK_RECOVER || info0 == TcpInfo.TCP_ACK_DUP)) {
 					b.addBurstInfo(BurstInfo.BURST_LOSS_RECOVER);
+					LOGGER.log(Level.FINE, LOG_MSG1, b.getBurstInfos());
 				}
 				if (b.getBurstInfos().size() > 0)
 					continue;
@@ -622,31 +644,35 @@ public class BurstCollectionAnalysis implements Serializable {
 			if (pkt0.getDir() == PacketInfo.Direction.DOWNLINK
 					&& (info0 == TcpInfo.TCP_DATA || info0 == TcpInfo.TCP_ACK)) {
 				b.addBurstInfo(BurstInfo.BURST_SERVER_DELAY);
+				LOGGER.log(Level.FINE, LOG_MSG1, b.getBurstInfos());
 				continue;
 			}
 
 			// Step 5: Loss recover
 			if (info0 == TcpInfo.TCP_ACK_DUP || info0 == TcpInfo.TCP_DATA_DUP) {
 				b.addBurstInfo(BurstInfo.BURST_LOSS_DUP);
+				LOGGER.log(Level.FINE, LOG_MSG1, b.getBurstInfos());
 				continue;
 			}
 
 			if (info0 == TcpInfo.TCP_DATA_RECOVER || info0 == TcpInfo.TCP_ACK_RECOVER) {
 				b.addBurstInfo(BurstInfo.BURST_LOSS_RECOVER);
+				LOGGER.log(Level.FINE, LOG_MSG1, b.getBurstInfos());
 				continue;
 			}
 
 			// Step 6: User triggered
 			final double USER_EVENT_SMALL_TOLERATE = profile.getUserInputTh();
-			if (payloadLen > 0) {
+			if (burstPayloadLen > 0) {
 				UserEvent ue = null;
-				while ((userEventPointer < userEventsSize)
-						&& ((ue = userEvents.get(userEventPointer)).getReleaseTime() < (time0 - USER_EVENT_TOLERATE)))
+				while ((userEventPointer < userEventsSize) && ((ue = userEvents.get(userEventPointer)).getReleaseTime() < (time0 - USER_EVENT_TOLERATE)))
 					++userEventPointer;
+				
 				BurstInfo bi = ue != null ? ((ue.getEventType() == UserEventType.SCREEN_LANDSCAPE || ue
 						.getEventType() == UserEventType.SCREEN_PORTRAIT) ? BurstInfo.BURST_SCREEN_ROTATION_INPUT
 						: BurstInfo.BURST_USER_INPUT)
 						: null;
+				
 				int j = userEventPointer;
 				double minGap = Double.MAX_VALUE;
 				while (j < userEventsSize) {
@@ -670,6 +696,7 @@ public class BurstCollectionAnalysis implements Serializable {
 				}
 				if (minGap < USER_EVENT_SMALL_TOLERATE) {
 					b.addBurstInfo(bi);
+					LOGGER.log(Level.FINE, LOG_MSG1, b.getBurstInfos());
 					continue;
 				} else if (minGap < USER_EVENT_TOLERATE
 						&& (lastBurst == null || lastBurst.getEndTime() < b.getBeginTime() - minGap)) {
@@ -677,7 +704,7 @@ public class BurstCollectionAnalysis implements Serializable {
 					double cpuEnd = time0;
 					// Check CPU usage
 					while (cpuPointer < cpuEventsSize) {
-						double t = cpuEvents.get(cpuPointer).getBeginTimeStamp();
+						double t = cpuEvents.get(cpuPointer).getTimeStamp();
 						if (t < b.getBeginTime() - USER_EVENT_TOLERATE) {
 							++cpuPointer;
 						} else {
@@ -689,9 +716,9 @@ public class BurstCollectionAnalysis implements Serializable {
 					int ns = 0;
 					while (k < cpuEventsSize) {
 						CpuActivity cpuAct = cpuEvents.get(k);
-						double t = cpuAct.getBeginTimeStamp();
+						double t = cpuAct.getTimeStamp();
 						if (t > cpuBegin && t < cpuEnd) {
-							s += cpuAct.getUsage();
+							s += cpuAct.getTotalCpuUsage();
 							ns++;
 						}
 						if (t >= cpuEnd) {
@@ -701,17 +728,21 @@ public class BurstCollectionAnalysis implements Serializable {
 					}
 					if (ns > 0 && (s / ns) > AVG_CPU_USAGE_THRESHOLD) {
 						b.addBurstInfo(bi);
+						LOGGER.log(Level.FINE, LOG_MSG1, b.getBurstInfos());
 						b.addBurstInfo(BurstInfo.BURST_CPU_BUSY);
+						LOGGER.log(Level.FINE, LOG_MSG1, b.getBurstInfos());
 						continue;
 					}
 				}
 			}
 
 			// Step 7: Client delay
-			if (b.getBurstInfos().size() == 0 && payloadLen == 0) {
+			if (b.getBurstInfos().size() == 0 && burstPayloadLen == 0) {
 				b.addBurstInfo(BurstInfo.BURST_UNKNOWN);
+				LOGGER.log(Level.FINE, LOG_MSG1, b.getBurstInfos());
 			} else {
 				b.addBurstInfo(BurstInfo.BURST_CLIENT_DELAY);
+				LOGGER.log(Level.FINE, LOG_MSG1, b.getBurstInfos());
 			}
 		}
 	}
@@ -740,22 +771,22 @@ public class BurstCollectionAnalysis implements Serializable {
 		diffPeriodicCount = 0;
 		minimumPeriodicRepeatTime = 0.0;
 
-		for (TCPSession b : analysis.getTcpSessions()) {
+		LOGGER.fine("Number of TCP sessions to be analyzed: " + analysis.getTcpSessions().size());
+		for (TCPSession tcpSession : analysis.getTcpSessions()) {
 
-			// Get a list of timestamps of established sessions with each remote
-			// IP
-			PacketInfo p = b.getPackets().get(0);
-			if (p.getTcpInfo() == TcpInfo.TCP_ESTABLISH) {
-				List<Double> res = connIP2tsList.get(b.getRemoteIP());
+			// Get a list of timestamps of established sessions with each remote IP
+			PacketInfo firstPacket = tcpSession.getPackets().get(0);
+			if (firstPacket.getTcpInfo() == TcpInfo.TCP_ESTABLISH) {
+				List<Double> res = connIP2tsList.get(tcpSession.getRemoteIP());
 				if (res == null) {
 					res = new ArrayList<Double>();
-					connIP2tsList.put(b.getRemoteIP(), res);
+					connIP2tsList.put(tcpSession.getRemoteIP(), res);
 				}
-				res.add(Double.valueOf(p.getTimeStamp()));
+				res.add(Double.valueOf(firstPacket.getTimeStamp()));
 			}
 
 			// Get a list of timestamps of HTTP requests to hosts/object names
-			for (HttpRequestResponseInfo rr : b.getRequestResponseInfo()) {
+			for (HttpRequestResponseInfo rr : tcpSession.getRequestResponseInfo()) {
 				PacketInfo pkt = rr.getFirstDataPacket();
 				if (rr.getDirection() == HttpRequestResponseInfo.Direction.REQUEST) {
 					Double ts0 = Double.valueOf(pkt.getTimeStamp());
@@ -783,28 +814,36 @@ public class BurstCollectionAnalysis implements Serializable {
 			}
 		}
 
+		LOGGER.fine("Working on: requestHost2tsList");
 		Set<String> hostList = new HashSet<String>();
 		for (Map.Entry<String, List<Double>> iter : requestHost2tsList.entrySet()) {
+			LOGGER.finest("Analyzing traffic for host: " + iter.getKey());
 			if (SelfCorr(iter.getValue())) {
 				hostList.add(iter.getKey());
 			}
 		}
 
+		LOGGER.fine("Working on: requestObj2tsList");
 		Set<String> objList = new HashSet<String>();
 		for (Map.Entry<String, List<Double>> iter : requestObj2tsList.entrySet()) {
+			LOGGER.finest("Analyzing traffic for object: " + iter.getKey());
 			if (SelfCorr(iter.getValue())) {
 				objList.add(iter.getKey());
 			}
 		}
 
+		LOGGER.fine("Working on: connIP2tsList");
 		Set<InetAddress> ipList = new HashSet<InetAddress>();
 		for (Map.Entry<InetAddress, List<Double>> iter : connIP2tsList.entrySet()) {
+			LOGGER.finest("Analyzing traffic for IP: " + iter.getKey());
 			if (SelfCorr(iter.getValue())) {
 				ipList.add(iter.getKey());
 			}
 		}
 
+		LOGGER.log(Level.FINE, "Iterate through burst collection of size: {0}" , burstCollection.size());
 		for (Burst burst : burstCollection) {
+			LOGGER.log(Level.FINE, "Found burst set to: {0}", burst.getBurstInfos());
 			if (!burst.getBurstInfos().contains(BurstInfo.BURST_CLIENT_DELAY)) {
 				continue;
 			}
@@ -815,13 +854,18 @@ public class BurstCollectionAnalysis implements Serializable {
 						|| ipList.contains(ip.getSourceIPAddress())) {
 					periodicCount++;
 					burst.setBurstInfo(BurstInfo.BURST_PERIODICAL);
+					LOGGER.log(Level.FINE, LOG_MSG1, burst.getBurstInfos());
 					if (ipList.contains(ip.getDestinationIPAddress())) {
 						hostPeriodicInfoSet.add(ip.getDestinationIPAddress().toString());
 					} else {
 						hostPeriodicInfoSet.add(ip.getSourceIPAddress().toString());
 					}
 					continue;
+				} else {
+					LOGGER.fine("Found a potential Periodical Burst but it is not...");
 				}
+			} else {
+				LOGGER.fine("First packet in the burst is not IP Packet");
 			}
 
 			PacketInfo firstUplinkPayloadPacket = null;
@@ -838,8 +882,10 @@ public class BurstCollectionAnalysis implements Serializable {
 							&& (hostList.contains(rr.getHostName()) || objList.contains(rr
 									.getObjNameWithoutParams()))) {
 						if (rr.getFirstDataPacket() == firstUplinkPayloadPacket) {
+							LOGGER.fine("Found packet which is the firstUplinkPayloadPacket");
 							periodicCount++;
 							burst.setBurstInfo(BurstInfo.BURST_PERIODICAL);
+							LOGGER.log(Level.FINE, LOG_MSG1, burst.getBurstInfos());
 							burst.setFirstUplinkDataPacket(firstUplinkPayloadPacket);
 							if (hostList.contains(rr.getHostName())) {
 								hostPeriodicInfoSet.add(rr.getHostName());
@@ -853,6 +899,8 @@ public class BurstCollectionAnalysis implements Serializable {
 			}
 		}
 		diffPeriodicCount = hostPeriodicInfoSet.size();
+		LOGGER.fine("periodicCount: " + periodicCount);
+		LOGGER.fine("diffPeriodicCount: " + diffPeriodicCount);
 	}
 
 	/**
@@ -873,21 +921,6 @@ public class BurstCollectionAnalysis implements Serializable {
 	}
 
 	/**
-	 * Getter for the payloadlength of overall packets.
-	 * 
-	 * @return
-	 */
-	private long getPayloadLenBkg() {
-		long r = 0;
-		for (PacketInfo p : analysis.getPackets()) {
-			if (p.getAppName() == null) {
-				r += p.getPayloadLen();
-			}
-		}
-		return r;
-	}
-
-	/**
 	 * method to update the subV request event list also to return the cycle or
 	 * request.
 	 * 
@@ -896,12 +929,21 @@ public class BurstCollectionAnalysis implements Serializable {
 	 * @return
 	 */
 	private boolean SelfCorr(List<Double> v) {
+	
+		// log only large lists as it can take too long to process
+		if (LOGGER.isLoggable(Level.FINE)) {
+			if(v.size() > 400) {
+							LOGGER.fine("Entering SelfCorr(), large list of size: " + v.size());
+
+			}
+		}
+	
 		int n = v.size();
 		if (n <= 3) {
 			return false;
 		}
 
-		List<IatInfo> c = new ArrayList<IatInfo>(n * (n - 1) / 2);
+		List<IatInfo> iatInfoList = new ArrayList<IatInfo>(n * (n - 1) / 2);
 		for (int i = 0; i < n - 1; i++) {
 			for (int j = i + 1; j < n; j++) {
 				double time1 = v.get(i).doubleValue();
@@ -920,30 +962,36 @@ public class BurstCollectionAnalysis implements Serializable {
 					ii.endEvent = i;
 				}
 
-				c.add(ii);
+				iatInfoList.add(ii);
 			}
 		}
-		Collections.sort(c, new IatInfoSortByBasicTime1());
+		
+		// log only for huge lists
+		if(LOGGER.isLoggable(Level.FINE)) {
+			if(iatInfoList.size() > 10000) {
+				LOGGER.fine("Calling Collections.sort()...size of collection: " + iatInfoList.size());
+			}
+		}
+		
+		// sort by Inter Arrival Time which is equal to time1 - time2 (duration between two requests)
+		Collections.sort(iatInfoList, new IatInfoSortByBasicTime1());
 
 		double minPeriod = profile.getPeriodMinCycle();
-		double clusterDurationTh = profile.getPeriodCycleTol(); // tolerable
-																// cluster size
-																// (sec)
-		int clusterSizeTh = profile.getPeriodMinSamples();/* n/2 */
-
-		int m = c.size();
-
+		double clusterDurationTh = profile.getPeriodCycleTol(); // tolerable cluster size (sec)
+		int clusterSizeTh = profile.getPeriodMinSamples(); /* n/2 */
+		int iatInfoSize = iatInfoList.size();
 		int bestNonOverlapSize = 0;
 		double cycle = 0;
-		for (int i = 0; i < m; i++) {
 
-			IatInfo iat = c.get(i);
+		for (int i = 0; i < iatInfoSize; i++) {
+
+			IatInfo iat = iatInfoList.get(i);
 			List<IatInfo> cluster = new ArrayList<IatInfo>();
 			int j = i;
 
 			IatInfo iatInfo;
 			double sum = 0;
-			while ((j < m) && (((iatInfo = c.get(j)).iat - iat.iat) < clusterDurationTh)) {
+			while ((j < iatInfoSize) && (((iatInfo = iatInfoList.get(j)).iat - iat.iat) < clusterDurationTh)) {
 				cluster.add(iatInfo);
 				sum += iatInfo.iat;
 				++j;
@@ -951,16 +999,17 @@ public class BurstCollectionAnalysis implements Serializable {
 
 			double avg = sum / cluster.size();
 			int nonOverlapSize;
-			if (avg > minPeriod
-					&& (nonOverlapSize = GetNonOverlapSize(cluster)) > bestNonOverlapSize) {
+			if (avg > minPeriod && (nonOverlapSize = GetNonOverlapSize(cluster)) > bestNonOverlapSize) {
 				bestNonOverlapSize = nonOverlapSize;
 				cycle = avg;
 			}
 		}
 
 		if (bestNonOverlapSize < clusterSizeTh) {
+			LOGGER.fine("Exiting SelfCorr(), returning: " + false);
 			return false;
 		} else {
+			LOGGER.fine("Exiting SelfCorr(), returning: " + (cycle > 0));
 			return cycle > 0;
 		}
 	}

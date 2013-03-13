@@ -79,6 +79,8 @@ public class HttpRequestResponseInfo implements
 
 	private static final String GZIP = "gzip";
 
+	private static final Date BEGINNING_OF_TIME = new Date(0);
+	
 	private static final Logger logger = Logger
 			.getLogger(HttpRequestResponseInfo.class.getName());
 	
@@ -215,7 +217,7 @@ public class HttpRequestResponseInfo implements
 		private static Pattern strReResponseContentEncoding = Pattern
 				.compile("[C|c]ontent-[E|e]ncoding:");
 		private static Pattern strReResponseResults = Pattern
-				.compile("(HTTP/1\\.[0|1]|RTSP/1\\.[0|1])\\s* \\s*(\\d*)\\s* \\s*(.*)");
+				.compile("(HTTP/1\\.[0|1]|RTSP/1\\.[0|1])\\s* \\s*(\\d++)\\s* \\s*(.*)");
 		private static Pattern strReResponseEtag = Pattern
 				.compile("ETag\\s*:\\s*(W/)?\"(.*)\"");
 		private static Pattern strReResponseAge = Pattern
@@ -233,11 +235,11 @@ public class HttpRequestResponseInfo implements
 		private static Pattern strReResponseCacheControl = Pattern
 				.compile("Cache-Control\\s*:(.*)");
 		private static Pattern strReCacheMaxAge = Pattern
-				.compile("max-age\\s*=\\s*(\\d*)");
+				.compile("max-age\\s*=\\s*(\\d++)");
 		private static Pattern strReCacheSMaxAge = Pattern
-				.compile("s-maxage\\s*=\\s*(\\d*)");
+				.compile("s-maxage\\s*=\\s*(\\d++)");
 		private static Pattern strReCacheMinFresh = Pattern
-				.compile("min-fresh\\s*=\\s*(\\d*)");
+				.compile("min-fresh\\s*=\\s*(\\d++)");
 		private static Pattern strReCacheMaxStale = Pattern
 				.compile("max-stale\\s*(?:=\\s*(\\d*))?");
 		private static Pattern strReContentRange = Pattern
@@ -421,6 +423,9 @@ public class HttpRequestResponseInfo implements
 						// Skip content
 						counter = Math.min(input.length, counter
 								+ rrInfo.contentLength);
+						if (counter < 0) {
+							counter = input.length;
+						}
 					} else if (rrInfo.chunked) {
 						rrInfo.contentOffsetLength = new TreeMap<Integer, Integer>();
 						while (true) {
@@ -765,7 +770,7 @@ public class HttpRequestResponseInfo implements
 			// Date
 			matcher = strReResponseDate.matcher(line);
 			if (matcher.lookingAt()) {
-				rrInfo.date = readHttpDate(matcher.group(1));
+				rrInfo.date = readHttpDate(matcher.group(1), false);
 				return;
 			}
 
@@ -868,14 +873,14 @@ public class HttpRequestResponseInfo implements
 				// Expires
 				matcher = strReResponseExpires.matcher(line);
 				if (matcher.lookingAt()) {
-					rrInfo.expires = readHttpDate(matcher.group(1));
+					rrInfo.expires = readHttpDate(matcher.group(1), true);
 					return;
 				}
 
 				// Last modified
 				matcher = strReResponseLastMod.matcher(line);
 				if (matcher.lookingAt()) {
-					rrInfo.lastModified = readHttpDate(matcher.group(1));
+					rrInfo.lastModified = readHttpDate(matcher.group(1), false);
 					return;
 				}
 
@@ -944,12 +949,17 @@ public class HttpRequestResponseInfo implements
 
 		/**
 		 * Parses HTTP date formats. Synchronized because DateFormat objects are
-		 * not thread-safe.
+		 * not thread-safe. If defaultForExpired is true and value is an invalid
+		 * dateFormat (such as -1 or 0 meaning already expired), the returned
+		 * Date will be "beginning of time" Jan 1 1970.
 		 * 
 		 * @param value
+		 * @param defaultForExpired
+		 *            boolean - true/false provide default "beginning of time"
+		 *            Jan 1 1970 GMT Date
 		 * @return formated Date value else null.
 		 */
-		private synchronized Date readHttpDate(String value) {
+		private synchronized Date readHttpDate(String value, boolean defaultForExpired) {
 			if (value != null) {
 				for (DateFormat dateFormat : dateFormats) {
 					try {
@@ -959,6 +969,11 @@ public class HttpRequestResponseInfo implements
 					}
 				}
 			}
+			
+			if (defaultForExpired) {
+				return BEGINNING_OF_TIME;
+			}
+			
 			logger.warning("Unable to parse HTTP date: " + value);
 			return null;
 		}

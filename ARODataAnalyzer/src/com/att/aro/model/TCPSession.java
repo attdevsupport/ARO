@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.att.aro.model.PacketInfo.TcpInfo;
@@ -174,11 +175,14 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 	 */
 	public static List<TCPSession> extractTCPSessions(
 			Collection<PacketInfo> packets) throws IOException {
-		Map<String, TCPSession> sess = new LinkedHashMap<String, TCPSession>();
+		Map<String, TCPSession> allSessions = new LinkedHashMap<String, TCPSession>();
 		List<PacketInfo> dnsPackets = new ArrayList<PacketInfo>();
 		Map<InetAddress, String> hostMap = new HashMap<InetAddress, String>();
 		for (PacketInfo packet : packets) {
 
+			/**
+			 * Save DNS packets
+			 */
 			if (!(packet.getPacket() instanceof TCPPacket)) {
 				
 				// Check for DNS packets
@@ -197,11 +201,14 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 				continue;
 			}
 
+			/**
+			 * Set localPort, remoteIP, remotePort
+			 * using TCP packet data information
+			 */
 			TCPPacket tcp = (TCPPacket) packet.getPacket();
 			int localPort;
 			int remotePort;
 			InetAddress remoteIP;
-
 			switch (packet.getDir()) {
 			case UPLINK:
 				localPort = tcp.getSourcePort();
@@ -223,26 +230,44 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 			// Clear TCP Info
 			packet.setTcpInfo(null);
 
-			String key = localPort + " " + remotePort + " "
-					+ remoteIP.getHostAddress();
-			TCPSession s = sess.get(key);
-			if (s == null) {
-				s = new TCPSession(remoteIP, remotePort, localPort);
+			/**
+			 * Creates a new TCP Session using remoteIP, remotePort, localPort.
+			 * Stores the session in allSessions Collection
+			 * and adds the current packet to the session.
+			 */
+			String key = localPort + " " + remotePort + " " + remoteIP.getHostAddress();
+			TCPSession session = allSessions.get(key);
+			if (session == null) {
+				session = new TCPSession(remoteIP, remotePort, localPort);
 				
-				// Search for DNS request/response
+				/**
+				 * Search for DNS request/response from the last to the first element
+				 * and saves dnsResponsePacket in the current session if the DNS response remote IP
+				 * matches the session remote IP. 
+				 * Finds DNS response packet.
+				 */
 				ListIterator<PacketInfo> iter = dnsPackets.listIterator(dnsPackets.size());
 				DomainNameSystem dns = null;
 				while (iter.hasPrevious()) {
-					PacketInfo p = iter.previous();
-					UDPPacket udp = ((UDPPacket) p.getPacket());
+					PacketInfo dnsPacket = iter.previous();
+					UDPPacket udp = ((UDPPacket) dnsPacket.getPacket());
 					dns = udp.getDns();
 					if (dns.isResponse() && dns.getIpAddresses().contains(remoteIP)) {
-						s.dnsResponsePacket = p;
+						session.dnsResponsePacket = dnsPacket;
 						break;
 					}
 					dns = null;
 				}
+				
+				// If DNS response packet was found
 				if (dns != null) {
+					/**
+					 *  Loop through all DNS packets to find DNS packet
+					 *  matching the domain name of the response DNS packet.
+					 *  Then store remoteHostName and the DNS request packet
+					 *  in the current session.
+					 */
+					
 					iter = dnsPackets.listIterator();
 					String domainName = dns.getDomainName();
 					while (iter.hasNext()) {
@@ -250,38 +275,42 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 						UDPPacket udp = ((UDPPacket) p.getPacket());
 						dns = udp.getDns();
 						if (domainName.equals(dns.getDomainName())) {
-							if (s.dnsRequestPacket == null && !dns.isResponse()) {
-								s.remoteHostName = domainName;
-								s.dnsRequestPacket = p;
+							if (session.dnsRequestPacket == null && !dns.isResponse()) {
+								session.remoteHostName = domainName;
+								session.dnsRequestPacket = p;
 							}
 							
 							// Remove from DNS packets so that it is not used again
 							iter.remove();
 							
 							// Stop processing once response is reached
-							if (p == s.dnsResponsePacket) {
+							if (p == session.dnsResponsePacket) {
 								break;
 							}
 						}
 					}
 				} else {
-					s.remoteHostName = hostMap.get(remoteIP);
+					session.remoteHostName = hostMap.get(remoteIP);
 				}
-				
-				sess.put(key, s);
-			}
-			s.packets.add(packet);
-		}
+				// stores the created session
+				allSessions.put(key, session);
+			} // END: Create new session
+			session.packets.add(packet);
+		} // END: Iterating through all packets
 
 		// Reassemble sessions
-		List<TCPSession> sessions = new ArrayList<TCPSession>(sess.values());
+		List<TCPSession> sessions = new ArrayList<TCPSession>(allSessions.values());
 		Reassembler ul = new Reassembler();
 		Reassembler dl = new Reassembler();
-		for (int i = 0; i < sessions.size(); ++i) {
+		for (int sessionIndex = 0; sessionIndex < sessions.size(); ++sessionIndex) {
+			
+			logger.log(Level.FINE, "Working with [{0}] session", sessionIndex);
 
 			// Iterator is not used because items may be added to list during
 			// iterations
-			TCPSession session = sessions.get(i);
+			TCPSession session = sessions.get(sessionIndex);
+			
+			logger.log(Level.FINE, "Session has {0} packets", session.getPackets().size());
 
 			// Reset variables
 			boolean bTerminated = false;
@@ -289,20 +318,23 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 			dl.clear();
 
 			PacketInfo lastPacket = null;
-			for (PacketInfo pi : session.packets) {
-				TCPPacket p = (TCPPacket) pi.getPacket();
-				if (p.isSsl()) {
+			for (PacketInfo packetInfo: session.packets) {
+
+				TCPPacket packet = (TCPPacket) packetInfo.getPacket();
+				logger.log(Level.FINE, "Processing packet [{0}] with seq.# [{0}]",
+						new Object[] {Integer.toString(packetInfo.getId()), Long.toString(packet.getSequenceNumber())});
+				if (packet.isSsl()) {
 					session.ssl = true;
 				}
 
-				Reassembler xl;
-				switch (pi.getDir()) {
+				Reassembler reassembledSession;
+				switch (packetInfo.getDir()) {
 				case UPLINK:
-					xl = ul;
+					reassembledSession = ul;
 					break;
 
 				case DOWNLINK:
-					xl = dl;
+					reassembledSession = dl;
 					break;
 
 				default:
@@ -310,21 +342,24 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 					continue;
 				}
 
-				if (p.isSYN()) {
-					pi.setTcpInfo(TcpInfo.TCP_ESTABLISH);
-					if (xl.baseSeq == null
-							|| xl.baseSeq.equals(p.getSequenceNumber())) {
-
+				// If this is the initial sequence number
+				if (packet.isSYN()) {
+					logger.fine("It is TCP_ESTABLISH packet");
+					packetInfo.setTcpInfo(TcpInfo.TCP_ESTABLISH);
+					if (reassembledSession.baseSeq == null
+							|| reassembledSession.baseSeq.equals(packet.getSequenceNumber())) {
+						logger.fine("It is existing TCP session");
 						// Finds establish
-						xl.baseSeq = p.getSequenceNumber();
-						if (p.getPayloadLen() != 0) {
+						reassembledSession.baseSeq = packet.getSequenceNumber();
+						if (packet.getPayloadLen() != 0) {
 							logger.warning("92 - Payload in establish packet");
 						}
 					} else {
+						logger.fine("It is new TCP session");
 
 						// New TCP session
 						List<PacketInfo> currentList = session.packets;
-						int index = currentList.indexOf(pi);
+						int index = currentList.indexOf(packetInfo);
 						if (!bTerminated) {
 							logger.warning("28 - Session termination not found");
 						}
@@ -337,8 +372,7 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 						TCPSession newSession = new TCPSession(
 								session.remoteIP, session.remotePort,
 								session.localPort);
-						newSession.packets.addAll(currentList.subList(index,
-								currentList.size()));
+						newSession.packets.addAll(currentList.subList(index, currentList.size()));
 						sessions.add(newSession);
 
 						// Break out of packet loop
@@ -346,135 +380,146 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 					}
 
 				} else {
-					if (p.isFIN() || p.isRST()) {
+					logger.fine("It is NOT TCP_ESTABLISH packet");
+					//FIN: No more data from sender
+					//RST: Reset the connection
+					if (packet.isFIN() || packet.isRST()) {
+
+						logger.fine("Packet has FIN or RST flag");
 
 						// Calculate session termination info
 						if (!bTerminated && lastPacket != null) {
-							double delay = pi.getTimeStamp()
+							double delay = packetInfo.getTimeStamp()
 									- lastPacket.getTimeStamp();
-							session.sessionTermination = new Termination(pi,
+							session.sessionTermination = new Termination(packetInfo,
 									delay);
 						}
 
 						// Mark session terminated
 						bTerminated = true;
-						if (p.isFIN()) {
-							pi.setTcpInfo(TcpInfo.TCP_CLOSE);
-						} else if (p.isRST()) {
-							pi.setTcpInfo(TcpInfo.TCP_RESET);
+						if (packet.isFIN()) {
+							packetInfo.setTcpInfo(TcpInfo.TCP_CLOSE);
+						} else if (packet.isRST()) {
+							packetInfo.setTcpInfo(TcpInfo.TCP_RESET);
 						}
 
 					}
 
 					// I believe this handles case where we have joined in the
 					// middle of a TCP session
-					if (xl.baseSeq == null) {
-						switch (pi.getDir()) {
+					if (reassembledSession.baseSeq == null) {
+						logger.fine("We have joined in the middle of a TCP session");
+						switch (packetInfo.getDir()) {
 						case UPLINK:
-							ul.baseSeq = p.getSequenceNumber();
-							dl.baseSeq = p.getAckNumber();
+							ul.baseSeq = packet.getSequenceNumber();
+							dl.baseSeq = packet.getAckNumber();
 							break;
 						case DOWNLINK:
-							dl.baseSeq = p.getSequenceNumber();
-							ul.baseSeq = p.getAckNumber();
+							dl.baseSeq = packet.getSequenceNumber();
+							ul.baseSeq = packet.getAckNumber();
 							break;
 						}
 					}
 				}
 
 				// Get appName (there really should be only one per TCP session
-				String appName = pi.getAppName();
+				String appName = packetInfo.getAppName();
 				if (appName != null) {
+					logger.log(Level.FINE, "Adding {0} app name to the session", appName);
+					logger.log(Level.FINE, "Packet dest. port : {0}", packet.getDestinationPort());
+					logger.log(Level.FINE, "       dest. IP   : {0}", packet.getDestinationIPAddress());
+					logger.log(Level.FINE, "       source port: {0}", packet.getSourcePort());
 					session.appNames.add(appName);
+					assert (session.appNames.size() <=1)  : "" + session.appNames.size() + " app names per TCP session: " + session.getAppNames();
 				}
 
 				// Link packet to session
-				pi.setSession(session);
+				packetInfo.setSession(session);
 
-				long seq = p.getSequenceNumber() - xl.baseSeq;
+				long seq = packet.getSequenceNumber() - reassembledSession.baseSeq;
 				if (seq < 0) {
 					seq += 0xFFFFFFFF;
 				}
 
-				if (xl.seq == -1)
-					xl.seq = seq;
+				if (reassembledSession.seq == -1)
+					reassembledSession.seq = seq;
 
-				if (seq == xl.seq) {
-					if (p.getPayloadLen() > 0) {
-						pi.setTcpInfo(TcpInfo.TCP_DATA);
-						byte[] data = p.getData();
-						int l = p.getPayloadLen();
-						int dataOffset = p.getDataOffset();
+				if (seq == reassembledSession.seq) {
+					if (packet.getPayloadLen() > 0) {
+						packetInfo.setTcpInfo(TcpInfo.TCP_DATA);
+						byte[] data = packet.getData();
+						int l = packet.getPayloadLen();
+						int dataOffset = packet.getDataOffset();
 						if (data.length >= dataOffset + l) {
-							xl.packetOffsets.put(xl.storage.size(), pi);
-							xl.storage.write(data, dataOffset, l);
-							xl.seq += l;
+							reassembledSession.packetOffsets.put(reassembledSession.storage.size(), packetInfo);
+							reassembledSession.storage.write(data, dataOffset, l);
+							reassembledSession.seq += l;
 						}
-						if (p.isSslHandshake()) {
-							session.lastSslHandshakePacket = pi;
+						if (packet.isSslHandshake()) {
+							session.lastSslHandshakePacket = packetInfo;
 						}
 					}
-					if (p.isSYN() || p.isFIN())
-						++xl.seq;
+					if (packet.isSYN() || packet.isFIN())
+						++reassembledSession.seq;
 
 					while (true) {
 						boolean bOODone = true;
 						List<PacketInfo> fixed = new ArrayList<PacketInfo>(
-								xl.ooid.size());
-						for (PacketInfo pi1 : xl.ooid) {
+								reassembledSession.ooid.size());
+						for (PacketInfo pi1 : reassembledSession.ooid) {
 							TCPPacket p1 = (TCPPacket) pi1.getPacket();
 
-							seq = p1.getSequenceNumber() - xl.baseSeq;
+							seq = p1.getSequenceNumber() - reassembledSession.baseSeq;
 							if (seq < 0) {
 								seq += 0xFFFFFFFF;
 							}
 
-							if (seq == xl.seq) {
+							if (seq == reassembledSession.seq) {
 								if (p1.getPayloadLen() > 0) {
 									pi1.setTcpInfo(TcpInfo.TCP_DATA);
 									byte[] data = p1.getData();
 									int l = p1.getPayloadLen();
 									int dataOffset = p1.getDataOffset();
 									if (data.length >= dataOffset + l) {
-										xl.packetOffsets.put(xl.storage.size(),
+										reassembledSession.packetOffsets.put(reassembledSession.storage.size(),
 												pi1);
-										xl.storage.write(data, dataOffset, l);
-										xl.seq += l;
+										reassembledSession.storage.write(data, dataOffset, l);
+										reassembledSession.seq += l;
 									}
 									if (p1.isSslHandshake()) {
 										session.lastSslHandshakePacket = pi1;
 									}
 								}
 								if (p1.isSYN() || p1.isFIN())
-									++xl.seq;
+									++reassembledSession.seq;
 								fixed.add(pi1);
 								bOODone = false;
 							} else if (p1.getPayloadLen() == 0
-									&& seq == xl.seq - 1 && p1.isACK()
+									&& seq == reassembledSession.seq - 1 && p1.isACK()
 									&& !p1.isSYN() && !p1.isFIN()
 									&& !p1.isRST()) {
 								logger.warning("31 - ???");
 							}
 						}
-						xl.ooid.removeAll(fixed);
+						reassembledSession.ooid.removeAll(fixed);
 						if (bOODone)
 							break;
 					}
 
 				} else { // out of order packet, i.e., seq != *XLseq
-					if (p.getPayloadLen() == 0 && seq == xl.seq - 1
-							&& p.isACK() && !p.isSYN() && !p.isFIN()
-							&& !p.isRST()) {
-						if (pi.getTcpInfo() != null) {
+					if (packet.getPayloadLen() == 0 && seq == reassembledSession.seq - 1
+							&& packet.isACK() && !packet.isSYN() && !packet.isFIN()
+							&& !packet.isRST()) {
+						if (packetInfo.getTcpInfo() != null) {
 							logger.warning("94 - ???");
 						}
-						pi.setTcpInfo(TcpInfo.TCP_KEEP_ALIVE);
+						packetInfo.setTcpInfo(TcpInfo.TCP_KEEP_ALIVE);
 					} else {
-						xl.ooid.add(pi);
+						reassembledSession.ooid.add(packetInfo);
 					}
 				}
 
-				lastPacket = pi;
+				lastPacket = packetInfo;
 			} // packet loop
 			session.storageDl = dl.storage.toByteArray();
 			session.packetOffsetsDl = dl.packetOffsets;
@@ -492,7 +537,7 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 					p.setTcpInfo(TcpInfo.TCP_DATA_DUP);
 				}
 			}
-		}
+		} // END: Reassemble sessions
 
 		// More session parsing
 		for (TCPSession s : sessions) {
