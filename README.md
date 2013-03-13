@@ -60,21 +60,16 @@ Contact Us:  http://developer.att.com/developer/contact_us.jsp
 
 
 **Version:**  
-ARO Data Collector 2.0.0  
-ARO Data Analyzer  2.0.0
+ARO Data Collector 2.1.0  
+ARO Data Analyzer  2.1.0
 
 **New Features:**  
-In this release, the ARO Data Analyzer includes a new Best Practices test called "400, 500 HTTP Response Codes" that detects and reports any HTTP error codes that occur in the application, and enhancements have been made to the Waterfall View tab and the Data Dump feature.
-
-For Open Source ARO developers, two sample applications have been added. One sample demonstrates caching, and the other demonstrates the difference between properly and improperly closing connections. Both of these samples will be discussed at the 2013 AT&T Developer Summit. Also, two new documents have been added. "Adding Custom Best Practices in Open Source ARO" describes how to add custom Best Practices to the ARO Data Analyzer, and "Using the ARO Data Collector in an Android Application" describes how to add the ARO Data Collector to an Android application. Two sample applications have also been added 
+In this release, the ARO Data Analyzer includes a Best Practices test called "301, 302 HTTP Status Response Codes" that detects and reports any occurrences of these two HTTP status codes, the percentage of CPU usage for each process is reported on the Diagnostics Chart, and burst analysis information is reported for unknown applications. The ARO Data Collector can now capture user input data on more Android 4.0.X (ICS) and 4.1.X (Jellybean) devices.
 
 
-**Known Issues:**
- 
-+  The ARO Data Collector version 2.0.0.1 may experience intermittent errors if used on Android 4.0.X (ICS) or 4.1.X (Jellybean) devices. To correct this issue, use the ARODataCollector_v2.0.0.3_ICS.apk included in this build. However, please note that version 2.0.0.3 will not record user input data from these devices.  
-+  The AT&T ARO Data Analyzer does not currently display user input/screen touch data in the Diagnostics chart for traces captured using ARO Data Collector version 2.0.0.1 from an HTC One X, LG P925, Samsung i747, or Samsung i777.  
-+  When you open a trace in the ARO Data Analyzer that was collected using the ARO Windows 8 Collector, you will see a warning message informing you that files are missing from the trace directory. This is an expected warning, because the ARO Windows 8 Collector does not currently collect trace information from certain peripherals. You can click OK to proceed from this message.  
-+  All known issues from previous releases have been fixed in this release. 
+**Known Issues:** 
++  Some devices have hardware limitations that prevent the ARO Data Collector from recording video but do not prevent the collection of trace data.  
++  The ARO Data Analyzer may not display complete user input/screen touch data for traces collected on some devices.  
 
 
 ##Documentation:
@@ -89,7 +84,7 @@ Using the ARO Data Collector in an Android Application - Describes how to add th
 The ARO Open Source code package contains the following:
 
 
-**2013DevSummitTurbocharge** - Main folder for ARO sample applications that will be discussed at the 2013 Developer Summit.
+**2013DevSummitTurbocharge** - Main folder for ARO sample applications that were introduced and discussed at the 2013 Developer Summit.
 +  **com.example.android.multires.MultiRes.caching** - Contains a sample application that demonstrates caching.  
 +  **com.example.android.multires.MultiRes.closing** - Contains a sample application that demonstrates the difference between properly and improperly closing connections.
 
@@ -105,18 +100,21 @@ The ARO Open Source code package contains the following:
   
 **ARODataCollector** - Main folder for the ARO Data Analyzer open source code.  
 +  **docs** - API reference for the ARO Data Collector (Open docs\api\index.html)  
-+  **external** - Source code for external dependencies: tcpdump and libpcap.  
++  **external** - Source code for external dependencies: tcpdump and libpcap. 
++  **libs** - Libs folder works with FlurryAgent.jar file.  
 +  **res** - Resources for an Android project.  
 +  **src** - Source code for the ARO Data Collector.  
 +  *AndroidManifest.xml* - Manifest file for an Android project.
 
 
+
+**.gitattributes** - Specifies the proper line ending format.
 **ARO Compilation and Build Guide.pdf** - Describes how to compile and build the ARO components.  
-**ARODataCollector_OpenSource_v2.0.0.1.apk** - Compiled open source version of the ARO Data Collector.  
-**ARODataCollector_v2.0.0.3_ICS.apk** -  Compiled version of the AT&T ARO Data Collector that runs on ICS devices and JellyBean devices.  
+**ARODataCollector_OpenSource_v2.1.0.9.apk** - Compiled open source version of the ARO Data Collector.  
 **Adding Custom Best Practices in Open Source ARO.pdf** - Describes how to add custom Best Practices to the ARO Data Analyzer.  
 **README.md** - This file.  
 **Using the ARO Data Collector in an Android Application.pdf** - Describes how to add the ARO Data Collector to an Android application.  
+
 
 
 ##Compiling and Building ARO
