@@ -175,9 +175,12 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 	 */
 	public static List<TCPSession> extractTCPSessions(
 			Collection<PacketInfo> packets) throws IOException {
+		logger.entering("com.att.aro.model.TCPSession", "extractTCPSessions(Collection<PacketInfo>)");
 		Map<String, TCPSession> allSessions = new LinkedHashMap<String, TCPSession>();
 		List<PacketInfo> dnsPackets = new ArrayList<PacketInfo>();
 		Map<InetAddress, String> hostMap = new HashMap<InetAddress, String>();
+		
+		logger.finest("Starting loop through packets");
 		for (PacketInfo packet : packets) {
 
 			/**
@@ -297,20 +300,22 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 			} // END: Create new session
 			session.packets.add(packet);
 		} // END: Iterating through all packets
+		logger.finest("End of loop through packets");
 
+		logger.finest("Starting creating sessions");
 		// Reassemble sessions
 		List<TCPSession> sessions = new ArrayList<TCPSession>(allSessions.values());
 		Reassembler ul = new Reassembler();
 		Reassembler dl = new Reassembler();
 		for (int sessionIndex = 0; sessionIndex < sessions.size(); ++sessionIndex) {
 			
-			logger.log(Level.FINE, "Working with [{0}] session", sessionIndex);
+			logger.log(Level.FINEST, "Working with [{0}] session", sessionIndex);
 
 			// Iterator is not used because items may be added to list during
 			// iterations
 			TCPSession session = sessions.get(sessionIndex);
 			
-			logger.log(Level.FINE, "Session has {0} packets", session.getPackets().size());
+			logger.log(Level.FINEST, "Session has {0} packets", session.getPackets().size());
 
 			// Reset variables
 			boolean bTerminated = false;
@@ -321,7 +326,7 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 			for (PacketInfo packetInfo: session.packets) {
 
 				TCPPacket packet = (TCPPacket) packetInfo.getPacket();
-				logger.log(Level.FINE, "Processing packet [{0}] with seq.# [{0}]",
+				logger.log(Level.FINEST, "Processing packet [{0}] with seq.# [{0}]",
 						new Object[] {Integer.toString(packetInfo.getId()), Long.toString(packet.getSequenceNumber())});
 				if (packet.isSsl()) {
 					session.ssl = true;
@@ -344,18 +349,18 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 
 				// If this is the initial sequence number
 				if (packet.isSYN()) {
-					logger.fine("It is TCP_ESTABLISH packet");
+					logger.finest("It is TCP_ESTABLISH packet");
 					packetInfo.setTcpInfo(TcpInfo.TCP_ESTABLISH);
 					if (reassembledSession.baseSeq == null
 							|| reassembledSession.baseSeq.equals(packet.getSequenceNumber())) {
-						logger.fine("It is existing TCP session");
+						logger.finest("It is existing TCP session");
 						// Finds establish
 						reassembledSession.baseSeq = packet.getSequenceNumber();
 						if (packet.getPayloadLen() != 0) {
 							logger.warning("92 - Payload in establish packet");
 						}
 					} else {
-						logger.fine("It is new TCP session");
+						logger.finest("It is new TCP session");
 
 						// New TCP session
 						List<PacketInfo> currentList = session.packets;
@@ -380,12 +385,12 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 					}
 
 				} else {
-					logger.fine("It is NOT TCP_ESTABLISH packet");
+					logger.finest("It is NOT TCP_ESTABLISH packet");
 					//FIN: No more data from sender
 					//RST: Reset the connection
 					if (packet.isFIN() || packet.isRST()) {
 
-						logger.fine("Packet has FIN or RST flag");
+						logger.finest("Packet has FIN or RST flag");
 
 						// Calculate session termination info
 						if (!bTerminated && lastPacket != null) {
@@ -408,7 +413,7 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 					// I believe this handles case where we have joined in the
 					// middle of a TCP session
 					if (reassembledSession.baseSeq == null) {
-						logger.fine("We have joined in the middle of a TCP session");
+						logger.finest("We have joined in the middle of a TCP session");
 						switch (packetInfo.getDir()) {
 						case UPLINK:
 							ul.baseSeq = packet.getSequenceNumber();
@@ -425,10 +430,10 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 				// Get appName (there really should be only one per TCP session
 				String appName = packetInfo.getAppName();
 				if (appName != null) {
-					logger.log(Level.FINE, "Adding {0} app name to the session", appName);
-					logger.log(Level.FINE, "Packet dest. port : {0}", packet.getDestinationPort());
-					logger.log(Level.FINE, "       dest. IP   : {0}", packet.getDestinationIPAddress());
-					logger.log(Level.FINE, "       source port: {0}", packet.getSourcePort());
+					logger.log(Level.FINEST, "Adding {0} app name to the session", appName);
+					logger.log(Level.FINEST, "Packet dest. port : {0}", packet.getDestinationPort());
+					logger.log(Level.FINEST, "       dest. IP   : {0}", packet.getDestinationIPAddress());
+					logger.log(Level.FINEST, "       source port: {0}", packet.getSourcePort());
 					session.appNames.add(appName);
 					assert (session.appNames.size() <=1)  : "" + session.appNames.size() + " app names per TCP session: " + session.getAppNames();
 				}
@@ -538,7 +543,9 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 				}
 			}
 		} // END: Reassemble sessions
+		logger.finest("All sessions where created");
 
+		logger.finest("Starting looping through all sessions");
 		// More session parsing
 		for (TCPSession s : sessions) {
 			for (PacketInfo p : s.packets) {
@@ -584,8 +591,13 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 		}
 		ul.clear();
 		dl.clear();
-
+		logger.finest("Ended looping through all sessions");
+		
+		logger.finest("Sorting sessions");
 		Collections.sort(sessions);
+		logger.finest("End of sorting sessions");
+
+		logger.exiting("com.att.aro.model.TCPSession", "extractTCPSessions(Collection<PacketInfo>)");
 		return sessions;
 	}
 

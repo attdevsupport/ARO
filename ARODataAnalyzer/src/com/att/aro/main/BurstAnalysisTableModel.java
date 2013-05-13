@@ -154,7 +154,7 @@ public class BurstAnalysisTableModel extends DataTableModel<BurstAnalysisInfo> {
 	protected Object getColumnValue(BurstAnalysisInfo item, int columnIndex) {
 		switch (columnIndex) {
 		case TYPE_COL:
-			return getBurstCategoryString(item.getCategory());
+			return item.getCategory().getBurstTypeDescription();
 		case BYTES_COL:
 			return item.getPayload();
 		case BYTES_PCT_COL:
@@ -177,48 +177,6 @@ public class BurstAnalysisTableModel extends DataTableModel<BurstAnalysisInfo> {
 	@Override
 	public String getColumnName(int col) {
 		return columns[col];
-	}
-
-	/**
-	 * Returns a string describing the burst type that correspond to the
-	 * specified burst category.
-	 * 
-	 * @param category
-	 *            - The burst category.
-	 * 
-	 * @return A string describing the burst type
-	 * 
-	 * @see BurstCategory
-	 */
-	public static String getBurstCategoryString(BurstCategory category) {
-		switch (category) {
-		case BURSTCAT_PROTOCOL:
-			return rb.getString("burst.type.TcpControl");
-		case BURSTCAT_LOSS:
-			return rb.getString("burst.type.TcpLossRecover");
-		case BURSTCAT_USER:
-			return rb.getString("burst.type.UserInput");
-		case BURSTCAT_SCREEN_ROTATION:
-			return rb.getString("burst.type.ScreenRotation");
-		case BURSTCAT_CLIENT:
-			return rb.getString("burst.type.App");
-		case BURSTCAT_SERVER:
-			return rb.getString("burst.type.SvrNetDelay");
-		case BURSTCAT_LONG:
-			return rb.getString("burst.type.LargeBurst");
-		case BURSTCAT_PERIODICAL:
-			return rb.getString("burst.type.Periodical");
-		case BURSTCAT_UNKNOWN:
-			return rb.getString("burst.type.Unknown");
-		case BURSTCAT_USERDEF1:
-			return rb.getString("burst.type.Userdef.1");
-		case BURSTCAT_USERDEF2:
-			return rb.getString("burst.type.Userdef.2");
-		case BURSTCAT_USERDEF3:
-			return rb.getString("burst.type.Userdef.3");
-		default:
-			return rb.getString("burst.type.error");
-		}
 	}
 
 	/**

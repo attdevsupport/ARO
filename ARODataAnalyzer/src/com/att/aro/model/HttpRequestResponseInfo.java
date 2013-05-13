@@ -42,6 +42,7 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 import com.att.aro.pcap.TCPPacket;
+import com.att.aro.util.Util;
 
 /**
  * Encapsulates information about an HTTP request or response. This class was
@@ -77,7 +78,12 @@ public class HttpRequestResponseInfo implements
 	
 	public static final String HTTP_SCHEME = "HTTP";
 
-	private static final String GZIP = "gzip";
+	private static final String CONTENT_ENCODING_GZIP = "gzip";
+	private static final String CONTENT_ENCODING_COMPRESS = "compress";
+	private static final String CONTENT_ENCODING_DEFLATE = "deflate";
+	private static final String CONTENT_ENCODING_NONE = Util.RB.getString("rrview.http.compression.no");
+	private static final String CONTENT_ENCODING_NA = "";
+	
 
 	private static final Date BEGINNING_OF_TIME = new Date(0);
 	
@@ -85,6 +91,12 @@ public class HttpRequestResponseInfo implements
 			.getLogger(HttpRequestResponseInfo.class.getName());
 	
 	private static final Map<String, Integer> wellKnownPorts = new HashMap<String, Integer>(5);
+	
+	private static final Pattern TEXT_CONTENT_TYPE_TEXT = Pattern.compile("^text/.*");
+	private static final Pattern TEXT_CONTENT_TYPE_XML = Pattern.compile("^application/.*xml");
+
+	
+	
 	static {
 		wellKnownPorts.put(HTTP_SCHEME, 80);
 		wellKnownPorts.put("HTTPS", 443);
@@ -121,7 +133,8 @@ public class HttpRequestResponseInfo implements
 	private int rrStart;
 	private int rawSize; // Includes headers
 	private boolean ssl;
-
+	private TextFileCompression textFileCompression;
+	
 	// Map of the content offset/
 	private SortedMap<Integer, Integer> contentOffsetLength;
 
@@ -169,6 +182,26 @@ public class HttpRequestResponseInfo implements
 		 * A Response traveling in the down link direction.
 		 */
 		RESPONSE;
+	}
+	
+	public enum TextFileCompression {
+
+		GZIP(CONTENT_ENCODING_GZIP),
+		COMPRESS(CONTENT_ENCODING_COMPRESS),
+		DEFLATE(CONTENT_ENCODING_DEFLATE),
+		NONE(CONTENT_ENCODING_NONE),
+		NOT_APPLICABLE(CONTENT_ENCODING_NA);
+
+		private String type;
+
+		TextFileCompression(String type) {
+			this.type = type;
+		}
+
+		@Override
+		public String toString() {
+			return type;
+		}
 	}
 
 	/**
@@ -746,7 +779,7 @@ public class HttpRequestResponseInfo implements
 			// Get request transfer encoding
 			matcher = strReResponseContentEncoding.matcher(line);
 			if (matcher.lookingAt()) {
-				rrInfo.contentEncoding = line.substring(matcher.end()).trim();
+				rrInfo.contentEncoding = line.substring(matcher.end()).trim().toLowerCase();
 				return;
 			}
 
@@ -754,7 +787,7 @@ public class HttpRequestResponseInfo implements
 			matcher = strReResponseContentType.matcher(line);
 			if (matcher.lookingAt()) {
 				s = line.substring(matcher.end()).trim().split(";");
-				rrInfo.contentType = s[0].trim();
+				rrInfo.contentType = s[0].trim().toLowerCase();
 				for (int i = 1; i < s.length; ++i) {
 					int index = s[i].indexOf("=");
 					if (index >= 0) {
@@ -1468,7 +1501,7 @@ public class HttpRequestResponseInfo implements
 					output.write(buffer[i]);
 				}
 			}
-			if (GZIP.equals(contentEncoding)) {
+			if (CONTENT_ENCODING_GZIP.equals(contentEncoding)) {
 
 				// Uncompress gzipped content
 				GZIPInputStream gzip = new GZIPInputStream(
@@ -1751,4 +1784,96 @@ public class HttpRequestResponseInfo implements
 		}
 
 	}
+
+	/**
+	 * Indicates whether the server response containing text payload is
+	 * compressed or not.
+	 * 
+	 * @return Returns "none" string if the server response with a text payload is not
+	 *         compressed. Otherwise returns a string representation of the compression type used.
+	 */
+	public String getHttpCompression() {
+		return textFileCompression.toString();
+	}
+
+	/**
+	 * Indicates whether the server response containing text payload is
+	 * compressed or not.
+	 * 
+	 * @param textFileCompressionAnalysis
+	 *            - Text file compression analysis.
+	 * 
+	 * @return Returns true when the text file payload is not compressed.
+	 *         Otherwise returns false.
+	 */
+	public boolean setHttpCompression(TextFileCompressionAnalysis textFileCompressionAnalysis) {
+
+		boolean rsp = false;
+
+		if (packetDirection == PacketInfo.Direction.DOWNLINK && contentLength != 0 && contentType != null && isTextContent(contentType)) {
+
+			if (CONTENT_ENCODING_GZIP.equals(contentEncoding)) {
+				textFileCompression = TextFileCompression.GZIP;
+				textFileCompressionAnalysis.incrementNoOfCompressedFiles();
+
+			} else if (CONTENT_ENCODING_COMPRESS.equals(contentEncoding)) {
+				textFileCompression = TextFileCompression.COMPRESS;
+				textFileCompressionAnalysis.incrementNoOfCompressedFiles();
+
+			} else if (CONTENT_ENCODING_DEFLATE.equals(contentEncoding)) {
+				textFileCompression = TextFileCompression.DEFLATE;
+				textFileCompressionAnalysis.incrementNoOfCompressedFiles();
+
+			} else {
+				// the content should be compressed but is not
+				textFileCompression = TextFileCompression.NONE;
+				textFileCompressionAnalysis.incrementNoOfUncompressedFiles();
+				textFileCompressionAnalysis.addToTotalSize(contentLength);
+				rsp = true;
+			}
+
+		} else {
+			textFileCompression = TextFileCompression.NOT_APPLICABLE;
+		}
+
+		return rsp;
+	}
+	
+	/**
+	 *  Indicates whether the content type is text or not.
+	 *  
+	 *  The following content types are considered text:
+	 * - any type starting with 'text/'
+	 * - any type starting with 'application/' and followed by 'xml', for example: 'application/atom+xml'
+ 	 * - application/ecmascript
+     * - application/json
+     * - application/javascript
+     * - message/http
+     * 
+	 * @return Returns true if the content type is text otherwise return false;
+	 */
+	public static boolean isTextContent(String contentType) {
+
+		if (contentType.equals("application/ecmascript")) {
+			return true;
+		} else if (contentType.equals("application/json")) {
+			return true;
+		} else if (contentType.equals("application/javascript")) {
+			return true;
+		} else if (contentType.equals("message/http")) {
+			return true;
+		} else {
+
+			Matcher m = TEXT_CONTENT_TYPE_TEXT.matcher(contentType);
+			if (m.matches()) {
+				return true;
+			}
+			m = TEXT_CONTENT_TYPE_XML.matcher(contentType);
+			if (m.matches()) {
+				return true;
+			}
+			return false;
+		}
+	}
 }
+	

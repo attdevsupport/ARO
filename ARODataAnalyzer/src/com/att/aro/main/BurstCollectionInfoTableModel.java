@@ -123,7 +123,7 @@ public class BurstCollectionInfoTableModel extends DataTableModel<Burst> {
 	protected Object getColumnValue(Burst item, int columnIndex) {
 		switch (columnIndex) {
 		case TYPE_COL:
-			return BurstAnalysisTableModel.getBurstCategoryString(item.getBurstCategory());
+			return item.getBurstCategory().getBurstTypeDescription();
 		case START_TIME_COL:
 			return item.getBeginTime();
 		case END_TIME_COL:

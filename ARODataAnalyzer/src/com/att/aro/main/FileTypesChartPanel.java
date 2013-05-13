@@ -173,17 +173,16 @@ public class FileTypesChartPanel extends JPanel {
 
 		plot.setRenderer(renderer);
 		plot.getDomainAxis().setMaximumCategoryLabelLines(2);
-
-		ChartPanel chartPanel = new ChartPanel(chart, WIDTH, HEIGHT, 200,
+		
+		ChartPanel chartPanel = new ChartPanel(chart, WIDTH, HEIGHT, 400,
 				ChartPanel.DEFAULT_MINIMUM_DRAW_HEIGHT, ChartPanel.DEFAULT_MAXIMUM_DRAW_WIDTH,
 				ChartPanel.DEFAULT_MAXIMUM_DRAW_HEIGHT, USER_BUFFER, PROPERTIES, COPY, SAVE, PRINT,
 				ZOOM, TOOL_TIPS);
-
+				
 		chartPanel.setDomainZoomable(false);
 		chartPanel.setRangeZoomable(false);
-
 		this.add(chartPanel, BorderLayout.CENTER);
-	}
+		}
 
 	/**
 	 * Adds the file information in to provided writer.

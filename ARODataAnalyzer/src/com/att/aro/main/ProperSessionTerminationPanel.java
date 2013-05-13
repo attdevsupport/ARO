@@ -17,6 +17,7 @@
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
+import java.awt.Font;
 import java.awt.Color;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -106,6 +107,7 @@ public class ProperSessionTerminationPanel extends JPanel {
 				PlotOrientation.HORIZONTAL, false, false, false);
 		chart.setBackgroundPaint(this.getBackground());
 		chart.getTitle().setFont(AROUIManager.HEADER_FONT);
+		
 
 		this.plot = chart.getCategoryPlot();
 		plot.setBackgroundPaint(Color.white);
@@ -114,17 +116,18 @@ public class ProperSessionTerminationPanel extends JPanel {
 		plot.setRangeAxisLocation(AxisLocation.BOTTOM_OR_RIGHT);
 
 		CategoryAxis domainAxis = plot.getDomainAxis();
-		domainAxis.setMaximumCategoryLabelWidthRatio(.5f);
+		domainAxis.setMaximumCategoryLabelWidthRatio(1.0f);
+		domainAxis.setMaximumCategoryLabelLines(2);
 		domainAxis.setLabelFont(AROUIManager.LABEL_FONT);
 		domainAxis.setTickLabelFont(AROUIManager.LABEL_FONT);
-
+																							
 		NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
 		rangeAxis.setLabel(rb.getString("analysisresults.percentage"));
-		rangeAxis.setLabelFont(AROUIManager.LABEL_FONT);
 		rangeAxis.setRange(0.0, 100.0);
 		rangeAxis.setTickUnit(new NumberTickUnit(10));
 		rangeAxis.setLabelFont(AROUIManager.LABEL_FONT);
 		rangeAxis.setTickLabelFont(AROUIManager.LABEL_FONT);
+				
 
 		BarRenderer renderer = new StackedBarRenderer();
 		renderer.setBasePaint(AROUIManager.CHART_BAR_COLOR);
@@ -144,6 +147,11 @@ public class ProperSessionTerminationPanel extends JPanel {
 		ItemLabelPosition outsideItemlabelposition = new ItemLabelPosition(
 				ItemLabelAnchor.OUTSIDE3, TextAnchor.CENTER_LEFT);
 		renderer.setPositiveItemLabelPositionFallback(outsideItemlabelposition);
+		
+		renderer.setBarPainter(new StandardBarPainter());
+		renderer.setShadowVisible(false);
+		renderer.setMaximumBarWidth(BAR_WIDTH_PERCENT);
+		
 		renderer.setBaseToolTipGenerator(new CategoryToolTipGenerator() {
 			@Override
 			public String generateToolTip(CategoryDataset arg0, int arg1, int arg2) {
@@ -167,21 +175,17 @@ public class ProperSessionTerminationPanel extends JPanel {
 			}
 		});
 
-		renderer.setBarPainter(new StandardBarPainter());
-		renderer.setShadowVisible(false);
-		renderer.setMaximumBarWidth(BAR_WIDTH_PERCENT);
-
 		plot.setRenderer(renderer);
 		plot.getDomainAxis().setMaximumCategoryLabelLines(2);
 
 		ChartPanel chartPanel = new ChartPanel(chart, WIDTH, HEIGHT,
-				ChartPanel.DEFAULT_MINIMUM_DRAW_WIDTH, 100, ChartPanel.DEFAULT_MAXIMUM_DRAW_WIDTH,
+				ChartPanel.DEFAULT_MINIMUM_DRAW_WIDTH + 100,
+				100, ChartPanel.DEFAULT_MAXIMUM_DRAW_WIDTH,
 				ChartPanel.DEFAULT_MAXIMUM_DRAW_HEIGHT, USER_BUFFER, PROPERTIES, COPY, SAVE, PRINT,
 				ZOOM, TOOL_TIPS);
 
 		chartPanel.setDomainZoomable(false);
 		chartPanel.setRangeZoomable(false);
-
 		this.add(chartPanel, BorderLayout.CENTER);
 	}
 

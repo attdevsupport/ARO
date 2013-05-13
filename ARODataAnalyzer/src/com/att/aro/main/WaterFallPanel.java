@@ -202,8 +202,8 @@ public class WaterFallPanel extends JPanel {
 		List<WaterfallCategory> categoryList = new ArrayList<WaterfallCategory>();
 		if (analysis != null) {
 			
-			logger.info("Some Analysis data available");
-			logger.info("traceDuration: " + analysis.getTraceData().getTraceDuration());
+			logger.fine("Some Analysis data available");
+			logger.fine("traceDuration: " + analysis.getTraceData().getTraceDuration());
 			this.traceDuration = analysis.getTraceData().getTraceDuration();
 			// add 20% to make sure labels close to the right edge of the screen are visible
 			this.traceDuration *= 1.2; 
@@ -231,7 +231,7 @@ public class WaterFallPanel extends JPanel {
 				wc.index = ++index;
 			}
 		} else {
-			logger.info("No Analysis data available");
+			logger.fine("No Analysis data available");
 		}
 
 		// Horizontal scroll bar used to scroll through trace duration
@@ -414,7 +414,7 @@ public class WaterFallPanel extends JPanel {
 						WaterfallCategory wc = (WaterfallCategory) xyitem.getColumnKey();
 						if (wc != null && wc.reqResp != null) {
 							if (event.getTrigger().getClickCount() > 1) {
-								parent.displayAdvancedTab();
+								parent.displayDiagnosticTab();
 								parent.getAroAdvancedTab().setHighlightedRequestResponse(wc.reqResp);
 							} else {
 								popup.refresh(wc.reqResp, wc.index);

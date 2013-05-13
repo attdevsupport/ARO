@@ -157,7 +157,7 @@ public class CacheAnalysisPanel extends JPanel {
 				public void mouseClicked(MouseEvent e) {
 					CacheEntry entry = jDuplicateContentTable.getSelectedItem();
 					if (e.getClickCount() == 2 && entry != null) {
-						parent.displayAdvancedTab();
+						parent.displayDiagnosticTab();
 						parent.getAroAdvancedTab().setHighlightedRequestResponse(
 								entry.getResponse());
 					}

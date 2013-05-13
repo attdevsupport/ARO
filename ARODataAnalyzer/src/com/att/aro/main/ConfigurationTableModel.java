@@ -36,7 +36,7 @@ import com.att.aro.model.ProfileWiFi;
  */
 public class ConfigurationTableModel {
 
-	private static final ResourceBundle rb = ResourceBundleManager
+	private static final ResourceBundle RB = ResourceBundleManager
 			.getDefaultBundle();
 
 	/**
@@ -48,12 +48,12 @@ public class ConfigurationTableModel {
 	 */
 	public static final int PROFILE_DATA_COLUMN = 1;
 
-	private static final String[] networkColumns = {
-			rb.getString("configurationTableModel.NETWORK_ATTRIBUTE_COLUMN"),
-			rb.getString("configurationTableModel.PROFILE_DATA_COLUMN") };
-	private static final String[] deviceColumns = {
-		rb.getString("configurationTableModel.DEVICE_ATTRIBUTE_COLUMN"),
-		rb.getString("configurationTableModel.PROFILE_DATA_COLUMN") };
+	private static final String[] NETWORK_COLUMNS = {
+			RB.getString("configurationTableModel.NETWORK_ATTRIBUTE_COLUMN"),
+			RB.getString("configurationTableModel.PROFILE_DATA_COLUMN") };
+	private static final String[] DEVICE_COLUMNS = {
+		RB.getString("configurationTableModel.DEVICE_ATTRIBUTE_COLUMN"),
+		RB.getString("configurationTableModel.PROFILE_DATA_COLUMN") };
 
 	private File file;
 	private String name;
@@ -128,14 +128,14 @@ public class ConfigurationTableModel {
 
 	public DataTableModel<ConfigurationData> getDeviceAttributesTableModel() {
 		if (deviceAttrTableModel == null) {
-			deviceAttrTableModel = new DeviceAttributesTableModel(deviceColumns);
+			deviceAttrTableModel = new DeviceAttributesTableModel(DEVICE_COLUMNS);
 		}
 		return deviceAttrTableModel;
 	}
 
 	public DataTableModel<ConfigurationData> getNetworkAttributesTableModel() {
 		if (networkAttrTableModel == null) {
-			networkAttrTableModel = new NetworkAttributesTableModel(networkColumns);
+			networkAttrTableModel = new NetworkAttributesTableModel(NETWORK_COLUMNS);
 		}
 		return networkAttrTableModel;
 	}
@@ -161,28 +161,28 @@ public class ConfigurationTableModel {
 		public void initializeTableData(Profile profile) {
 			List<ConfigurationData> data = new ArrayList<ConfigurationData>();
 			data.add(new ConfigurationData(
-					rb.getString("configuration.DEVICE"), Profile.DEVICE,
+					RB.getString("configuration.DEVICE"), Profile.DEVICE,
 					profile.getDevice()));
 			if (profile instanceof Profile3G) {
 				// Adding 3G Profile
 				Profile3G profile3g = (Profile3G) profile;
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.POWER_DCH"),
 						Profile3G.POWER_DCH, Double.toString(profile3g
 								.getPowerDch())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.POWER_FACH"),
 						Profile3G.POWER_FACH, Double.toString(profile3g
 								.getPowerFach())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.POWER_IDLE"),
 						Profile3G.POWER_IDLE, Double.toString(profile3g
 								.getPowerIdle())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.POWER_IDLE_DCH"),
 						Profile3G.POWER_IDLE_DCH, Double.toString(profile3g
 								.getPowerIdleDch())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.POWER_FACH_DCH"),
 						Profile3G.POWER_FACH_DCH, Double.toString(profile3g
 								.getPowerFachDch())));
@@ -190,70 +190,70 @@ public class ConfigurationTableModel {
 
 				// Adding LTE Parameters
 				ProfileLTE profileLte = (ProfileLTE) profile;
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.LTE_P_PROMOTION"),
 						ProfileLTE.P_PROMOTION, Double.toString(profileLte
 								.getLtePromotionPower())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.LTE_P_SHORT_DRX"),
 						ProfileLTE.P_SHORT_DRX_PING, Double.toString(profileLte
 								.getDrxShortPingPower())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.LTE_LONG_DRX"),
 						ProfileLTE.P_LONG_DRX_PING, Double.toString(profileLte
 								.getDrxLongPingPower())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.LTE_TAIL"),
 						ProfileLTE.P_TAIL, Double.toString(profileLte
 								.getLteTailPower())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.LTE_IDLE"),
 						ProfileLTE.P_IDLE_PING, Double.toString(profileLte
 								.getLteIdlePingPower())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.LTE_ALPHA_UP"),
 						ProfileLTE.LTE_ALPHA_UP, Double.toString(profileLte
 								.getLteAlphaUp())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.LTE_ALPHA_DOWN"),
 						ProfileLTE.LTE_ALPHA_DOWN, Double.toString(profileLte
 								.getLteAlphaDown())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.LTE_BETA"),
 						ProfileLTE.LTE_BETA, Double.toString(profileLte
 								.getLteBeta())));
 			} else if (profile instanceof ProfileWiFi) {
 				ProfileWiFi profileWiFi = (ProfileWiFi) profile;
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.POWER_WIFI_ACTIVE"),
 						ProfileWiFi.POWER_WIFI_ACTIVE, Double
 								.toString(profileWiFi.getWifiActivePower())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.POWER_WIFI_STANDBY"),
 						ProfileWiFi.POWER_WIFI_STANDBY, Double
 								.toString(profileWiFi.getWifiIdlePower())));
 			}
-			data.add(new ConfigurationData(rb
+			data.add(new ConfigurationData(RB
 					.getString("configuration.POWER_GPS_ACTIVE"),
 					Profile.POWER_GPS_ACTIVE, Double.toString(profile
 							.getPowerGpsActive())));
-			data.add(new ConfigurationData(rb
+			data.add(new ConfigurationData(RB
 					.getString("configuration.POWER_GPS_STANDBY"),
 					Profile.POWER_GPS_STANDBY, Double.toString(profile
 							.getPowerGpsStandby())));
-			data.add(new ConfigurationData(rb
+			data.add(new ConfigurationData(RB
 					.getString("configuration.POWER_CAMERA_ON"),
 					Profile.POWER_CAMERA_ON, Double.toString(profile
 							.getPowerCameraOn())));
-			data.add(new ConfigurationData(rb
+			data.add(new ConfigurationData(RB
 					.getString("configuration.POWER_BLUETOOTH_ACTIVE"),
 					Profile.POWER_BLUETOOTH_ACTIVE, Double.toString(profile
 							.getPowerBluetoothActive())));
-			data.add(new ConfigurationData(rb
+			data.add(new ConfigurationData(RB
 					.getString("configuration.POWER_BLUETOOTH_STANDBY"),
 					Profile.POWER_BLUETOOTH_STANDBY, Double.toString(profile
 							.getPowerBluetoothStandby())));
-			data.add(new ConfigurationData(rb
+			data.add(new ConfigurationData(RB
 					.getString("configuration.POWER_SCREEN_ON"),
 					Profile.POWER_SCREEN_ON, Double.toString(profile
 							.getPowerScreenOn())));
@@ -319,8 +319,6 @@ public class ConfigurationTableModel {
 		 */
 		@Override
 		public void setValueAt(Object value, int rowIndex, int columnIndex) {
-			// data[rowIndex][columnIndex] = value;
-			// fireTableCellUpdated(rowIndex, columnIndex);
 			super.setValueAt(value, rowIndex, columnIndex);
 
 			if (columnIndex == PROFILE_DATA_COLUMN) {
@@ -354,83 +352,83 @@ public class ConfigurationTableModel {
 
 		public void initializeTableData(Profile profile) {
 			List<ConfigurationData> data = new ArrayList<ConfigurationData>();
-			data.add(new ConfigurationData(rb
+			data.add(new ConfigurationData(RB
 					.getString("configuration.CARRIER"), Profile.CARRIER,
 					profile.getCarrier()));
 			if (profile instanceof Profile3G) {
 				// Adding 3G Profile
 				Profile3G profile3g = (Profile3G) profile;
 
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.DCH_FACH_TIMER"),
 						Profile3G.DCH_FACH_TIMER, Double.toString(profile3g
 								.getDchFachTimer())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.FACH_IDLE_TIMER"),
 						Profile3G.FACH_IDLE_TIMER, Double.toString(profile3g
 								.getFachIdleTimer())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.IDLE_DCH_PROMO_MIN"),
 						Profile3G.IDLE_DCH_PROMO_MIN, Double.toString(profile3g
 								.getIdleDchPromoMin())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.IDLE_DCH_PROMO_AVG"),
 						Profile3G.IDLE_DCH_PROMO_AVG, Double.toString(profile3g
 								.getIdleDchPromoAvg())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.IDLE_DCH_PROMO_MAX"),
 						Profile3G.IDLE_DCH_PROMO_MAX, Double.toString(profile3g
 								.getIdleDchPromoMax())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.FACH_DCH_PROMO_MIN"),
 						Profile3G.FACH_DCH_PROMO_MIN, Double.toString(profile3g
 								.getFachDchPromoMin())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.FACH_DCH_PROMO_AVG"),
 						Profile3G.FACH_DCH_PROMO_AVG, Double.toString(profile3g
 								.getFachDchPromoAvg())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.FACH_DCH_PROMO_MAX"),
 						Profile3G.FACH_DCH_PROMO_MAX, Double.toString(profile3g
 								.getFachDchPromoMax())));
 
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.RLC_UL_TH"),
 						Profile3G.RLC_UL_TH, Integer.toString(profile3g
 								.getRlcUlTh())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.RLC_DL_TH"),
 						Profile3G.RLC_DL_TH, Integer.toString(profile3g
 								.getRlcDlTh())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.DCH_TIMER_RESET_SIZE"),
 						Profile3G.DCH_TIMER_RESET_SIZE, Integer
 								.toString(profile3g.getDchTimerResetSize())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.DCH_TIMER_RESET_WIN"),
 						Profile3G.DCH_TIMER_RESET_WIN, Double
 								.toString(profile3g.getDchTimerResetWin())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.RLC_UL_RATE_P2"),
 						Profile3G.RLC_UL_RATE_P2, Double.toString(profile3g
 								.getRlcUlRateP2())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.RLC_UL_RATE_P1"),
 						Profile3G.RLC_UL_RATE_P1, Double.toString(profile3g
 								.getRlcUlRateP1())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.RLC_UL_RATE_P0"),
 						Profile3G.RLC_UL_RATE_P0, Double.toString(profile3g
 								.getRlcUlRateP0())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.RLC_DL_RATE_P2"),
 						Profile3G.RLC_DL_RATE_P2, Double.toString(profile3g
 								.getRlcDlRateP2())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.RLC_DL_RATE_P1"),
 						Profile3G.RLC_DL_RATE_P1, Double.toString(profile3g
 								.getRlcDlRateP1())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.RLC_DL_RATE_P0"),
 						Profile3G.RLC_DL_RATE_P0, Double.toString(profile3g
 								.getRlcDlRateP0())));
@@ -438,84 +436,88 @@ public class ConfigurationTableModel {
 
 				// Adding LTE Parameters
 				ProfileLTE profileLte = (ProfileLTE) profile;
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.T_PROMOTION"),
 						ProfileLTE.T_PROMOTION, Double.toString(profileLte
 								.getPromotionTime())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.TI_DRX"),
 						ProfileLTE.INACTIVITY_TIMER, Double.toString(profileLte
 								.getInactivityTimer())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.TIS_DRX"),
 						ProfileLTE.T_SHORT_DRX, Double.toString(profileLte
 								.getDrxShortTime())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.TON_DRX"),
 						ProfileLTE.T_DRX_PING, Double.toString(profileLte
 								.getDrxPingTime())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.T_TAIL_DRX"),
 						ProfileLTE.T_LONG_DRX, Double.toString(profileLte
 								.getDrxLongTime())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.T_ONIDLE"),
 						ProfileLTE.T_IDLE_PING, Double.toString(profileLte
 								.getIdlePingTime())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.TPS_DRX"),
 						ProfileLTE.T_SHORT_DRX_PING_PERIOD, Double
 								.toString(profileLte.getDrxShortPingPeriod())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.TPI_DRX"),
 						ProfileLTE.T_LONG_DRX_PING_PERIOD, Double
 								.toString(profileLte.getDrxLongPingPeriod())));
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.PPL_DRX"),
 						ProfileLTE.T_IDLE_PING_PERIOD, Double
 								.toString(profileLte.getIdlePingPeriod())));
 			} else if (profile instanceof ProfileWiFi) {
 				ProfileWiFi profileWiFi = (ProfileWiFi) profile;
-				data.add(new ConfigurationData(rb
+				data.add(new ConfigurationData(RB
 						.getString("configuration.WIFI_TAIL_TIME"),
 						ProfileWiFi.WIFI_TAIL_TIME, Double.toString(profileWiFi
 								.getWifiTailTime())));
 			}
-			data.add(new ConfigurationData(rb
+			data.add(new ConfigurationData(RB
 					.getString("configuration.W_THROUGHPUT"),
 					Profile.W_THROUGHPUT, Double.toString(profile
 							.getThroughputWindow())));
-			data.add(new ConfigurationData(rb
+			data.add(new ConfigurationData(RB
 					.getString("configuration.BURST_TH"), Profile.BURST_TH,
 					Double.toString(profile.getBurstTh())));
-			data.add(new ConfigurationData(rb
+			data.add(new ConfigurationData(RB
 					.getString("configuration.LONG_BURST_TH"),
 					Profile.LONG_BURST_TH, Double.toString(profile
 							.getLongBurstTh())));
-			data.add(new ConfigurationData(rb
+			data.add(new ConfigurationData(RB
 					.getString("configuration.USER_INPUT_TH"),
 					Profile.USER_INPUT_TH, Double.toString(profile
 							.getUserInputTh())));
-			data.add(new ConfigurationData(rb
+			data.add(new ConfigurationData(RB
 					.getString("configuration.PERIOD_MIN_CYCLE"),
 					Profile.PERIOD_MIN_CYCLE, Double.toString(profile
 							.getPeriodMinCycle())));
-			data.add(new ConfigurationData(rb
+			data.add(new ConfigurationData(RB
 					.getString("configuration.PERIOD_CYCLE_TOL"),
 					Profile.PERIOD_CYCLE_TOL, Double.toString(profile
 							.getPeriodCycleTol())));
-			data.add(new ConfigurationData(rb
+			data.add(new ConfigurationData(RB
 					.getString("configuration.PERIOD_MIN_SAMPLES"),
 					Profile.PERIOD_MIN_SAMPLES, Integer.toString(profile
 							.getPeriodMinSamples())));
-			data.add(new ConfigurationData(rb
+			data.add(new ConfigurationData(RB
 					.getString("configuration.LARGE_BURST_DURATION"),
 					Profile.LARGE_BURST_DURATION, Double.toString(profile
 							.getLargeBurstDuration())));
-			data.add(new ConfigurationData(rb
+			data.add(new ConfigurationData(RB
 					.getString("configuration.LARGE_BURST_SIZE"),
 					Profile.LARGE_BURST_SIZE, Integer.toString(profile
 							.getLargeBurstSize())));
+			data.add(new ConfigurationData(RB
+					.getString("configuration.CLOSE_SPACED_BURSTS"),
+					Profile.CLOSE_SPACED_BURSTS, Double.toString(profile
+							.getCloseSpacedBurstThreshold())));
 
 			setData(data);
 		}
@@ -577,8 +579,6 @@ public class ConfigurationTableModel {
 		 */
 		@Override
 		public void setValueAt(Object value, int rowIndex, int columnIndex) {
-			// data[rowIndex][columnIndex] = value;
-			// fireTableCellUpdated(rowIndex, columnIndex);
 			super.setValueAt(value, rowIndex, columnIndex);
 
 			if (columnIndex == PROFILE_DATA_COLUMN) {

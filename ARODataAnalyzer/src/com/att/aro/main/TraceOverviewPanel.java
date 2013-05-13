@@ -17,6 +17,7 @@
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
+import java.awt.Font;
 import java.awt.Color;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -116,9 +117,11 @@ public class TraceOverviewPanel extends JPanel {
 		plot.setRangeAxisLocation(AxisLocation.BOTTOM_OR_RIGHT);
 
 		CategoryAxis valueRangeAxis = plot.getDomainAxis();
-		valueRangeAxis.setMaximumCategoryLabelWidthRatio(.5f);
+		valueRangeAxis.setMaximumCategoryLabelWidthRatio(1.0f);
+		valueRangeAxis.setMaximumCategoryLabelLines(2);
 		valueRangeAxis.setLabelFont(AROUIManager.LABEL_FONT);
 		valueRangeAxis.setTickLabelFont(AROUIManager.LABEL_FONT);
+		 
 
 		NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
 		rangeAxis.setLabel(rb.getString("analysisresults.percentile"));
@@ -126,6 +129,7 @@ public class TraceOverviewPanel extends JPanel {
 		rangeAxis.setTickUnit(new NumberTickUnit(10));
 		rangeAxis.setLabelFont(AROUIManager.LABEL_FONT);
 		rangeAxis.setTickLabelFont(AROUIManager.LABEL_FONT);
+		
 
 		BarRenderer renderer = new StackedBarRenderer();
 		renderer.setBasePaint(AROUIManager.CHART_BAR_COLOR);
@@ -171,15 +175,13 @@ public class TraceOverviewPanel extends JPanel {
 
 		plot.setRenderer(renderer);
 		plot.getDomainAxis().setMaximumCategoryLabelLines(2);
-
+		
 		ChartPanel chartPanel = new ChartPanel(chart, WIDTH, HEIGHT,
-				ChartPanel.DEFAULT_MINIMUM_DRAW_WIDTH, 100, ChartPanel.DEFAULT_MAXIMUM_DRAW_WIDTH,
+				ChartPanel.DEFAULT_MINIMUM_DRAW_WIDTH + 100,100, ChartPanel.DEFAULT_MAXIMUM_DRAW_WIDTH,
 				ChartPanel.DEFAULT_MAXIMUM_DRAW_HEIGHT, USER_BUFFER, PROPERTIES, COPY, SAVE, PRINT,
 				ZOOM, TOOL_TIPS);
-
 		chartPanel.setDomainZoomable(false);
 		chartPanel.setRangeZoomable(false);
-
 		this.add(chartPanel, BorderLayout.CENTER);
 	}
 

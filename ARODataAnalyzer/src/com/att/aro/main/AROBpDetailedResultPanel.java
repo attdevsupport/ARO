@@ -110,6 +110,7 @@ public class AROBpDetailedResultPanel extends JPanel {
 
 		// Add each best practice to the detail panel
 		for (DetailedResultRowPanel panel : panels) {
+			
 			detailPanel.add(panel.getIconLabel(), new GridBagConstraints(0,
 					row, 1, 4, 0.0, 0.0, GridBagConstraints.NORTH,
 					GridBagConstraints.NONE, imageInsets, 0, 0));
@@ -117,9 +118,11 @@ public class AROBpDetailedResultPanel extends JPanel {
 			detailPanel.add(panel.getTestLabel(), new GridBagConstraints(1,
 					row, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
 					GridBagConstraints.NONE, startInsets, 0, 0));
+			
 			detailPanel.add(panel.getTestNameLabel(), new GridBagConstraints(2,
 					row, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
 					GridBagConstraints.HORIZONTAL, startInsets, 0, 0));
+			
 			++row;
 			detailPanel.add(panel.getAboutLabel(), new GridBagConstraints(1,
 					row, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
@@ -127,9 +130,11 @@ public class AROBpDetailedResultPanel extends JPanel {
 			scroll = new JScrollPane(panel.getAboutText());
 			scroll.setBorder(BorderFactory.createEmptyBorder());
 			removeMouseWheelListeners(scroll);
+			
 			detailPanel.add(scroll, new GridBagConstraints(2, row, 1, 1, 1.0,
 					1.0, GridBagConstraints.NORTHWEST,
 					GridBagConstraints.HORIZONTAL, insets, 0, 0));
+			
 			++row;
 			detailPanel.add(panel.getResultLabel(), new GridBagConstraints(1,
 					row, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST,
@@ -137,10 +142,20 @@ public class AROBpDetailedResultPanel extends JPanel {
 			scroll = new JScrollPane(panel.getResultDetailsLabel());
 			scroll.setBorder(BorderFactory.createEmptyBorder());
 			removeMouseWheelListeners(scroll);
+			
 			detailPanel.add(scroll, new GridBagConstraints(2, row, 1, 1, 1.0,
 					1.0, GridBagConstraints.NORTHWEST, GridBagConstraints.BOTH,
 					insets, 0, 0));
 			++row;
+
+			if (panel.getTestResultPanel() != null) {
+				GridBagConstraints constr;
+				constr = new GridBagConstraints(2, row, 1, 1, 1.0,1.0,
+						                        GridBagConstraints.NORTHWEST, 
+						                        GridBagConstraints.BOTH, insets, 0, 0);
+				detailPanel.add(panel.getTestResultPanel(), constr);
+				++row;
+			}
 		}
 
 		JPanel panel = new JPanel(new BorderLayout());

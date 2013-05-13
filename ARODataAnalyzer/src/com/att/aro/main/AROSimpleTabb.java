@@ -17,6 +17,7 @@
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
+import java.awt.GridLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
@@ -86,23 +87,24 @@ public class AROSimpleTabb extends JPanel {
 
 		this.parent = parent;
 		JPanel traceAnalysisAndSessionTermPanel = new JPanel();
-		traceAnalysisAndSessionTermPanel.setLayout(new BorderLayout());
-		traceAnalysisAndSessionTermPanel.add(getTraceOverviewPanel(), BorderLayout.NORTH);
-		traceAnalysisAndSessionTermPanel.add(getProperSessionTermChartPanel(), BorderLayout.SOUTH);
-
+		traceAnalysisAndSessionTermPanel.setLayout(new GridLayout(2,1));
+		traceAnalysisAndSessionTermPanel.add(getTraceOverviewPanel());
+		traceAnalysisAndSessionTermPanel.add(getProperSessionTermChartPanel());
+				
 		JPanel chartsPanel = new JPanel();
 		chartsPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-		chartsPanel.setLayout(new BorderLayout());
-		chartsPanel.add(traceAnalysisAndSessionTermPanel, BorderLayout.EAST);
-		chartsPanel.add(getFileTypesChartPanel(), BorderLayout.WEST);
-
+		chartsPanel.setLayout(new GridLayout(1,2));
+		chartsPanel.add(getFileTypesChartPanel());
+		chartsPanel.add(traceAnalysisAndSessionTermPanel);
+		
 		this.add(getDeviceNetworkProfilePanel(), BorderLayout.NORTH);
 		JPanel chartAndTablePanel = new JPanel();
 		chartAndTablePanel.setLayout(new BorderLayout());
 		chartAndTablePanel.add(chartsPanel, BorderLayout.NORTH);
 		chartAndTablePanel.add(getJTablesSplitPane());
+			
 		this.add(chartAndTablePanel, BorderLayout.CENTER);
-
+		
 	}
 
 	/**
@@ -325,7 +327,7 @@ public class AROSimpleTabb extends JPanel {
 				public void mouseClicked(MouseEvent e) {
 					final TCPSession tcp = jExtendedDomainTable.getSelectedItem();
 					if (e.getClickCount() == 2 && tcp != null) {
-						parent.displayAdvancedTab();
+						parent.displayDiagnosticTab();
 
 						// Make sure the tab is fully displayed before changing
 						// selection

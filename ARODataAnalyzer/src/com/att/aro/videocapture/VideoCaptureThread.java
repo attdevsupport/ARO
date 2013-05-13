@@ -41,6 +41,16 @@ public class VideoCaptureThread extends Thread {
 	private IDevice device;
 	private boolean allDone;
 	private Date videoStartTime;
+	
+	public boolean usbDisconnected = false;
+
+	public boolean isUsbDisconnected() {
+		return usbDisconnected;
+	}
+
+	public void setUsbDisconnected(boolean usbDisconnected) {
+		this.usbDisconnected = usbDisconnected;
+	}
 
 	/**
 	 * Initializes a new instance of the VideoCaptureThread class using the
@@ -71,6 +81,8 @@ public class VideoCaptureThread extends Thread {
 		IOException savedException = null;
 		allDone = false;
 		Date lastFrameTime = this.videoStartTime = new Date();
+		setUsbDisconnected(false);
+		
 		while (!allDone) {
 			try {
 				// Screen shot is captured from the emulator.
@@ -96,6 +108,12 @@ public class VideoCaptureThread extends Thread {
 				}
 			} catch (IOException e) {
 				iExceptionCount++;
+				if (e.getMessage().contains("device not found"))
+				{
+					e.printStackTrace();
+					setUsbDisconnected(true);
+					
+				}
 				if (iExceptionCount > MAX_FETCH_EXCEPTIONS) {
 					allDone = true;
 				}
@@ -107,11 +125,13 @@ public class VideoCaptureThread extends Thread {
 		} catch (IOException e) {
 			logger.log(Level.WARNING, "Exception closing video output stream",
 					e);
+			//e.printStackTrace();			
 		}
 		if (iExceptionCount > 0) {
 			logger.warning((new StringBuilder())
 					.append("One or Mores Exceptions fetching image: ")
-					.append(savedException.toString()).toString());
+					.append(savedException.toString()).toString());		
+			
 		}
 	}
 

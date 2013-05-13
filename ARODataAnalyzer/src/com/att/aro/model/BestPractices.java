@@ -24,6 +24,8 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.att.aro.bp.BestPracticeDisplayFactory;
+import com.att.aro.main.TextFileCompressionResultPanel;
 import com.att.aro.model.HttpRequestResponseInfo.Direction;
 
 /**
@@ -41,7 +43,7 @@ public class BestPractices {
 
 	private int http1_0HeaderCount = 0;
 	private TCPSession http10Session = null;
-
+	
 	private SortedMap<Integer, Integer> httpErrorCounts = new TreeMap<Integer, Integer>();
 	private Map<Integer, HttpRequestResponseInfo> firstErrorRespMap = new HashMap<Integer, HttpRequestResponseInfo>();
 	private SortedMap<Integer, Integer> httpRedirectCounts = new TreeMap<Integer, Integer>();
@@ -119,7 +121,7 @@ public class BestPractices {
 			 * Counts number of subsequent USER bursts.
 			 * Stores the highest number to be used for the best practice tab. 
 			 */
-			if (BurstCategory.BURSTCAT_USER == burst.getBurstCategory()) {
+			if (BurstCategory.USER_INPUT == burst.getBurstCategory()) {
 				burstCategoryCount++;
 			} else {
 				burstCategoryCount = 0;
@@ -129,7 +131,7 @@ public class BestPractices {
 			LOGGER.log(Level.FINE, "tmpUserInputBurstCount set to: {0}", tmpUserInputBurstCount);
 
 
-			if (burst.getBurstCategory() == BurstCategory.BURSTCAT_PROTOCOL) {
+			if (burst.getBurstCategory() == BurstCategory.TCP_PROTOCOL) {
 				double currentEnergy = burst.getEnergy();
 				wastedBurstEnergy += currentEnergy;
 				if (currentEnergy > maxEnergy) {
@@ -140,7 +142,7 @@ public class BestPractices {
 			
 			//Verifying burst category to update screen rotation flag value which 
 			//shows whether screen rotation triggered network activity or not.
-			if (BurstCategory.BURSTCAT_SCREEN_ROTATION == burst.getBurstCategory() && this.screenRotation) {
+			if (BurstCategory.SCREEN_ROTATION == burst.getBurstCategory() && this.screenRotation) {
 				this.screenRotation = false;
 				this.screenRotationBurstTime = burst.getBeginTime();
 			}
@@ -290,6 +292,20 @@ public class BestPractices {
 		this.duplicateContentsize = cacheAnalysis.getDuplicateContent().size();
 		this.duplicateContent = duplicateContentsize <= 3;
 
+		setResultsOfTextFileCompressionTest(analysisData);
+	}
+
+	/**
+	 * Sets text file compression test results.
+	 * 
+	 * @param analysisData
+	 */
+	private void setResultsOfTextFileCompressionTest(TraceData.Analysis analysisData) {
+		// obtain the results of TFC Analysis
+		TextFileCompressionAnalysis tfca = analysisData.getTextFileCompressionAnalysis();
+		List<TextFileCompressionEntry> tfcaResult = tfca.getResults();
+		TextFileCompressionResultPanel tfc = BestPracticeDisplayFactory.getInstance().getTextFileCompression();
+		tfc.setData(tfcaResult);
 	}
 
 	/**
@@ -601,6 +617,39 @@ public class BestPractices {
 	 */
 	public TCPSession getHttp1_0Session() {
 		return http10Session;
+	}
+
+	/**
+	 * Indicates whether the Text File Compression test failed or not.
+	 * 
+	 * @return File Compression test status.
+	 */
+	public boolean isTextFileCompresionTestFailed() {
+		// obtain the results of TFC Analysis
+		TextFileCompressionAnalysis tfca = analysisData.getTextFileCompressionAnalysis();
+		return tfca.isTestFailed();
+	}
+
+	/**
+	 * Get the number of uncompressed text file calculated as percentage.
+	 * 
+	 * @return Percentage of uncompressed text file
+	 */
+	public double getFileCompressionPercentage() {
+		// obtain the results of TFC Analysis
+		TextFileCompressionAnalysis tfca = analysisData.getTextFileCompressionAnalysis();
+		return tfca.getPercentage();
+	}
+	
+	/**
+	 * Get total size of all uncompressed files in kilobytes.
+	 * 
+	 * @return Percentage of uncompressed text file
+	 */
+	public double getTotalSize() {
+		// obtain the results of TFC Analysis
+		TextFileCompressionAnalysis tfca = analysisData.getTextFileCompressionAnalysis();
+		return tfca.getTotalSize();
 	}
 
 	/**

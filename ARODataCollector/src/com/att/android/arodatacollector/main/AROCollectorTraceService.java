@@ -20,6 +20,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -313,7 +314,7 @@ public class AROCollectorTraceService extends Service {
 	//for cpu tracing
 	private boolean columnHeaderLineProcessed = false, columnIndicesSet = false, totalCpuLineProcessed = false;
 	private boolean doneParsingProcessCpu = false;
-	private static int processCpuColumnIndex = -1, processNameColumnIndex = -1, curProcessCount = 0;
+	private static int processCpuColumnIndex = -1, processNameColumnIndex = -1, curProcessCount = 0, nonEmptyLineNum = 0;
 	private static final int PROCESS_LIMIT = 8;
 	
 	private static final String CPU_HEADER = "CPU%";
@@ -332,7 +333,12 @@ public class AROCollectorTraceService extends Service {
 	
 	Timer cpuProcessingTimer;
 	private final String CPU_DIR = "CpuFiles/";
+	private final String CPU_ERROR_DIR = "CpuErrorFiles/";
 	private static final String CPU_SCRIPT_PID = "CPU_SCRIPT_PID";
+	
+	public static final String USB_BROADCAST_ACTION = "USB_BROADCAST_ACTION";
+	private static Intent usbBroadcastIntent;
+	public static final String USB_ACTION_EXTRA_KEY = "DataCollectorStopEnable";
 	
 	/**
 	 * Handles processing when an AROCollectorTraceService object is created.
@@ -353,6 +359,9 @@ public class AROCollectorTraceService extends Service {
 		mApp = (ARODataCollector) getApplication();
 		initializeFlurryObjects();
 		startARODataTraceCollection();
+		
+		//init the usb broadcast intent only once
+		usbBroadcastIntent = new Intent(USB_BROADCAST_ACTION);
 	}
 	
 
@@ -365,7 +374,7 @@ public class AROCollectorTraceService extends Service {
 	@Override
 	public void onDestroy() {
 		if (DEBUG) {
-			Log.d(TAG, "onDestroy called for AROCollectorTraceService " + mAroUtils.getSystemTimeinSeconds());
+			Log.i(TAG, "onDestroy called for AROCollectorTraceService " + mAroUtils.getSystemTimeinSeconds());
 		}
 		super.onDestroy();
 		stopARODataTraceCollection();
@@ -413,7 +422,7 @@ public class AROCollectorTraceService extends Service {
 		}
 	}
 	
-	
+
 	public void setCpuScriptPid(String pid) {
 		int pidInt = -1;
 		try {
@@ -427,9 +436,20 @@ public class AROCollectorTraceService extends Service {
 		editor.putInt(CPU_SCRIPT_PID, pidInt);
 		editor.commit();
 	}
-	
+	/**
+	 * getCpuDirFullPath
+	 * @return
+	 */
 	private String getCpuDirFullPath(){
 		return mApp.getTcpDumpTraceFolderName() + CPU_DIR;
+	}
+	
+	/**
+	 * getCpuErrorDir
+	 * @return
+	 */
+	private String getCpuErrorDir(){
+		return mApp.getTcpDumpTraceFolderName() + CPU_ERROR_DIR;
 	}
 
 	/**
@@ -510,7 +530,11 @@ public class AROCollectorTraceService extends Service {
 		cpuProcessingTimer.scheduleAtFixedRate(checkCpuUsageTask, CPU_TRACE_INITIAL_DELAY_MILLIS, CPU_TRACE_INTERVAL_MILLIS);
 	}
 	
-	private void processCpuDirectory() {
+	//needs synchronization here so that in case the timertask is already in progress,
+	//the stop code calling this method will need to wait
+	private synchronized void processCpuDirectory() {
+		long start = System.currentTimeMillis();
+		Log.i(TAG, "processCpuDirectory() started at " + start);
 		writeTraceLineToAROTraceFile(mCpuDebugWriter, "cpu file processing started", true);
 		try {
 			File cpuDir = new File(getCpuDirFullPath());
@@ -524,16 +548,22 @@ public class AROCollectorTraceService extends Service {
 			writeTraceLineToAROTraceFile(mCpuDebugWriter, "Exception occurred in checkCpuUsageTask: " + e.getMessage(), true);
 			e.printStackTrace();
 		}
+		
+		long end = System.currentTimeMillis();
+		Log.i(TAG, "processCpuDirectory() ended at " + end + ". Duration: " + (end - start));
 	}
-	
-	
+
+	private boolean isCopyFile = false;
 	private void processCpuFile(File cpuFile){
+		isCopyFile = false;
 		writeTraceLineToAROTraceFile(mCpuDebugWriter, "start processing " + cpuFile.getName(), true);
 		long start = System.currentTimeMillis();
 		//reset columnHeaderLineProcessed, totalCpuLineProcessed
 		columnHeaderLineProcessed = false;
 		totalCpuLineProcessed = false;
 		curProcessCount = 0;
+		nonEmptyLineNum = 0;
+		
 		doneParsingProcessCpu = false;
 		
 		String line = "";
@@ -544,10 +574,8 @@ public class AROCollectorTraceService extends Service {
 			input =  new BufferedReader(new FileReader(cpuFile));
 			while ((!doneParsingProcessCpu && curProcessCount < PROCESS_LIMIT) 
 					&& ( line = input.readLine()) != null){
-				
 				parseCpuInfo(content, line);
 			}
-			
 			String contentStr = content.toString().trim();
 			if (contentStr.length() > 0){
 				double traceFileTimestamp = Double.parseDouble(cpuFile.getName());
@@ -568,13 +596,44 @@ public class AROCollectorTraceService extends Service {
 		finally {
 			try {
 				input.close();
+				/*if (isCopyFile){
+					File errorDir = new File(getCpuErrorDir());
+					if (!errorDir.exists()){
+						errorDir.mkdir();
+					}
+					final String newFileLocation = errorDir.getAbsolutePath() + "/" + cpuFile.getName();
+					//cpuFile.renameTo(new File(newFileLocation));
+					copyFile(cpuFile, new File(newFileLocation));
+					writeTraceLineToAROTraceFile(mCpuDebugWriter, cpuFile.getName() + " copied to " + newFileLocation, true);
+				}*/
 				if (isDelete){
 					cpuFile.delete();
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
+				writeTraceLineToAROTraceFile(mCpuDebugWriter, cpuFile.getName() + ": Exception: " + e.getMessage(), true);
 			}
 		}
+	}
+	
+	private void copyFile(File src, File dst){
+		InputStream inStream = null;
+		OutputStream outStream = null;
+	    try{
+	    	   	inStream = new FileInputStream(src);
+	    	    outStream = new FileOutputStream(dst);
+	    	    byte[] buffer = new byte[1024];
+	    	    int length;
+	    	    //copy the file content in bytes 
+	    	    while ((length = inStream.read(buffer)) > 0){
+	    	    	outStream.write(buffer, 0, length);
+	    	    }
+	    	    inStream.close();
+	    	    outStream.close();
+	 
+	    	}catch(IOException e){
+	    	    e.printStackTrace();
+	    	}
 	}
 	
 	private void parseCpuInfo(StringBuffer content, String line) {
@@ -582,13 +641,16 @@ public class AROCollectorTraceService extends Service {
 
 		line = line.replaceAll("\r", "").replaceAll("\n", "").trim();
 		if (line.length() > 0){
+			++nonEmptyLineNum;
+			
 			if (!columnHeaderLineProcessed){
 				if (!totalCpuLineProcessed && parseTotalCpuLine(content, line)){
 					totalCpuLineProcessed = true;
 				}
 					
-				else if (isColumnHeaderLine(line)){
+				else if (totalCpuLineProcessed && isColumnHeaderLine(line)){
 					if (!columnIndicesSet){
+						//columnIndices are set just once per app run
 						setColumnHeaderIndices(line);
 					}
 					
@@ -689,9 +751,16 @@ public class AROCollectorTraceService extends Service {
 			}
 			else {
 				Log.w(TAG, "totalCpuLineMatcher doesn't return 8 capturing groups for line=" + line);
+				writeTraceLineToAROTraceFile(mCpuDebugWriter, "totalCpuLineMatcher doesn't return 8 capturing groups for line= " + line, true);
+				isCopyFile = true;
+				isTotalCpuLine = false;
 			}
 		}
-
+		else if (nonEmptyLineNum == 2){
+			//2nd line isnt a parsable total cpu line
+			writeTraceLineToAROTraceFile(mCpuDebugWriter, "2nd line is not totalCpuLine; line= " + line, true);
+			isCopyFile = true;
+		}
 		
 		return isTotalCpuLine;
 	}
@@ -838,6 +907,8 @@ public class AROCollectorTraceService extends Service {
 		stopAROAirplaneModeMidTrace();
 	}
 
+
+
 	/**
 	 * Gets the current connected data network type of device i.e 3G/LTE/Wifi
 	 * @param mCurrentNetworkType network info class object to get current network type 
@@ -887,7 +958,7 @@ public class AROCollectorTraceService extends Service {
 		mScreenOutputFile = new FileOutputStream(mAroTraceDatapath + outScreenFileName,true);
 		mNetworkDetailsOutputFile = new FileOutputStream(mAroTraceDatapath + outNetworkDetailsFileName ,true);
 		mCpuTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outCpuFileName ,true);
-		//mCpuTraceDebugFile = new FileOutputStream(mAroTraceDatapath + "cpu_debug.txt" ,true);
+		mCpuTraceDebugFile = new FileOutputStream(mAroTraceDatapath + "cpu_log.txt" ,true);
 		
 		mScreenRotationOutputFile = new FileOutputStream(mAroTraceDatapath+ outScreenRotationFileName,true);
 		mScreenTracewriter = new BufferedWriter(new OutputStreamWriter(mScreenOutputFile));
@@ -902,7 +973,7 @@ public class AROCollectorTraceService extends Service {
 		mDeviceInfoWriter = new BufferedWriter(new OutputStreamWriter(mDeviceInfoOutputFile));
 		mDeviceDetailsWriter = new BufferedWriter(new OutputStreamWriter(mDeviceDetailsOutputFile));
 		mCpuTraceWriter = new BufferedWriter(new OutputStreamWriter(mCpuTraceOutputFile));
-		//mCpuDebugWriter = new BufferedWriter(new OutputStreamWriter(mCpuTraceDebugFile));
+		mCpuDebugWriter = new BufferedWriter(new OutputStreamWriter(mCpuTraceDebugFile));
 
 	}
 
@@ -1291,7 +1362,6 @@ public class AROCollectorTraceService extends Service {
 		}
 	}
 	
-
 	/**
 	 * Records the data connection bearer change during the life time of
 	 * trace collection 
@@ -2037,6 +2107,14 @@ public class AROCollectorTraceService extends Service {
 			}
 			if (status != -1) {
 				switch (status) {
+				
+				case 0: //USB Unplugged
+					if(mApp.isCollectorLaunchfromAnalyzer()){
+						Log.i(TAG, "usb disconnected, set dataCollectorStopEnable to true");
+						mApp.setDataCollectorStopEnable(true);
+						broadcastUsbAction(true);
+					}
+					break;
 				case BatteryManager.BATTERY_PLUGGED_USB:
 					mPowerSource = true;
 					break;
@@ -2066,6 +2144,20 @@ public class AROCollectorTraceService extends Service {
 		writeToFlurryAndMaintainStateAndLogEvent(batteryFlurryEvent, this.getString(R.string.flurry_param_status), 
 				tempBatteryString, true);
 	}	
+
+	/**
+	 * 
+	 * @param CollectorStopEnable
+	 */
+	private void broadcastUsbAction(boolean collectorStopEnable) {
+		if (DEBUG) {
+			Log.i(TAG, "broadcasting usbAction, collectorStopEnable:"
+					+ collectorStopEnable);
+		}
+		usbBroadcastIntent.putExtra(USB_ACTION_EXTRA_KEY, collectorStopEnable);
+    	sendBroadcast(usbBroadcastIntent);
+	}
+
 
 	/**
 	 * Starts the battery trace

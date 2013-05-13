@@ -30,7 +30,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -87,7 +86,7 @@ public class AROCollectorService extends Service {
 	 * The boolean value to enable logs depending on if production build or
 	 * debug build
 	 */
-	private static boolean mIsProduction = true;
+	private static boolean mIsProduction = false;
 
 	/**
 	 * A boolean value that indicates whether or not to enable logging for this
@@ -213,8 +212,8 @@ public class AROCollectorService extends Service {
 		//flurry end session
 		FlurryAgent.onEndSession(this);
 		if (DEBUG) {
-			Log.d(TAG, "onDestroy called: " + mAroUtils.getSystemTimeinSeconds());
-			Log.d(TAG, "flurry-called onEndSession");
+			Log.i(TAG, "onDestroy called for AROCollectorService: " + mAroUtils.getSystemTimeinSeconds());
+			Log.i(TAG, "flurry-called onEndSession");
 		}
 		
 		super.onDestroy();
@@ -277,29 +276,52 @@ public class AROCollectorService extends Service {
 	 */
 
 	private void startTcpDump() throws IOException, InterruptedException {
+		Log.d(TAG, "inside startTcpDump at timestamp " + System.currentTimeMillis());
 		Process sh = null;
 		DataOutputStream os = null;
+		int shExitValue = 0;
 		try {
-			sh = Runtime.getRuntime().exec("su");
-			os = new DataOutputStream(sh.getOutputStream());
-			String Command = "chmod 777 " + ARODataCollector.INTERNAL_DATA_PATH + TCPDUMPFILENAME
-					+ "\n";
-			os.writeBytes(Command);
-			Command = "chmod 777 " + ARODataCollector.INTERNAL_DATA_PATH + "key.db" + "\n";
-			os.writeBytes(Command);
-			
-			//flurry timed event duration
-			startCalTime = Calendar.getInstance();
-			mApp.writeToFlurryAndLogEvent(flurryTimedEvent, "Flurry trace start", startCalTime.getTime().toString(), "Trace Duration", true);
-			
-			Command = "." + ARODataCollector.INTERNAL_DATA_PATH + TCPDUMPFILENAME + " -w "
-					+ TRACE_FOLDERNAME + "\n";
-			os.writeBytes(Command);
-			Command = "exit\n";
-			os.writeBytes(Command);
-			os.flush();
-			final int shExitValue = sh.waitFor();
 			final AROCollectorTaskManagerProcessInfo mAROTaskManagerProcessInfo = new AROCollectorTaskManagerProcessInfo();
+			startCalTime = Calendar.getInstance();
+			
+			if (!mAROTaskManagerProcessInfo.pstcpdump()){
+				//only start tcpdump if it's not already running, to handle the case where the background
+				//service was stopped and now restarting
+				
+				Log.i(TAG, "tcpdump is not running. Starting tcpdump in the shell now");
+				
+				sh = Runtime.getRuntime().exec("su");
+				os = new DataOutputStream(sh.getOutputStream());
+				String Command = "chmod 777 " + ARODataCollector.INTERNAL_DATA_PATH + TCPDUMPFILENAME
+						+ "\n";
+				os.writeBytes(Command);
+				Command = "chmod 777 " + ARODataCollector.INTERNAL_DATA_PATH + "key.db" + "\n";
+				os.writeBytes(Command);
+				
+				//flurry timed event duration
+				mApp.writeToFlurryAndLogEvent(flurryTimedEvent, "Flurry trace start", startCalTime.getTime().toString(), "Trace Duration", true);
+				
+				Command = "." + ARODataCollector.INTERNAL_DATA_PATH + TCPDUMPFILENAME + " -w "
+						+ TRACE_FOLDERNAME + "\n";
+				os.writeBytes(Command);
+				Command = "exit\n";
+				os.writeBytes(Command);
+				os.flush();
+				
+				StreamClearer stdoutClearer = new StreamClearer(sh.getInputStream(), "stdout", true);
+				new Thread(stdoutClearer).start();
+				StreamClearer stderrClearer = new StreamClearer(sh.getErrorStream(), "stderr", true);
+				new Thread(stderrClearer).start();
+				
+				shExitValue = sh.waitFor();
+				if (DEBUG) {
+					Log.i(TAG, "tcpdump waitFor returns exit value: " + shExitValue + " at " + System.currentTimeMillis());
+				}
+			}
+			else {
+				Log.i(TAG, "timestamp " + System.currentTimeMillis() + ": tcpdump is already running");
+			}
+			
 			//We will continue and block the thread untill we see valid instance of tcpdump running in shell
 			//waitFor() does not seems to be working on ICS firmware 
 			while (mAROTaskManagerProcessInfo.pstcpdump()) {
@@ -307,7 +329,8 @@ public class AROCollectorService extends Service {
 			}
 			if (DEBUG) {
 				Log.d(TAG, "tcpdump process exit value: " + shExitValue);
-				Log.i(TAG, "Coming out of startTcpDump");
+				Log.i(TAG, "Coming out of startTcpDump at " + System.currentTimeMillis());
+				logTcpdumpPid();
 			}
 			// Stopping the Video capture right after tcpdump coming out of
 			// shell
@@ -330,8 +353,12 @@ public class AROCollectorService extends Service {
 		} finally {
 			try {
 				mApp.setTcpDumpStartFlag(false);
-				os.close();
-				sh.destroy();
+				if (os != null){
+					os.close();
+				}
+				if (sh != null){
+					sh.destroy();
+				}
 			} catch (Exception e) {
 				Log.e(TAG, "exception in startTcpDump DataOutputStream close", e);
 			}
@@ -461,8 +488,11 @@ public class AROCollectorService extends Service {
 		dataCollectorStopWatchTimer();
 		try {
 			if (DEBUG) {
-				Log.i(TAG, "stopTcpDump In....");
+				Log.i(TAG, "enter requestDataCollectorStop at " + System.currentTimeMillis());
 			}
+			
+			logTcpdumpPid();
+			
 			final Socket tcpdumpsocket = new Socket(InetAddress.getByName("localhost"), 50999);
 			final OutputStream out = tcpdumpsocket.getOutputStream();
 			out.write("STOP".getBytes("ASCII"));
@@ -470,12 +500,22 @@ public class AROCollectorService extends Service {
 			out.close();
 			tcpdumpsocket.close();
 			if (DEBUG) {
-				Log.i(TAG, "stopTcpDump Out....");
+				Log.i(TAG, "exit requestDataCollectorStop at " + System.currentTimeMillis());
 			}
-		} catch (UnknownHostException e) {
+		} catch (Exception e) {
 			Log.e(TAG, "exception in stopTcpDump", e);
-		} catch (IOException e) {
-			Log.e(TAG, "exception in stopTcpDump", e);
+			
+			//for debugging, check if tcpdump is still running
+			logTcpdumpPid();
+		}
+	}
+
+	private void logTcpdumpPid() {
+		try {
+			int tcpdumpPid = mAroUtils.getProcessID("tcpdump");
+			Log.i(TAG, "tcpdump is running with pid=" + tcpdumpPid);
+		} catch (Exception e1){
+			Log.i(TAG, "Exception in requestDataCollectorStop() while checking for tcpdump pid.", e1);
 		}
 	}
 
@@ -495,10 +535,13 @@ public class AROCollectorService extends Service {
 	 * navigate to respective screen or shows error dialog
 	 */
 	private void DataCollectorTraceStop() {
-		aroDCStopWatchTimer.cancel();
+		if (aroDCStopWatchTimer != null){
+			aroDCStopWatchTimer.cancel();
+			aroDCStopWatchTimer = null;
+		}
 		
 		if (DEBUG) {
-			Log.i(TAG, "DataCollectorTraceStop");
+			Log.i(TAG, "enter DataCollectorTraceStop at " + System.currentTimeMillis());
 			Log.i(TAG, "mApp.getDataCollectorBearerChange()=" + mApp.getDataCollectorBearerChange());
 			Log.i(TAG, "mApp.getDataCollectorInProgressFlag()=" + mApp.getDataCollectorInProgressFlag());
 			Log.i(TAG, "mApp.getARODataCollectorStopFlag()=" + mApp.getARODataCollectorStopFlag());
@@ -506,6 +549,8 @@ public class AROCollectorService extends Service {
 		if (!mApp.getDataCollectorInProgressFlag()) {
 			mApp.cancleAROAlertNotification();
 			if (!mApp.getARODataCollectorStopFlag()) {
+				Log.i(TAG, "tcpdump exit without user stopping at " + System.currentTimeMillis());
+				
 				// Stopping the peripherals collection trace service
 				stopService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
 				// Stopping the tcpdump/screen capture collection trace service
@@ -543,7 +588,7 @@ public class AROCollectorService extends Service {
 				getApplication().startActivity(tcpdumpStoppedIntent);
 			} else if (mApp.getARODataCollectorStopFlag()) {
 				if (DEBUG) {
-					Log.i(TAG, "Trace Summary Screen to Start");
+					Log.i(TAG, "Trace Summary Screen to Start at " + System.currentTimeMillis());
 				}
 				traceCompletedIntent = new Intent(getBaseContext(),
 				AROCollectorCompletedActivity.class);
@@ -601,7 +646,7 @@ public class AROCollectorService extends Service {
 			os.writeBytes(Command);
 			Command = "exit\n";
 			os.writeBytes(Command);
-			os.flush();
+			os.flush();		
 			sh.waitFor();
 		} catch (IOException e) {
 			Log.e(TAG, "exception in startScreenVideoCapture", e);
@@ -643,6 +688,8 @@ public class AROCollectorService extends Service {
 	 * Stops the Screen video capture
 	 */
 	private void stopScreenVideoCapture() {
+		Log.i(TAG, "enter stopScreenVideoCapture at " + System.currentTimeMillis());
+		
 		Process sh = null;
 		DataOutputStream os = null;
 		int pid = 0, exitValue = -1;
@@ -696,8 +743,8 @@ public class AROCollectorService extends Service {
 					if (sh != null){
 						sh.destroy();
 					}
-				} catch (IOException e) {
-					Log.e(TAG, "exception in stopScreenVideoCapture DataOutputStream close", e);
+				} catch (Exception e) {
+					Log.e(TAG, "exception in stopScreenVideoCapture finally block", e);
 				}
 				if (DEBUG) {
 					Log.i(TAG, "Stopped Video Capture in stopScreenVideoCapture()");
@@ -761,9 +808,7 @@ public class AROCollectorService extends Service {
 					Log.i(TAG, "ffmpeg had been ended successfully by kill -15");
 				}
 			}
-		} catch (IOException e1) {
-			Log.e(TAG, "IOException in kill9Ffmpeg", e1);
-		} catch (InterruptedException e1) {
+		} catch (Exception e1) {
 			Log.e(TAG, "exception in kill9Ffmpeg", e1);
 		} finally {
 			try {
@@ -774,7 +819,7 @@ public class AROCollectorService extends Service {
 				if (sh != null){
 					sh.destroy();
 				}
-			} catch (IOException e) {
+			} catch (Exception e) {
 				Log.e(TAG, "exception in kill9Ffmpeg DataOutputStream close", e);
 			}
 		}
@@ -828,13 +873,17 @@ public class AROCollectorService extends Service {
 			}
 		}
 	}
-	
+
 	/**
 	 * Watch Dog to check abnormal termination of Data Collector
 	 */
 	private void dataCollectorStopWatchTimer() {
 		if (DEBUG) {
-			Log.i(TAG, "Inside dataCollectorStopWatchTimer....");
+			Log.i(TAG, "Inside dataCollectorStopWatchTimer at " + System.currentTimeMillis());
+		}
+		
+		if (aroDCStopWatchTimer == null){
+			aroDCStopWatchTimer = new Timer();
 		}
 		aroDCStopWatchTimer.schedule(new TimerTask() {
 			@Override
@@ -844,10 +893,13 @@ public class AROCollectorService extends Service {
 							"Inside dataCollectorStopWatchTimer....mApp.getTcpDumpStartFlag"
 									+ mApp.getTcpDumpStartFlag()
 									+ "mApp.getARODataCollectorStopFlag(true);"
-									+ mApp.getARODataCollectorStopFlag());
+									+ mApp.getARODataCollectorStopFlag()
+									+ " at " + System.currentTimeMillis());
 				}
 				if (mApp.getTcpDumpStartFlag()) {
 					aroDCStopWatchTimer.cancel();
+					aroDCStopWatchTimer = null;
+					
 					if (AROCollectorTraceService.getServiceObj() != null) {
 						if (DEBUG) {
 							Log.i(TAG, "Inside Ping Connection....hideProgressDialog");

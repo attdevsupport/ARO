@@ -26,11 +26,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 
+import javax.swing.JPanel;
 import javax.swing.event.HyperlinkEvent;
 
 import com.att.aro.main.ApplicationResourceOptimizer;
 import com.att.aro.main.ChartPlotOptions;
 import com.att.aro.main.ResourceBundleManager;
+import com.att.aro.main.TextFileCompressionResultPanel;
 import com.att.aro.model.BestPractices;
 import com.att.aro.model.BurstCollectionAnalysis;
 import com.att.aro.model.TraceData;
@@ -50,6 +52,7 @@ public class BestPracticeDisplayFactory {
 
 	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
+	private BestPracticeDisplayGroup fileDownloadSection;
 	private BestPracticeDisplayGroup cachingSection;
 	private BestPracticeDisplayGroup connectionsSection;
 	private BestPracticeDisplayGroup otherSection;
@@ -78,11 +81,36 @@ public class BestPracticeDisplayFactory {
 	public Collection<BestPracticeDisplayGroup> getBestPracticeDisplay() {
 		if (bestPracticeDisplay == null) {
 			this.bestPracticeDisplay = new ArrayList<BestPracticeDisplayGroup>(5);
+			bestPracticeDisplay.add(getFileDownloadSection());
 			bestPracticeDisplay.add(getCachingSection());
 			bestPracticeDisplay.add(getConnectionsSection());
 			bestPracticeDisplay.add(getOtherSection());
 		}
 		return this.bestPracticeDisplay;
+	}
+
+	/**
+	 * Returns the pre-defined file download best practice section
+	 * @return The best practice display group for file download
+	 */
+	protected BestPracticeDisplayGroup getFileDownloadSection() {
+		if (fileDownloadSection == null) {
+			fileDownloadSection = new BestPracticeDisplayGroupImpl(
+					rb.getString("bestPractices.header.fileDownload"),
+					rb.getString("bestPractices.header.fileDownloadDescription"),
+					rb.getString("bestPractice.referSection.fileDownload"),
+					Arrays.asList(FILE_COMPRESSION));
+		}
+		return fileDownloadSection;
+	}
+	
+	/**
+	 * Returns a result panel for text file compression test.
+	 * 
+	 * @return text file compression test result panel
+	 */
+	public TextFileCompressionResultPanel getTextFileCompression() {
+		return (TextFileCompressionResultPanel) FILE_COMPRESSION.getTestResults();
 	}
 
 	/**
@@ -128,7 +156,7 @@ public class BestPracticeDisplayFactory {
 					rb.getString("bestPractices.header.others"),
 					rb.getString("bestPractices.header.othersDescription"),
 					rb.getString("bestPractice.referSection.others"),
-					Arrays.asList(accessingPeripherals, http10Usage));
+					Arrays.asList(ACCESSING_PERIPHERIALS, HTTP_1_0_USAGE));
 		}
 		return otherSection;
 	}
@@ -218,6 +246,11 @@ public class BestPracticeDisplayFactory {
 					.getString("statics.csvUnits.mbytes")));
 			return result;
 		}
+
+		@Override
+		public JPanel getTestResults() {
+			return null;
+		}
 		
 	};
 	
@@ -281,6 +314,11 @@ public class BestPracticeDisplayFactory {
 			result.add(new BestPracticeExport(NumberFormat
 					.getIntegerInstance().format(bp.getCacheHeaderRatio()), rb.getString("exportall.csvCacheConPct")));
 			return result;
+		}
+
+		@Override
+		public JPanel getTestResults() {
+			return null;
 		}
 		
 	};
@@ -346,6 +384,11 @@ public class BestPracticeDisplayFactory {
 			result.add(new BestPracticeExport(String.valueOf(bp.getHitNotExpiredDupCount()), rb.getString("exportall.csvCacheConNExpDesc")));
 			result.add(new BestPracticeExport(String.valueOf(bp.getHitExpired304Count()), rb.getString("exportall.csvCacheCon304Desc")));
 			return result;
+		}
+
+		@Override
+		public JPanel getTestResults() {
+			return null;
 		}
 		
 	};
@@ -414,6 +457,11 @@ public class BestPracticeDisplayFactory {
 				return result;
 			}
 		}
+
+		@Override
+		public JPanel getTestResults() {
+			return null;
+		}
 		
 	};
 	
@@ -464,6 +512,11 @@ public class BestPracticeDisplayFactory {
 		
 		@Override
 		public List<BestPracticeExport> getExportData(Analysis analysisData) {
+			return null;
+		}
+
+		@Override
+		public JPanel getTestResults() {
 			return null;
 		}
 		
@@ -536,6 +589,11 @@ public class BestPracticeDisplayFactory {
 					.getString("exportall.csvMultiConnDesc")));
 			return result;
 		}
+
+		@Override
+		public JPanel getTestResults() {
+			return null;
+		}
 		
 	};
 	
@@ -601,6 +659,11 @@ public class BestPracticeDisplayFactory {
 			result.add(new BestPracticeExport(String.valueOf(bursts.getPeriodicCount()), rb.getString("exportall.csvIneffConnRptDesc")));
 			result.add(new BestPracticeExport(String.valueOf(bursts.getMinimumPeriodicRepeatTime()), rb.getString("exportall.csvIneffConnTimeDesc")));
 			return result;
+		}
+
+		@Override
+		public JPanel getTestResults() {
+			return null;
 		}
 		
 	};
@@ -669,6 +732,11 @@ public class BestPracticeDisplayFactory {
 							.getString("exportall.csvSrcnRtnDescPass") : rb
 							.getString("exportall.csvSrcnRtnDesc")));
 			return result;
+		}
+
+		@Override
+		public JPanel getTestResults() {
+			return null;
 		}
 		
 	};
@@ -744,6 +812,11 @@ public class BestPracticeDisplayFactory {
 				return result;
 			}
 		}
+
+		@Override
+		public JPanel getTestResults() {
+			return null;
+		}
 		
 	};
 	
@@ -816,7 +889,7 @@ public class BestPracticeDisplayFactory {
 				
 				// Find a response with the selected status code
 				int status = Integer.parseInt(h.getDescription());
-				parent.displayAdvancedTab();
+				parent.displayDiagnosticTab();
 				parent.getAroAdvancedTab().setHighlightedRequestResponse(
 						parent.getAnalysisData().getBestPractice()
 								.getFirstErrorRespMap().get(status));
@@ -847,6 +920,11 @@ public class BestPracticeDisplayFactory {
 						rb.getString("connections.http4xx5xx.errorSingular"),
 						entry.getKey());
 			}
+		}
+
+		@Override
+		public JPanel getTestResults() {
+			return null;
 		}
 	};
 	
@@ -919,7 +997,7 @@ public class BestPracticeDisplayFactory {
 				
 				// Find a response with the selected status code
 				int status = Integer.parseInt(h.getDescription());
-				parent.displayAdvancedTab();
+				parent.displayDiagnosticTab();
 				parent.getAroAdvancedTab().setHighlightedRequestResponse(
 						parent.getAnalysisData().getBestPractice()
 								.getFirstRedirectRespMap().get(status));
@@ -950,6 +1028,11 @@ public class BestPracticeDisplayFactory {
 						rb.getString("connections.http3xx.errorSingular"),
 						entry.getKey());
 			}
+		}
+
+		@Override
+		public JPanel getTestResults() {
+			return null;
 		}
 	};
 	
@@ -1017,13 +1100,18 @@ public class BestPracticeDisplayFactory {
 					rb.getString("exportall.csvOffWiFiDesc")));
 			return result;
 		}
+
+		@Override
+		public JPanel getTestResults() {
+			return null;
+		}
 		
 	};
 	
 	/**
 	 * Pre-defined accessing peripherals best practice
 	 */
-	protected static final BestPracticeDisplay accessingPeripherals = new BestPracticeDisplay() {
+	protected static final BestPracticeDisplay ACCESSING_PERIPHERIALS = new BestPracticeDisplay() {
 
 		private static final int PERIPHERAL_ACTIVE_LIMIT = 5;
 
@@ -1082,7 +1170,7 @@ public class BestPracticeDisplayFactory {
 			if (bp.getCameraActiveStateRatio() > PERIPHERAL_ACTIVE_LIMIT) {
 				parent.setExternalChartPlotSelection(ChartPlotOptions.CAMERA, true);
 			}
-			parent.displayAdvancedTab();
+			parent.displayDiagnosticTab();
 		}
 		
 		@Override
@@ -1095,13 +1183,18 @@ public class BestPracticeDisplayFactory {
 			result.add(new BestPracticeExport(nf.format(bp.getCameraActiveStateRatio()), rb.getString("exportall.csvAccCamDesc")));
 			return result;
 		}
+
+		@Override
+		public JPanel getTestResults() {
+			return null;
+		}
 		
 	};
 	
 	/**
 	 * Pre-defined HTTP 1.0 usage best practice
 	 */
-	protected static final BestPracticeDisplay http10Usage = new BestPracticeDisplay() {
+	protected static final BestPracticeDisplay HTTP_1_0_USAGE = new BestPracticeDisplay() {
 
 		@Override
 		public String getOverviewTitle() {
@@ -1142,7 +1235,7 @@ public class BestPracticeDisplayFactory {
 
 		@Override
 		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
-			parent.displayAdvancedTab();
+			parent.displayDiagnosticTab();
 			parent.getAroAdvancedTab().setHighlightedTCP(
 					parent.getAnalysisData().getBestPractice().getHttp1_0Session());
 		}
@@ -1155,15 +1248,25 @@ public class BestPracticeDisplayFactory {
 					rb.getString("exportall.csvHTTPhdrDesc")));
 			return result;
 		}
+
+		@Override
+		public JPanel getTestResults() {
+			return null;
+		}
 		
 	};
 	
+	/**
+	 * Text File Compression best practice
+	 */
+	protected static final BestPracticeDisplay FILE_COMPRESSION = new BPTextFileCompression();
+
 	/**
 	 * Refreshes and displays the burst graph in diagnostic view.
 	 */
 	private static void refreshAndDisplayBurst(ApplicationResourceOptimizer parent) {
 		parent.setExternalChartPlotSelection(ChartPlotOptions.BURSTS, true);
-		parent.displayAdvancedTab();
+		parent.displayDiagnosticTab();
 	}
 
 }

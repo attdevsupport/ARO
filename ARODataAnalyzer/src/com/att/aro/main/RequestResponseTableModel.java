@@ -32,12 +32,12 @@ import com.att.aro.model.HttpRequestResponseInfo;
  */
 public class RequestResponseTableModel extends DataTableModel<HttpRequestResponseInfo> {
 	private static final long serialVersionUID = 1L;
-	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
+	private static final ResourceBundle RB = ResourceBundleManager.getDefaultBundle();
 	// TODO Put in resource bundles
-	private static final String[] columns = { rb.getString("rrview.time"),
-			rb.getString("rrview.direction"), rb.getString("rrview.reqtye"),
-			rb.getString("rrview.hostname"), rb.getString("rrview.objectname"),
-			rb.getString("rrview.contentlen") };
+	private static final String[] COLUMNS = { RB.getString("rrview.time"),
+			RB.getString("rrview.direction"), RB.getString("rrview.reqtye"),
+			RB.getString("rrview.hostname"), RB.getString("rrview.objectname"),
+			RB.getString("rrview.contentlen"), RB.getString("rrview.http.compression") };
 
 	private static final int TIME_COL = 0;
 	private static final int DIR_COL = 1;
@@ -45,12 +45,13 @@ public class RequestResponseTableModel extends DataTableModel<HttpRequestRespons
 	private static final int HOST_NAME_CONTENT_TYPE_COL = 3;
 	private static final int OBJ_NAME_CONTENT_LENGTH = 4;
 	private static final int ON_WIRE_CONTENT_LENGTH = 5;
+	private static final int HTTP_COMPRESSION = 6;
 
 	/**
 	 * Initializes a new instance of the RequestResponseDetailsPanel class.
 	 */
 	public RequestResponseTableModel() {
-		super(columns);
+		super(COLUMNS);
 	}
 
 	/**
@@ -116,7 +117,7 @@ public class RequestResponseTableModel extends DataTableModel<HttpRequestRespons
 			case REQ_TYPE_STATUS_COL:
 				if (item.getDirection() == HttpRequestResponseInfo.Direction.REQUEST) {
 					String type = item.getRequestType();
-					return type != null ? type : rb.getString("rrview.unknownType");
+					return type != null ? type : RB.getString("rrview.unknownType");
 				} else {
 					return item.getStatusCode();
 				}
@@ -134,6 +135,8 @@ public class RequestResponseTableModel extends DataTableModel<HttpRequestRespons
 				}
 			case ON_WIRE_CONTENT_LENGTH:
 				return item.getActualByteCount();
+			case HTTP_COMPRESSION:
+				return item.getHttpCompression();
 			}
 		}
 		return null;

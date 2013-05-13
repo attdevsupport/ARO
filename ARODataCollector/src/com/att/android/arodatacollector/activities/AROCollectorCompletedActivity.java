@@ -111,15 +111,15 @@ public class AROCollectorCompletedActivity extends Activity {
 		}
 		traceSummaryOKButton = (Button) findViewById(R.id.datasummaryok);
 		tracePath.setText(ARODataCollector.ARO_TRACE_ROOTDIR + mApp.getDumpTraceFolderName());
-		if ((mApp.getCollectVideoOption() && !mApp.isVideoFileExisting())
+		if ((mApp.getCollectVideoOption() && !mApp.isVideoFileExisting() && !mApp.isUSBVideoCaptureON())
 				|| mApp.getVideoCaptureFailed()) {
 			videotrace.setText(getResources().getText(R.string.aro_failedvideo));
-		} else if (mApp.getCollectVideoOption()) {
+		} else if (mApp.getCollectVideoOption() || mApp.isUSBVideoCaptureON() ) {
 			videotrace.setText(getResources().getText(R.string.aro_yestext));
 		} else {
 			videotrace.setText(getResources().getText(R.string.aro_notext));
 		}
-
+		mApp.setTcpDumpTraceFolderName(null);
 	}
 
 	/**

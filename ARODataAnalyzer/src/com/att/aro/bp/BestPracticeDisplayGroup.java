@@ -29,14 +29,14 @@ public interface BestPracticeDisplayGroup {
 	 * practice group.
 	 * @return header name text
 	 */
-	public String getHeaderName();
+	String getHeaderName();
 
 	/**
 	 * Returns the description of the best practice group.  This description
 	 * is displayed in the header of the best practice group block.
 	 * @return best practice group description
 	 */
-	public String getDescription();
+	String getDescription();
 
 	/**
 	 * Returns a short name of the best practice group that will be used to
@@ -44,12 +44,12 @@ public interface BestPracticeDisplayGroup {
 	 * on <referSectionName>".
 	 * @return section refer name
 	 */
-	public String getReferSectionName();
+	String getReferSectionName();
 
 	/**
 	 * Returns the best practices that are included in this group.
 	 * @return Collection of best practice specifications
 	 */
-	public Collection<BestPracticeDisplay> getBestPractices();
+	Collection<BestPracticeDisplay> getBestPractices();
 
 }

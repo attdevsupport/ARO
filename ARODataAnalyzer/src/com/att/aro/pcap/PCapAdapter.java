@@ -105,8 +105,8 @@ public class PCapAdapter {
 	static {
 		String osname = System.getProperty("os.name");
 		String os = System.getProperty("os.arch");
-		logger.info("OS: " + osname);
-		logger.info("OS Arch: " + os);
+		logger.fine("OS: " + osname);
+		logger.fine("OS Arch: " + os);
 		// Loads the jpcap library as per the file system types.
 		if (osname != null && osname.contains("Windows") && os != null
 				&& os.contains("64")) {

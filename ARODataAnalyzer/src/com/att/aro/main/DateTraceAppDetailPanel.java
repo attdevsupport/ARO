@@ -48,34 +48,47 @@ public class DateTraceAppDetailPanel extends JPanel {
 	private JLabel applicationNameLabel;
 	private JLabel appVersionValueLabel;
 	private JLabel deviceModelValueLabel;
+	private JLabel osVersionLabel;
 	private JLabel networkTypeValueLabel;
 	private JLabel profileValueLabel;
 	private static final Font LABEL_FONT = new Font("TEXT_FONT", Font.BOLD, 12);
 	private static final Font TEXT_FONT = new Font("TEXT_FONT", Font.PLAIN, 12);
-	private JLabel networkTypeLabel;
 
 	/**
 	 * Initializes a new instance of the DateTraceAppDetailPanel class.
 	 */
 	public DateTraceAppDetailPanel() {
-		this.setLayout(new BorderLayout(10, 10));
+		
+		final int borderGap = 10;
+		
+		this.setLayout(new BorderLayout(borderGap, borderGap));
 		this.setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
-		this.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+		this.setBorder(BorderFactory.createEmptyBorder(0, 0, borderGap, 0));
 
 		dateValueLabel = new JLabel();
 		dateValueLabel.setFont(TEXT_FONT);
+		
 		traceValueLabel = new JLabel();
 		traceValueLabel.setFont(TEXT_FONT);
+		
 		applicationNameLabel = new JLabel();
 		applicationNameLabel.setFont(TEXT_FONT);
+		
 		appVersionValueLabel = new JLabel();
 		appVersionValueLabel.setFont(TEXT_FONT);
+
 		deviceModelValueLabel = new JLabel();
 		deviceModelValueLabel.setFont(TEXT_FONT);
+
+		osVersionLabel = new JLabel();
+		osVersionLabel.setFont(TEXT_FONT);
+		
 		networkTypeValueLabel = new JLabel();
 		networkTypeValueLabel.setFont(TEXT_FONT);
+		
 		profileValueLabel = new JLabel();
 		profileValueLabel.setFont(TEXT_FONT);
+		
 		add(getDataPanel(), BorderLayout.CENTER);
 	}
 
@@ -110,16 +123,15 @@ public class DateTraceAppDetailPanel extends JPanel {
 			} else {
 				deviceModelValueLabel.setText(null);
 			}
+
+			osVersionLabel.setText(traceData.getOsVersion());
+			
 			if (analysisData.getNetworTypeInfos().size() > 1) {
 
-				networkTypeLabel.setText(Util.RB.getString("bestPractices.networktypes"));
 				networkTypeValueLabel.setText(traceData.getNetworkTypesList());
 
 			} else {
-				networkTypeLabel.setText(Util.RB.getString("bestPractices.networktype"));
-				networkTypeValueLabel.setText(ResourceBundleManager.getEnumString((traceData
-						.getNetworkType())));
-
+				networkTypeValueLabel.setText(ResourceBundleManager.getEnumString((traceData.getNetworkType())));
 			}
 			profileValueLabel.setText(analysisData.getProfile().getName());
 		} else {
@@ -128,6 +140,7 @@ public class DateTraceAppDetailPanel extends JPanel {
 			applicationNameLabel.setText(null);
 			appVersionValueLabel.setText(null);
 			deviceModelValueLabel.setText(null);
+			osVersionLabel.setText(null);
 			networkTypeValueLabel.setText(null);
 			profileValueLabel.setText(null);
 		}
@@ -166,63 +179,41 @@ public class DateTraceAppDetailPanel extends JPanel {
 	 * @return the dataPanel
 	 */
 	private JPanel getDataPanel() {
+		
+		final double weightX = 0.5;
+		
 		if (dataPanel == null) {
 			dataPanel = new JPanel(new GridBagLayout());
 			dataPanel.setBackground(UIManager.getColor(AROUIManager.PAGE_BACKGROUND_KEY));
 
 			Insets insets = new Insets(2, 2, 2, 2);
+			int idx = 0;
+			addLabelLine(dateValueLabel, "bestPractices.date", idx, 1, 0.0, insets);
+			addLabelLine(traceValueLabel, "bestPractices.trace", ++idx, 2, 0.0, insets);
+			addLabelLine(applicationNameLabel, "bestPractices.application", ++idx, 2, weightX, insets);
+			addLabelLine(appVersionValueLabel, "bestPractices.applicationversion", ++idx, 2, 0.0, insets);
+			addLabelLine(deviceModelValueLabel, "bestPractices.devicemodel", ++idx, 2, 0.0, insets);
+			addLabelLine(osVersionLabel, "bestPractices.os.version", ++idx, 2, 0.0, insets);
+			addLabelLine(networkTypeValueLabel, "bestPractices.networktype", ++idx, 2, 0.0, insets);
+			addLabelLine(profileValueLabel, "bestPractices.profile", ++idx, 2, 0.0, insets);
+
 			JLabel label;
-			label = new JLabel(Util.RB.getString("bestPractices.date"));
-			label.setFont(LABEL_FONT);
-			dataPanel.add(label, new GridBagConstraints(0, 0, 1, 1, 0.0, 0.0,
-					GridBagConstraints.WEST, GridBagConstraints.NONE, insets, 0, 0));
-			dataPanel.add(dateValueLabel, new GridBagConstraints(1, 0, 1, 1, 0.0, 0.0,
-					GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, insets, 0, 0));
 			label = new JLabel(Util.RB.getString("bestPractices.sideTitle"), JLabel.RIGHT);
 			label.setFont(LABEL_FONT);
-			dataPanel.add(label, new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0,
-					GridBagConstraints.NORTHEAST, GridBagConstraints.HORIZONTAL, insets, 0, 0));
-			label = new JLabel(Util.RB.getString("bestPractices.trace"));
-			label.setFont(LABEL_FONT);
-			dataPanel.add(label, new GridBagConstraints(0, 1, 1, 1, 0.0, 0.0,
-					GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, insets, 0, 0));
-			dataPanel.add(traceValueLabel, new GridBagConstraints(1, 1, 2, 1, 0.0, 0.0,
-					GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, insets, 0, 0));
-			label = new JLabel(Util.RB.getString("bestPractices.application"));
-			label.setFont(LABEL_FONT);
-			dataPanel.add(label, new GridBagConstraints(0, 2, 1, 1, 0.0, 0.0,
-					GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, insets, 0, 0));
-			dataPanel.add(applicationNameLabel, new GridBagConstraints(1, 2, 2, 1, 0.5, 0.0,
-					GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, insets, 0, 0));
+			dataPanel.add(label, new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHEAST, GridBagConstraints.HORIZONTAL, insets, 0, 0));
 
-			label = new JLabel(Util.RB.getString("bestPractices.applicationversion"));
-			label.setFont(LABEL_FONT);
-			dataPanel.add(label, new GridBagConstraints(0, 3, 1, 1, 0.0, 0.0,
-					GridBagConstraints.WEST, GridBagConstraints.NONE, insets, 0, 0));
-			dataPanel.add(appVersionValueLabel, new GridBagConstraints(1, 3, 2, 1, 0.0, 0.0,
-					GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, insets, 0, 0));
-
-			label = new JLabel(Util.RB.getString("bestPractices.devicemodel"));
-			label.setFont(LABEL_FONT);
-			dataPanel.add(label, new GridBagConstraints(0, 4, 1, 1, 0.0, 0.0,
-					GridBagConstraints.WEST, GridBagConstraints.NONE, insets, 0, 0));
-			dataPanel.add(deviceModelValueLabel, new GridBagConstraints(1, 4, 2, 1, 0.0, 0.0,
-					GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, insets, 0, 0));
-			networkTypeLabel = new JLabel(Util.RB.getString("bestPractices.networktype"));
-			networkTypeLabel.setFont(LABEL_FONT);
-			dataPanel.add(networkTypeLabel, new GridBagConstraints(0, 5, 1, 1, 0.0, 0.0,
-					GridBagConstraints.WEST, GridBagConstraints.NONE, insets, 0, 0));
-			dataPanel.add(networkTypeValueLabel, new GridBagConstraints(1, 5, 2, 1, 0.0, 0.0,
-					GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, insets, 0, 0));
-
-			label = new JLabel(Util.RB.getString("bestPractices.profile"));
-			label.setFont(LABEL_FONT);
-			dataPanel.add(label, new GridBagConstraints(0, 6, 1, 1, 0.0, 0.0,
-					GridBagConstraints.WEST, GridBagConstraints.NONE, insets, 0, 0));
-			dataPanel.add(profileValueLabel, new GridBagConstraints(1, 6, 2, 1, 0.0, 0.0,
-					GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, insets, 0, 0));
 		}
 		return dataPanel;
+	}
+	
+	private void addLabelLine(JLabel infoLabel, String labelText, int gridy, int width, double weightx, Insets insets){
+		
+		JLabel label;
+		label = new JLabel(Util.RB.getString(labelText));
+		label.setFont(LABEL_FONT);
+		dataPanel.add(label, new GridBagConstraints(0, gridy, 1, 1, 0.0, 0.0, GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, insets, 0, 0));
+		dataPanel.add(infoLabel, new GridBagConstraints(1, gridy, width, 1, weightx, 0.0, GridBagConstraints.NORTHWEST, GridBagConstraints.NONE, insets, 0, 0));
+		
 	}
 
 	/**
@@ -234,11 +225,11 @@ public class DateTraceAppDetailPanel extends JPanel {
 			throws IOException {
 		final String lineSep = System.getProperty(Util.RB.getString("statics.csvLine.seperator"));
 
-		writer = addKeyValue(writer, Util.RB.getString("bestPractices.date"), dateValueLabel.getText()
+		addKeyValue(writer, Util.RB.getString("bestPractices.date"), dateValueLabel.getText()
 				.replace(Util.RB.getString("statics.csvCell.seperator"), ""));
 		writer.append(lineSep);
 
-		writer = addKeyValue(writer, Util.RB.getString("bestPractices.trace"), traceValueLabel.getText());
+		addKeyValue(writer, Util.RB.getString("bestPractices.trace"), traceValueLabel.getText());
 		writer.append(lineSep);
 
 		writer.append(Util.RB.getString("bestPractices.application"));
@@ -256,19 +247,23 @@ public class DateTraceAppDetailPanel extends JPanel {
 		writer.append(apps);
 		writer.append(lineSep);
 
-		writer = addKeyValue(writer, Util.RB.getString("bestPractices.applicationversion"),
+		addKeyValue(writer, Util.RB.getString("bestPractices.applicationversion"),
 				appVersionValueLabel.getText());
 		writer.append(lineSep);
 
-		writer = addKeyValue(writer, Util.RB.getString("bestPractices.devicemodel"),
+		addKeyValue(writer, Util.RB.getString("bestPractices.devicemodel"),
 				deviceModelValueLabel.getText());
 		writer.append(lineSep);
-
-		writer = addKeyValue(writer, Util.RB.getString("bestPractices.networktype"),
+		
+		addKeyValue(writer, Util.RB.getString("bestPractices.os.version"),
+				osVersionLabel.getText());
+		writer.append(lineSep);
+		
+		addKeyValue(writer, Util.RB.getString("bestPractices.networktype"),
 				networkTypeValueLabel.getText());
 		writer.append(lineSep);
 
-		writer = addKeyValue(writer, Util.RB.getString("bestPractices.profile"),
+		addKeyValue(writer, Util.RB.getString("bestPractices.profile"),
 				profileValueLabel.getText());
 		writer.append(lineSep);
 

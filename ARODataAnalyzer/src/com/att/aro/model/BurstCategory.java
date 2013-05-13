@@ -15,66 +15,27 @@
 */
 package com.att.aro.model;
 
+import com.att.aro.util.Util;
+
 /**
  * The BurstCategory Enumeration specifies constant values that describe the different 
  * categories of bursts that occur when data is transferred. 
  */
 public enum BurstCategory {
-	/**
-	 * A Protocol Burst. This is the default burst category. A Protocol burst consists of 
-	 * unwanted packets that are being transferred.
-	 */
-	BURSTCAT_PROTOCOL("protocol"),
-	/**
-	 * A Loss burst. This burst consists of the packets that are lost while being 
-	 * transferred. It also includes the Recovered and Duplicate Burst types. 
-	 */
-	BURSTCAT_LOSS("loss"),
-	/**
-	 * A User initiated Burst. 
-	 */
-	BURSTCAT_USER("user"),
-	/**
-	 * User initiated Burst.
-	 */
-	BURSTCAT_SCREEN_ROTATION("screen"),
-	/**
-	 * A Client initiated burst. 
-	 */
-	BURSTCAT_CLIENT("client"),
-	/**
-	 * A Server initiated Burst. 
-	 */
-	BURSTCAT_SERVER("server"),
-	/**
-	 * A Long burst. A Long burst has a duration of more than 5 seconds, and typically 
-	 * transfers large amounts of data. 
-	 */
-	BURSTCAT_LONG("long"),
-	/**
-	 * A Periodical Burst. If the Internet Addresses, host names, or object names are the same for the 
-	 * packets in a set burst over a period of time, then those bursts are considered 
-	 * Periodical bursts. 
-	 */
-	BURSTCAT_PERIODICAL("periodic"),
-	/**
-	 * User defined burst category 1.
-	 */
-	BURSTCAT_USERDEF1("user"),
-	/**
-	 * User defined burst category 2.
-	 */
-	BURSTCAT_USERDEF2("user"),
-	/**
-	 * User defined burst category 3.
-	 */
-	BURSTCAT_USERDEF3("user"),
-	/**
-	 * A burst of an unknown category. 
-	 */
-	BURSTCAT_UNKNOWN("unknown");
+	
+	// NOTE: The order here must match the order in messages.properties (BurstCategory.N)
+	CPU("burst.type.Cpu"),
+	TCP_PROTOCOL("burst.type.TcpControl"),
+	TCP_LOSS_OR_DUP("burst.type.TcpLossRecoverOrDup"),
+	USER_INPUT("burst.type.UserInput"),
+	SCREEN_ROTATION("burst.type.ScreenRotation"),
+	CLIENT_APP("burst.type.App"),
+	SERVER_NET_DELAY("burst.type.SvrNetDelay"),
+	LONG("burst.type.LargeBurst"),
+	PERIODICAL("burst.type.Periodical"),
+	UNKNOWN("burst.type.Unknown");
 
-	private final String resourceKey; // resource bundle key
+	private final String burstName;
 
 	/**
 	 * Private constructor for enum.
@@ -82,15 +43,15 @@ public enum BurstCategory {
 	 * @param resourceKey
 	 */
 	private BurstCategory(String resourceKey) {
-		this.resourceKey = resourceKey;
+		this.burstName = Util.RB.getString(resourceKey);
 	}
 
 	/**
-	 * Returns the resource key.
+	 * Returns a string describing the burst type that correspond to the burst category.
 	 * 
-	 * @return Resource key.
+	 * @return String value of the burst
 	 */
-	public String getResourceKey() {
-		return this.resourceKey;
+	public String getBurstTypeDescription() {
+		return this.burstName;
 	}
 }

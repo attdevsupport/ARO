@@ -84,20 +84,56 @@ public class AROCollectorTaskManagerProcessInfo {
 	 */
 	public boolean pstcpdump() {
 
-		boolean isTcpDumpRunning = false;
+		boolean isAroTcpDumpRunning = false;
 		try {
-			isTcpDumpRunning = (mAROUtlis.getProcessID("tcpdump") > 0 ? true : false);
+			
+			String line = null;
+			int pid = 0; // default
+			line = mAROUtlis.executePS("tcpdump");
+			
+			String[] rows = line.split("\\n");
+			if (DEBUG) {
+				for (int rowNum = 0; rowNum < rows.length; rowNum++) {
+					Log.d(TAG, "values row " + rowNum + ": " + ">>>" + rows[rowNum] + "<<<");
+				}
+			}
+			if (rows[0].startsWith("USER")) {
+				if (DEBUG) {
+					Log.d(TAG, "PID should be in 2nd column in single row retrieved");
+				}
+				for (int rowNum = 1; rowNum < rows.length; rowNum++) {
+					final String row = rows[rowNum];
+					final String[] columns = row.split("\\s+");
+
+					if (DEBUG) {
+						for (int itemNum = 0; itemNum < columns.length; itemNum++) {
+							Log.d(TAG, "item " + itemNum + ": " + ">>>" + columns[itemNum] + "<<<");
+						}
+					}
+
+					int pNameIndex = columns.length - 1; //process name is the last column
+					String pName = columns[pNameIndex];
+					
+					if (pName != null && pName.contains("arodatacollector")) {
+						isAroTcpDumpRunning = true;
+						break;
+					}
+				}
+				if (DEBUG) {
+					Log.d(TAG, "exiting if USER block with PID (without finding one): " + pid);
+				}
+			}
+			
 
 			if (DEBUG) {
-				Log.d(TAG, "isTcpDumpRunning: " + isTcpDumpRunning);
+				Log.d(TAG, "isTcpDumpRunning: " + isAroTcpDumpRunning);
 			}
-			return (isTcpDumpRunning);
 		} catch (IOException e) {
 			Log.e(TAG, e.getClass().getName() + " thrown by pstcpdump()");
 		} catch (InterruptedException e) {
 			Log.e(TAG, e.getClass().getName() + " thrown by pstcpdump()");
 		}
-		return isTcpDumpRunning;
+		return isAroTcpDumpRunning;
 	}
 
 	/**

@@ -287,7 +287,7 @@ public class AROCollectorUtils {
 		return sRet;
 	}
 
-	private String executePS(String processName) throws IOException, InterruptedException {
+	public String executePS(String processName) throws IOException, InterruptedException {
 		if (DEBUG) {
 			Log.d(TAG, "entered ps...");
 		}

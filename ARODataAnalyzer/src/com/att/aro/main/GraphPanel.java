@@ -2003,37 +2003,16 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 			Color lightGreen = new Color(134, 232, 162);
 
 			XYItemRenderer renderer = plot.getRenderer();
-			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_PROTOCOL),
-					Color.blue);
-
-			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_LOSS),
-					Color.black);
-
-			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_USER),
-					myGreen);
-
-			renderer.setSeriesPaint(
-					burstDataCollection.indexOf(BurstCategory.BURSTCAT_SCREEN_ROTATION), lightGreen);
-
-			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_CLIENT),
-					Color.red);
-
-			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_SERVER),
-					Color.yellow);
-
-			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_LONG),
-					Color.gray);
-			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_PERIODICAL),
-					Color.magenta);
-
-			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_USERDEF1),
-					Color.magenta);
-
-			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_USERDEF2),
-					Color.magenta);
-
-			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.BURSTCAT_USERDEF3),
-					Color.magenta);
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.TCP_PROTOCOL), Color.blue);
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.TCP_LOSS_OR_DUP), Color.black);
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.USER_INPUT), myGreen);
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.SCREEN_ROTATION), lightGreen);
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.CLIENT_APP), Color.red);
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.SERVER_NET_DELAY), Color.yellow);
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.LONG), Color.gray);
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.PERIODICAL), Color.magenta);
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.CPU), Color.cyan);
+			renderer.setSeriesPaint(burstDataCollection.indexOf(BurstCategory.UNKNOWN), Color.darkGray);
 
 			// Assign ToolTip to renderer
 			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
@@ -2043,7 +2022,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 							.getKey();
 					Burst b = burstMap.get(eventType).get(item);
 					final String PREFIX = "BurstCategory.";
-					return MessageFormat.format(rb.getString(PREFIX + eventType.getResourceKey()),
+					return MessageFormat.format(rb.getString(PREFIX + eventType.ordinal()),
 							b.getPackets().size(), b.getBurstBytes(), b.getBurstThroughPut());
 				}
 			});

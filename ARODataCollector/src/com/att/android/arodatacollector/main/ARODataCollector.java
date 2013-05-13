@@ -178,6 +178,9 @@ public class ARODataCollector extends Application {
 	/** Stores the value Video recording selected option */
 	private boolean mVideoRecroding;
 
+	/** Stores the value ARO Collector launch status from Analyzer */
+	private boolean mDCLaunchfromAnalyzer;
+	
 	/** OutputStaream for video_time file */
 	private OutputStream mTraceVideoTimeStampFile;
 
@@ -193,6 +196,8 @@ public class ARODataCollector extends Application {
 	/** Variable to hold value */
 	private boolean isVideoCaptureFailed = false;
 
+	/** Variable to hold value */
+	private boolean isUSBVideoCaptureON = false;
 	/**
 	 * Stores true and false value to notify change in network interface bearer
 	 * since time of Data Collector launch
@@ -211,6 +216,8 @@ public class ARODataCollector extends Application {
 	/** ARO Data Collector is wifi lost flag */
 	private boolean requestDataCollectorStop = false;
 		
+	/** Stores the value to find if launch of collector from Analyzer */
+	private boolean mDataCollectorStopDisable = false;
 	/**
 	 * Handles processing when an ARODataCollector object is created. Overrides
 	 * the android.app.Application#onCreate method.
@@ -678,6 +685,28 @@ public class ARODataCollector extends Application {
 		return (mVideoRecroding);
 	}
 
+	
+	/**
+	 * Sets the flag is ARO Data Collector was launch from ARO Analyzer.
+	 *  
+	 */
+	public void setCollectorLaunchfromAnalyzer(boolean dcfromAnalyzer) {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putBoolean("DCfromAnalyzer", dcfromAnalyzer);
+		editor.commit();
+	}
+	
+	/**
+	 * Gets the status if ARO Data Collector was started from ARO Analyzer. 
+	 * 
+	 * @return A boolean that is status if collector was launched from analyzer.
+	 */
+	public boolean isCollectorLaunchfromAnalyzer() {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		mDCLaunchfromAnalyzer = prefs.getBoolean("DCfromAnalyzer", false);
+		return (mDCLaunchfromAnalyzer);
+	}
 	/**
 	 * Gets the duration of the ARO Data Collector trace.
 	 * 
@@ -922,6 +951,49 @@ public class ARODataCollector extends Application {
 		editor.commit();
 	}
 
+	/**
+	 * setUSBVideoCaptureON
+	 * @param flag
+	 */
+	public void setUSBVideoCaptureON(boolean flag){
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putBoolean("isUSBVideoCaptureON", flag);
+		editor.commit();
+	}
+	
+	/**
+	 * isUSBVideoCaptureON
+	 * @return
+	 */
+	public boolean isUSBVideoCaptureON(){
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		isUSBVideoCaptureON = prefs.getBoolean("isUSBVideoCaptureON", false);
+		return isVideoCaptureFailed; 
+	}
+	
+	/**
+	 * 
+	 * @param flag
+	 */
+	public void setDataCollectorStopEnable(boolean flag) {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putBoolean("mDataCollectorStopDisable", flag);
+		editor.commit();
+	}
+
+	/**
+	 * getDataCollectorStopDisable
+	 * @return
+	 */
+	public boolean getDataCollectorStopEnable() {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		mDataCollectorStopDisable = prefs.getBoolean("mDataCollectorStopDisable", false);
+		return mDataCollectorStopDisable;
+	}
+	
+	
 	/**
 	 * Sets the flag that indicates if the ARO Data Collector data bearer has
 	 * changed.

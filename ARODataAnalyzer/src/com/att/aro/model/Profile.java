@@ -120,6 +120,11 @@ public abstract class Profile implements Serializable {
 	public static final String LARGE_BURST_SIZE = "LARGE_BURST_SIZE";
 
 	/**
+	 * The threshold for close spaced bursts (sec).
+	 */
+	public static final String CLOSE_SPACED_BURSTS = "CLOSE_SPACED_BURSTS";
+
+	/**
 	 * The time delta for throughput calculations.
 	 */
 	public static final String W_THROUGHPUT = "W_THROUGHPUT";
@@ -261,6 +266,7 @@ public abstract class Profile implements Serializable {
 	private int periodMinSamples = 3;
 	private double largeBurstDuration = 5.0;
 	private int largeBurstSize = 100000;
+	private double closeSpacedBurstThreshold = 10.0;
 	private double throughputWindow = 0.5;
 
 	/**
@@ -339,7 +345,7 @@ public abstract class Profile implements Serializable {
 	 * 
 	 * @throws IOException
 	 */
-	public synchronized final void saveToFile(File file) throws IOException {
+	public final synchronized void saveToFile(File file) throws IOException {
 		Properties props = new Properties();
 
 		// Get sub-class data
@@ -352,20 +358,17 @@ public abstract class Profile implements Serializable {
 		props.setProperty(POWER_GPS_ACTIVE, String.valueOf(powerGpsActive));
 		props.setProperty(POWER_GPS_STANDBY, String.valueOf(powerGpsStandby));
 		props.setProperty(POWER_CAMERA_ON, String.valueOf(powerCameraOn));
-		props.setProperty(POWER_BLUETOOTH_ACTIVE,
-				String.valueOf(powerBluetoothActive));
-		props.setProperty(POWER_BLUETOOTH_STANDBY,
-				String.valueOf(powerBluetoothStandby));
+		props.setProperty(POWER_BLUETOOTH_ACTIVE, String.valueOf(powerBluetoothActive));
+		props.setProperty(POWER_BLUETOOTH_STANDBY, String.valueOf(powerBluetoothStandby));
 		props.setProperty(POWER_SCREEN_ON, String.valueOf(powerScreenOn));
 		props.setProperty(BURST_TH, String.valueOf(burstTh));
 		props.setProperty(LONG_BURST_TH, String.valueOf(longBurstTh));
 		props.setProperty(PERIOD_MIN_CYCLE, String.valueOf(periodMinCycle));
 		props.setProperty(PERIOD_CYCLE_TOL, String.valueOf(periodCycleTol));
 		props.setProperty(PERIOD_MIN_SAMPLES, String.valueOf(periodMinSamples));
-		props.setProperty(LARGE_BURST_DURATION,
-				String.valueOf(largeBurstDuration));
+		props.setProperty(LARGE_BURST_DURATION, String.valueOf(largeBurstDuration));
 		props.setProperty(LARGE_BURST_SIZE, String.valueOf(largeBurstSize));
-
+		props.setProperty(CLOSE_SPACED_BURSTS, String.valueOf(closeSpacedBurstThreshold));
 		props.setProperty(W_THROUGHPUT, String.valueOf(throughputWindow));
 		props.store(new FileOutputStream(file), "Set what this comment is");
 		this.file = file;
@@ -491,25 +494,25 @@ public abstract class Profile implements Serializable {
 	}
 
 	/**
-	 * Returns the minimum amount of energy used during the cycle period. 
+	 * Returns the minimum tolerable variation for periodical bursts (in seconds).
 	 * 
-	 * @return The minimum cycle period value.
+	 * @return The minimum tolerable variation
 	 */
 	public double getPeriodMinCycle() {
 		return periodMinCycle;
 	}
 
 	/**
-	 * Returns the amount of energy used during the total cycle period. 
+	 * Returns the maximum tolerable variation for periodical bursts (in seconds).
 	 * 
-	 * @return The total cycle period value.
+	 * @return The maximum tolerable variation.
 	 */
 	public double getPeriodCycleTol() {
 		return periodCycleTol;
 	}
 
 	/**
-	 * Returns the value of the minimum sample period. 
+	 * Returns the the minimum amount of observed samples for periodical transfers 
 	 * 
 	 * @return The minimum sample period value.
 	 */
@@ -533,6 +536,13 @@ public abstract class Profile implements Serializable {
 	 */
 	public int getLargeBurstSize() {
 		return largeBurstSize;
+	}
+	/**
+	 * Returns the threshold for close spaced bursts (sec).
+	 * @return Threshold for close spaced bursts (sec)
+	 */
+	public double getCloseSpacedBurstThreshold() {
+		return closeSpacedBurstThreshold;
 	}
 
 	/**
@@ -634,29 +644,21 @@ public abstract class Profile implements Serializable {
 		carrier = properties.getProperty(CARRIER);
 		device = properties.getProperty(DEVICE);
 		userInputTh = readDouble(properties, USER_INPUT_TH, userInputTh);
-		powerGpsActive = readDouble(properties, POWER_GPS_ACTIVE,
-				powerGpsActive);
-		powerGpsStandby = readDouble(properties, POWER_GPS_STANDBY,
-				powerGpsStandby);
+		powerGpsActive = readDouble(properties, POWER_GPS_ACTIVE, powerGpsActive);
+		powerGpsStandby = readDouble(properties, POWER_GPS_STANDBY,	powerGpsStandby);
 		powerCameraOn = readDouble(properties, POWER_CAMERA_ON, powerCameraOn);
-		powerBluetoothActive = readDouble(properties, POWER_BLUETOOTH_ACTIVE,
-				powerGpsActive);
-		powerBluetoothStandby = readDouble(properties, POWER_BLUETOOTH_STANDBY,
-				powerGpsStandby);
+		powerBluetoothActive = readDouble(properties, POWER_BLUETOOTH_ACTIVE, powerGpsActive);
+		powerBluetoothStandby = readDouble(properties, POWER_BLUETOOTH_STANDBY, powerGpsStandby);
 		powerScreenOn = readDouble(properties, POWER_SCREEN_ON, powerCameraOn);
 		burstTh = readDouble(properties, BURST_TH, burstTh);
 		longBurstTh = readDouble(properties, LONG_BURST_TH, longBurstTh);
-		periodMinCycle = readDouble(properties, PERIOD_MIN_CYCLE,
-				periodMinCycle);
-		periodCycleTol = readDouble(properties, PERIOD_CYCLE_TOL,
-				periodCycleTol);
-		periodMinSamples = readInt(properties, PERIOD_MIN_SAMPLES,
-				periodMinSamples);
-		largeBurstDuration = readDouble(properties, LARGE_BURST_DURATION,
-				largeBurstDuration);
+		periodMinCycle = readDouble(properties, PERIOD_MIN_CYCLE, periodMinCycle);
+		periodCycleTol = readDouble(properties, PERIOD_CYCLE_TOL, periodCycleTol);
+		periodMinSamples = readInt(properties, PERIOD_MIN_SAMPLES, periodMinSamples);
+		largeBurstDuration = readDouble(properties, LARGE_BURST_DURATION, largeBurstDuration);
 		largeBurstSize = readInt(properties, LARGE_BURST_SIZE, largeBurstSize);
-		throughputWindow = readDouble(properties, W_THROUGHPUT,
-				throughputWindow);
+		closeSpacedBurstThreshold = readDouble(properties, CLOSE_SPACED_BURSTS, closeSpacedBurstThreshold);
+		throughputWindow = readDouble(properties, W_THROUGHPUT, throughputWindow);
 
 		// Initialize sub-class members
 		setProperties(properties);

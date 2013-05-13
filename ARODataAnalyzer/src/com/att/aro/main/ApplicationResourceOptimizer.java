@@ -16,13 +16,17 @@
 
 package com.att.aro.main;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GraphicsEnvironment;
 import java.awt.Insets;
+import java.awt.Toolkit;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -36,6 +40,7 @@ import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,15 +53,20 @@ import java.util.logging.Logger;
 
 import javax.swing.Box;
 import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JProgressBar;
 import javax.swing.JTabbedPane;
 import javax.swing.JToolTip;
+import javax.swing.SwingConstants;
 import javax.swing.SwingWorker;
+import javax.swing.Timer;
 import javax.swing.ToolTipManager;
 import javax.swing.UIManager;
 import javax.swing.event.ChangeEvent;
@@ -85,6 +95,7 @@ import com.att.aro.model.TraceData;
 import com.att.aro.model.UserPreferences;
 import com.att.aro.pcap.PCapAdapter;
 import com.att.aro.plugin.AnalyzerPlugin;
+import com.att.aro.util.Util;
 import com.att.aro.video.AROVideoPlayer;
 
 /**
@@ -95,9 +106,11 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 	private static final Logger logger = Logger	.getLogger(ApplicationResourceOptimizer.class.getName());
 	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
-	
+
 	private static final int DEFAULT_APP_WIDTH  = 849;
 	private static final int DEFAULT_APP_HEIGHT = 775;
+	
+	private static ApplicationResourceOptimizer aroFrame;
 
 	// Menu bar
 	private JMenuBar jJMenuBar = null;
@@ -172,12 +185,22 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	public ApplicationResourceOptimizer() {
 		super();
+		ApplicationResourceOptimizer.aroFrame = this;
 		initialize();
+	}
+	
+	/**
+	 * Returns the object representing the main ARO application JFrame.
+	 * 
+	 * @return the ARO Frame
+	 */
+	public static ApplicationResourceOptimizer getAroFrame() {
+		return aroFrame;
 	}
 
 	/**
 	 * Returns the captured trace data.
-	 * 
+	 *
 	 * @return A TraceData object representing the captured trace data.
 	 */
 	public TraceData getTraceData() {
@@ -187,7 +210,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	/**
 	 * Returns the currently loaded trace analysis data. This method returns
 	 * null if no trace data has been loaded in the application.
-	 * 
+	 *
 	 * @return TraceData.Analysis The trace analysis data.
 	 */
 	public TraceData.Analysis getAnalysisData() {
@@ -196,7 +219,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 	/**
 	 * Returns an instance of the Overview tab.
-	 * 
+	 *
 	 * @return An AROSimpleTabb object containing the Overview tab instance.
 	 */
 	public AROSimpleTabb getAroSimpleTab() {
@@ -213,7 +236,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	/**
 	 * Displays the Diagnostic tab screen.
 	 */
-	public void displayAdvancedTab() {
+	public void displayDiagnosticTab() {
 		getJTabbedPane().setSelectedComponent(aroAdvancedTab);
 	}
 
@@ -226,7 +249,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 	/**
 	 * Returns an instance of the Diagnostic tab.
-	 * 
+	 *
 	 * @return An AROAdvancedTabb object that containing Diagnostic tab
 	 *         instance.
 	 */
@@ -237,7 +260,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	/**
 	 * Returns the Chart Plot Options dialog. This dialog appears when the
 	 * Options menu item in the View menu is clicked.
-	 * 
+	 *
 	 * @return An ChartPlotOptionsDialog object that creates the Chart Plot
 	 *         Options dialog.
 	 */
@@ -248,21 +271,21 @@ public class ApplicationResourceOptimizer extends JFrame {
 	/**
 	 * Returns the Select Processes dialog. This dialog appears when the
 	 * Select Processes menu item in the View menu is clicked.
-	 * 
+	 *
 	 * @return An SelectProcessesDialog object that creates the Select Processes dialog.
 	 */
 	public FilterProcessesDialog getSelectProcessesDialog() {
 		return selectProcessesDialog;
 	}
-	
+
 	/**
 	 * Sets a value that indicates the visibility of the
 	 * ApplicationResourceOptimizer window.
-	 * 
+	 *
 	 * @param b
 	 *            A boolean value that indicates whether the
 	 *            ApplicationResourceOptimizer window is visible.
-	 * 
+	 *
 	 * @see java.awt.Window#setVisible(boolean)
 	 */
 	@Override
@@ -283,62 +306,235 @@ public class ApplicationResourceOptimizer extends JFrame {
 		});
 	}
 
+
+	private final class PcapFileFilter extends FileFilter {
+		@Override
+		public boolean accept(File f) {
+			String name = f.getName();
+			return f.isDirectory()
+					|| name.endsWith(rb.getString("fileChooser.contentType.cap"))
+					|| name.endsWith(rb.getString("fileChooser.contentType.pcap"));
+		}
+
+		@Override
+		public String getDescription() {
+			return rb.getString("fileChooser.desc.pcap");
+		}
+	}
+
+	/*
+	 * The class which parses the packets when a trace folder is selected
+	 * */
+	public class ParseTrace implements Runnable{
+
+		public ParseTrace()
+		{
+
+		}
+		public void run()
+		{
+			//Clearing the trace
+			try {
+				clearTrace();
+			} catch (IOException e1) {
+				logger.log(Level.SEVERE,"IOException while clearing the traces");
+			}
+			catch(NullPointerException e)
+			{
+				logger.log(Level.SEVERE,"Null pointer exception while clearing the traces");
+			}
+
+
+			traceDirectory = traceFileName.getParentFile();
+			try {
+				traceData = new TraceData(traceFileName);
+
+			} catch (UnsatisfiedLinkError e1) {
+				logger.log(Level.SEVERE,"UnsatisifiedLinkError while getting the parent file");
+			} catch (IOException e1) {
+				logger.log(Level.SEVERE,"IOException while getting the parent file");
+			}
+			catch(NullPointerException e)
+			{
+				logger.log(Level.SEVERE,"There are no packets in the folder to parse");
+			}
+
+			try
+			{
+			if (traceData.getMissingFiles().size() > 0) {
+				StringBuffer missingFiles = new StringBuffer();
+				for (String file : traceData.getMissingFiles()) {
+					missingFiles.append(file + "\n");
+				}
+
+				MessageDialogFactory.showMessageDialog(mAROAnalyzer, MessageFormat.format(
+						rb.getString("file.missingAlert"), missingFiles));
+			}
+			}catch(Exception e)
+			{
+				logger.log(Level.SEVERE,"Exception while finding the missing files");
+			}
+			// Make sure profile type matches network type of trace
+			try {
+
+				if (traceData.getNetworkType() == NetworkType.LTE) {
+					if (!(profile instanceof ProfileLTE)) {
+						profile = ProfileManager.getInstance()
+								.getLastUserProfile(ProfileType.LTE);
+					}
+				} else {
+					if (!(profile instanceof Profile3G)) {
+						profile = ProfileManager.getInstance()
+								.getLastUserProfile(ProfileType.T3G);
+					}
+				}
+			} catch (ProfileException e) {
+
+				// On exception just log it and use current profile
+				logger.log(Level.WARNING, "Error switching profile type", e);
+			} catch (IOException e) {
+				logger.log(Level.SEVERE,"IOException while switching profile type");
+			}
+			catch(NullPointerException e)
+			{
+				logger.log(Level.SEVERE,"There are no packets in the folder");
+			}
+
+			try {
+				runAnalysisFirstTime();
+			} catch (IOException e) {
+				logger.log(Level.SEVERE,"IOException while runAnalysisFirstTime()");
+			}
+			catch(NullPointerException e)
+			{
+				logger.log(Level.SEVERE,"There are no packets to run the analysis");
+			}
+
+			// Save selected directory for traces
+			userPreferences.setLastTraceDirectory(traceDirectory);
+
+			// Change window name to reflect trace directory
+			setTitle(MessageFormat.format(rb.getString("aro.title"),
+					traceFileName.toString()));
+			pb.dispose();
+		}
+
+		}
+
+
+	public Timer timer;
+	private ApplicationResourceOptimizer mAROAnalyzer;
+	private DeterminateProgressBar pb = new DeterminateProgressBar(ApplicationResourceOptimizer.this,rb.getString("progress.loadingTrace"));
+	private File traceFileName = null;
+
+	public class DeterminateProgressBar extends JDialog {
+
+		private static final long serialVersionUID = 1L;
+
+		public final static int ONE_SECOND = 1000;
+
+		private JProgressBar progressBar;
+	    private JLabel label;
+	    private int onePercent = 0;
+	    private int setPBNewValue = 0;
+
+	    public DeterminateProgressBar(Window parent,String message){
+
+	    
+	    super(parent, rb.getString("aro.title.short"));
+	    setResizable(false);
+	    setLayout(new BorderLayout());
+		setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+
+		this.label = new JLabel(message, SwingConstants.CENTER);
+		this.label.setPreferredSize(new Dimension(350, 60));
+		add(label, BorderLayout.NORTH);
+
+        progressBar = new JProgressBar(0, 100);
+        progressBar.setValue(0);
+        progressBar.setPreferredSize(new Dimension(320, 15));
+        progressBar.setIndeterminate(false);
+		progressBar.setStringPainted(true);
+		add(progressBar, BorderLayout.CENTER);
+		pack();
+		setLocationRelativeTo(parent);
+
+		progressBar.setVisible(true);
+		
+		//Create a timer.
+        timer = new Timer(3000, new ActionListener() {
+            public void actionPerformed(ActionEvent evt) {
+
+            	//progressBar.setValue(0);
+            	logger.log(Level.FINE,"completed "+TraceData.packetIdx+" out of "+TraceData.totalNoPackets+" and remaining is "+TraceData.remainingPackets);
+            	try
+            	{
+            	/*Waiting for an additional 2 seconds as sometimes parsing doesnt start in the given 3 seconds time*/
+            	if (TraceData.totalNoPackets == 0)
+					try {
+						Thread.sleep(2000);
+					} catch (InterruptedException e) {
+						logger.log(Level.INFO,"Exception while calling sleep");
+					}
+            		
+            	if (TraceData.totalNoPackets > 0)
+            	{
+            	onePercent = TraceData.totalNoPackets/100;
+            	setPBNewValue = TraceData.packetIdx/onePercent;
+    			progressBar.setValue(setPBNewValue);
+            	}
+            	if (TraceData.remainingPackets < onePercent)
+    	    	{
+    				Toolkit.getDefaultToolkit().beep();
+                    timer.stop();
+                    pb.dispose();
+                }
+            	}
+            	catch(ArithmeticException e)
+            	{
+            		logger.log(Level.INFO,"Divide by zero error, there are no packets in the trace");
+            		timer.stop();
+            	}
+            	catch(NullPointerException e)
+            	{
+            		logger.log(Level.INFO,"Null Pointer Exception, there are no packets to parse");
+            		timer.stop();
+            	}
+            }
+        });
+	}
+	}
+
 	/**
 	 * Opens the specified trace directory.
-	 * 
+	 *
 	 * @param dir
 	 *            - The trace directory to open.
 	 * @throws IOException
 	 */
 	public synchronized void openTrace(File dir) throws IOException {
 
-		clearTrace();
+		traceFileName = dir;
 
-		this.traceDirectory = dir.getParentFile();
-		this.traceData = new TraceData(dir);
-		if (traceData.getMissingFiles().size() > 0) {
-			StringBuffer missingFiles = new StringBuffer();
-			for (String file : traceData.getMissingFiles()) {
-				missingFiles.append(file + "\n");
-			}
+		//Initializing all the packet counters
+		TraceData.packetIdx = 0;
+		TraceData.totalNoPackets = 0;
+		TraceData.remainingPackets = 0;
 
-			MessageDialogFactory.showMessageDialog(this, MessageFormat.format(
-					rb.getString("file.missingAlert"), missingFiles));
-		}
+		
+		//Calling the parsethread to start analyzing the packets
+		Thread parseTraceThread = new Thread(new ParseTrace(),"ParseThread");
+        parseTraceThread.start();//Actual packet parsing happens here
+        timer.start();//Calling the timer to start the determinate progress bar
 
-		// Make sure profile type matches network type of trace
-		try {
+        pb.pack();
+        pb.setVisible(true);
+    }
 
-			if (traceData.getNetworkType() == NetworkType.LTE) {
-				if (!(profile instanceof ProfileLTE)) {
-					this.profile = ProfileManager.getInstance()
-							.getLastUserProfile(ProfileType.LTE);
-				}
-			} else {
-				if (!(profile instanceof Profile3G)) {
-					this.profile = ProfileManager.getInstance()
-							.getLastUserProfile(ProfileType.T3G);
-				}
-			}
-		} catch (ProfileException e) {
-
-			// On exception just log it and use current profile
-			logger.log(Level.WARNING, "Error switching profile type", e);
-		}
-
-		runAnalysisFirstTime();
-
-		// Save selected directory for traces
-		userPreferences.setLastTraceDirectory(this.traceDirectory);
-
-		// Change window name to reflect trace directory
-		this.setTitle(MessageFormat.format(rb.getString("aro.title"),
-				dir.toString()));
-	}
 
 	/**
 	 * Clears the previously loaded trace before loading a new trace.
-	 * 
+	 *
 	 * @throws IOException
 	 */
 	public synchronized void clearTrace() throws IOException {
@@ -354,7 +550,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 	/**
 	 * Clears the analysis data trace before loading a new trace.
-	 * 
+	 *
 	 * @throws IOException
 	 */
 	private synchronized void clearAnalysis() throws IOException {
@@ -372,28 +568,65 @@ public class ApplicationResourceOptimizer extends JFrame {
 		}
 	}
 
+	private File pcapFileName;
+	private AROProgressDialog progress;
+
+
 	/**
 	 * Implements opening of selected trace directory.
-	 * 
+	 *
 	 * @param pcap
 	 * @throws IOException
 	 */
 	private synchronized void openPcap(File pcap) throws IOException,
 			UnsatisfiedLinkError {
 
-		clearTrace();
 
-		this.traceDirectory = pcap.getParentFile();
-		this.traceData = new TraceData(pcap);
+		pcapFileName = pcap;
 
-		refresh(this.profile, null, null);
+		this.progress = new AROProgressDialog(ApplicationResourceOptimizer.this,rb.getString("progress.loadingTrace"));
+		progress.setVisible(true);
+
+		new SwingWorker<Void, Void>(){
+
+		protected Void doInBackground()
+		{
+		try {
+			clearTrace();
+		} catch (IOException e) {
+			logger.log(Level.INFO,"Execption clearing traces");
+		}
+
+		traceDirectory = pcapFileName.getParentFile();
+		try {
+			traceData = new TraceData(pcapFileName);
+		} catch (UnsatisfiedLinkError e) {
+			logger.log(Level.SEVERE,"Unsatisfied Link Error Exception while loading the traces");
+		} catch (IOException e) {
+			logger.log(Level.SEVERE,"IOException while loading the traces");
+		}
+		return null;
+		}
+
+		protected void done()
+		{
+		try {
+			refresh(profile, null, null);
+		} catch (IOException e) {
+			logger.log(Level.SEVERE,"IOException while analysing the traces");
+		}
 
 		// Save selected directory for traces
-		userPreferences.setLastTraceDirectory(this.traceDirectory);
+		userPreferences.setLastTraceDirectory(traceDirectory);
+
+		//Disposing the progress bar
+		progress.dispose();
 
 		// Change window name to reflect trace directory
-		this.setTitle(MessageFormat.format(rb.getString("aro.title"),
-				pcap.toString()));
+		setTitle(MessageFormat.format(rb.getString("aro.title"),
+				pcapFileName.toString()));
+		}
+		}.execute();
 	}
 
 	/**
@@ -419,7 +652,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	/**
 	 * A callback method that is invoked when changes are made to the status of
 	 * the ARO Data Collector.
-	 * 
+	 *
 	 * @param status
 	 *            - The current status of the ARO Data Collector.
 	 */
@@ -760,7 +993,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 			jViewMenu.addSeparator();
 			jViewMenu.add(getViewOptionsMenuItem());
 			jViewMenu.addMenuListener( new MenuListener() {
-				
+
 				@Override
 				public void menuSelected(MenuEvent e) {
 					logger.fine("View Menu was selected");
@@ -771,7 +1004,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 					} else {
 						logger.fine("CPU CheckBox is NOT selected");
 						enableSelectProcessesMenuItem(false);
-					}					
+					}
 				}
 
 				@Override
@@ -781,11 +1014,11 @@ public class ApplicationResourceOptimizer extends JFrame {
 				@Override
 				public void menuDeselected(MenuEvent e) {
 				}
-				
+
 			});
-		
-			
-			
+
+
+
 
 		}
 		return jViewMenu;
@@ -936,7 +1169,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 			}
 			jToolMenu.add(getTimeRangeAnalysisMenuItem());
 			jToolMenu.add(getDataDump());
-			
+
 			//plugin menus
 			loadPluginMenus(jToolMenu);
 		}
@@ -945,10 +1178,10 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 	/**
 	 * Load the configured plugin Tabs to Analyzer.
-	 * 
+	 *
 	 * Adds tabs defined in the 'plugin.tools' resource bundle property. The
 	 * class/tab implements the AnalyzerPlugin interface.
-	 * 
+	 *
 	 * @param tabPane
 	 */
 	private void loadPluginTabs(JTabbedPane tabPane) {
@@ -978,10 +1211,10 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 	/**
 	 * Load the configured plugin Menus to Analyzer.
-	 * 
+	 *
 	 * Adds menus defined in the 'plugin.tools' resource bundle property. The
 	 * class/menu implements the AnalyzerPlugin interface.
-	 * 
+	 *
 	 * @param menu
 	 */
 	private void loadPluginMenus(JMenu menu) {
@@ -1006,7 +1239,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 			}
 		}
 	}
-	
+
 	/**
 	 * Initializes and returns the Pcap File Analysis menu item under the Tools
 	 * menu.
@@ -1195,7 +1428,13 @@ public class ApplicationResourceOptimizer extends JFrame {
 					fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 					if (fc.showOpenDialog(ApplicationResourceOptimizer.this) == JFileChooser.APPROVE_OPTION) {
 						try {
-							openTrace(fc.getSelectedFile());
+							File selected = fc.getSelectedFile();
+							openTrace(selected);
+							//auto generated datadump
+							new DataDump(selected, getProfile(), true, false);
+							
+							//touch usage
+							updateUsage();
 						} catch (IOException e1) {
 							logger.log(Level.SEVERE, "Failed loading trace", e1);
 							MessageDialogFactory.showInvalidTraceDialog(fc
@@ -1230,27 +1469,16 @@ public class ApplicationResourceOptimizer extends JFrame {
 				@Override
 				public void actionPerformed(ActionEvent e) {
 					JFileChooser fc = new JFileChooser(traceDirectory);
-					fc.addChoosableFileFilter(new FileFilter() {
-
-						@Override
-						public boolean accept(File f) {
-							String name = f.getName();
-							return f.isDirectory()
-									|| name.endsWith(rb
-											.getString("fileChooser.contentType.cap"))
-									|| name.endsWith(rb
-											.getString("fileChooser.contentType.pcap"));
-						}
-
-						@Override
-						public String getDescription() {
-							return rb.getString("fileChooser.desc.pcap");
-						}
-
-					});
+					PcapFileFilter pcapFileFilter = new PcapFileFilter();
+					fc.addChoosableFileFilter(pcapFileFilter);
+					fc.setFileFilter(pcapFileFilter);
+					
 					if (fc.showOpenDialog(ApplicationResourceOptimizer.this) == JFileChooser.APPROVE_OPTION) {
 						try {
 							openPcap(fc.getSelectedFile());
+							
+							//touch usage
+							updateUsage();
 						} catch (IOException e1) {
 							logger.log(Level.SEVERE, "Failed loading trace", e1);
 							MessageDialogFactory.showUnexpectedExceptionDialog(
@@ -1402,44 +1630,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 		}
 
 		chartPlotOptionsDialog = new ChartPlotOptionsDialog(ApplicationResourceOptimizer.this, aroAdvancedTab);
-		
 
-		// Commented out because I think this is causing an error on JNLP
-		// startup
-		// this.getContentPane().addHierarchyBoundsListener(
-		// new HierarchyBoundsListener() {
-		// @Override
-		// public void ancestorMoved(HierarchyEvent e) {
-		// // do nothing
-		// }
-		//
-		// @Override
-		// public void ancestorResized(HierarchyEvent e) {
-		// boolean isStatsTabSelected = false;
-		// boolean isWaterFallTabSelected = false;
-		// if(getJTabbedPane().getSelectedComponent() == analyisResultsPanel){
-		// isStatsTabSelected = true;
-		// }else if(getJTabbedPane().getSelectedComponent() == aroWaterfallTab){
-		// isWaterFallTabSelected = true;
-		// }
-		// jMainTabbedPane.remove(analyisResultsPanel);
-		// jMainTabbedPane.remove(aroWaterfallTab);
-		// analyisResultsPanel = new
-		// AROAnalysisResultsTab(ApplicationResourceOptimizer.this);
-		// jMainTabbedPane.addTab(rb.getString("aro.tab.analysis"), null,
-		// analyisResultsPanel, null);
-		// jMainTabbedPane.addTab(rb.getString("aro.tab.waterfall"), null,
-		// aroWaterfallTab, null);
-		// if(isStatsTabSelected){
-		// jMainTabbedPane.setSelectedComponent(analyisResultsPanel);
-		// }else if(isWaterFallTabSelected){
-		// jMainTabbedPane.setSelectedComponent(aroWaterfallTab);
-		// }
-		// analyisResultsPanel.refresh(analysisData);
-		// //aroWaterfallTab.refresh(analysisData);
-		//
-		// }
-		// });
 	}
 
 	/**
@@ -1448,16 +1639,16 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private void setScreenSize() {
 	    int screenWidth = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds().width;
 	    int screenHeight = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds().height;
-	    
+
 		int width = (screenWidth > DEFAULT_APP_WIDTH) ? DEFAULT_APP_WIDTH : screenWidth;
 		int height = (screenHeight > DEFAULT_APP_HEIGHT) ? DEFAULT_APP_HEIGHT : screenHeight;
 		this.setBounds(0, 0, width, height);
 	}
-	
-	
+
+
 	/**
 	 * Enables or disables the Chart Options menu item in the View menu.
-	 * 
+	 *
 	 * @param enable
 	 *            When this boolean value is true, the Chart Options menu item
 	 *            is visible, when it is false, the menu item is invisible.
@@ -1468,7 +1659,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 	/**
 	 * Enables or disables the Select Processes menu item in the View menu.
-	 * 
+	 *
 	 * @param enable
 	 *            When this boolean value is true, the Select Processes menu item
 	 *            is visible, when it is false, the menu item is invisible.
@@ -1477,8 +1668,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 		this.selectProcessesMenuItem.setEnabled(enable);
 		logger.log(Level.FINE,"Select Process Menu was enabled: {0} ", enable);
 	}
-	
-	
+
+
 	/**
 	 * Initializes and returns the Tabbed Pane for the ARO frame.
 	 */
@@ -1517,7 +1708,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 	/**
 	 * Returns an instance of the Statistics tab.
-	 * 
+	 *
 	 * @return An AROAnalysisResultsTab object containing the Statistics tab
 	 *         instance.
 	 */
@@ -1527,7 +1718,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 	/**
 	 * Returns an instance of the Waterfall tab.
-	 * 
+	 *
 	 * @return An AROWaterfallTabb object containing the Waterfall tab instance.
 	 */
 	public AROWaterfallTabb getWaterfallPanel() {
@@ -1536,7 +1727,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 	/**
 	 * Refreshes the analysis using a new filter
-	 * 
+	 *
 	 * @param filter
 	 *            - An AnalysisFilter object that defines the filter to be used
 	 *            on the trace data.
@@ -1549,7 +1740,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 	/**
 	 * Refreshes the analysis using a new filter
-	 * 
+	 *
 	 * @throws IOException
 	 */
 	public void refresh() throws IOException {
@@ -1557,7 +1748,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 		AnalysisFilter filter = this.analysisData != null ? analysisData.getFilter() : null;
 		refresh(this.profile, filter, null);
 	}
-	
+
 	/**
 	 * Returns the Best Practices tab screen.
 	 */
@@ -1574,7 +1765,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 		FilterProcessesDialog.initializeFilteredProcessSelection();
 		refresh(this.profile, null, null);
 	}
-	
+
 	/**
 	 * Refreshes the view with updated app/ip settings. This method should be
 	 * run on the event dispatch thread
@@ -1602,7 +1793,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 				{
 					dialog = new AROProgressDialog(
 							ApplicationResourceOptimizer.this,
-							rb.getString("progress.loadingTrace"));
+							rb.getString("progress.loadingTraceResults"));
 					dialog.addWindowListener(wl);
 					dialog.setVisible(true);
 				}
@@ -1662,7 +1853,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	/**
 	 * Performs the analysis based on the time range selected in the exclude
 	 * time range dialog.
-	 * 
+	 *
 	 * @param beginTime
 	 *            The start of the time range to be used for the analysis.
 	 * @param endTime
@@ -1683,14 +1874,14 @@ public class ApplicationResourceOptimizer extends JFrame {
 	/**
 	 * Refreshes the view based on the Profile and applications selected when a
 	 * trace is loaded for analysis.
-	 * 
+	 *
 	 * @param analysis
 	 *            The trace analysis data.
 	 * @param profile
 	 *            The selected profile.
 	 * @param selections
 	 *            The collection of selected application/IPs.
-	 * 
+	 *
 	 */
 	private synchronized void displayAnalysis(TraceData.Analysis analysis,
 			Profile profile, AnalysisFilter filter, String msg)
@@ -1701,7 +1892,14 @@ public class ApplicationResourceOptimizer extends JFrame {
 		// Force regeneration of TRA dialog
 		this.timeRangeAnalysisDialog = null;
 		this.excludeTimeRangeDialog = null;
-
+		
+		if(!getAroVideoPlayer().getShowInfoMsg()){
+			getAroVideoPlayer().setShowInfoMsg(true);
+		}
+		if (!getAroVideoPlayer().getVideoStatus()){
+			getAroVideoPlayer().updateSyncButton();
+			
+		}
 		getAroVideoPlayer().refresh(analysisData);
 		getAroAdvancedTab().setAnalysisData(analysisData);
 		getAroSimpleTab().refresh(analysisData);
@@ -1721,7 +1919,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * Sets the 'selected' status of the specified chart plot option, saves that
 	 * selection to the UserPreferences, and notifies the chartPlotOptions
 	 * dialog of the change.
-	 * 
+	 *
 	 * @param option
 	 *            The chart plot option to be set.
 	 * @param selected
@@ -1755,7 +1953,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 	/**
 	 * Returns the currently selected device profile.
-	 * 
+	 *
 	 * @return A Profile object representing the currently selected profile.
 	 */
 	public Profile getProfile() {
@@ -1764,10 +1962,10 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 	/**
 	 * Sets the device profile that is used for analysis.
-	 * 
+	 *
 	 * @param profile
 	 *            - The device profile to be set.
-	 * 
+	 *
 	 * @throws IOException
 	 */
 	public void setProfile(Profile profile) throws IOException {
@@ -1781,7 +1979,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * has been maximized. If it has been then it calls 2 methods. One sets the
 	 * AROSimpleTabb vertical split pane to equal parts and one sets the
 	 * AROAdvancedTabb split pane to equal parts.
-	 * 
+	 *
 	 */
 	private final WindowStateListener aroWindowStateListener = new WindowAdapter() {
 		public void windowStateChanged(WindowEvent evt) {
@@ -1877,21 +2075,45 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 	/**
 	 * Performs the operations for dumping various trace data' in one file.
-	 * 
+	 *
 	 * @param dir
 	 * @throws IOException
 	 */
 	private void startDataDump(File dir) throws IOException {
-		new DataDump(dir, getProfile());
+		new DataDump(dir, getProfile(), false, false);
 	}
 
-	/** 
+	/**
 	 * Return status of the CPU check box from the View Options dialog
-	 * 
+	 *
 	 * @return Returns true is selected, false if not selected.
 	 */
 	private boolean isCpuCheckBoxEnabled() {
 		return this.getChartPlotOptionsDialog().isCpuCheckBoxSelected();
 	}
-	
+
+	/**
+	 * Touch usage for analytics
+	 */
+	private void updateUsage() {
+		try {
+			ResourceBundle buildBundle = ResourceBundleManager.getBuildBundle();
+			boolean useOpenUrl = Boolean.parseBoolean(rb.getString("aro.open"));
+			if (useOpenUrl) {
+				String urlBase = rb.getString("aro.open.urlbase");
+				String majorVersion = buildBundle
+						.getString("build.majorversion");
+				StringBuilder fullUrl = new StringBuilder();
+				fullUrl.append(urlBase).append("?v=")
+						.append(majorVersion);
+				String osName = System.getProperty("os.name");
+				fullUrl.append("&o=").append(osName.replace(' ', '_'));
+				fullUrl.append("&a=").append(System.getProperty("os.arch"));
+				//logger.log(Level.INFO, "[" + fullUrl.toString() + "]");
+				Util.fetchFile(new URL(fullUrl.toString()));
+			}
+		} catch (Exception e) {
+			//do nothing, catch any exception to allow app to continue
+		}
+	}
 }

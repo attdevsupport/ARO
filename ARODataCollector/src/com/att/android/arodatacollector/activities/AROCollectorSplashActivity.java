@@ -91,6 +91,8 @@ public class AROCollectorSplashActivity extends Activity {
 
 	/** Boolean to check if the activity instance is in current memory **/
 	private boolean mActivityFinished = false;
+	
+	private String mAROTraceFolderNamefromAnalyzer;
 
 	/**
 	 * Overrides the onTouchEvent method to handle the ACTION DOWN event.
@@ -143,6 +145,8 @@ public class AROCollectorSplashActivity extends Activity {
 		// like height,width
 		Display mScreenDisplay;
 		super.onCreate(savedInstanceState);
+		
+		
 		if (AROCollectorService.getServiceObj() != null) {
 			startAROHomeActivity();
 			return;
@@ -151,6 +155,7 @@ public class AROCollectorSplashActivity extends Activity {
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
 				WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		mApp = (ARODataCollector) getApplication();
+		
 		mScreenDisplay = getWindowManager().getDefaultDisplay();
 		
 		setContentView(R.layout.splash);
@@ -280,6 +285,16 @@ public class AROCollectorSplashActivity extends Activity {
 	 * Start the data collector main screen after splash screens timesout
 	 */
 	private void startMainActivity() {
+		
+		//TODO:Adding code to launch Data Collector from Analyzer
+		final Bundle apkCommandLineParameters  = getIntent().getExtras();
+		if (apkCommandLineParameters != null) {
+			mAROTraceFolderNamefromAnalyzer = apkCommandLineParameters.getString("TraceFolderName");
+			mApp.setTcpDumpTraceFolderName(mAROTraceFolderNamefromAnalyzer);
+		}else{
+			mApp.setTcpDumpTraceFolderName(null);
+		}
+		
 		final Intent splashScreenIntent = new Intent(getBaseContext(),
 				AROCollectorMainActivity.class);
 		// Generic Error ID number 100 passed as an argument to navigate to Main

@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 package com.att.aro.model;
-
 import java.io.BufferedReader;
+
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -104,6 +106,7 @@ public class TraceData implements Serializable {
 		private List<TCPSession> tcpSessions;
 		private RRCStateMachine rrcStateMachine;
 		private CacheAnalysis cacheAnalysis;
+		private TextFileCompressionAnalysis textFileCompressionAnalysis;
 		private CacheInfoParser cacheInfoParser;
 		private BestPractices bestPractice;
 		private ApplicationScore applicationScore;
@@ -463,7 +466,7 @@ public class TraceData implements Serializable {
 				int periodicBurstCount = 0;
 				for (int i = 0; i < burstInfos.size(); i++) {
 					BurstCategory bCategory = burstInfos.get(i).getBurstCategory();
-					if (bCategory == BurstCategory.BURSTCAT_PERIODICAL) {
+					if (bCategory == BurstCategory.PERIODICAL) {
 						periodicBurstCount += 1;
 					}
 				}
@@ -672,6 +675,14 @@ public class TraceData implements Serializable {
 		}
 		
 		/**
+		 * Returns result of text file compression analysis
+		 * @return Text file compression analysis
+		 */
+		public TextFileCompressionAnalysis getTextFileCompressionAnalysis() {
+			return textFileCompressionAnalysis;
+		}
+		
+		/**
 		 * @return The cacheAnalysis
 		 */
 		public CacheInfoParser getCacheInfoParser() {
@@ -823,29 +834,43 @@ public class TraceData implements Serializable {
 			}
 
 			// Analyze packets for TCP sessions
+			logger.fine("Extracting TCP Sessions");
 			this.tcpSessions = TCPSession.extractTCPSessions(packets);
+			
+			// Do text file compression analysis
+			logger.fine("Performing text file compression analysis");
+			this.textFileCompressionAnalysis = new TextFileCompressionAnalysis(this.tcpSessions);
 
 			// Do cache analysis
+			logger.fine("Performing cache analysis");
 			this.cacheAnalysis = new CacheAnalysis(this.tcpSessions);
 
 			// Simulate RRC state machine
+			logger.fine("Initializing RRCStateMachine");
 			this.rrcStateMachine = new RRCStateMachine(this);
 
 			// Create energy model
+			logger.fine("Initializing EnergyModel");
 			this.energyModel = new EnergyModel(this);
 
 			// Burst Analysis
+			logger.fine("Initializing BurstCollectionAnalysis");
 			this.bcAnalysis = new BurstCollectionAnalysis(this);
 
 			// Creates BestPractices object
+			logger.fine("Initializing BestPractices");
 			this.bestPractice = new BestPractices(this);
 
 			// Calculate score
+			logger.fine("Initializing ApplicationScore");
 			this.applicationScore = new ApplicationScore(this);
 			
 			// Do cache analysis
+			logger.fine("Initializing CacheInfoParser");
 			this.cacheInfoParser = new CacheInfoParser(cacheAnalysis);
 
+			logger.fine("runAnalysis is complted");
+			
 		}
 
 		/**
@@ -1264,6 +1289,22 @@ public class TraceData implements Serializable {
 	private static Logger logger = Logger.getLogger(TraceData.class.getName());
 
 	/**
+	 * The name of the active_process file
+	 */
+	public static final String ACTIVE_PROCESS_FILE = "active_process";
+
+	/**
+	 * The name of the prop file
+	 */
+	public static final String PROP_FILE = "prop";
+
+	/**
+	 * The name of the user input log events file
+	 */
+	public static final String USER_INPUT_LOG_EVENTS_FILE = "user_input_log_events";
+
+	
+	/**
 	 * The name of the AppName file
 	 */
 	public static final String APPNAME_FILE = "appname";
@@ -1546,6 +1587,9 @@ public class TraceData implements Serializable {
 	private int captureOffset = -1;
 
 	private Set<String> missingFiles = new HashSet<String>();
+	private boolean exVideoTimeFileNotFound;
+	private boolean exVideoFound;
+	private boolean nativeVideo;
 
 	// All packets included in the trace (not filtered)
 	private File pcapFile;
@@ -1556,11 +1600,16 @@ public class TraceData implements Serializable {
 	private Map<String, Set<InetAddress>> appIps = new HashMap<String, Set<InetAddress>>();
 	private List<NetworkType> networkTypesList = new ArrayList<NetworkType>();
 
+	
+	public static int packetIdx = 0;
+	public static int totalNoPackets = 0;
+	public static int remainingPackets = 0;
 	/**
 	 * Pcap packet listener
 	 */
 	private PacketListener packetListener = new PacketListener() {
 
+		
 		@Override
 		public void packetArrived(String appName, Packet packet) {
 			if (packet instanceof IPPacket) { // Replaces GetPacketInfo(...)
@@ -1577,9 +1626,18 @@ public class TraceData implements Serializable {
 				addIpCount(ip.getSourceIPAddress());
 				addIpCount(ip.getDestinationIPAddress());
 			}
+			incrementPacket();
 			allPackets.add(new PacketInfo(appName, packet));
 
 		}
+		
+		public void incrementPacket()
+		{
+			packetIdx++;			
+			remainingPackets = totalNoPackets - packetIdx;
+			
+		}
+				
 	};
 
 	/**
@@ -1852,7 +1910,7 @@ public class TraceData implements Serializable {
 					}
 				}
 				this.appInfos.add(appName);
-				logger.fine("App name: " + appName + " ver: " + appVer);
+				logger.finest("App name: " + appName + " ver: " + appVer);
 			}
 		} finally {
 			br.close();
@@ -1863,13 +1921,14 @@ public class TraceData implements Serializable {
 	/**
 	 * Reads the application ID's from the appid trace file.
 	 * 
+	 * @param appIdFileName Name of the file containing list of application IDs.
 	 * @return The list of app ids found in the trace data.
 	 * @throws IOException
 	 */
-	private List<Integer> readAppIDs() throws IOException {
-		File file = new File(traceDir, APPID_FILE);
+	List<Integer> readAppIDs(String appIdFileName) throws IOException {
+		File file = new File(traceDir, appIdFileName);
 		if (!file.exists()) {
-			this.missingFiles.add(APPID_FILE);
+			this.missingFiles.add(appIdFileName);
 			return Collections.emptyList();
 		}
 
@@ -1896,6 +1955,17 @@ public class TraceData implements Serializable {
 		}
 		return appIds;
 	}
+	
+	/**
+	 * Reads the application ID's from the appid trace file.
+	 * 
+	 * @return The list of app ids found in the trace data.
+	 * @throws IOException
+	 */
+	List<Integer> readAppIDs() throws IOException {
+		return readAppIDs(APPID_FILE);
+	}
+	
 
 	/**
 	 * Reads the PCAP file and the trace times from the time trace file.
@@ -1926,6 +1996,9 @@ public class TraceData implements Serializable {
 		// Read the pcap files to get default times
 		File pcap = new File(traceDir, PCAP_FILE);
 		List<Integer> appIds = readAppIDs();
+		
+		
+		totalNoPackets = appIds.size();
 		readPcapTrace(pcap, appIds, startTime, duration);
 		for (int i = 1;; i++) {
 			File pcapFile = new File(traceDir, TRAFFIC + i + CAP_EXT);
@@ -2159,6 +2232,62 @@ public class TraceData implements Serializable {
 			this.traceDuration = duration != null ? duration.doubleValue() : 0.0;
 		}
 		this.traceDateTime = new Date((long) (this.pcapTime0 * 1000));
+		
+		// Only if Pcap file is loaded, execute the video sync process below.
+		if((appIds.isEmpty()) && (startTime == null) && (duration == null)){
+			String exVideoDisplayFileName = Util.RB.getString("video.exVideoDisplayFile");
+			File exVideoDisplayFile = new File(traceDir.getParentFile(), exVideoDisplayFileName);
+			String nativeVideoFileOnDevice = "video.mp4";
+			String nativeVideoDisplayFile = "video.mov";
+			if (exVideoDisplayFile.exists() || isExternalVideoSourceFilePresent(nativeVideoFileOnDevice,nativeVideoDisplayFile,true)){
+			
+				 exVideoFound = true;
+				 exVideoTimeFileNotFound = false;
+				 // get the video_time file.
+				 File file = new File(traceDir.getParentFile(), VIDEO_TIME_FILE);
+				 if (!file.exists()) {
+						exVideoTimeFileNotFound =true;
+						exVideoFound = false;
+				}else {
+						BufferedReader br = new BufferedReader(new FileReader(file));
+						try {
+							String s = br.readLine();
+							if (s != null) {
+								String[] strValues = s.split(" ");
+								if (strValues.length > 0) {
+									try {
+										videoStartTime = Double.parseDouble(strValues[0]);
+									} catch (NumberFormatException e) {
+										logger.log(Level.SEVERE,
+												"Cannot determine actual video start time", e);
+									}
+									if (strValues.length > 1) {
+										// For emulator only, tcpdumpLocalStartTime is
+										// start
+										// time started according to local pc/laptop.
+										// getTraceDateTime is time according to
+										// emulated device
+										// -- the tcpdumpDeviceVsLocalTimeDetal is
+										// difference
+										// between the two and is added as an offset
+										// to videoStartTime so that traceEmulatorTime
+										// and
+										// videoStartTime are in sync.
+										double tcpdumpLocalStartTime = Double.parseDouble(strValues[1]);
+										double tcpdumpDeviceVsLocalTimeDelta = (getTraceDateTime()
+												.getTime() / 1000.0) - tcpdumpLocalStartTime;
+										videoStartTime += tcpdumpDeviceVsLocalTimeDelta;
+									}
+								}
+							}
+						} finally {
+							br.close();
+						}
+					}
+			}
+	
+		}
+		
 	}
 
 	/**
@@ -2169,25 +2298,27 @@ public class TraceData implements Serializable {
 		String appName = Util.RB.getString("aro.unknownApp");
 		int numberOfAppIds = appIds.size();
 				
-		if (packetIdx < numberOfAppIds && packetIdx >= VALID_UNKNOWN_APP_ID ) {
-
-			int appIdIdx = appIds.get(packetIdx);
-			if (appIdIdx >= 0) {
-				if (appIdIdx < appInfos.size())
-				{
-					appName = appInfos.get(appIdIdx);
-				} else {
+		if (appIds.size() != 0 && appInfos.size() != 0) {
+			if (packetIdx < numberOfAppIds && packetIdx >= VALID_UNKNOWN_APP_ID ) {
+	
+				int appIdIdx = appIds.get(packetIdx);
+				if (appIdIdx >= 0) {
+					if (appIdIdx < appInfos.size())
+					{
+						appName = appInfos.get(appIdIdx);
+					} else {
+						logger.log(Level.WARNING, "Invalid app ID {0} for packet {1}", new Object[] {appIdIdx, packetIdx});
+						assert false;
+					}
+				} else if (appIdIdx != VALID_UNKNOWN_APP_ID) {
 					logger.log(Level.WARNING, "Invalid app ID {0} for packet {1}", new Object[] {appIdIdx, packetIdx});
 					assert false;
 				}
-			} else if (appIdIdx != VALID_UNKNOWN_APP_ID) {
-				logger.log(Level.WARNING, "Invalid app ID {0} for packet {1}", new Object[] {appIdIdx, packetIdx});
+				
+			} else {
+				logger.log(Level.WARNING, "No app ID for packet {0}", packetIdx);
 				assert false;
 			}
-			
-		} else {
-			logger.log(Level.WARNING, "No app ID for packet {0}", packetIdx);
-			assert false;
 		}
 
 		return appName;
@@ -3143,51 +3274,108 @@ public class TraceData implements Serializable {
 	 * variables.
 	 */
 	private void readVideoTime() throws IOException {
-		String videoDisplayFileName = Util.RB.getString("video.videoDisplayFile");
-		String videoFileNameFromDevice = Util.RB.getString("video.videoFileOnDevice");
-		File videoDisplayFile = new File(traceDir, videoDisplayFileName);
-		File videoFileFromDevice = new File(traceDir, videoFileNameFromDevice);
-		if (videoDisplayFile.exists() || videoFileFromDevice.exists()) {
-			File file = new File(traceDir, VIDEO_TIME_FILE);
-			if (!file.exists()) {
-				if (new File(traceDir, VIDEO_MP4_FILE).exists()
-						|| new File(traceDir, VIDEO_MOV_FILE).exists()) {
+		 // Read the external video file,If available.
+		String exVideoDisplayFileName = Util.RB.getString("video.exVideoDisplayFile");
+		File exVideoDisplayFile = new File(traceDir, exVideoDisplayFileName);
+		String nativeVideoFileOnDevice = "video.mp4";
+		String nativeVideoDisplayfile = "video.mov";
+		if (exVideoDisplayFile.exists() || isExternalVideoSourceFilePresent(nativeVideoFileOnDevice,nativeVideoDisplayfile,false)){
+		
+			 exVideoFound = true;
+			 exVideoTimeFileNotFound = false;
+			 // get the video_time file.
+			 File file = new File(traceDir, VIDEO_TIME_FILE);
+			 if (!file.exists()) {
 					this.missingFiles.add(VIDEO_TIME_FILE);
-				}
-			} else {
-				BufferedReader br = new BufferedReader(new FileReader(file));
-				try {
-					String s = br.readLine();
-					if (s != null) {
-						String[] strValues = s.split(" ");
-						if (strValues.length > 0) {
-							try {
-								videoStartTime = Double.parseDouble(strValues[0]);
-							} catch (NumberFormatException e) {
-								logger.log(Level.SEVERE,
-										"Cannot determine actual video start time", e);
-							}
-							if (strValues.length > 1) {
-								// For emulator only, tcpdumpLocalStartTime is
-								// start
-								// time started according to local pc/laptop.
-								// getTraceDateTime is time according to
-								// emulated device
-								// -- the tcpdumpDeviceVsLocalTimeDetal is
-								// difference
-								// between the two and is added as an offset
-								// to videoStartTime so that traceEmulatorTime
-								// and
-								// videoStartTime are in sync.
-								double tcpdumpLocalStartTime = Double.parseDouble(strValues[1]);
-								double tcpdumpDeviceVsLocalTimeDelta = (getTraceDateTime()
-										.getTime() / 1000.0) - tcpdumpLocalStartTime;
-								videoStartTime += tcpdumpDeviceVsLocalTimeDelta;
+					exVideoTimeFileNotFound =true;
+					exVideoFound = false;
+			}else {
+					BufferedReader br = new BufferedReader(new FileReader(file));
+					try {
+						String s = br.readLine();
+						if (s != null) {
+							String[] strValues = s.split(" ");
+							if (strValues.length > 0) {
+								try {
+									videoStartTime = Double.parseDouble(strValues[0]);
+								} catch (NumberFormatException e) {
+									logger.log(Level.SEVERE,
+											"Cannot determine actual video start time", e);
+								}
+								if (strValues.length > 1) {
+									// For emulator only, tcpdumpLocalStartTime is
+									// start
+									// time started according to local pc/laptop.
+									// getTraceDateTime is time according to
+									// emulated device
+									// -- the tcpdumpDeviceVsLocalTimeDetal is
+									// difference
+									// between the two and is added as an offset
+									// to videoStartTime so that traceEmulatorTime
+									// and
+									// videoStartTime are in sync.
+									double tcpdumpLocalStartTime = Double.parseDouble(strValues[1]);
+									double tcpdumpDeviceVsLocalTimeDelta = (getTraceDateTime()
+											.getTime() / 1000.0) - tcpdumpLocalStartTime;
+									videoStartTime += tcpdumpDeviceVsLocalTimeDelta;
+								}
 							}
 						}
+					} finally {
+						br.close();
 					}
-				} finally {
-					br.close();
+				}
+		}else{
+		
+			exVideoFound = false;
+			exVideoTimeFileNotFound = false;
+			nativeVideo = true;
+			String videoDisplayFileName = Util.RB.getString("video.videoDisplayFile");
+			String videoFileNameFromDevice = Util.RB.getString("video.videoFileOnDevice");
+			File videoDisplayFile = new File(traceDir, videoDisplayFileName);
+			File videoFileFromDevice = new File(traceDir, videoFileNameFromDevice);
+			if (videoDisplayFile.exists() || videoFileFromDevice.exists()) {
+				File file = new File(traceDir, VIDEO_TIME_FILE);
+				if (!file.exists()) {
+					if (new File(traceDir, VIDEO_MP4_FILE).exists()
+							|| new File(traceDir, VIDEO_MOV_FILE).exists()) {
+						this.missingFiles.add(VIDEO_TIME_FILE);
+					}
+				} else {
+					BufferedReader br = new BufferedReader(new FileReader(file));
+					try {
+						String s = br.readLine();
+						if (s != null) {
+							String[] strValues = s.split(" ");
+							if (strValues.length > 0) {
+								try {
+									videoStartTime = Double.parseDouble(strValues[0]);
+								} catch (NumberFormatException e) {
+									logger.log(Level.SEVERE,
+											"Cannot determine actual video start time", e);
+								}
+								if (strValues.length > 1) {
+									// For emulator only, tcpdumpLocalStartTime is
+									// start
+									// time started according to local pc/laptop.
+									// getTraceDateTime is time according to
+									// emulated device
+									// -- the tcpdumpDeviceVsLocalTimeDetal is
+									// difference
+									// between the two and is added as an offset
+									// to videoStartTime so that traceEmulatorTime
+									// and
+									// videoStartTime are in sync.
+									double tcpdumpLocalStartTime = Double.parseDouble(strValues[1]);
+									double tcpdumpDeviceVsLocalTimeDelta = (getTraceDateTime()
+											.getTime() / 1000.0) - tcpdumpLocalStartTime;
+									videoStartTime += tcpdumpDeviceVsLocalTimeDelta;
+								}
+							}
+						}
+					} finally {
+						br.close();
+					}
 				}
 			}
 		}
@@ -3195,7 +3383,118 @@ public class TraceData implements Serializable {
 			videoStartTime = pcapTime0;
 		}
 	}
+	
+	/**
+	 * Checks for external video source.
+	 * 
+	 * @param nativeVideoSourcefile,isPcap
+	 * 			the native video source file i.e video.mp4 
+	 * 			pcap file loaded or not.
+	 * @return boolean
+	 * 			return false if only native video file is present , otherwise true.
+	 */			
+	public boolean isExternalVideoSourceFilePresent(String nativeVideoFileOnDevice, String nativeVideoDisplayfile,boolean isPcap){
+		
+		int index =0;
+		String[] matches;
+		if(isPcap){
+			matches = traceDir.getParentFile().list(new FilenameFilter()
+			{
+				public boolean accept(File dir, String name) {
+					if (name.toLowerCase().endsWith(".mp4") || name.toLowerCase().endsWith(".wmv")
+							||name.toLowerCase().endsWith(".qt") || name.toLowerCase().endsWith(".wma")
+							|| name.toLowerCase().endsWith(".mpeg") || name.toLowerCase().endsWith(".3gp")
+							|| name.toLowerCase().endsWith(".asf") || name.toLowerCase().endsWith(".avi")
+							|| name.toLowerCase().endsWith(".dv") || name.toLowerCase().endsWith(".mkv")
+							|| name.toLowerCase().endsWith(".mpg") || name.toLowerCase().endsWith(".rmvb")
+							|| name.toLowerCase().endsWith(".vob") || name.toLowerCase().endsWith(".mov")){
+						return true;
+					}else{
+						return false;
+					}
+				  }
+			});
+		}else{
+			matches = traceDir.list(new FilenameFilter()
+			{
+				public boolean accept(File dir, String name) {
+					if (name.toLowerCase().endsWith(".mp4") || name.toLowerCase().endsWith(".wmv")
+							||name.toLowerCase().endsWith(".qt") || name.toLowerCase().endsWith(".wma")
+							|| name.toLowerCase().endsWith(".mpeg") || name.toLowerCase().endsWith(".3gp")
+							|| name.toLowerCase().endsWith(".asf") || name.toLowerCase().endsWith(".avi")
+							|| name.toLowerCase().endsWith(".dv") || name.toLowerCase().endsWith(".mkv")
+							|| name.toLowerCase().endsWith(".mpg") || name.toLowerCase().endsWith(".rmvb")
+							|| name.toLowerCase().endsWith(".vob") || name.toLowerCase().endsWith(".mov")){
+						return true;
+					}else{
+						return false;
+					}
+				  }
+			});
+		}
+		
+		if(matches!= null){
+			while(index < matches.length){
+				if(matches.length == 1){
+					// If trace directory contains any one file video.mp or video.mov , we allow normal native video flow.
+					if(nativeVideoFileOnDevice.equals(matches[index]) || nativeVideoDisplayfile.equals(matches[index])){
+						return false;
+					}else{
+						return true;
+					}
+				}else {
+					// If the trace directory contains video.mp4 and video.mov , we allow normal native video flow.
+					if((matches.length == 2) && ((index + 1)!=2)
+						&& (nativeVideoFileOnDevice.equals(matches[index]) || nativeVideoDisplayfile.equals(matches[index]))
+						&& (nativeVideoFileOnDevice.equals(matches[index+1]) || nativeVideoDisplayfile.equals(matches[index+1]))	){
+						return false;
+					}
+					else{
+						// if trace directory contains video.mp4 or video.mov along with external video file, we give preference to external video file.
+						if(nativeVideoFileOnDevice.equals(matches[index]) || nativeVideoDisplayfile.equals(matches[index])){
+							return true;
+						}
+					}
+				}
+				
+				index+=1;	
+			}
+		}
+		return false;
+	}
+	/**
+	 * Returns the presence of video_time file in trace directory when external video is used.
+	 * 
+	 * @param 
+	 * @return video_time file status in boolean
+	 */
 
+	public boolean getExVideoTimeFileStatus() {
+		return exVideoTimeFileNotFound;
+	}
+
+	/**
+	 * Returns the presence of external video in the trace directory
+	 * @return external video file status in boolean.
+	 */
+	public boolean getExVideoStatus() {
+		return exVideoFound;
+	}
+	
+	/**
+	 * Returns true if native video is loaded.
+	 * @return external video file status in boolean.
+	 */
+	public boolean isNativeVideo() {
+		return nativeVideo;
+	}
+	/**
+	 * Sets the external video file presence
+	 * @param external video file presence status in boolean
+	 */
+	public void setExVideoStatus(boolean bExVideo) {
+		exVideoFound = bExVideo;
+	}
 	/**
 	 * Attempts to determine packet direction based upon source and destination
 	 * IP addresses

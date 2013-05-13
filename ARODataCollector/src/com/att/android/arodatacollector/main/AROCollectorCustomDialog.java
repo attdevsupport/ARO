@@ -129,6 +129,8 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		 */
 		WIFI_MOBILE_BOTH_OFF,
 		
+		ARO_INSTANCE_RUNNING,
+		
 		NO_ROOT_ACCESS
 	}
 
@@ -278,6 +280,10 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		case NO_ROOT_ACCESS:
 			createARONoRootAccessErrorDialog();
 			break;
+			
+		case ARO_INSTANCE_RUNNING:
+			createAROInstanceRunningErrorDialog();
+			break;
 		}
 	}
 
@@ -290,6 +296,14 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		buttonOK.setOnClickListener(new OKListener());		
 	}
 
+	private void createAROInstanceRunningErrorDialog(){
+		setContentView(R.layout.arocollector_errormessage);
+		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
+		mAroErrorText.setText(R.string.aro_aroinstancerunning);
+		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
+		buttonOK.setOnClickListener(new OKListener());		
+
+	}
 	/**
 	 * Creates the error message dialog to notify SD card is mounted mid trace
 	 * or before start of ARO Data Collector trace
@@ -570,6 +584,7 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 				case AIRPANCE_MODEON_MIDTRACE:
 				case WIFI_MOBILE_BOTH_OFF:
 				case TRACE_SAVED:
+				case ARO_INSTANCE_RUNNING:
 					AROCollectorCustomDialog.this.dismiss();
 					break;
 				case TRACE_STOPPED:

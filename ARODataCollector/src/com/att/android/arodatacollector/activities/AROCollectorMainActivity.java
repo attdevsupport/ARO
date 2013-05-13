@@ -110,6 +110,8 @@ public class AROCollectorMainActivity extends Activity {
 	 * dialog to user
 	 */
 	private Dialog_Type m_dialog;
+	
+	private String mAROTraceFolderNamefromAnalyzer;
 
 	/**
 	 * Initializes data members with a saved instance of an AROCollectorMainActivity 
@@ -121,7 +123,9 @@ public class AROCollectorMainActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.arocollector_main_screen);
+		validateAROAnalyzerConnectedLaunch();
 		initializeMainScreenControls();
+		
 	}
 
 	/**
@@ -144,7 +148,15 @@ public class AROCollectorMainActivity extends Activity {
 		startDataCollector.setEnabled(true);
 		mAroUtils = new AROCollectorUtils();
 		mAROConnectiviyMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-
+		mApp.setDataCollectorStopEnable(true);
+		if (mApp.getDumpTraceFolderName()!=null) {
+			mApp.setUSBVideoCaptureON(true);
+			startDataCollector.setText(R.string.continuecollector);
+		}else {
+			mApp.setUSBVideoCaptureON(false);
+			startDataCollector.setText(R.string.startcollector);
+		}
+			
 		if (AROCollectorService.getServiceObj() != null) {
 			collectScreenVideo.setChecked(mApp.getCollectVideoOption());
 		}
@@ -152,16 +164,15 @@ public class AROCollectorMainActivity extends Activity {
 		taskKiller.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				startActivity(new Intent(AROCollectorMainActivity.this,
-						AROCollectorTaskManagerActivity.class));
+				startActivity(new Intent(AROCollectorMainActivity.this, AROCollectorTaskManagerActivity.class));
 			}
 		});
+		
 		// Start Data Collector button listener
 		startDataCollector.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				final String state = Environment.getExternalStorageState();
-				
 				NetworkInfo.State wifiState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState();
 				NetworkInfo.State mobileState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState();
 				if (DEBUG){
@@ -183,7 +194,20 @@ public class AROCollectorMainActivity extends Activity {
 					// do not allow DC to start with both Mobile and Wifi off
 					showARODataCollectorErrorDialog(Dialog_Type.WIFI_MOBILE_BOTH_OFF);
 					return;
+				} 
+				
+				try {
+					int tcpdumppid = mAroUtils.getProcessID("tcpdump");
+					if(tcpdumppid!=0){
+						showARORunningError();
+						return;
+					}
+				} catch (IOException e1) {
+					Log.e(TAG, "IOException in initializeMainScreenControls", e1);
+				} catch (InterruptedException e1) {
+					Log.e(TAG, "exception in initializeMainScreenControls", e1);
 				}
+				
 				// Making sure root permission is set to ARO application before
 				// starting trace cycle
 				Process mAROrootShell = null;
@@ -194,12 +218,32 @@ public class AROCollectorMainActivity extends Activity {
 					Log.e(TAG, "exception in getting root permission", e);
 				}
 				mAROrootShell = null;
+				if(mApp.getDumpTraceFolderName()!=null) {
+					mApp.setCollectorLaunchfromAnalyzer(true);
+					mApp.setDataCollectorStopEnable(false);
+					startARODataCollector();
+					return;
+				}
+				mApp.setCollectorLaunchfromAnalyzer(false);
 				showARODataCollectorErrorDialog(Dialog_Type.TRACE_FOLDERNAME);
+
 			}
 		});
 		handleARODataCollectorErrors(getIntent().getExtras().getInt(ARODataCollector.ERRODIALOGID));
 	}
 
+	/**
+	 * Checks if ARO Data Collector has been kicked from Analyzer connected via USB
+	 * 
+	 */
+	private void validateAROAnalyzerConnectedLaunch(){
+		final Bundle apkCommandLineParameters  = getIntent().getExtras();
+		if (apkCommandLineParameters != null) {
+		    mAROTraceFolderNamefromAnalyzer = apkCommandLineParameters.getString("TraceFolderName");
+		    
+		}
+		
+	}
 	/**
 	 * Starts the ARO Data Collector trace in the background by starting the
 	 * tcpdump/ffmpeg in native shell along with other peripherals trace like
@@ -381,6 +425,18 @@ public class AROCollectorMainActivity extends Activity {
 		myDialog.show();
 	}
 
+	
+	/**
+	 * 
+	 */
+	private void showARORunningError() {
+		m_dialog = Dialog_Type.ARO_INSTANCE_RUNNING;
+		final AROCollectorCustomDialog myDialog = new AROCollectorCustomDialog(
+				AROCollectorMainActivity.this, android.R.style.Theme_Translucent, m_dialog,
+				new OnTraceFolderListener(), null);
+		myDialog.show();
+	}
+	
 	/**
 	 * Overrides the android.app.Activity#onPause method. 
 	 * 

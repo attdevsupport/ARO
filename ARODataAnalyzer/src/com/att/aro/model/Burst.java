@@ -56,7 +56,7 @@ public class Burst implements Serializable {
 	private double activeTime;
 
 	// burst analysis
-	private Set<BurstInfo> burstInfos = new HashSet<BurstInfo>();
+	private BurstCategory burstInfo;
 
 	/**
 	 * Initializes an instance of the Burst class, using the specified packet
@@ -210,34 +210,22 @@ public class Burst implements Serializable {
 	}
 
 	/**
-	 * Returns the Set of burst information contained in this Burst object.
+	 * Returns the burst information contained in this Burst object.
 	 * 
-	 * @return A Set of BurstInfo objects containing the burst information.
+	 * @return A BurstInfo objects containing the burst information.
 	 */
-	public Set<BurstInfo> getBurstInfos() {
-		return Collections.unmodifiableSet(burstInfos);
+	public BurstCategory getBurstInfos() {
+		return burstInfo;
 	}
 
 	/**
-	 * Adds a burst information object (BurstInfo) into a list.
+	 * Sets a burst information object (BurstInfo).
 	 * 
 	 * @param burstInfo
-	 *            The burst information to add.
+	 *            The burst information to set.
 	 */
-	public void addBurstInfo(BurstInfo burstInfo) {
-		this.burstInfos.add(burstInfo);
-	}
-
-	/**
-	 * Sets the burst information for this burst, using the specified BurstInfo
-	 * object.
-	 * 
-	 * @param burstInfo
-	 *            - A BurstInfo object containing the burst information to be
-	 *            set.
-	 */
-	public void setBurstInfo(BurstInfo burstInfo) {
-		this.burstInfos = new HashSet<BurstInfo>(Arrays.asList(burstInfo));
+	public void setBurstInfo(BurstCategory burstInfo) {
+		this.burstInfo = burstInfo;
 	}
 
 	/**
@@ -258,44 +246,7 @@ public class Burst implements Serializable {
 	 *         the burst.
 	 */
 	public BurstCategory getBurstCategory() {
-
-		if (burstInfos.contains(BurstInfo.BURST_LOSS_RECOVER)) {
-			return BurstCategory.BURSTCAT_LOSS;
-		}
-		if (burstInfos.contains(BurstInfo.BURST_LOSS_DUP)) {
-			return BurstCategory.BURSTCAT_LOSS;
-		}
-		if (burstInfos.contains(BurstInfo.BURST_USER_INPUT)) {
-			return BurstCategory.BURSTCAT_USER;
-		}
-		if (burstInfos.contains(BurstInfo.BURST_SCREEN_ROTATION_INPUT)) {
-			return BurstCategory.BURSTCAT_SCREEN_ROTATION;
-		}
-		if (burstInfos.contains(BurstInfo.BURST_SERVER_DELAY)) {
-			return BurstCategory.BURSTCAT_SERVER;
-		}
-		if (burstInfos.contains(BurstInfo.BURST_CLIENT_DELAY)) {
-			return BurstCategory.BURSTCAT_CLIENT;
-		}
-		if (burstInfos.contains(BurstInfo.BURST_PERIODICAL)) {
-			return BurstCategory.BURSTCAT_PERIODICAL;
-		}
-		if (burstInfos.contains(BurstInfo.BURST_UNKNOWN)) {
-			return BurstCategory.BURSTCAT_UNKNOWN;
-		}
-		if (burstInfos.contains(BurstInfo.BURST_LONG)) {
-			return BurstCategory.BURSTCAT_LONG;
-		}
-		if (burstInfos.contains(BurstInfo.BURST_USERDEF1)) {
-			return BurstCategory.BURSTCAT_USERDEF1;
-		}
-		if (burstInfos.contains(BurstInfo.BURST_USERDEF2)) {
-			return BurstCategory.BURSTCAT_USERDEF2;
-		}
-		if (burstInfos.contains(BurstInfo.BURST_USERDEF3)) {
-			return BurstCategory.BURSTCAT_USERDEF3;
-		}
-		return BurstCategory.BURSTCAT_PROTOCOL;
+		return burstInfo;
 	}
 
 	/**

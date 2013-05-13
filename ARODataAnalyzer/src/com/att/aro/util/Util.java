@@ -1,5 +1,26 @@
+/*
+ *  Copyright 2013 AT&T
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+*/
 package com.att.aro.util;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ResourceBundle;
 import com.att.aro.main.ResourceBundleManager;
 
@@ -56,4 +77,48 @@ public final class Util {
 		return tmpTime;
 	}
 	
+	/**
+	 * Opens URL to a text file and returns content as String
+	 * 
+	 * @param url
+	 * @return String - content of file at URL
+	 * @throws IOException
+	 */
+	public static String fetchFile(URL url) throws IOException {
+		HttpURLConnection connection = null;
+		StringBuilder contentSb = null;
+		try {
+			connection = (HttpURLConnection) url.openConnection();
+			connection.setRequestProperty("Accept", "*/*");
+
+			if (200 == connection.getResponseCode()) {
+				InputStream response = connection.getInputStream();
+				contentSb = new StringBuilder(
+						(int) (response.available() * 1.1));
+				BufferedReader reader = null;
+				reader = new BufferedReader(new InputStreamReader(response));
+				try {
+					String line;
+					while ((line = reader.readLine()) != null) {
+						contentSb.append(line).append('\n');
+					}
+				} finally {
+					if (reader != null) {
+						reader.close();
+					}
+				}
+			}
+
+		} finally {
+			if (connection != null) {
+				connection.disconnect();
+			}
+		}
+		
+		if (contentSb != null) {
+			return contentSb.toString();
+		} else {
+			return "";
+		}
+	}
 }

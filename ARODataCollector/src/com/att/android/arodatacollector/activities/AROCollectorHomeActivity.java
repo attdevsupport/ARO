@@ -18,11 +18,19 @@ package com.att.android.arodatacollector.activities;
 
 //import org.apache.http.client.ClientProtocolException;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 import com.att.android.arodatacollector.R;
 import com.att.android.arodatacollector.main.AROCollectorService;
+import com.att.android.arodatacollector.main.AROCollectorTraceService;
 import com.att.android.arodatacollector.main.ARODataCollector;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -70,9 +78,10 @@ public class AROCollectorHomeActivity extends Activity {
 	/** Keeps track of the current tick that the timer is on*/
 	private long countUp; 
 	
+	private static Timer delayedStopTimer = null;
 	
 	private Chronometer stopWatch;
-
+	
 	/**
 	 * Initializes data members with a saved instance of an AROCollectorHomeActivity object. 
 	 * Overrides the android.app.Activity#onCreate method. 
@@ -114,6 +123,15 @@ public class AROCollectorHomeActivity extends Activity {
 			}         
 		});         
 		stopWatch.start(); 
+		
+		final Bundle apkCommandLineParameters  = getIntent().getExtras();
+		if (apkCommandLineParameters != null) {
+			String mAROStopRequestFromAnalyzer = apkCommandLineParameters
+					.getString("StopCollector");
+			if(mAROStopRequestFromAnalyzer!=null){
+				stopARODataCollector();
+			}
+		}
 	}
 
 	/**
@@ -128,18 +146,44 @@ public class AROCollectorHomeActivity extends Activity {
 			Log.d(TAG, "onPause() called");
 		}
 		super.onPause();
-		// TODO : Better way to do this
 		if (mApp != null) {
 			mApp.hideProgressDialog();
 		}
+		
+		if (DEBUG){
+			Log.i(TAG, "calling unregisterUsbBroadcastReceiver inside onPause()");
+		}
+		unregisterUsbBroadcastReceiver();
 		finish();
+	}
+
+	private void unregisterUsbBroadcastReceiver() {
+		if (DEBUG){
+			Log.i(TAG, "inside unregisterUsbBroadcastReceiver");
+		}
+		try {
+			if (USBBroadcastReceiver != null) {
+				unregisterReceiver(USBBroadcastReceiver);
+				USBBroadcastReceiver = null;
+				
+				if (DEBUG){
+					Log.i(TAG, "successfully unregistered the USBBroadcastReceiver");
+				}
+			}
+		} catch (Exception e){
+			Log.i(TAG, "Ignoring exception in unregisterUsbBroadcastReceiver", e);
+		}
 	}
 	
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
 		
-		//stopWatch.stop();
+		if (DEBUG){
+			Log.i(TAG, "calling unregisterUsbBroadcastReceiver inside onDestroy()");
+		}
+		
+		unregisterUsbBroadcastReceiver();
 	}
 
 
@@ -167,8 +211,14 @@ public class AROCollectorHomeActivity extends Activity {
 				stopARODataCollector();
 			}
 		});
+		if(mApp.isCollectorLaunchfromAnalyzer()){
+			final boolean dataCollectorStopEnable = mApp.getDataCollectorStopEnable();
+			Log.i(TAG, "dataCollectorStopEnable: " + dataCollectorStopEnable);
+			stopDataCollector.setEnabled(dataCollectorStopEnable);
+		}
 	}
 
+	
 	/**
 	 * Stops the data collector trace by stopping Video Trace and tcpdump from
 	 * shell
@@ -181,14 +231,85 @@ public class AROCollectorHomeActivity extends Activity {
 		hideDataCollector.setEnabled(false);
 		mApp.setARODataCollectorStopFlag(true);
 		if (mApp != null) {
+			if (DEBUG){
+				Log.i(TAG, "calling unregisterUsbBroadcastReceiver inside stopARODataCollector");
+			}
+			unregisterUsbBroadcastReceiver();
 			mApp.showProgressDialog(this);
 		}
-		if (AROCollectorService.getServiceObj() != null) {
+		if (AROCollectorService.getServiceObj() != null && AROCollectorTraceService.getServiceObj() != null) {
 			// Sends the STOP Command to tcpdump socket and Stop the Video
 			// capture on device
 			AROCollectorService.getServiceObj().requestDataCollectorStop();
 			mApp.cancleAROAlertNotification();
 		}
+		else {
+			Log.w(TAG, "inside AROCollectorHomeActivity.stopARODataCollector, but AROCollectorService/AROCollectorTraceService is null. Timestamp: " + System.currentTimeMillis());
+			//this typically happens when the service had been killed by Android and has not been restarted.
+			//so here, we will request the service start and schedule a task to check  
+			
+			if (AROCollectorService.getServiceObj() == null){
+				startService(new Intent(getApplicationContext(), AROCollectorService.class));
+			}
+			
+			if (AROCollectorTraceService.getServiceObj() == null){
+				startService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
+			}
+			
+			delayedStopTimer = new Timer();
+			
+			TimerTask stopTask = new TimerTask(){
+				//schedule a task to request the data collector stop in 5 sec
+				public void run(){
+					Log.i(TAG, "timer's up, will try to stop tcpdump. Timestamp: " + System.currentTimeMillis());
+					if (AROCollectorService.getServiceObj() != null && AROCollectorTraceService.getServiceObj() != null) {
+						Log.i(TAG, "AROCollectorService and AROCollectorTraceService are running, will invoke requestDataCollectorStop(). Timestamp: " + System.currentTimeMillis());
+						// Sends the STOP Command to tcpdump socket and Stop the Video
+						// capture on device
+						AROCollectorService.getServiceObj().requestDataCollectorStop();
+						mApp.cancleAROAlertNotification();
+						delayedStopTimer.cancel();
+					}
+					else {
+						Log.i(TAG, "AROCollectorService/AROCollectorTraceService is still not restarted yet. Will try again in 3secs. Timestamp: " + System.currentTimeMillis());
+					}
+				}
+
+			};
+			
+			Log.i(TAG, "scheduling a timer task to keep checking for when the AROCollectorService/AROCollectorTraceService will be started by Android");
+			delayedStopTimer.schedule(stopTask, 5000, 3000);
+		}
 
 	}
+	
+	/**
+	 * USBBroadcastReceiver
+	 */
+	private BroadcastReceiver USBBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+        	boolean stopEnabled = intent.getBooleanExtra(AROCollectorTraceService.USB_ACTION_EXTRA_KEY, false);
+        	if(DEBUG){
+        	Log.i(TAG, "received usbBroadcast, collectorStopEnable: " + stopEnabled);
+        	}
+			stopDataCollector.setEnabled(stopEnabled);
+        }
+    };
+	
+	@Override
+	public void onResume() {
+		super.onResume();		
+		
+		try {
+			
+			registerReceiver(USBBroadcastReceiver, new IntentFilter(AROCollectorTraceService.USB_BROADCAST_ACTION));
+			if (DEBUG){
+				Log.i(TAG, "registered USBBroadcastReceiver in onResume()");
+			}
+		} catch (Exception e){
+			Log.w(TAG, "Exception caught in onResume.registerReceiver(). Will ignore", e);
+		}
+	}
+ 
 }

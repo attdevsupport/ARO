@@ -26,6 +26,7 @@ import java.util.ResourceBundle;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.JTextPane;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
@@ -57,8 +58,6 @@ public class DetailedResultRowPanel {
 	private static final String MANUAL = rb.getString("bestPractice.tooltip.manual");
 
 	private static final Font textFont = new Font("TextFont", Font.PLAIN, 12);
-	// private Font titleFont = new Font("TITLEFont", Font.BOLD, 18);
-	// private Font pageFont = new Font("TITLEFont", Font.BOLD, 14);
 	private static final Font boldTextFont = new Font("BoldTextFont", Font.BOLD, 12);
 	
 	private static final int TEXT_WIDTH = 550;
@@ -68,9 +67,10 @@ public class DetailedResultRowPanel {
 	private JLabel testNameLabel;
 	private JLabel aboutLabel;
 	private JTextPane aboutText;
-	// private HyperlinkLabel learnMoreLabel;
 	private JLabel resultLabel;
 	private JTextPane resultDetailsLabel;
+	private JPanel testResultPanel;
+
 	private BestPracticeDisplay bp;
 	private TraceData.Analysis analysisData;
 	private ApplicationResourceOptimizer parent;
@@ -201,6 +201,15 @@ public class DetailedResultRowPanel {
 	}
 
 	/**
+	 * Returns test result panel.
+	 * 
+	 * @return Results
+	 */
+	public JPanel getTestResultPanel() {
+		return testResultPanel;
+	}
+	
+	/**
 	 * Creates a Best Practices row in a particular category i.e. Caching ,
 	 * Connections or others Each row contains 3 icons , Test , About and
 	 * Results details for the Best Practice.
@@ -239,6 +248,9 @@ public class DetailedResultRowPanel {
 			}
 
 		});
+
+		this.testResultPanel = bp.getTestResults();
+	
 	}
 
 	/**
