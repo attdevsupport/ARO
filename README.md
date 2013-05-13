@@ -76,7 +76,6 @@ ARO Compilation and Build Guide - Describes how to compile and build the ARO com
 ARO Data Collector API Reference - To read this reference, open the file **index.html** in the folder ARODataCollector\docs\api  
 ARO Data Analyzer API Reference - To read this reference, open the file **index.html** in the folder ARODataAnalyzer\docs\api
 Adding Custom Best Practices in Open Source ARO - Describes how to add custom Best Practices to the ARO Data Analyzer.  
-Using the ARO Data Collector in an Android Application - Describes how to add the ARO Data Collector to an Android application.  
 
 
 ##Contents:
