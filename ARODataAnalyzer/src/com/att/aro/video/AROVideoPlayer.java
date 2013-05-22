@@ -17,20 +17,21 @@
 package com.att.aro.video;
 
 import java.awt.BorderLayout;
-import java.io.FilenameFilter;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FilenameFilter;
+import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ResourceBundle;
@@ -45,17 +46,18 @@ import javax.media.ControllerListener;
 import javax.media.Manager;
 import javax.media.MediaLocator;
 import javax.media.MediaTimeSetEvent;
-import javax.media.StopEvent;
 import javax.media.NoPlayerException;
 import javax.media.Player;
 import javax.media.StartEvent;
+import javax.media.StopEvent;
 import javax.media.Time;
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JButton;
 import javax.swing.SwingUtilities;
+
 import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.images.Images;
 import com.att.aro.main.AROAdvancedTabb;
@@ -77,7 +79,7 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 	private static final String operatingSystem = System.getProperty("os.name");
 	private static Logger logger = Logger.getLogger(AROVideoPlayer.class
 			.getName());
-	private static final String outVideoTimeFileName = "video_time";
+	private static final String outVideoTimeFileName = "exVideo_time";
 	private BufferedWriter mTraceVideoTimeStampWriter;
 	private OutputStream mTraceVideoTimeStampFile;
 	private Component visualComponent;
@@ -96,6 +98,7 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 	private boolean showInfoMsg = true;
 	private int controllerState;
 	private boolean showPauseNotification;
+	boolean isVideoPlayerStopped = false;
 	public enum FileTypeEnum {
 		QT, WMV, WMA, MPEG, _3GP, ASF, AVI, ASf, DV, MKV, MPG, RMVB, VOB, MOV, MP4;
 		
@@ -230,41 +233,91 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 	public void actionPerformed(ActionEvent e){
 		   
 		double externalVideoStartTime;
-		if (videoPlayer != null) {
-			if (videoStarted){
-				if (pauseVideoTime == null){
-					MessageDialogFactory.showMessageDialog(
-		    		AROVideoPlayer.this,
-		    		"Pause the video before syncing.", "Error",
-		    		JOptionPane.ERROR_MESSAGE);
-		    		return;
-		    	}
-		   }else{
-		   	   //Ask the user to start the video and pause it.
-		  	   if (pauseVideoTime == null){
-		  		   MessageDialogFactory.showMessageDialog(
-		    	   AROVideoPlayer.this,
-		    	   "Start the video and Pause when traces start.", "Error",
-		    	   JOptionPane.ERROR_MESSAGE);
-		  		   return;
-		  	   }
-		    }
-		    syncVideoClicked = true;
-		    showPauseNotification=false;
-			externalVideoStartTime = (pauseVideoTime.getSeconds() + ((double) traceData.getTraceDateTime().getTime() / 1000));
-			aroAdvancedTab.setTimeLineLinkedComponents(0.0);
-			this.videoOffset = pauseVideoTime.getSeconds();
-			setMediaDisplayTime(0.0);
-			//Write video_time file.
-			try {
-				writeVideoTraceTime(Double.toString(externalVideoStartTime));
-			    closeVideoTraceTimeFile();
-				} catch (IOException ex) {
-					logger.log(Level.WARNING, "IOException in writing External video start time - " + ex);
-				}
-			 jButton.setVisible(false);
+		File file;
+		/*
+		 * Check if exvideo_time file exist
+		 * if yes, ask user if he wants to re-sync the video
+		 * if yes, 
+		 * 			rollback/reset the videoOffset,
+		 * 			delete the existing exvideo_time file and recreate it with new sync time,
+		 * 			stop the video player,
+		 * 			reset the blue line and the video slider .
+		 * */
+		
+		if(traceData.isPcapFile()){
+			 file = new File(traceData.getTraceDir().getParentFile(), outVideoTimeFileName);
+		}else{
+			 file = new File(traceData.getTraceDir(), outVideoTimeFileName);
 		}
-		 
+		if (file.exists()){
+			if(MessageDialogFactory.showConfirmDialog(
+		    		AROVideoPlayer.this,
+		    		"Video is already Synched.Do you want to Re-Sync again?", "Information",
+		    		JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION){
+				// delete the exVideo_time file.
+				try {
+					file.delete();
+				}catch(Exception ex){
+					logger.log(Level.WARNING, "Exception in deleting exVideo_time file. " + ex);
+				}
+				showInfoMsg = true;
+				double videoStartTime =traceData.getPcapTime0();
+				this.videoOffset = videoStartTime > 0.0 ? videoStartTime
+						- ((double) traceData.getTraceDateTime().getTime() / 1000)
+						: 0.0;
+				traceData.setExVideoTimeFileStatus(true);
+				
+				videoPlayer.stop();
+				isVideoPlayerStopped = true;
+				setMediaDisplayTime(0.0);
+				aroAdvancedTab.setTimeLineLinkedComponents(0.0);
+				pauseVideoTime = null;
+				videoStarted=false;
+				
+			}
+		}else{
+			if (videoPlayer != null) {
+				if (videoStarted){
+					
+					if(isVideoPlayerStopped){
+						pauseVideoTime = null;
+						isVideoPlayerStopped = false;
+					}
+					if (pauseVideoTime == null){
+						MessageDialogFactory.showMessageDialog(
+								AROVideoPlayer.this,
+								"Pause the video before syncing.", "Error",
+								JOptionPane.ERROR_MESSAGE);
+						return;
+			    	}
+			   }else{
+			   	   //Ask the user to start the video and pause it.
+			  	   if (pauseVideoTime == null){
+			  		   MessageDialogFactory.showMessageDialog(
+			  				   AROVideoPlayer.this,
+			  				   "Start the video and Pause where the traces should start Syncing.", "Error",
+			  				   JOptionPane.ERROR_MESSAGE);
+			  		   return;
+			  	   }
+			    }
+					
+				//File does not exist,first time.
+				syncVideoClicked = true;
+				showPauseNotification=false;
+				externalVideoStartTime = (pauseVideoTime.getSeconds() + ((double) traceData.getTraceDateTime().getTime() / 1000));
+				aroAdvancedTab.setTimeLineLinkedComponents(0.0);
+				this.videoOffset = pauseVideoTime.getSeconds();
+				setMediaDisplayTime(0.0);
+				
+				//Write video_time file.
+				try {
+					writeVideoTraceTime(Double.toString(externalVideoStartTime));
+				    closeVideoTraceTimeFile();
+					} catch (IOException ex) {
+						logger.log(Level.WARNING, "IOException in writing External video start time - " + ex);
+					}
+			}
+		}
 	}
 
 	/**
@@ -371,6 +424,7 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 						    		AROVideoPlayer.this,
 						    		"Pause the video to sync.", "Error",
 						    		JOptionPane.ERROR_MESSAGE);
+							isVideoPlayerStopped = false;
 						    		return;
 						}else{
 							pauseVideoTime = videoPlayer.getMediaTime();
@@ -382,7 +436,7 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 		setMediaDisplayTime(0.0);
 
 		setVisible(true);
-		if (traceData.getExVideoTimeFileStatus()) {
+		if(!traceData.isNativeVideo()){
 			jButton.setVisible(true);
 		}
 		videoStarted = false;
@@ -657,8 +711,6 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 		} else {
 			return false;
 		}
-		// return true;
-
 	}
 
 	/**

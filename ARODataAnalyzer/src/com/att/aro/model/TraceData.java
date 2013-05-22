@@ -1394,6 +1394,11 @@ public class TraceData implements Serializable {
 	 * The name of the video time file
 	 */
 	public static final String VIDEO_TIME_FILE = "video_time";
+	
+	/**
+	 * The name of the external video time file
+	 */
+	public static final String EXVIDEO_TIME_FILE = "exVideo_time";
 
 	/**
 	 * The name of the video MOV file
@@ -1466,7 +1471,6 @@ public class TraceData implements Serializable {
 	private static final int LTE = 13;
 
 	private int screenRotationCounter = 0;
-
 	/**
 	 * Score detection
 	 */
@@ -1590,6 +1594,7 @@ public class TraceData implements Serializable {
 	private boolean exVideoTimeFileNotFound;
 	private boolean exVideoFound;
 	private boolean nativeVideo;
+	private boolean pCapFile;
 
 	// All packets included in the trace (not filtered)
 	private File pcapFile;
@@ -2239,12 +2244,14 @@ public class TraceData implements Serializable {
 			File exVideoDisplayFile = new File(traceDir.getParentFile(), exVideoDisplayFileName);
 			String nativeVideoFileOnDevice = "video.mp4";
 			String nativeVideoDisplayFile = "video.mov";
+			pCapFile = true;
 			if (exVideoDisplayFile.exists() || isExternalVideoSourceFilePresent(nativeVideoFileOnDevice,nativeVideoDisplayFile,true)){
 			
 				 exVideoFound = true;
 				 exVideoTimeFileNotFound = false;
+				 
 				 // get the video_time file.
-				 File file = new File(traceDir.getParentFile(), VIDEO_TIME_FILE);
+				 File file = new File(traceDir.getParentFile(), EXVIDEO_TIME_FILE);
 				 if (!file.exists()) {
 						exVideoTimeFileNotFound =true;
 						exVideoFound = false;
@@ -2289,7 +2296,12 @@ public class TraceData implements Serializable {
 		}
 		
 	}
-
+	/**
+	 * Function to know if Pcap file is loaded.
+	 */
+	public boolean isPcapFile(){
+		return pCapFile;
+	}
 	/**
 	 * Associate app IDs with packets 
 	 */
@@ -3284,9 +3296,9 @@ public class TraceData implements Serializable {
 			 exVideoFound = true;
 			 exVideoTimeFileNotFound = false;
 			 // get the video_time file.
-			 File file = new File(traceDir, VIDEO_TIME_FILE);
+			 File file = new File(traceDir, EXVIDEO_TIME_FILE);
 			 if (!file.exists()) {
-					this.missingFiles.add(VIDEO_TIME_FILE);
+					this.missingFiles.add(EXVIDEO_TIME_FILE);
 					exVideoTimeFileNotFound =true;
 					exVideoFound = false;
 			}else {
@@ -3383,6 +3395,13 @@ public class TraceData implements Serializable {
 			videoStartTime = pcapTime0;
 		}
 	}
+
+	/**
+	 * Function to provide PcapTime0
+	 */
+	public double getPcapTime0() {
+		return pcapTime0;
+	}
 	
 	/**
 	 * Checks for external video source.
@@ -3472,6 +3491,17 @@ public class TraceData implements Serializable {
 	public boolean getExVideoTimeFileStatus() {
 		return exVideoTimeFileNotFound;
 	}
+	/**
+	 * set the status of exvideo_time file is present or not in the trace directory.
+	 * 
+	 * @param 
+	 * @return status, true if present , false if not.
+	 */
+
+	public void setExVideoTimeFileStatus(boolean status) {
+		 exVideoTimeFileNotFound = status;
+	}
+
 
 	/**
 	 * Returns the presence of external video in the trace directory

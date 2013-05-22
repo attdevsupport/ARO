@@ -22,12 +22,16 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.att.aro.main.ResourceBundleManager;
 
 public final class Util {
 	
 	private Util() {}
 	
+	private static final Logger logger = Logger.getLogger(Util.class.getName());
 	public static final ResourceBundle RB = ResourceBundleManager.getDefaultBundle();
 	private static final double TIME_CORRECTION = 1.0E9;
 
@@ -85,6 +89,9 @@ public final class Util {
 	 * @throws IOException
 	 */
 	public static String fetchFile(URL url) throws IOException {
+		if (logger.isLoggable(Level.FINER)){
+			logger.finer("Connecting to - " + url.toExternalForm());
+		}
 		HttpURLConnection connection = null;
 		StringBuilder contentSb = null;
 		try {
@@ -107,10 +114,17 @@ public final class Util {
 						reader.close();
 					}
 				}
+				
+				if (logger.isLoggable(Level.FINER)){
+					logger.finer("Connection succeeded");
+				}
 			}
 
 		} finally {
 			if (connection != null) {
+				if (logger.isLoggable(Level.FINER)){
+					logger.finer("Disconnecting");
+				}
 				connection.disconnect();
 			}
 		}

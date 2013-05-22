@@ -56,6 +56,9 @@ import android.app.PendingIntent;
 
 public class ARODataCollector extends Application {
 
+	private static final String USER_INITIAL_SCREEN_TIMEOUT = "userInitialScreenTimeout";
+	public static final int USER_SCREEN_TIMEOUT_UNASSIGNED = -10;
+
 	/** Log TAG string for ARO-Data Collector application class */
 	private static final String TAG = "ARODataCollector";
 
@@ -774,6 +777,19 @@ public class ARODataCollector extends Application {
 		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
 		final boolean isDataCollectorStartInProgress = prefs.getBoolean("isDataCollectorStartInProgress", false);
 		return isDataCollectorStartInProgress;
+	}
+	
+	public void setUserInitialScreenTimeout(int timeoutVal){
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putInt(USER_INITIAL_SCREEN_TIMEOUT, timeoutVal);
+		editor.commit();
+	}
+	
+	public int getUserInitialScreenTimeout(){
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		final int screenTimeoutVal = prefs.getInt(USER_INITIAL_SCREEN_TIMEOUT, -1);
+		return screenTimeoutVal;
 	}
 
 	/**

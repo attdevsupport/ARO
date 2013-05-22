@@ -32,8 +32,10 @@ import com.att.android.arodatacollector.utils.AROCollectorUtils;
 import com.att.android.arodatacollector.R;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
@@ -126,6 +128,14 @@ public class AROCollectorMainActivity extends Activity {
 		validateAROAnalyzerConnectedLaunch();
 		initializeMainScreenControls();
 		
+		registerAnalyzerTimeoutReceiver();
+	}
+
+	private void registerAnalyzerTimeoutReceiver() {
+		if (DEBUG){
+			Log.i(TAG, "registering analyzerTimeOutReceiver");
+		}
+		registerReceiver(analyzerTimeoutReceiver, new IntentFilter(AROCollectorUtils.ANALYZER_TIMEOUT_SHUTDOWN_INTENT));
 	}
 
 	/**
@@ -476,6 +486,7 @@ public class AROCollectorMainActivity extends Activity {
 	public void onDestroy() {
 
 		super.onDestroy();
+		unregisterTimeoutReceiver();
 	}
 
 	/**
@@ -624,5 +635,33 @@ public class AROCollectorMainActivity extends Activity {
 
 		}
 	}
+	
+	private BroadcastReceiver analyzerTimeoutReceiver = new BroadcastReceiver() {
+	    @Override
+	    public void onReceive(Context ctx, Intent intent) {
+	    	if(DEBUG){
+	        	Log.i(TAG, "received analyzerTimeoutIntent at " + System.currentTimeMillis());
+	        }
+	        finish();
+	    }
+	};
 
+
+	private void unregisterTimeoutReceiver() {
+		if (DEBUG){
+			Log.i(TAG, "inside unregisterTimeoutReceiver");
+		}
+		try {
+			if (analyzerTimeoutReceiver != null) {
+				unregisterReceiver(analyzerTimeoutReceiver);
+				analyzerTimeoutReceiver = null;
+				
+				if (DEBUG){
+					Log.i(TAG, "successfully unregistered analyzerTimeoutReceiver");
+				}
+			}
+		} catch (Exception e){
+			Log.i(TAG, "Ignoring exception in unregisterTimeoutReceiver", e);
+		}
+	}
 }

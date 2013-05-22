@@ -70,7 +70,7 @@ public class Launch {
 
 				// Initialize application window
 				AROUIManager.init();
-				final ApplicationResourceOptimizer mainClass = new ApplicationResourceOptimizer();
+				final ApplicationResourceOptimizer mainClass = new ApplicationResourceOptimizer(Launch.JarSignersHardLinker.isRunningOnWebstart());
 				mainClass.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 				mainClass.setVisible(true);
 				Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {

@@ -22,8 +22,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 import com.att.android.arodatacollector.R;
+import com.att.android.arodatacollector.utils.AROCollectorUtils;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -37,6 +42,17 @@ import android.widget.Button;
  */
 public class AROCollectorLegalTermsActivity extends Activity {
 
+	/**
+	 * The boolean value to enable logs based on production build or debug build
+	 */
+	private static boolean mIsProduction = false;
+
+	/**
+	 * A boolean value that indicates whether or not to enable logging for this
+	 * class in a debug build of the ARO Data Collector.
+	 */
+	public static boolean DEBUG = !mIsProduction;
+	
 	/** Android log TAG string for ARO-Data Collector Legal Screen */
 	private static final String TAG = "ARO.LegalTermsActivity";
 
@@ -57,6 +73,8 @@ public class AROCollectorLegalTermsActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.aro_legal_terms);
 		initializeLegalPageControls();
+		
+		registerAnalyzerTimeoutReceiver();
 	}
 
 	/**
@@ -116,4 +134,46 @@ public class AROCollectorLegalTermsActivity extends Activity {
 		});
 	}
 
+	
+	private BroadcastReceiver analyzerTimeoutReceiver = new BroadcastReceiver() {
+	    @Override
+	    public void onReceive(Context ctx, Intent intent) {
+	    	if(DEBUG){
+	        	Log.i(TAG, "received analyzerTimeoutIntent at " + System.currentTimeMillis());
+	        }
+	        finish();
+	    }
+	};
+	
+	@Override
+	public void onDestroy(){
+		super.onDestroy();
+		unregisterTimeoutReceiver();
+	}
+	
+	private void unregisterTimeoutReceiver() {
+		if (DEBUG){
+			Log.i(TAG, "inside unregisterTimeoutReceiver");
+		}
+		try {
+			if (analyzerTimeoutReceiver != null) {
+				unregisterReceiver(analyzerTimeoutReceiver);
+				analyzerTimeoutReceiver = null;
+				
+				if (DEBUG){
+					Log.i(TAG, "successfully unregistered analyzerTimeoutReceiver");
+				}
+			}
+		} catch (Exception e){
+			Log.i(TAG, "Ignoring exception in unregisterTimeoutReceiver", e);
+		}
+	}
+	
+	private void registerAnalyzerTimeoutReceiver() {
+		if (DEBUG){
+			Log.i(TAG, "registering analyzerTimeOutReceiver");
+		}
+		registerReceiver(analyzerTimeoutReceiver, new IntentFilter(AROCollectorUtils.ANALYZER_TIMEOUT_SHUTDOWN_INTENT));
+	}
+	
 }

@@ -182,11 +182,26 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 	/**
 	 * Initializes a new instance of the ApplicationResourceOptimizer class.
+	 * 
 	 */
 	public ApplicationResourceOptimizer() {
 		super();
 		ApplicationResourceOptimizer.aroFrame = this;
 		initialize();
+	}
+	
+	/**
+	 * Initializes a new instance of the ApplicationResourceOptimizer class.
+	 * 
+	 * @param isWebStart
+	 */
+	public ApplicationResourceOptimizer(boolean isWebStart) {
+		this();
+		
+		if (isWebStart) {
+			MessageDialogFactory.showMessageDialog(mAROAnalyzer,
+					rb.getString("aro.jnlpAlert"));
+		}
 	}
 	
 	/**
@@ -1432,9 +1447,6 @@ public class ApplicationResourceOptimizer extends JFrame {
 							openTrace(selected);
 							//auto generated datadump
 							new DataDump(selected, getProfile(), true, false);
-							
-							//touch usage
-							updateUsage();
 						} catch (IOException e1) {
 							logger.log(Level.SEVERE, "Failed loading trace", e1);
 							MessageDialogFactory.showInvalidTraceDialog(fc
@@ -1475,10 +1487,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 					
 					if (fc.showOpenDialog(ApplicationResourceOptimizer.this) == JFileChooser.APPROVE_OPTION) {
 						try {
-							openPcap(fc.getSelectedFile());
-							
-							//touch usage
-							updateUsage();
+							openPcap(fc.getSelectedFile());							
 						} catch (IOException e1) {
 							logger.log(Level.SEVERE, "Failed loading trace", e1);
 							MessageDialogFactory.showUnexpectedExceptionDialog(
@@ -1764,6 +1773,19 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private void runAnalysisFirstTime() throws IOException {
 		FilterProcessesDialog.initializeFilteredProcessSelection();
 		refresh(this.profile, null, null);
+
+		new SwingWorker() {
+			@Override
+			protected Boolean doInBackground()
+					throws IOException {
+				//touch usage
+				 return updateUsage();
+			}
+			
+			@Override
+			protected void done() {};
+		}.execute();
+		
 	}
 
 	/**
@@ -2095,7 +2117,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 	/**
 	 * Touch usage for analytics
 	 */
-	private void updateUsage() {
+	private Boolean updateUsage() {
+		Boolean result = Boolean.FALSE;
 		try {
 			ResourceBundle buildBundle = ResourceBundleManager.getBuildBundle();
 			boolean useOpenUrl = Boolean.parseBoolean(rb.getString("aro.open"));
@@ -2111,9 +2134,13 @@ public class ApplicationResourceOptimizer extends JFrame {
 				fullUrl.append("&a=").append(System.getProperty("os.arch"));
 				//logger.log(Level.INFO, "[" + fullUrl.toString() + "]");
 				Util.fetchFile(new URL(fullUrl.toString()));
+				
+				result = Boolean.TRUE;
 			}
 		} catch (Exception e) {
 			//do nothing, catch any exception to allow app to continue
 		}
+		
+		return result;
 	}
 }

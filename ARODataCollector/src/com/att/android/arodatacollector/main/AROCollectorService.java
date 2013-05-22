@@ -110,7 +110,7 @@ public class AROCollectorService extends Service {
 	private static ARODataCollector mApp;
 
 	/** The Screen Timeout value in milliseconds **/
-	private int mScreenTimeout;
+//	private int mScreenTimeout;
 
 	/** ARO Data Collector utilities class object */
 	private AROCollectorUtils mAroUtils;
@@ -152,7 +152,7 @@ public class AROCollectorService extends Service {
 	public static AROCollectorService getServiceObj() {
 		return mDataCollectorService;
 	}
-
+	
 	/**
 	 * s processing when an AROCollectorService object is created.
 	 * Overrides the android.app.Service#onCreate method.
@@ -187,18 +187,57 @@ public class AROCollectorService extends Service {
 			Log.d(TAG, "flurry-TelephonyManager deviceId: " + mAROtelManager.getDeviceId());
 		}
 
-		try {
-			// Record the screen timeout
-			getScreenTimeOut();
-			// Disable screen timeout
-			setScreenTimeOut(-1);
-		} catch (SettingNotFoundException e) {
-			Log.e(TAG, "exception in getting device settings. Failed to get screen timeout", e);
-		}
+		disableScreenTimeout();
+		
 		TRACE_FOLDERNAME = mApp.getDumpTraceFolderName();
 		mVideoRecording = mApp.getCollectVideoOption();
 		startDataCollectorVideoCapture();
 		statDataCollectortcpdumpCapture();
+	}
+
+	private static final int THIRTY_MIN_IN_MILLIS = 30 * 60 * 1000;
+	private void disableScreenTimeout() {
+		try {
+			//Record the screen timeout
+			//TODO: make sure this only gets called the first time the trace starts.
+			//Sometimes android stops and restarts background services, so if it's called
+			//multiple times, the original user timeout value will be overwritten.
+			//Also need to handle the case where the trace fail to stop properly
+			int mScreenTimeout = getScreenTimeOut();
+			mApp.setUserInitialScreenTimeout(mScreenTimeout);
+
+			Log.i(TAG, "in onCreate(), saving user's mScreenTimeout(ms): " + mScreenTimeout
+					+ " at timestamp: " + System.currentTimeMillis());
+			// Disable screen timeout
+
+			Log.i(TAG, "disabling screen timeout at timestamp: " + System.currentTimeMillis());
+			
+			String deviceName = getDeviceName();
+			Log.i(TAG, "deviceName: " + deviceName);
+			if (deviceName.contains("nexus") && deviceName.contains("4")){
+				//nexus 4
+				setScreenTimeOut(THIRTY_MIN_IN_MILLIS);
+				Log.i(TAG, "screen timeout set to 30 min for nexus 4");
+			}
+			else {
+				setScreenTimeOut(-1);
+				Log.i(TAG, "screen timeout disabled at timestamp: " + System.currentTimeMillis());
+			}
+
+		} catch (Exception e) {
+			Log.e(TAG, "exception in getting device settings. Failed to get screen timeout", e);
+		}
+	}
+
+	
+	public String getDeviceName() {
+		String manufacturer = Build.MANUFACTURER.toLowerCase();
+		String model = Build.MODEL.toLowerCase();
+		if (model.startsWith(manufacturer)) {
+			return model;
+		} else {
+			return manufacturer + " " + model;
+		}
 	}
 
 	/**
@@ -218,7 +257,11 @@ public class AROCollectorService extends Service {
 		
 		super.onDestroy();
 		// Sets the screen timeout to previous value
-		setScreenTimeOut(mScreenTimeout);
+		int screenTimeout = mApp.getUserInitialScreenTimeout();
+		Log.i(TAG, "restoring screen timeout value to screenTimeout(ms)=" + screenTimeout + " at timestamp: " + System.currentTimeMillis());
+		setScreenTimeOut(screenTimeout);
+		
+		Log.i(TAG, "screen timeout restored successfully at timestamp: " + System.currentTimeMillis());
 		mDataCollectorService = null;
 		mApp.cancleAROAlertNotification();
 	}
@@ -610,7 +653,12 @@ public class AROCollectorService extends Service {
 	 *            value to be set -1 infinite
 	 */
 	private void setScreenTimeOut(int val) {
-		Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, val);
+		try {
+			Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, val);
+		}
+		catch (Throwable t){
+			Log.i(TAG, "caught throwable in setScreenTimeOut", t);
+		}
 	}
 
 	/**
@@ -618,8 +666,8 @@ public class AROCollectorService extends Service {
 	 * 
 	 * @throws SettingNotFoundException
 	 */
-	private void getScreenTimeOut() throws SettingNotFoundException {
-		mScreenTimeout = Settings.System.getInt(getContentResolver(),
+	private int getScreenTimeOut() throws SettingNotFoundException {
+		return Settings.System.getInt(getContentResolver(),
 				Settings.System.SCREEN_OFF_TIMEOUT);
 
 	}
