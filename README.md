@@ -60,16 +60,25 @@ Contact Us:  http://developer.att.com/developer/contact_us.jsp
 
 
 **Version:**  
-ARO Data Collector 2.2.0  
-ARO Data Analyzer  2.2.0
+ARO Data Collector 2.2.1  
+ARO Data Analyzer  2.2.1
 
 **New Features:**  
-In this release, AT&T ARO has enhanced the analysis and display of periodic bursts, added a new Best Practice test for text file compression, displays a progress bar when a trace file is being parsed, displays the OS version and device name for Android devices, and automatically exports the data from each trace into a .csv file.  
+In this release, ARO has added the ability to record video via USB. For Android devices on which the ARO Data Collector can be installed directly, trace video can now be recorded via USB using commands on the ARO Data Analyzer.  
 
 **Known Issues:** 
-+  Some devices have hardware limitations that prevent the ARO Data Collector from recording video but do not prevent the collection of trace data.  
 +  The ARO Data Analyzer may not display complete user input/screen touch data for traces collected on some devices.  
 +  On some devices ARO is unable to turn off sleep mode, so the device must be manually taken out of sleep mode during the trace.
++  To sync to an externally captured video in the  ARO Data Analyzer, you must first delete the video_time file from the trace folder before adding the external video to the folder.  
++  An externally captured video must always be longer than the duration of the trace it is being synced with. Trace duration can be found in the Test Statistics section of the Best Practices tab in the ARO Data Analyzer.  
++  Due to a variety of factors, including trace size, platform dependence, and interference from solar flares, a delay of plus/minus 5 seconds when syncing an external video to a trace file is expected.  
++  When using the ARO Data Analyzer USB video capture feature on HTC devices that use Android 4.0.X (ICS), traces that are longer than 5 minutes can cause the device to freeze such that it  will need to be restarted.  
++  The ARO Data Collector or ARO Data Analyzer may become out of sync during a trace using USB video capture. If this occurs, disconnect the USB cable, click the "Stop Collector" button, and restart the trace collection. 
++  When a trace using USB video capture is started on the ARO Data Analyzer, the trace must be started on the device within 30 seconds or the trace will terminate and a message stating "Timeout in starting the collector trace" will appear in the ARO Data Analyzer. 
++  When collecting multiple traces using USB video during the same ARO Data Collector session, dismiss the "Trace Completed" screen at the end of each trace by using the "Back" button on your device, this will ensure that it is not displayed in the background during the next trace.  
++  When capturing video that will be synced with a trace in the ARO Data Analyzer, we recommend that you do not use HD video because the high frame rate of HD results in an extremely large video file when it is converted by ARO. The converted file will be so large that it will not load, or will not load in a reasonable time. 
++  When the ARO Data Analyzer opens a directory it automatically creates a .csv (data dump) file in that directory, even if that directory does not contain trace files. Please note that if the directory does not contain trace files, the Analyzer will not display an error message and will not begin analysis. If a directory that does not contain trace files is opened in error, we recommend that you delete the .csv dump file that is created and open a valid trace directory.  
+
 
 ##Documentation:
 ARO Compilation and Build Guide - Describes how to compile and build the ARO components.  
@@ -99,13 +108,14 @@ The ARO Open Source code package contains the following:
 **ARODataCollector** - Main folder for the ARO Data Analyzer open source code.  
 +  **docs** - API reference for the ARO Data Collector (Open docs\api\index.html)  
 +  **external** - Source code for external dependencies: tcpdump and libpcap.  
++  **libs** - .jar file for FlurryAgent. 
 +  **res** - Resources for an Android project.  
 +  **src** - Source code for the ARO Data Collector.  
 +  *AndroidManifest.xml* - Manifest file for an Android project.
 
 
 **ARO Compilation and Build Guide.pdf** - Describes how to compile and build the ARO components.  
-**ARODataCollector_OpenSource_v2.2.0.9.apk** - Compiled open source version of the ARO Data Collector.  
+**ARODataCollector_OpenSource_v2.2.1.1.apk** - Compiled open source version of the ARO Data Collector.  
 **Adding Custom Best Practices in Open Source ARO.pdf** - Describes how to add custom Best Practices to the ARO Data Analyzer.  
 **README.md** - This file.  
 
