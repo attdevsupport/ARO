@@ -24,6 +24,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -43,9 +45,8 @@ import com.att.aro.model.HttpRequestResponseInfo;
  */
 public class ContentViewFrame extends JFrame {
 	private static final long serialVersionUID = 1L;
-
-	private static final ResourceBundle rb = ResourceBundleManager
-			.getDefaultBundle();
+	private static final Logger LOGGER = Logger.getLogger(ContentViewFrame.class.getName());
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
 	private HttpRequestResponseInfo rrInfo;
 	private JScrollPane contentComponent;

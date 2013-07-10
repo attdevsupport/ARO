@@ -68,6 +68,11 @@ public enum Images {
 	 */
 	BP_FAIL_DARK("bpFailDark"),
 	/**
+	 * The Warning image key. The associated image is used to identify when a Best
+	 * Practices test has failed.
+	 */
+	BP_WARNING_DARK("bpWarningDark"),
+	/**
 	 * The Manual image key. The associated image is used to identify when a
 	 * Best Practices test has been run manually.
 	 */
@@ -105,6 +110,10 @@ public enum Images {
 	 * The Red header image key indicating that a test has failed.
 	 */
 	TEST_FAIL_HEADER("redHeader"),
+	/**
+	 * The warning header image key.
+	 */
+	TEST_WARNING_HEADER("warningHeader"),
 	/**
 	 * The Background image key.
 	 */

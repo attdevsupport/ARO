@@ -29,6 +29,16 @@ import java.util.ResourceBundle;
 import javax.swing.JPanel;
 import javax.swing.event.HyperlinkEvent;
 
+import com.att.aro.bp.asynccheck.AsyncCheckResultPanel;
+import com.att.aro.bp.asynccheck.BPAsyncCheckInScript;
+import com.att.aro.bp.fileorder.FileOrderBestPractice;
+import com.att.aro.bp.fileorder.FileOrderResultPanel;
+import com.att.aro.bp.imageSize.ImageSizeBestPractice;
+import com.att.aro.bp.imageSize.ImageSizeResultPanel;
+import com.att.aro.bp.minification.MinificationBestPractice;
+import com.att.aro.bp.minification.MinificationResultPanel;
+import com.att.aro.bp.spriteimage.SpriteImageBestPractice;
+import com.att.aro.bp.spriteimage.SpriteImageResultPanel;
 import com.att.aro.main.ApplicationResourceOptimizer;
 import com.att.aro.main.ChartPlotOptions;
 import com.att.aro.main.ResourceBundleManager;
@@ -53,9 +63,9 @@ public class BestPracticeDisplayFactory {
 	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 
 	private BestPracticeDisplayGroup fileDownloadSection;
-	private BestPracticeDisplayGroup cachingSection;
 	private BestPracticeDisplayGroup connectionsSection;
 	private BestPracticeDisplayGroup otherSection;
+	private BestPracticeDisplayGroup htmlSection;
 	private Collection<BestPracticeDisplayGroup> bestPracticeDisplay;
 	
 	/**
@@ -82,8 +92,8 @@ public class BestPracticeDisplayFactory {
 		if (bestPracticeDisplay == null) {
 			this.bestPracticeDisplay = new ArrayList<BestPracticeDisplayGroup>(5);
 			bestPracticeDisplay.add(getFileDownloadSection());
-			bestPracticeDisplay.add(getCachingSection());
 			bestPracticeDisplay.add(getConnectionsSection());
+			bestPracticeDisplay.add(getHtmlSection());
 			bestPracticeDisplay.add(getOtherSection());
 		}
 		return this.bestPracticeDisplay;
@@ -99,7 +109,8 @@ public class BestPracticeDisplayFactory {
 					rb.getString("bestPractices.header.fileDownload"),
 					rb.getString("bestPractices.header.fileDownloadDescription"),
 					rb.getString("bestPractice.referSection.fileDownload"),
-					Arrays.asList(FILE_COMPRESSION));
+					Arrays.asList(FILE_COMPRESSION, DUPLICATE_CONTENT,USING_CACHE, CACHE_CONTROL,
+							PREFETCHING,COMBINE_CS_JSS,IMAGE_SIZE, MINIFICATION, SPRITEIMAGE));
 		}
 		return fileDownloadSection;
 	}
@@ -112,23 +123,51 @@ public class BestPracticeDisplayFactory {
 	public TextFileCompressionResultPanel getTextFileCompression() {
 		return (TextFileCompressionResultPanel) FILE_COMPRESSION.getTestResults();
 	}
-
+	
 	/**
-	 * Returns the pre-defined caching best practice section
-	 * @return The best practice display group for caching
+	 * Returns a result panel for image size test.
+	 * 
+	 * @return result panel
 	 */
-	protected BestPracticeDisplayGroup getCachingSection() {
-		if (cachingSection == null) {
-			cachingSection = new BestPracticeDisplayGroupImpl(
-					rb.getString("bestPractices.header.cache"),
-					rb.getString("bestPractices.header.cacheDescription"),
-					rb.getString("bestPractice.referSection.caching"),
-					Arrays.asList(duplicateContent, usingCache, cacheControl,
-							prefetching));
-		}
-		return cachingSection;
+	public ImageSizeResultPanel getImageSize() {
+		return (ImageSizeResultPanel) IMAGE_SIZE.getTestResults();
 	}
 
+	/**
+	 * Returns a result panel for minification test.
+	 * 
+	 * @return result panel
+	 */
+	public MinificationResultPanel getMinification() {
+		return (MinificationResultPanel) MINIFICATION.getTestResults();
+	}
+	
+	/**
+	 * Returns a result panel for Sprite Image test.
+	 * 
+	 * @return result panel
+	 */
+	public SpriteImageResultPanel getSpriteImageResults() {
+		return (SpriteImageResultPanel) SPRITEIMAGE.getTestResults();
+	}
+
+	/**
+	 * Returns a result panel for asynchronous script downloading check test.
+	 * 
+	 * @return result panel
+	 */
+	public AsyncCheckResultPanel getAsyncCheckResults(){
+		return (AsyncCheckResultPanel)ASYNC_CHECK.getTestResults();
+	}
+	
+	/**
+	 * Returns a result panel for File order test
+	 * 
+	 * @return result panel
+	 */
+	public FileOrderResultPanel getFileOrderResultPanel(){
+		return (FileOrderResultPanel)FILE_ORDER.getTestResults();
+	}
 	/**
 	 * Returns the pre-defined connections best practice section
 	 * @return The best practice display group for connections
@@ -139,13 +178,28 @@ public class BestPracticeDisplayFactory {
 					rb.getString("bestPractices.header.connections"),
 					rb.getString("bestPractices.header.connectionsDescription"),
 					rb.getString("bestPractice.referSection.connections"),
-					Arrays.asList(connectionOpening, unnecessaryConnections,
-							periodicTransfer, screenRotation,
-							connectionClosing, wifiOffloading, http4xx5xx, http3xx));
+					Arrays.asList(CONNECTION_OPENING, UNNECESSARY_CONNECTIONS,
+							PERIODIC_TRANSFER, SCREEN_ROTATION,
+							CONNECTION_CLOSING, WIFI_OFFLOADING, HTTP_4XX_5XX, HTTP_3XX));
 		}
 		return connectionsSection;
 	}
 
+	/**
+	 * Returns the pre-defined other best practice section
+	 * @return The best practice display group for html
+	 */
+	protected BestPracticeDisplayGroup getHtmlSection() {
+		if (htmlSection == null) {
+			htmlSection = new BestPracticeDisplayGroupImpl(
+					rb.getString("bestPractices.header.html"),
+					rb.getString("bestPractices.header.htmlDescription"),
+					rb.getString("bestPractice.referSection.html"),
+					Arrays.asList(ASYNC_CHECK, HTTP_1_0_USAGE,FILE_ORDER));
+		}
+		return htmlSection;
+	}
+	
 	/**
 	 * Returns the pre-defined other best practice section
 	 * @return The best practice display group for other
@@ -156,7 +210,7 @@ public class BestPracticeDisplayFactory {
 					rb.getString("bestPractices.header.others"),
 					rb.getString("bestPractices.header.othersDescription"),
 					rb.getString("bestPractice.referSection.others"),
-					Arrays.asList(ACCESSING_PERIPHERIALS, HTTP_1_0_USAGE));
+					Arrays.asList(ACCESSING_PERIPHERIALS));
 		}
 		return otherSection;
 	}
@@ -164,7 +218,7 @@ public class BestPracticeDisplayFactory {
 	/**
 	 * Pre-defined duplicate content best practice
 	 */
-	protected static final BestPracticeDisplay duplicateContent = new BestPracticeDisplay() {
+	protected static final BestPracticeDisplay DUPLICATE_CONTENT = new BestPracticeDisplay() {
 
 		private static final int DUPLICATE_CONTENT_DENOMINATOR = 1048576;
 
@@ -257,7 +311,7 @@ public class BestPracticeDisplayFactory {
 	/**
 	 * Pre-defined cache control best practice
 	 */
-	protected static final BestPracticeDisplay usingCache = new BestPracticeDisplay() {
+	protected static final BestPracticeDisplay USING_CACHE = new BestPracticeDisplay() {
 
 		@Override
 		public String getOverviewTitle() {
@@ -326,7 +380,7 @@ public class BestPracticeDisplayFactory {
 	/**
 	 * Pre-defined content expiration best practice
 	 */
-	protected static final BestPracticeDisplay cacheControl = new BestPracticeDisplay() {
+	protected static final BestPracticeDisplay CACHE_CONTROL = new BestPracticeDisplay() {
 
 		@Override
 		public String getOverviewTitle() {
@@ -396,7 +450,7 @@ public class BestPracticeDisplayFactory {
 	/**
 	 * Pre-defined content pre-fetching best practice
 	 */
-	protected static final BestPracticeDisplay prefetching = new BestPracticeDisplay() {
+	protected static final BestPracticeDisplay PREFETCHING = new BestPracticeDisplay() {
 
 		@Override
 		public String getOverviewTitle() {
@@ -466,9 +520,77 @@ public class BestPracticeDisplayFactory {
 	};
 	
 	/**
+	 * Pre-defined content combine Css and Js best practice
+	 */
+	protected static final BestPracticeDisplay COMBINE_CS_JSS = new BestPracticeDisplay() {
+
+		@Override
+		public String getOverviewTitle() {
+			return rb.getString("combinejscss.title");
+		}
+
+		@Override
+		public String getDetailTitle() {
+			return rb.getString("combinejscss.detailedTitle");
+		}
+
+		@Override
+		public boolean isSelfTest() {
+			return false;
+		}
+
+		@Override
+		public String getAboutText() {
+			return rb.getString("combinejscss.desc");
+		}
+
+		@Override
+		public URI getLearnMoreURI() {
+			return URI.create(rb.getString("combinejscss.url"));
+		}
+
+		@Override
+		public boolean isPass(TraceData.Analysis analysis) {
+			BestPractices bp = analysis.getBestPractice();
+			return (bp.getInefficientCssRequests() > 0 || bp.getInefficientJsRequests() > 0) ? false : true; 
+		}
+
+		@Override
+		public String resultText(Analysis analysisData) {
+			if (isPass(analysisData)) {
+				return rb.getString("combinejscss.pass");
+			} else {
+				return rb.getString("combinejscss.results");
+			}
+		}
+
+		@Override
+		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
+			parent.displayDiagnosticTab();
+			parent.getAroAdvancedTab().setHighlightedPacketView(
+					parent.getAnalysisData().getBestPractice().getConsecutiveCssJsFirstPacket());
+		}
+		
+		@Override
+		public List<BestPracticeExport> getExportData(Analysis analysisData) {
+			BestPractices bp = analysisData.getBestPractice();
+			List<BestPracticeExport> result = new ArrayList<BestPracticeExport>(2);
+			result.add(new BestPracticeExport(String.valueOf(bp.getInefficientCssRequests()), rb.getString("exportall.csvInefficientCssRequests")));
+			result.add(new BestPracticeExport(String.valueOf(bp.getInefficientJsRequests()), rb.getString("exportall.csvInefficientJsRequests")));
+			return result;
+		}
+
+		@Override
+		public JPanel getTestResults() {
+			return null;
+		}
+		
+	};
+	
+	/**
 	 * Pre-defined connection opening best practice
 	 */
-	protected static final BestPracticeDisplay connectionOpening = new BestPracticeDisplay() {
+	protected static final BestPracticeDisplay CONNECTION_OPENING = new BestPracticeDisplay() {
 
 		@Override
 		public String getOverviewTitle() {
@@ -525,7 +647,7 @@ public class BestPracticeDisplayFactory {
 	/**
 	 * Pre-defined multiple simultaneous connections best practice
 	 */
-	protected static final BestPracticeDisplay unnecessaryConnections = new BestPracticeDisplay() {
+	protected static final BestPracticeDisplay UNNECESSARY_CONNECTIONS = new BestPracticeDisplay() {
 
 		@Override
 		public String getOverviewTitle() {
@@ -600,7 +722,7 @@ public class BestPracticeDisplayFactory {
 	/**
 	 * Pre-defined periodic transfer best practice
 	 */
-	protected static final BestPracticeDisplay periodicTransfer = new BestPracticeDisplay() {
+	protected static final BestPracticeDisplay PERIODIC_TRANSFER = new BestPracticeDisplay() {
 
 		@Override
 		public String getOverviewTitle() {
@@ -671,7 +793,7 @@ public class BestPracticeDisplayFactory {
 	/**
 	 * Pre-defined screen rotation best practice
 	 */
-	protected static final BestPracticeDisplay screenRotation = new BestPracticeDisplay() {
+	protected static final BestPracticeDisplay SCREEN_ROTATION = new BestPracticeDisplay() {
 
 		@Override
 		public String getOverviewTitle() {
@@ -744,7 +866,7 @@ public class BestPracticeDisplayFactory {
 	/**
 	 * Pre-defined connection closing problems best practice
 	 */
-	protected static final BestPracticeDisplay connectionClosing = new BestPracticeDisplay() {
+	protected static final BestPracticeDisplay CONNECTION_CLOSING = new BestPracticeDisplay() {
 
 		@Override
 		public String getOverviewTitle() {
@@ -823,7 +945,7 @@ public class BestPracticeDisplayFactory {
 	/**
 	 * Pre-defined HTTP 4xx/5xx errors best practice
 	 */
-	protected static final BestPracticeDisplay http4xx5xx = new BestPracticeDisplay() {
+	protected static final BestPracticeDisplay HTTP_4XX_5XX = new BestPracticeDisplay() {
 
 		@Override
 		public String getOverviewTitle() {
@@ -931,7 +1053,7 @@ public class BestPracticeDisplayFactory {
 	/**
 	 * Pre-defined HTTP 301/302 errors best practice
 	 */
-	protected static final BestPracticeDisplay http3xx = new BestPracticeDisplay() {
+	protected static final BestPracticeDisplay HTTP_3XX = new BestPracticeDisplay() {
 
 		@Override
 		public String getOverviewTitle() {
@@ -1039,7 +1161,7 @@ public class BestPracticeDisplayFactory {
 	/**
 	 * Pre-defined wifi off-loading best practice
 	 */
-	protected static final BestPracticeDisplay wifiOffloading = new BestPracticeDisplay() {
+	protected static final BestPracticeDisplay WIFI_OFFLOADING = new BestPracticeDisplay() {
 
 		@Override
 		public String getOverviewTitle() {
@@ -1198,12 +1320,12 @@ public class BestPracticeDisplayFactory {
 
 		@Override
 		public String getOverviewTitle() {
-			return rb.getString("other.httpUsage.title");
+			return rb.getString("html.httpUsage.title");
 		}
 
 		@Override
 		public String getDetailTitle() {
-			return rb.getString("other.httpUsage.detailedTitle");
+			return rb.getString("html.httpUsage.detailedTitle");
 		}
 
 		@Override
@@ -1213,12 +1335,12 @@ public class BestPracticeDisplayFactory {
 
 		@Override
 		public String getAboutText() {
-			return rb.getString("other.httpUsage.desc");
+			return rb.getString("html.httpUsage.desc");
 		}
 
 		@Override
 		public URI getLearnMoreURI() {
-			return URI.create(rb.getString("other.httpUsage.url"));
+			return URI.create(rb.getString("html.httpUsage.url"));
 		}
 
 		@Override
@@ -1229,7 +1351,7 @@ public class BestPracticeDisplayFactory {
 		@Override
 		public String resultText(Analysis analysisData) {
 			BestPractices bp = analysisData.getBestPractice();
-			String key = isPass(analysisData) ? "other.httpUsage.pass" : "other.httpUsage.results";
+			String key = isPass(analysisData) ? "html.httpUsage.pass" : "html.httpUsage.results";
 			return MessageFormat.format(rb.getString(key), bp.getHttp1_0HeaderCount());
 		}
 
@@ -1261,6 +1383,31 @@ public class BestPracticeDisplayFactory {
 	 */
 	protected static final BestPracticeDisplay FILE_COMPRESSION = new BPTextFileCompression();
 
+	/**
+	 * Image Size best practice
+	 */
+	protected static final BestPracticeDisplay IMAGE_SIZE = new ImageSizeBestPractice();
+
+	/**
+	 * Minification best practice
+	 */
+	protected static final BestPracticeDisplay MINIFICATION = new MinificationBestPractice();
+
+	/**
+	 * Sprite Image best practice
+	 */
+	protected static final BestPracticeDisplay SPRITEIMAGE = new SpriteImageBestPractice();
+
+	/**
+	 * Asynchronous loading of JavaScript in HEAD best practice
+	 */
+	protected static final BestPracticeDisplay ASYNC_CHECK = new BPAsyncCheckInScript();
+	
+	/**
+	 * File order checking best practice. In the HEAD, CSS files should be loaded before JS files 
+	 * */
+	protected static final BestPracticeDisplay FILE_ORDER = new FileOrderBestPractice();
+	
 	/**
 	 * Refreshes and displays the burst graph in diagnostic view.
 	 */

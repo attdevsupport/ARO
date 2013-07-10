@@ -20,6 +20,9 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.att.aro.main.ApplicationResourceOptimizer;
+import com.att.aro.util.Util;
+
 /**
  * An adapter class that is used to access the Pcap libraries. This class should
  * be used to access Pcap data instead of accessing JPCap libraries directly.
@@ -28,8 +31,9 @@ import java.util.logging.Logger;
  */
 public class PCapAdapter {
 
-	private static final Logger logger = Logger.getLogger(PCapAdapter.class
-			.getName());
+	private static final Logger logger = Logger.getLogger(PCapAdapter.class.getName());
+	
+	static String aroJpcapLibName;
 
 	private PacketListener pl;
 
@@ -55,6 +59,7 @@ public class PCapAdapter {
 	 */
 	public PCapAdapter(File file, final PacketListener pl) throws IOException {
 		logger.fine("Creating a new instance of the PCapAdapter");
+		
 		if (pl == null) {
 			logger.severe("PacketListener cannot be null");
 			throw new IllegalArgumentException("PacketListener cannot be null");
@@ -102,17 +107,35 @@ public class PCapAdapter {
 	 */
 	private native String loopPacket(String filename);
 
-	static {
-		String osname = System.getProperty("os.name");
-		String os = System.getProperty("os.arch");
+	/**
+	 * Load ARO Jpcap DLL lib file.
+	 */
+	public static void loadAroJpacaLib() throws UnsatisfiedLinkError {
+		setAroJpcapLibName();
+		System.loadLibrary(aroJpcapLibName);
+	}
+	
+	/**
+	 * Sets ARO Jpcap DLL library name.
+	 */
+	static void setAroJpcapLibName() {
+		String osname = Util.OS_NAME;
+		String os = Util.OS_ARCHYTECTURE;
 		logger.fine("OS: " + osname);
 		logger.fine("OS Arch: " + os);
-		// Loads the jpcap library as per the file system types.
-		if (osname != null && osname.contains("Windows") && os != null
-				&& os.contains("64")) {
-			System.loadLibrary("jpcap64");
+		if (osname != null && osname.contains("Windows") && os != null && os.contains("64")) {
+			aroJpcapLibName = "jpcap64";
 		} else {
-			System.loadLibrary("jpcap");
+			aroJpcapLibName = "jpcap";
 		}
+		logger.fine("ARO Jpcap DLL lib name: " + aroJpcapLibName);
 	}
+	
+	/**
+	 * Get name of ARO Jpcap DLL library file.
+	 */
+	public static String getAroJpcapLibName() {
+		return aroJpcapLibName;
+	}
+	
 }

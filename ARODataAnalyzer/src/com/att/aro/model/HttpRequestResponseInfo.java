@@ -41,6 +41,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
+import javax.swing.ImageIcon;
+
+import org.jsoup.Jsoup;
+
+import com.att.aro.bp.fileorder.FileOrderAnalysis;
+import com.att.aro.bp.imageSize.HtmlImage;
+import com.att.aro.bp.asynccheck.AsyncCheckAnalysis;
 import com.att.aro.pcap.TCPPacket;
 import com.att.aro.util.Util;
 
@@ -75,27 +82,18 @@ public class HttpRequestResponseInfo implements
 	 * Returns the POST HTTP type.
 	 */
 	public static final String HTTP_POST = "POST";
-	
 	public static final String HTTP_SCHEME = "HTTP";
-
 	private static final String CONTENT_ENCODING_GZIP = "gzip";
 	private static final String CONTENT_ENCODING_COMPRESS = "compress";
 	private static final String CONTENT_ENCODING_DEFLATE = "deflate";
 	private static final String CONTENT_ENCODING_NONE = Util.RB.getString("rrview.http.compression.no");
 	private static final String CONTENT_ENCODING_NA = "";
-	
-
 	private static final Date BEGINNING_OF_TIME = new Date(0);
-	
-	private static final Logger logger = Logger
-			.getLogger(HttpRequestResponseInfo.class.getName());
-	
+	private static final Logger logger = Logger.getLogger(HttpRequestResponseInfo.class.getName());
 	private static final Map<String, Integer> wellKnownPorts = new HashMap<String, Integer>(5);
-	
 	private static final Pattern TEXT_CONTENT_TYPE_TEXT = Pattern.compile("^text/.*");
 	private static final Pattern TEXT_CONTENT_TYPE_XML = Pattern.compile("^application/.*xml");
-
-	
+	private static final CharSequence IMAGE = Util.RB.getString("fileChooser.contentType.image");
 	
 	static {
 		wellKnownPorts.put(HTTP_SCHEME, 80);
@@ -1035,10 +1033,9 @@ public class HttpRequestResponseInfo implements
 		if (session == null || direction == null) {
 			throw new IllegalArgumentException(
 					"Neither session nor direction may be null");
-		}
+		}		
 		this.session = session;
 		this.packetDirection = direction;
-
 		// Initialize session remote host
 		this.hostName = session.getRemoteHostName();
 	}
@@ -1153,7 +1150,7 @@ public class HttpRequestResponseInfo implements
 	public URI getObjUri() {
 		return objUri;
 	}
-
+	
 	/**
 	 * Returns the HTTP object name without parameters.
 	 * 
@@ -1471,6 +1468,15 @@ public class HttpRequestResponseInfo implements
 	public Long getMaxStale() {
 		return maxStale;
 	}
+	
+	/**
+	 * To know the packet direction
+	 * 
+	 * @return direction
+	 */
+	public PacketInfo.Direction getPacketDirection() {
+		return packetDirection;
+	}
 
 	/**
 	 * Returns the binary content of the request/response body.
@@ -1784,6 +1790,18 @@ public class HttpRequestResponseInfo implements
 		}
 
 	}
+	
+	/**
+	 * Indicates whether the HTTP content is image or not.
+	 * 
+	 * @return Returns true when the content is image otherwise returns false.
+	 */
+	public boolean isImageContent() {
+		if (this.getContentType() != null && this.getContentType().contains(IMAGE)) {
+			return true;
+		}
+		return false;
+	}
 
 	/**
 	 * Indicates whether the server response containing text payload is
@@ -1840,9 +1858,71 @@ public class HttpRequestResponseInfo implements
 	}
 	
 	/**
+	 * Indicates whether the packet is a response packet and the content type is
+	 * text/html.
+	 * 
+	 * @param AsyncCheckAnalysis
+	 *            - Script loading asynchronous analysis.
+	 * 
+	 * @return Returns true when there are no asynchronously loaded files or the
+	 *         packet's content type is not text/html. Otherwise returns false.
+	 */
+	public boolean checkAsyncAttributeInHead(
+			AsyncCheckAnalysis asyncCheckAnalysis) {
+		// Checking the content length and content type (only text/html).
+		if (contentLength != 0 && contentType != null
+				&& isContentTypeTextHtml(contentType)) {
+			return asyncCheckAnalysis.parseHtmlToFindSyncLoadingScripts(this);
+		} else {
+			return true;
+		}
+	}
+
+	/**
+	 *  Indicates whether the content type is text/html or not.
+	 *  
+	 * @return Returns true if the content type is text/html otherwise return false;
+	 */
+	boolean isContentTypeTextHtml(String contentType){
+		if (contentType.equalsIgnoreCase("text/html"))
+			return true;
+		else 
+			return false;
+	}
+	
+	public org.jsoup.nodes.Document parseHtml(FileOrderAnalysis fileOrderAnalysis){
+		
+		org.jsoup.nodes.Document doc = null;
+		String packetContent = null;
+		try {
+			if (this.getContentString() != null){
+			if ((contentLength != 0)&&(contentType != null)
+					&&(isContentTypeTextHtml(contentType))){
+				try {
+					packetContent = this.getContentString();
+				} catch (ContentException e) {
+					logger.log(Level.FINE,"ContentException in parseHtml()");
+				} catch (IOException e) {
+					logger.log(Level.FINE,"IOExecption in parseHtml()");
+				}
+				if (packetContent != null)
+				doc = Jsoup.parse(packetContent);
+			}
+			}
+		} catch (ContentException e) {
+			logger.log(Level.FINE,"ContentException in parseHtml()");
+		} catch (IOException e) {
+			logger.log(Level.FINE,"IOExecption in parseHtml()");
+		}
+			if (doc != null)
+				return doc;
+			else return null;
+	}
+	
+	/**
 	 *  Indicates whether the content type is text or not.
 	 *  
-	 *  The following content types are considered text:
+	 *  The following content types are considered as text:
 	 * - any type starting with 'text/'
 	 * - any type starting with 'application/' and followed by 'xml', for example: 'application/atom+xml'
  	 * - application/ecmascript
@@ -1854,13 +1934,10 @@ public class HttpRequestResponseInfo implements
 	 */
 	public static boolean isTextContent(String contentType) {
 
-		if (contentType.equals("application/ecmascript")) {
-			return true;
-		} else if (contentType.equals("application/json")) {
-			return true;
-		} else if (contentType.equals("application/javascript")) {
-			return true;
-		} else if (contentType.equals("message/http")) {
+		if (contentType.equals("application/ecmascript") ||
+			contentType.equals("application/json") ||
+			contentType.equals("application/javascript") ||
+			contentType.equals("message/http")) {
 			return true;
 		} else {
 
@@ -1874,6 +1951,57 @@ public class HttpRequestResponseInfo implements
 			}
 			return false;
 		}
+	}
+
+	/**
+	 * Indicates whether the content type is JavaScript or not.
+	 * 
+	 * The following content types are considered as JavaScript:
+	 * 
+	 * - application/ecmascript
+	 * - application/javascript
+	 * - text/javascript
+	 * 
+	 * @return returns true if the content type is JavaScript otherwise return false
+	 * 
+	 */
+	public static boolean isJavaScript(String contentType) {
+
+		if (contentType.equals("application/ecmascript") ||
+			contentType.equals("application/javascript") ||
+			contentType.equals("text/javascript")) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	/**
+	 * Indicates whether the content type is CSS or not.
+	 * 
+	 * The following content types are considered as CSS:
+	 * 
+	 * - text/css
+	 * 
+	 * @return returns true if the content type is CSS otherwise return false
+	 * 
+	 */
+	public static boolean isCss(String contentType) {
+		return contentType.equals("text/css") ? true : false;
+	}
+	
+	/**
+	 * Indicates whether the content type is HTML or not.
+	 * 
+	 * The following content types are considered as HTML:
+	 * 
+	 * - text/html
+	 * 
+	 * @return returns true if the content type is HTML otherwise return false
+	 * 
+	 */
+	public static boolean isHtml(String contentType) {
+		return contentType.equals("text/html") ? true : false;
 	}
 }
 	

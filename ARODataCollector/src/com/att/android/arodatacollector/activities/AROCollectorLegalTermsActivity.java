@@ -151,6 +151,9 @@ public class AROCollectorLegalTermsActivity extends Activity {
 		unregisterTimeoutReceiver();
 	}
 	
+	/**
+	 * method to unregister the receiver that listens for the analyzer timeout
+	 */
 	private void unregisterTimeoutReceiver() {
 		if (DEBUG){
 			Log.i(TAG, "inside unregisterTimeoutReceiver");
@@ -169,6 +172,9 @@ public class AROCollectorLegalTermsActivity extends Activity {
 		}
 	}
 	
+	/**
+	 * method to register the receiver that listens to analyzer timeout
+	 */
 	private void registerAnalyzerTimeoutReceiver() {
 		if (DEBUG){
 			Log.i(TAG, "registering analyzerTimeOutReceiver");

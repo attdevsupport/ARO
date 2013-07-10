@@ -18,12 +18,14 @@
 package com.att.aro.main;
 
 import java.awt.BorderLayout;
+
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridBagLayout;
 import java.util.List;
 import java.util.ResourceBundle;
 
+import javax.media.Time;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -94,6 +96,8 @@ public class AROAdvancedTabb extends JPanel {
 
 	// Trace data currently displayed
 	private TraceData.Analysis analysisData;
+	private boolean graphPanelClicked = false;
+	private boolean bTCPPacketFound;
 
 	/**
 	 * Initializes a new instance of the AROAdvancedTabb class.
@@ -190,12 +194,28 @@ public class AROAdvancedTabb extends JPanel {
 				public void graphPanelClicked(double timeStamp) {
 					setTimeLineLinkedComponents(timeStamp, matchingSecondsRange);
 					if (aroVideoPlayer != null) {
+						graphPanelClicked = true;
 						aroVideoPlayer.setMediaDisplayTime(timeStamp);
 					}
 				}
 			});
 		}
 		return this.graphPanel;
+	}
+	/**
+	 * Returns the graph panel clicked status
+	 * 
+	 * @return boolean value.
+	 */
+	public boolean IsGraphPanelClicked(){
+		return graphPanelClicked;
+	}
+	
+	/**
+	 * Set the graph panel clicked status
+	 */
+	public void setGraphPanelClicked(boolean val){
+		 graphPanelClicked = val;
 	}
 	
 	/**
@@ -497,6 +517,7 @@ public class AROAdvancedTabb extends JPanel {
 				jPacketViewTable.selectItem(null);
 				jHttpReqResPanel.select(null);
 				if (aroVideoPlayer != null) {
+					bTCPPacketFound = false;
 					aroVideoPlayer.setMediaDisplayTime(graphPanel
 							.getCrosshair());
 				}
@@ -504,6 +525,13 @@ public class AROAdvancedTabb extends JPanel {
 		}
 	}
 
+	public boolean getTCPPacketFoundStatus(){
+		return bTCPPacketFound;
+	}
+	
+	public void reSetTCPPacketFoundStatus(boolean val){
+		bTCPPacketFound = val;
+	}
 	/**
 	 * Provides the Best matching packet info from the provided tcp session.
 	 */

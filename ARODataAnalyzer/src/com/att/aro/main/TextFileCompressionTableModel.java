@@ -52,8 +52,8 @@ public class TextFileCompressionTableModel extends DataTableModel<TextFileCompre
 	private static final int COL3_MAX = 100;
 	private static final int COL3_PREF = 70;
 
-	private static final int COL4_MIN = 500;
-	private static final int COL4_PREF = 500;
+	private static final int COL4_MIN = 350;
+	private static final int COL4_PREF = 350;
 
 	private static final int COL_1 = 0;
 	private static final int COL_2 = 1;
@@ -108,6 +108,7 @@ public class TextFileCompressionTableModel extends DataTableModel<TextFileCompre
 		col = cols.getColumn(COL_4);
 		col.setMinWidth(COL4_MIN);
 		col.setPreferredWidth(COL4_PREF);
+		//col.setMaxWidth(COL4_MAX);
 
 		return cols;
 	}

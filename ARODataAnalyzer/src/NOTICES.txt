@@ -20,6 +20,12 @@ The Application Resource Optimizer(ARO) uses Open Source Software that is licens
 
 ====================================================================
 
+JSoup
+
+The Application Resource Optimizer(ARO) uses Open Source Software that is licensed under the GNU Lesser General Public License (LGPL) version 2.1 (the "License"), and you may not use this file except in compliance with the License. You may obtain a copy of the Licenses at: http://jsoup.org/download.html. Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the Licenses for the specific language governing permissions and limitations under the Licenses.
+
+====================================================================
+
 TCPDUMP/LIBPCAP
 
 The Application Resource Optimizer(ARO) uses Open Source Software that is licensed under the following BSD (the "License"), and you may not use this file except in compliance with the License. You may obtain a copy of the Licenses at: http://www.tcpdump.org/#contribute. Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the Licenses for the specific language governing permissions and limitations under the Licenses.
@@ -43,6 +49,25 @@ are met:
 THIS SOFTWARE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR
 IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
 WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
+====================================================================
+
+Java Media Framework (JMF)
+
+The Application Resource Optimizer (ARO) uses JMF Software that is licensed under the Oracle Binary Code License Agreement for Java SE and JavaFX Technologies Software License (the "License"), and you may not use this file except in compliance with the License. You may obtain a copy of the Licenses at: http://www.oracle.com/technetwork/java/javase/downloads/java-se-archive-license-1382604.html. Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the Licenses for the specific language governing permissions and limitations under the Licenses.
+
+====================================================================
+
+HtmlCompressor
+
+The Application Resource Optimizer (ARO) uses Open Source Software that is licensed under the Apache Software License 2.0 (the "License"), and you may not use this file except in compliance with the License. You may obtain a copy of the Licenses at: http://www.apache.org/licenses/LICENSE-2.0. Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the Licenses for the specific language governing permissions and limitations under the Licenses.
+
+====================================================================
+
+YUI Compressor
+
+The Application Resource Optimizer (ARO) uses Open Source Software that is licensed under the BSD Software License (the "License"), and you may not use this file except in compliance with the License. You may obtain a copy of the Licenses at: http://yuilibrary.com/license/. Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the Licenses for the specific language governing permissions and limitations under the Licenses.
+
 
 ====================================================================
 

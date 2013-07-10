@@ -64,12 +64,20 @@ import com.att.aro.model.TraceData;
 public class AROBpOverallResulsPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
-	private static Font textFont = new Font("TextFont", Font.PLAIN, 12);
-	private static Font headerFont = new Font("HeaderFont", Font.BOLD, 14);
-	private static Font summaryFont = new Font("HeaderFont", Font.BOLD, 18);
-	private static Font boldTextFont = new Font("BoldTextFont", Font.BOLD, 12);
+	private static final Font TEXT_FONT = new Font("TextFont", Font.PLAIN, 12);
+	private static final Font HEADER_FONT = new Font("HeaderFont", Font.BOLD, 14);
+	private static final Font SUMMARY_FONT = new Font("HeaderFont", Font.BOLD, 18);
+	private static final Font TEXT_FONT_BOLD = new Font("BoldTextFont", Font.BOLD, 12);
 	private static final int HEADER_DATA_SPACING = 10;
+	private static final ResourceBundle RB = ResourceBundleManager.getDefaultBundle();
+	private static final Insets BASIC_INSETS = new Insets(0, 0, 0, 0);
+	private static final Insets TESTS_CONDUCTED_INSETS = new Insets(10, 8, 10, 10);
 	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
+
+	private static final int ICON_GRIDX_1ST_COLUMN = 0;
+	private static final int TITLE_GRIDX_1ST_COLUMN = 1;
+	private static final int ICON_GRIDX_2ST_COLUMN = 2;
+	private static final int TITLE_GRIDX_2ST_COLUMN = 3;
 
 	private DateTraceAppDetailPanel dateTraceAppDetailPanel;
 
@@ -83,60 +91,151 @@ public class AROBpOverallResulsPanel extends JPanel {
 	private ApplicationResourceOptimizer parent;
 	private Map<BestPracticeDisplayGroup, List<BPResultRowPanel>> panelMap = new HashMap<BestPracticeDisplayGroup, List<BPResultRowPanel>>();
 	private List<BPResultRowPanel> panels = new ArrayList<BPResultRowPanel>();
+	private Collection<BestPracticeDisplayGroup> bpGroups;
 
 	/**
 	 * Initializes a new instance of the AROBpOverallResulsPanel class.
 	 */
-	public AROBpOverallResulsPanel(ApplicationResourceOptimizer parent,
-			Collection<BestPracticeDisplayGroup> bpGroups) {
+	public AROBpOverallResulsPanel(ApplicationResourceOptimizer parent, Collection<BestPracticeDisplayGroup> bpGroups) {
 
-		// Main panel settings
 		this.parent = parent;
-		setLayout(new GridBagLayout());
-		setOpaque(false);
-		setBorder(new RoundedBorder(new Insets(20, 20, 20, 20), Color.WHITE));
+		this.bpGroups = bpGroups;
+		setResultPanelParameters();
 
-		int y = 0;
+		int gridY = 0;
+		gridY = addDateAndTraceInfo(gridY);
+		gridY = addTestsConductedHeader(gridY);
+		gridY = addTestsConductedSummary(gridY);
+	}
 
-		// Add date panel
-		Insets insets = new Insets(0, 0, 0, 0);
-		dateTraceAppDetailPanel = new DateTraceAppDetailPanel();
-		add(dateTraceAppDetailPanel, new GridBagConstraints(0, y++, 3, 1, 1.0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insets, 0, 0));
-		add(createTestStatisticsPanel(), new GridBagConstraints(0, y++, 3, 1, 0.0, 0.0,
-				GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insets, 0, 0));
-
-		JLabel testConductedHeaderLabel = new JLabel(
-				rb.getString("bestPractices.header.testsConducted"));
-		testConductedHeaderLabel.setBackground(Color.WHITE);
-		testConductedHeaderLabel.setFont(headerFont);
-		add(new ImagePanel(Images.DIVIDER.getImage(), true, Color.WHITE), new GridBagConstraints(0,
-				y++, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
-				new Insets(10, 0, 10, 0), 0, 0));
-		add(testConductedHeaderLabel, new GridBagConstraints(0, y++, 3, 1, 0.0, 0.0,
-				GridBagConstraints.WEST, GridBagConstraints.NONE, insets, 0, 0));
-
-		// Add the best practice overviews
-		insets = new Insets(10, 20, 10, 10);
-		for (BestPracticeDisplayGroup bpGroup : bpGroups) {
-			String refer = MessageFormat.format(rb.getString("bestPractice.referSection"),
-					bpGroup.getReferSectionName());
+	/**
+	 * Adds summary for conducted tests.
+	 * 
+	 * @param gridY
+	 *            Grid Y
+	 * @return Current grid Y
+	 */
+	private int addTestsConductedSummary(int gridY) {
+		int testCounter = 0;
+		final int halfNumberOfTest = getNumberOfTests() / 2 + getNumberOfTests() % 2;
+		for (BestPracticeDisplayGroup bpGroup : this.bpGroups) {
+			String refer = MessageFormat.format(RB.getString("bestPractice.referSection"), bpGroup.getReferSectionName());
 			Collection<BestPracticeDisplay> bps = bpGroup.getBestPractices();
 			List<BPResultRowPanel> list = new ArrayList<BPResultRowPanel>(bps.size());
 			for (BestPracticeDisplay bp : bps) {
-				BPResultRowPanel bpp = new BPResultRowPanel(bp, refer);
-				add(bpp.getIconLabel(), new GridBagConstraints(0, y, 1, 1, 0.0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.NONE, insets, 0, 0));
-				add(bpp.getTitleLabel(), new GridBagConstraints(1, y, 1, 1, 0.0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.NONE, insets, 0, 0));
-				add(bpp.getReferSectionLabel(), new GridBagConstraints(2, y, 1, 1, 0.0, 0.0,
-						GridBagConstraints.WEST, GridBagConstraints.NONE, insets, 0, 0));
-				panels.add(bpp);
-				list.add(bpp);
-				++y;
+				++testCounter;
+				if (testCounter < halfNumberOfTest) {
+					gridY = addGridCell(gridY, ICON_GRIDX_1ST_COLUMN, TITLE_GRIDX_1ST_COLUMN, refer, list, bp);
+				} else if (testCounter == halfNumberOfTest) {
+					gridY = addGridCell(gridY, ICON_GRIDX_1ST_COLUMN, TITLE_GRIDX_1ST_COLUMN, refer, list, bp);
+					gridY -= halfNumberOfTest;
+				} else {
+					gridY = addGridCell(gridY, ICON_GRIDX_2ST_COLUMN, TITLE_GRIDX_2ST_COLUMN, refer, list, bp);
+				}
 			}
-			panelMap.put(bpGroup, Collections.unmodifiableList(list));
+			this.panelMap.put(bpGroup, Collections.unmodifiableList(list));
 		}
+		return gridY;
+	}
+
+	/**
+	 * Adds test result icon and test tile into a grid.
+	 * 
+	 * @param gridY
+	 *            Y grid
+	 * @param iconGridX
+	 *            Icon grid X
+	 * @param titleGridX
+	 *            Test title grid X
+	 * @param refer
+	 *            A message that refers users to more information about the Best
+	 *            Practice test.
+	 * @param list
+	 *            Best Practice result row panel.
+	 * @param bp
+	 *            Best Practice display
+	 * @return Y grid
+	 */
+	private int addGridCell(int gridY, int iconGridX, int titleGridX, String refer, List<BPResultRowPanel> list, BestPracticeDisplay bp) {
+		BPResultRowPanel bpp = new BPResultRowPanel(bp, refer);
+		this.add(bpp.getIconLabel(), getTestsConductedGridConstraints(iconGridX, gridY));
+		this.add(bpp.getTitleLabel(), getTestsConductedGridConstraints(titleGridX, gridY));
+		this.panels.add(bpp);
+		list.add(bpp);
+		return ++gridY;
+	}
+
+	/**
+	 * Gets number of tests conducted.
+	 * 
+	 * @return Number of tests conducted
+	 */
+	private int getNumberOfTests() {
+		int counter = 0;
+		for (BestPracticeDisplayGroup bpGroup : this.bpGroups) {
+			Collection<BestPracticeDisplay> bps = bpGroup.getBestPractices();
+			counter += bps.size();
+		}
+		return counter;
+	}	
+
+	/**
+	 * Gets grid constraints for tests conducted data.
+	 * 
+	 * @param gridX
+	 *            X grid
+	 * @param gridY
+	 *            Y grid
+	 * @return Tests conducted grid constraints
+	 */
+	private GridBagConstraints getTestsConductedGridConstraints(int gridX, int gridY) {
+		return new GridBagConstraints(gridX, gridY, 1, 1, 1, 1, GridBagConstraints.LINE_START, 
+				GridBagConstraints.NONE, TESTS_CONDUCTED_INSETS, 0, 0);
+	}
+
+	/**
+	 * Adds Test Conducted header.
+	 * 
+	 * @param gridY
+	 *            Grid Y
+	 * @return Current grid Y
+	 */
+	private int addTestsConductedHeader(int gridY) {
+		JLabel testConductedHeaderLabel = new JLabel(RB.getString("bestPractices.header.testsConducted"));
+		testConductedHeaderLabel.setBackground(Color.WHITE);
+		testConductedHeaderLabel.setFont(HEADER_FONT);
+		add(new ImagePanel(Images.DIVIDER.getImage(), true, Color.WHITE),
+				new GridBagConstraints(0, gridY++, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+			    new Insets(10, 0, 10, 0), 0, 0));
+		add(testConductedHeaderLabel, new GridBagConstraints(0, gridY++, 3, 1, 0.0, 0.0, GridBagConstraints.WEST,
+				GridBagConstraints.NONE, BASIC_INSETS, 0, 0));
+		return gridY;
+	}
+
+	/**
+	 * Adds date and trace information.
+	 * 
+	 * @param gridY
+	 *            Grid Y
+	 * @return Current grid Y
+	 */
+	private int addDateAndTraceInfo(int gridY) {
+		// Add date panel
+		this.dateTraceAppDetailPanel = new DateTraceAppDetailPanel();
+		this.add(dateTraceAppDetailPanel, new GridBagConstraints(0, gridY++, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				BASIC_INSETS, 0, 0));
+		this.add(createTestStatisticsPanel(), new GridBagConstraints(0, gridY++, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+				BASIC_INSETS, 0, 0));
+		return gridY;
+	}
+
+	/**
+	 * Sets basic layout parameters for the Result panel.
+	 */
+	private void setResultPanelParameters() {
+		this.setLayout(new GridBagLayout());
+		this.setOpaque(false);
+		this.setBorder(new RoundedBorder(new Insets(20, 20, 20, 20), Color.WHITE));
 	}
 
 	/**
@@ -178,26 +277,26 @@ public class AROBpOverallResulsPanel extends JPanel {
 			nf.setMinimumFractionDigits(1);
 			nf.setMinimumIntegerDigits(1);
 			durationValueLabel.setText(MessageFormat.format(
-					rb.getString("bestPractices.durationValue"),
+					RB.getString("bestPractices.durationValue"),
 					nf.format(analysisData.getTraceData().getTraceDuration() / 60)));
 			energyConsumedValueLabel.setText(MessageFormat.format(
-					rb.getString("bestPractices.energyConsumedValue"),
+					RB.getString("bestPractices.energyConsumedValue"),
 					nf.format(analysisData.getEnergyModel().getTotalEnergyConsumed())));
-			causesScoreValueLabel.setText(MessageFormat.format(rb
+			causesScoreValueLabel.setText(MessageFormat.format(RB
 					.getString("bestPractices.scoreref"), analysisData.getApplicationScore()
 					.getCausesScore())
-					+ " " + rb.getString("bestPractices.outofscore1"));
-			effectsScoreValueLabel.setText(MessageFormat.format(rb
+					+ " " + RB.getString("bestPractices.outofscore1"));
+			effectsScoreValueLabel.setText(MessageFormat.format(RB
 					.getString("bestPractices.scoreref"), analysisData.getApplicationScore()
 					.getEffectScore())
-					+ " " + rb.getString("bestPractices.outofscore1"));
-			totalAppScoreValueLabel.setText(MessageFormat.format(rb
+					+ " " + RB.getString("bestPractices.outofscore1"));
+			totalAppScoreValueLabel.setText(MessageFormat.format(RB
 					.getString("bestPractices.scoreref"), analysisData.getApplicationScore()
 					.getTotalApplicationScore())
-					+ " " + rb.getString("bestPractices.outofscore2"));
+					+ " " + RB.getString("bestPractices.outofscore2"));
 			NumberFormat intf = NumberFormat.getIntegerInstance();
 			totalDataValueLabel.setText(MessageFormat.format(
-					rb.getString("bestPractices.totalDataTransferedValue"),
+					RB.getString("bestPractices.totalDataTransferedValue"),
 					intf.format(analysisData.getTotalBytes())));
 
 			for (BPResultRowPanel bpp : panels) {
@@ -228,38 +327,38 @@ public class AROBpOverallResulsPanel extends JPanel {
 		statisticsPanel.setLayout(new VerticalLayout());
 		statisticsPanel.setBackground(Color.WHITE);
 
-		JLabel summaryHeaderLabel = new JLabel(rb.getString("bestPractices.header.summary"));
+		JLabel summaryHeaderLabel = new JLabel(RB.getString("bestPractices.header.summary"));
 		summaryHeaderLabel.setBackground(Color.WHITE);
-		summaryHeaderLabel.setFont(summaryFont);
+		summaryHeaderLabel.setFont(SUMMARY_FONT);
 
-		JLabel statisticsHeaderLabel = new JLabel(rb.getString("bestPractices.header.statistics"));
+		JLabel statisticsHeaderLabel = new JLabel(RB.getString("bestPractices.header.statistics"));
 		statisticsHeaderLabel.setBackground(Color.WHITE);
-		statisticsHeaderLabel.setFont(headerFont);
+		statisticsHeaderLabel.setFont(HEADER_FONT);
 
 		JPanel durationPanel = new JPanel(new GridLayout(1, 2));
 		durationPanel.setBackground(Color.WHITE);
-		JLabel durationLabel = new JLabel(rb.getString("bestPractices.duration"));
-		durationLabel.setFont(textFont);
+		JLabel durationLabel = new JLabel(RB.getString("bestPractices.duration"));
+		durationLabel.setFont(TEXT_FONT);
 		durationValueLabel = new JLabel();
-		durationValueLabel.setFont(textFont);
+		durationValueLabel.setFont(TEXT_FONT);
 		durationPanel.add(durationLabel);
 		durationPanel.add(durationValueLabel);
 
 		JPanel totalDataPanel = new JPanel(new GridLayout(1, 2));
 		totalDataPanel.setBackground(Color.WHITE);
-		JLabel totalDataLabel = new JLabel(rb.getString("bestPractices.totalDataTransfered"));
-		totalDataLabel.setFont(textFont);
+		JLabel totalDataLabel = new JLabel(RB.getString("bestPractices.totalDataTransfered"));
+		totalDataLabel.setFont(TEXT_FONT);
 		totalDataValueLabel = new JLabel();
-		totalDataValueLabel.setFont(textFont);
+		totalDataValueLabel.setFont(TEXT_FONT);
 		totalDataPanel.add(totalDataLabel);
 		totalDataPanel.add(totalDataValueLabel);
 
 		JPanel energyConsumedPanel = new JPanel(new GridLayout(1, 2));
 		energyConsumedPanel.setBackground(Color.WHITE);
-		JLabel energyConsumedLabel = new JLabel(rb.getString("bestPractices.energyConsumed"));
-		energyConsumedLabel.setFont(textFont);
+		JLabel energyConsumedLabel = new JLabel(RB.getString("bestPractices.energyConsumed"));
+		energyConsumedLabel.setFont(TEXT_FONT);
 		energyConsumedValueLabel = new JLabel();
-		energyConsumedValueLabel.setFont(textFont);
+		energyConsumedValueLabel.setFont(TEXT_FONT);
 		energyConsumedPanel.add(energyConsumedLabel);
 		energyConsumedPanel.add(energyConsumedValueLabel);
 
@@ -275,37 +374,37 @@ public class AROBpOverallResulsPanel extends JPanel {
 
 		JPanel appScoreTitlePanel = new JPanel(new GridLayout(1, 2));
 		appScoreTitlePanel.setBackground(Color.WHITE);
-		JLabel appScoreLabel = new JLabel(rb.getString("appscore.title"));
-		appScoreLabel.setFont(headerFont);
+		JLabel appScoreLabel = new JLabel(RB.getString("appscore.title"));
+		appScoreLabel.setFont(HEADER_FONT);
 		appScoreTitlePanel.add(appScoreLabel);
 
 		JPanel causesScorePanel = new JPanel(new GridLayout(1, 2));
 		causesScorePanel.setBackground(Color.WHITE);
-		JLabel causesScoreLabel = new JLabel(rb.getString("bestPractices.causesScore"));
-		causesScoreLabel.setFont(textFont);
+		JLabel causesScoreLabel = new JLabel(RB.getString("bestPractices.causesScore"));
+		causesScoreLabel.setFont(TEXT_FONT);
 		causesScorePanel.add(causesScoreLabel);
 		causesScoreValueLabel = createJTextPane();
-		causesScoreValueLabel.setFont(textFont);
+		causesScoreValueLabel.setFont(TEXT_FONT);
 		causesScorePanel.add(causesScoreValueLabel);
 		causesScoreValueLabel.addMouseListener(appScoreMouseAdapter);
 
 		JPanel effectsScorePanel = new JPanel(new GridLayout(1, 2));
 		effectsScorePanel.setBackground(Color.WHITE);
-		JLabel effectsScoreLabel = new JLabel(rb.getString("bestPractices.effectsScore"));
-		effectsScoreLabel.setFont(textFont);
+		JLabel effectsScoreLabel = new JLabel(RB.getString("bestPractices.effectsScore"));
+		effectsScoreLabel.setFont(TEXT_FONT);
 		effectsScorePanel.add(effectsScoreLabel);
 		effectsScoreValueLabel = createJTextPane();
-		effectsScoreValueLabel.setFont(textFont);
+		effectsScoreValueLabel.setFont(TEXT_FONT);
 		effectsScorePanel.add(effectsScoreValueLabel);
 		effectsScoreValueLabel.addMouseListener(appScoreMouseAdapter);
 
 		JPanel totalScorePanel = new JPanel(new GridLayout(1, 2));
 		totalScorePanel.setBackground(Color.WHITE);
-		JLabel totalAppScoreLabel = new JLabel(rb.getString("bestPractices.totalAppScore"));
-		totalAppScoreLabel.setFont(textFont);
+		JLabel totalAppScoreLabel = new JLabel(RB.getString("bestPractices.totalAppScore"));
+		totalAppScoreLabel.setFont(TEXT_FONT);
 		totalScorePanel.add(totalAppScoreLabel);
 		totalAppScoreValueLabel = createJTextPane();
-		totalAppScoreValueLabel.setFont(textFont);
+		totalAppScoreValueLabel.setFont(TEXT_FONT);
 		totalScorePanel.add(totalAppScoreValueLabel);
 		totalAppScoreValueLabel.addMouseListener(appScoreMouseAdapter);
 
@@ -345,8 +444,8 @@ public class AROBpOverallResulsPanel extends JPanel {
 	private JTextPane createJTextPane() {
 		HTMLDocument doc = new HTMLDocument();
 		StyleSheet style = doc.getStyleSheet();
-		style.addRule("body { font-family: " + textFont.getFamily() + "; " + "font-size: "
-				+ textFont.getSize() + "pt; }");
+		style.addRule("body { font-family: " + TEXT_FONT.getFamily() + "; " + "font-size: "
+				+ TEXT_FONT.getSize() + "pt; }");
 		style.addRule("a { text-decoration: underline; font-weight:bold; }");
 		JTextPane jTextArea = new JTextPane(doc);
 		jTextArea.setEditable(false);
@@ -376,14 +475,16 @@ public class AROBpOverallResulsPanel extends JPanel {
 	 */
 	public static class BPResultRowPanel {
 
-		private static ImageIcon passIcon = Images.BP_PASS_DARK.getIcon();
-		private static ImageIcon failIcon = Images.BP_FAIL_DARK.getIcon();
-		private static ImageIcon notRunIcon = Images.BP_SELFTEST_TRIGGERED.getIcon();
-		private static ImageIcon manualIcon = Images.BP_MANUAL.getIcon();
-		private static String PASS = rb.getString("bestPractice.tooltip.pass");
-		private static String FAIL = rb.getString("bestPractice.tooltip.fail");
-		private static String MANUAL = rb.getString("bestPractice.tooltip.manual");
-		private static String SELFTEST = rb.getString("bestPractices.selfTest");
+		private static final ImageIcon PASS_ICON = Images.BP_PASS_DARK.getIcon();
+		private static final ImageIcon FAIL_ICON = Images.BP_FAIL_DARK.getIcon();
+		private static ImageIcon WARNING_ICON = Images.BP_WARNING_DARK.getIcon();
+		private static final ImageIcon NOT_RUN_ICON = Images.BP_SELFTEST_TRIGGERED.getIcon();
+		private static final ImageIcon MANUAL_ICON = Images.BP_MANUAL.getIcon();
+		private static final String PASS = RB.getString("bestPractice.tooltip.pass");
+		private static final String FAIL = RB.getString("bestPractice.tooltip.fail");
+		private static String WARNING = rb.getString("bestPractice.tooltip.warning");
+		private static final String MANUAL = RB.getString("bestPractice.tooltip.manual");
+		private static final String SELFTEST = RB.getString("bestPractices.selfTest");
 
 		private BestPracticeDisplay bp;
 		private JLabel titleLabel;
@@ -403,11 +504,11 @@ public class AROBpOverallResulsPanel extends JPanel {
 		public BPResultRowPanel(BestPracticeDisplay bp, String referMsg) {
 			this.bp = bp;
 
-			this.iconLabel = new JLabel(notRunIcon);
+			this.iconLabel = new JLabel(NOT_RUN_ICON);
 			this.titleLabel = new JLabel(bp.getOverviewTitle());
-			titleLabel.setFont(textFont);
+			titleLabel.setFont(TEXT_FONT);
 			this.referSectionLabel = new HyperlinkLabel(bp.isSelfTest() ? SELFTEST : referMsg);
-			referSectionLabel.setFont(boldTextFont);
+			referSectionLabel.setFont(TEXT_FONT_BOLD);
 			referSectionLabel.setVisible(false);
 		}
 
@@ -421,21 +522,31 @@ public class AROBpOverallResulsPanel extends JPanel {
 		 */
 		public void refreshFields(TraceData.Analysis analysis) {
 			if (analysis == null) {
-				iconLabel.setIcon(notRunIcon);
+				iconLabel.setIcon(NOT_RUN_ICON);
 				iconLabel.setToolTipText(null);
 				referSectionLabel.setVisible(false);
 			} else if (bp.isSelfTest()) {
-				iconLabel.setIcon(manualIcon);
+				iconLabel.setIcon(MANUAL_ICON);
 				iconLabel.setToolTipText(MANUAL);
 				referSectionLabel.setVisible(true);
 			} else {
 				boolean isPass = bp.isPass(analysis);
 				if (isPass) {
-					iconLabel.setIcon(passIcon);
+					iconLabel.setIcon(PASS_ICON);
 					iconLabel.setToolTipText(PASS);
-				} else {
-					iconLabel.setIcon(failIcon);
-					iconLabel.setToolTipText(FAIL);
+				}else{
+					if(((bp.getOverviewTitle()).equals(rb.getString("caching.usingCache.title")))
+							|| ((bp.getOverviewTitle()).equals(rb.getString("caching.cacheControl.title")))
+							|| ((bp.getOverviewTitle()).equals(rb.getString("connections.offloadingToWifi.title")))
+							|| ((bp.getOverviewTitle()).equals(rb.getString("html.httpUsage.title")))
+							|| ((bp.getOverviewTitle()).equals(rb.getString("other.accessingPeripherals.title")))
+							){
+						iconLabel.setIcon(WARNING_ICON);
+						iconLabel.setToolTipText(WARNING); 
+					}else {
+						iconLabel.setIcon(FAIL_ICON);
+						iconLabel.setToolTipText(FAIL);
+					}
 				}
 				referSectionLabel.setVisible(!isPass);
 			}
@@ -488,45 +599,45 @@ public class AROBpOverallResulsPanel extends JPanel {
 	 */
 	public FileWriter addBpOverallContent(FileWriter writer, TraceData.Analysis analysisData)
 			throws IOException {
-		final String lineSep = System.getProperty(rb.getString("statics.csvLine.seperator"));
+		final String lineSep = System.getProperty(RB.getString("statics.csvLine.seperator"));
 		NumberFormat nf = NumberFormat.getNumberInstance();
 		nf.setMaximumFractionDigits(1);
 		nf.setMinimumFractionDigits(1);
 		nf.setMinimumIntegerDigits(1);
 
-		writer = addKeyValue(writer, rb.getString("bestPractices.duration"),
+		writer = addKeyValue(writer, RB.getString("bestPractices.duration"),
 				String.valueOf(nf.format(analysisData.getTraceData().getTraceDuration() / 60)));
 
-		writer.append(rb.getString("statics.csvCell.seperator"));
-		writer.append(rb.getString("statics.csvUnits.minutes"));
+		writer.append(RB.getString("statics.csvCell.seperator"));
+		writer.append(RB.getString("statics.csvUnits.minutes"));
 		writer.append(lineSep);
 
-		writer = addKeyValue(writer, rb.getString("bestPractices.totalDataTransfered"),
+		writer = addKeyValue(writer, RB.getString("bestPractices.totalDataTransfered"),
 				String.valueOf(analysisData.getTotalBytes()));
-		writer.append(rb.getString("statics.csvCell.seperator"));
-		writer.append(rb.getString("statics.csvUnits.bytes"));
+		writer.append(RB.getString("statics.csvCell.seperator"));
+		writer.append(RB.getString("statics.csvUnits.bytes"));
 		writer.append(lineSep);
 
-		writer = addKeyValue(writer, rb.getString("bestPractices.energyConsumed"),
+		writer = addKeyValue(writer, RB.getString("bestPractices.energyConsumed"),
 				String.valueOf(nf.format(analysisData.getEnergyModel().getTotalEnergyConsumed()))
-						.replace(rb.getString("statics.csvCell.seperator"), ""));
+						.replace(RB.getString("statics.csvCell.seperator"), ""));
 
-		writer.append(rb.getString("statics.csvCell.seperator"));
-		writer.append(rb.getString("statics.csvUnits.joules"));
+		writer.append(RB.getString("statics.csvCell.seperator"));
+		writer.append(RB.getString("statics.csvUnits.joules"));
 		writer.append(lineSep);
 
-		writer = addKeyValue(writer, rb.getString("appscore.title"), String.valueOf(""));
+		writer = addKeyValue(writer, RB.getString("appscore.title"), String.valueOf(""));
 		writer.append(lineSep);
 
-		writer = addKeyValue(writer, rb.getString("exportall.causesScore"),
+		writer = addKeyValue(writer, RB.getString("exportall.causesScore"),
 				String.valueOf(analysisData.getApplicationScore().getCausesScore()));
 		writer.append(lineSep);
 
-		writer = addKeyValue(writer, rb.getString("exportall.effectsScore"),
+		writer = addKeyValue(writer, RB.getString("exportall.effectsScore"),
 				String.valueOf(analysisData.getApplicationScore().getEffectScore()));
 		writer.append(lineSep);
 
-		writer = addKeyValue(writer, rb.getString("exportall.totalAppScore"),
+		writer = addKeyValue(writer, RB.getString("exportall.totalAppScore"),
 				String.valueOf(analysisData.getApplicationScore().getTotalApplicationScore()));
 		writer.append(lineSep);
 
@@ -544,7 +655,7 @@ public class AROBpOverallResulsPanel extends JPanel {
 	 */
 	private FileWriter addKeyValue(FileWriter writer, String key, String value) throws IOException {
 		writer.append(key);
-		writer.append(rb.getString("statics.csvCell.seperator"));
+		writer.append(RB.getString("statics.csvCell.seperator"));
 		writer.append(value);
 		return writer;
 	}

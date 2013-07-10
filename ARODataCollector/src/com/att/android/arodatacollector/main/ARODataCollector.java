@@ -117,7 +117,7 @@ public class ARODataCollector extends Application {
 	public static final String PREFS = "AROPrefs";
 	
 	/** The ARO alert menu notification id used with notification manager */
-	private static final int NOTIFICATION_ID = 1;
+	public static final int NOTIFICATION_ID = 1;
 
 	/** The error ID for an "tcpdump stop due to unexpected" error. */
 	public static final int TCPDUMPSTOPPED = 1;
@@ -176,7 +176,7 @@ public class ARODataCollector extends Application {
 	private String traceFolderNamehasError;
 
 	/** Notification to be used for alert menu */
-	private Notification mAROnotification;
+	public Notification mAROnotification;
 
 	/** Stores the value Video recording selected option */
 	private boolean mVideoRecroding;
@@ -275,8 +275,8 @@ public class ARODataCollector extends Application {
 	private void initARONotification() {
 		if (mAROnotificationManager == null) {
 			mAROnotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-			mAROnotification = new Notification(R.drawable.icon,
-					getString(R.string.aro_aleartnotification), System.currentTimeMillis());
+			
+			getARONotification();
 		}
 	}
 
@@ -285,15 +285,26 @@ public class ARODataCollector extends Application {
 	 */
 	public void triggerAROAlertNotification() {
 		initARONotification();
-		final CharSequence mTitle = getResources().getString(R.string.app_name);
-		final CharSequence mMessage = getResources().getString(R.string.app_alertmenulauchtext);
-		final Intent notificationIntent = new Intent(this, AROCollectorHomeActivity.class);
-		final PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent,
-				0);
-		notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-		mAROnotification.setLatestEventInfo(this, mTitle, mMessage, pendingIntent);
-		mAROnotification.flags = Notification.FLAG_ONGOING_EVENT;
+		
 		mAROnotificationManager.notify(NOTIFICATION_ID, mAROnotification);
+	}
+	
+	public Notification getARONotification(){
+		if (mAROnotification == null){
+			mAROnotification = new Notification(R.drawable.icon,
+					getString(R.string.aro_aleartnotification), System.currentTimeMillis());
+			
+			final CharSequence mTitle = getResources().getString(R.string.app_name);
+			final CharSequence mMessage = getResources().getString(R.string.app_alertmenulauchtext);
+			final Intent notificationIntent = new Intent(this, AROCollectorHomeActivity.class);
+			final PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent,
+					0);
+			notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+			mAROnotification.setLatestEventInfo(this, mTitle, mMessage, pendingIntent);
+			mAROnotification.flags = Notification.FLAG_ONGOING_EVENT;
+		}
+		
+		return mAROnotification;
 	}
 
 	/**
@@ -779,19 +790,68 @@ public class ARODataCollector extends Application {
 		return isDataCollectorStartInProgress;
 	}
 	
+	/**
+	 * setUserInitialScreenTimeout
+	 * @param timeoutVal
+	 */
 	public void setUserInitialScreenTimeout(int timeoutVal){
 		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
 		SharedPreferences.Editor editor = prefs.edit();
 		editor.putInt(USER_INITIAL_SCREEN_TIMEOUT, timeoutVal);
 		editor.commit();
 	}
-	
+	/**
+	 * getUserInitialScreenTimeout
+	 * @return screenTimeoutVal 
+	 */
 	public int getUserInitialScreenTimeout(){
 		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
 		final int screenTimeoutVal = prefs.getInt(USER_INITIAL_SCREEN_TIMEOUT, -1);
 		return screenTimeoutVal;
 	}
 
+	
+	/**
+	 * setDeviceScreenHeight
+	 * @param screenheight
+	 */
+	public void setDeviceScreenHeight(int screenheight){
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putInt("ScreenHeight", screenheight);
+		editor.commit();
+	}
+	/**
+	 * getDeviceScreenHeight
+	 * @return screenHeight 
+	 */
+	public int getDeviceScreenHeight(){
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		final int screenHeight = prefs.getInt("ScreenHeight", -1);
+		return screenHeight;
+	}
+	
+	/**
+	 * setDeviceScreenWidth
+	 * @param screenwidth
+	 */
+	public void setDeviceScreenWidth(int screenwidth){
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putInt("ScreenWidth", screenwidth);
+		editor.commit();
+	}
+	/**
+	 * getDeviceScreenWidth
+	 * @return screenWidth 
+	 */
+	public int getDeviceScreenWidth(){
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		final int screenWidth = prefs.getInt("ScreenWidth", -1);
+		return screenWidth;
+	}
+	
+	
 	/**
 	 * Gets the flag that indicates if the tcpdump has started.
 	 * 
@@ -968,7 +1028,7 @@ public class ARODataCollector extends Application {
 	}
 
 	/**
-	 * setUSBVideoCaptureON
+	 * Sets a flag that indicated whether the USB Video Capture has started 
 	 * @param flag
 	 */
 	public void setUSBVideoCaptureON(boolean flag){
@@ -979,6 +1039,7 @@ public class ARODataCollector extends Application {
 	}
 	
 	/**
+	 * Gets a flag that indicated whether the USB Video Capture has started 
 	 * isUSBVideoCaptureON
 	 * @return
 	 */
@@ -989,7 +1050,7 @@ public class ARODataCollector extends Application {
 	}
 	
 	/**
-	 * 
+	 * Sets a flag that indicate if Data Collector stop button is enabled 
 	 * @param flag
 	 */
 	public void setDataCollectorStopEnable(boolean flag) {
@@ -1000,7 +1061,8 @@ public class ARODataCollector extends Application {
 	}
 
 	/**
-	 * getDataCollectorStopDisable
+	 * 
+	 * Gets a flag that indicate if Data Collector stop button is enabled 
 	 * @return
 	 */
 	public boolean getDataCollectorStopEnable() {
@@ -1197,7 +1259,7 @@ public class ARODataCollector extends Application {
 			}
 			
 		} catch (Exception e){
-			Log.e(TAG, "does not have root access");
+			Log.e(TAG, "does not have root access", e);
 		}
 		
 		return hasRootAccess;

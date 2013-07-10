@@ -45,8 +45,10 @@ public class BpHeaderPanel extends ImagePanel {
 			.getImage();
 	private static final Image passHeader = Images.TEST_PASS_HEADER.getImage();
 	private static final Image failHeader = Images.TEST_FAIL_HEADER.getImage();
+	private static final Image warningHeader = Images.TEST_WARNING_HEADER.getImage();
 	private static final String PASS = rb.getString("bestPractices.pass");
 	private static final String FAIL = rb.getString("bestPractices.fail");
+	private static final String WARNING = rb.getString("bestPractices.warning");
 
 	private JLabel rightLabel;
 
@@ -89,14 +91,17 @@ public class BpHeaderPanel extends ImagePanel {
 	 *            - A boolean value that indicates whether any of the best
 	 *            practices tests in this Detailed Results section have failed.
 	 */
-	public void setPass(Boolean pass) {
+	public void setPass(Boolean pass,boolean warning) {
 		if (pass == null) {
 			rightLabel.setText(null);
 			setImage(notRunHeader);
 		} else if (pass.booleanValue()) {
 			rightLabel.setText(PASS);
 			setImage(passHeader);
-		} else {
+		}else if (warning){
+			rightLabel.setText(WARNING);
+			setImage(warningHeader); 
+		}else {
 			rightLabel.setText(FAIL);
 			setImage(failHeader);
 		}

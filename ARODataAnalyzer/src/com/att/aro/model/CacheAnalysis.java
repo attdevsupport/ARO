@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -363,7 +364,7 @@ public class CacheAnalysis implements Serializable {
 		// Get cache problems
 		Set<CacheEntry> dupsWithOrig = new HashSet<CacheEntry>();
 		for (CacheEntry c : diagnosisResults) {
-			long bytes = c.getResponse().getActualByteCount();
+			long bytes = c.getResponse().getContentLength();
 			totalRequestResponseBytes += bytes;
 			switch (c.getDiagnosis()) {
 			case CACHING_DIAG_NOT_EXPIRED_DUP:
@@ -378,6 +379,8 @@ public class CacheAnalysis implements Serializable {
 				if (c.getCacheHit() != null) {
 					dupsWithOrig.add(c.getCacheHit());
 				}
+				break;
+			default:
 				break;
 			}
 		}

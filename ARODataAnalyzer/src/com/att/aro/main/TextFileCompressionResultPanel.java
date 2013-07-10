@@ -19,6 +19,10 @@ package com.att.aro.main;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -48,14 +52,14 @@ public class TextFileCompressionResultPanel extends JPanel {
 	private static final int ROW_HEIGHT = 20;
 	private static final int NO_OF_ROWS = 6;
 	private static final int SCROLL_PANE_HEIGHT = NO_OF_ROWS * ROW_HEIGHT;
-	private static final int SCROLL_PANE_LENGHT = 300;
+	private static final int SCROLL_PANE_LENGHT = 360;
 
 	private JLabel title;
 	private JPanel contentPanel;
 	private JScrollPane scrollPane;
 	private TextFileCompressionTableModel tableModel;
 	private DataTable<TextFileCompressionEntry> contentTable;
-
+	
 	/**
 	 * Initializes a new instance of the TextFileCompressionResultPanel class
 	 * using the specified instance of the ApplicationResourceOptimizer as the
@@ -85,8 +89,14 @@ public class TextFileCompressionResultPanel extends JPanel {
 	 */
 	private void initialize() {
 		this.setLayout(new BorderLayout());
-		this.add(getTitle(), BorderLayout.NORTH);
 		this.add(getContentPanel(), BorderLayout.CENTER);
+		JPanel contentPanelWidth = new JPanel(new GridLayout(2, 1, 5, 5));
+		JPanel contentPanelWidthAdjust = new JPanel(new GridBagLayout());
+		contentPanelWidthAdjust.add(contentPanelWidth, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
+				GridBagConstraints.NORTH, GridBagConstraints.NONE, new Insets(
+						5, 5, 5, 30), 0, 0));
+		contentPanelWidthAdjust.setBackground(Color.WHITE);
+		this.add(contentPanelWidthAdjust, BorderLayout.EAST);
 	}
 
 	/**
@@ -103,12 +113,17 @@ public class TextFileCompressionResultPanel extends JPanel {
 	 * Initializes and returns the content panel.
 	 */
 	private JPanel getContentPanel() {
+
 		if (contentPanel == null) {
 			contentPanel = new JPanel(new BorderLayout());
+			contentPanel.add(getTitle(), BorderLayout.NORTH);
 			contentPanel.add(getScrollPane(), BorderLayout.CENTER);
 		}
 		return contentPanel;
+
 	}
+
+
 
 	/**
 	 * Initializes and returns the Scroll Pane.

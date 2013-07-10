@@ -178,20 +178,28 @@ public class AROBpDetailedResultPanel extends JPanel {
 	public void refresh(TraceData.Analysis analysisData) {
 
 		dateTraceAppDetailPanel.refresh(analysisData);
+		boolean warning = true;
 		if (analysisData != null) {
 			boolean pass = true;
 			for (DetailedResultRowPanel panel : panels) {
 				Boolean b = panel.refresh(analysisData);
 				if (b != null) {
 					pass = pass && b.booleanValue();
+					warning = false;
 				}
 			}
-			header.setPass(pass);
+			if (warning){
+				pass = false;
+				header.setPass(pass,warning);
+			}else{
+				header.setPass(pass,warning);
+			}
 		} else {
+			warning = false;
 			for (DetailedResultRowPanel panel : panels) {
 				panel.refresh(analysisData);
 			}
-			header.setPass(null);
+			header.setPass(null,warning);
 		}
 	}
 

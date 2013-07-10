@@ -19,11 +19,14 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.android.ddmlib.IDevice;
 import com.android.ddmlib.RawImage;
+import com.att.aro.main.ResourceBundleManager;
+import com.att.aro.model.TraceData;
 
 /**
  * Represents a process thread for capturing raw images from the Android
@@ -36,12 +39,12 @@ public class VideoCaptureThread extends Thread {
 	private static final Logger logger = Logger
 			.getLogger(VideoCaptureThread.class.getName());
 	private static final int MAX_FETCH_EXCEPTIONS = 5;
-
+	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 	private QuickTimeOutputStream qos;
 	private IDevice device;
 	private boolean allDone;
 	private Date videoStartTime;
-	
+	private TraceData traceData;
 	public boolean usbDisconnected = false;
 
 	public boolean isUsbDisconnected() {
@@ -61,9 +64,10 @@ public class VideoCaptureThread extends Thread {
 	 * @param file
 	 *            The video output file.
 	 */
-	public VideoCaptureThread(IDevice device, File file) throws IOException {
+	public VideoCaptureThread(IDevice device,TraceData traceData, File file) throws IOException {
 		allDone = false;
 		this.device = device;
+		this.traceData = traceData;
 		qos = new QuickTimeOutputStream(file,
 				QuickTimeOutputStream.VideoFormat.JPG);
 		qos.setVideoCompressionQuality(1f);
@@ -105,6 +109,21 @@ public class VideoCaptureThread extends Thread {
 						qos.writeFrame(image, duration);
 						lastFrameTime = timestamp;
 					}
+				}
+				try{
+					if (traceData != null) {
+						final String deviceMake= traceData.getDeviceMake().toLowerCase();
+						if(deviceMake.contains(rb.getString("Message.devicemakeHTC"))){
+							//We would sleep for 1 sec for lower frame rate video on HTC devices via USB bridge 
+							Thread.sleep(1000);
+						}else{
+							//Delay for 300 for > 2fps video
+							Thread.sleep(300);
+						}
+					}
+					
+				}catch(InterruptedException e){
+					e.printStackTrace();
 				}
 			} catch (IOException e) {
 				iExceptionCount++;

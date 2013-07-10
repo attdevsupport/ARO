@@ -84,7 +84,7 @@ public class AROBestPracticesPanel extends JScrollPane implements Printable {
 		aroBestPracticesMainPanel.add(getHeaderPanel(), BorderLayout.NORTH);
 
 		// Build the main panel
-		ImagePanel panel = new ImagePanel(Images.BACKGROUND.getImage());
+		ImagePanel panel = new ImagePanel(null);
 		panel.setLayout(new GridBagLayout());
 		Insets insets = new Insets(10, 10, 10, 10);
 

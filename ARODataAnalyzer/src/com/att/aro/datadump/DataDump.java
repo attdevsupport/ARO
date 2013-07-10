@@ -97,6 +97,8 @@ public class DataDump {
 
 	private static final NumberFormat NUMBER_FORMAT = new DecimalFormat("0.00");
 
+	private static final int FILE_NAME_MAX_LENGTH = 50;
+
 	/**
 	 * Initializes a new instance of {@link DataDump}.
 	 * 
@@ -226,10 +228,14 @@ public class DataDump {
 	 * Initiates the save chooser options and creates a file.
 	 */
 	private boolean showSaveChooser() {
-		JFileChooser chooser = new JFileChooser(UserPreferences.getInstance()
-				.getLastExportDirectory());
-		chooser.addChoosableFileFilter(new FileNameExtensionFilter(Util.RB.getString("fileChooser.desc.csv"),
-				Util.RB.getString("fileChooser.contentType.csv")));
+		
+		final String fileExtention = Util.RB.getString("fileChooser.contentType.csv");
+		
+		JFileChooser chooser = new JFileChooser(UserPreferences.getInstance().getLastExportDirectory());
+		FileNameExtensionFilter ff;
+		ff = new FileNameExtensionFilter(Util.RB.getString("fileChooser.desc.csv"), fileExtention);
+		chooser.addChoosableFileFilter(ff);
+		chooser.setFileFilter(ff);
 		chooser.setDialogTitle(Util.RB.getString("fileChooser.Title"));
 		chooser.setApproveButtonText(Util.RB.getString("fileChooser.Save"));
 		chooser.setMultiSelectionEnabled(false);
@@ -239,20 +245,20 @@ public class DataDump {
 		}
 
 		fileToSave = chooser.getSelectedFile();
-		if (fileToSave.getName().length() >= 50) {
+		if (fileToSave.getName().length() >= FILE_NAME_MAX_LENGTH) {
 			MessageDialogFactory.showErrorDialog(MSG_WINDOW,
 					Util.RB.getString("exportall.errorLongFileName"));
 			return false;
 		}
 		if (!chooser.getFileFilter().accept(fileToSave)) {
-			fileToSave = new File(fileToSave.getAbsolutePath() + "."
-					+ Util.RB.getString("fileChooser.contentType.csv"));
+			fileToSave = new File(fileToSave.getAbsolutePath() + "." + fileExtention);
 		}
+		
+		String message = MessageFormat.format(Util.RB.getString("fileChooser.fileExists"),
+				                              fileToSave.getAbsolutePath());
 		if (fileToSave.exists()) {
-			if (MessageDialogFactory.showConfirmDialog(
-					MSG_WINDOW,
-					MessageFormat.format(Util.RB.getString("fileChooser.fileExists"),
-							fileToSave.getAbsolutePath()), JOptionPane.YES_NO_OPTION) == JOptionPane.NO_OPTION) {
+			int option = MessageDialogFactory.showConfirmDialog( MSG_WINDOW, message, JOptionPane.YES_NO_OPTION);
+			if (option == JOptionPane.NO_OPTION) {
 				return false;
 			}
 		}
@@ -319,11 +325,10 @@ public class DataDump {
 	 *            - List of valid trace folder names.
 	 */
 	private void getValidFolderList(List<File> traceFolders, List<File> validFolderList) {
-		String trafficFile = Util.RB.getString("datadump.trafficFile");
 		for (File traceDirectory : traceFolders) {
 
 			// Check if it is a valid trace folder or not
-			if (new File(traceDirectory, trafficFile).exists()) {
+			if (new File(traceDirectory, Util.TRAFFIC_FILE).exists()) {
 				validFolderList.add(traceDirectory);
 			}
 

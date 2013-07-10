@@ -18,9 +18,6 @@ package com.att.android.arodatacollector.activities;
 
 //import org.apache.http.client.ClientProtocolException;
 
-import java.util.Timer;
-import java.util.TimerTask;
-
 import com.att.android.arodatacollector.R;
 import com.att.android.arodatacollector.main.AROCollectorService;
 import com.att.android.arodatacollector.main.AROCollectorTraceService;
@@ -78,8 +75,7 @@ public class AROCollectorHomeActivity extends Activity {
 	/** Keeps track of the current tick that the timer is on*/
 	private long countUp; 
 	
-	private static Timer delayedStopTimer = null;
-	
+	/** Used for calculating the trace duration*/
 	private Chronometer stopWatch;
 	
 	/**
@@ -157,6 +153,9 @@ public class AROCollectorHomeActivity extends Activity {
 		finish();
 	}
 
+	/**
+	 * method to unregister the receiver that listens to usb connect/disconnect events
+	 */
 	private void unregisterUsbBroadcastReceiver() {
 		if (DEBUG){
 			Log.i(TAG, "inside unregisterUsbBroadcastReceiver");
@@ -175,6 +174,9 @@ public class AROCollectorHomeActivity extends Activity {
 		}
 	}
 	
+	/**
+	 * override the parent's method to unregister the usb broadcast receiver
+	 */
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
@@ -244,47 +246,16 @@ public class AROCollectorHomeActivity extends Activity {
 			mApp.cancleAROAlertNotification();
 		}
 		else {
-			Log.w(TAG, "inside AROCollectorHomeActivity.stopARODataCollector, but AROCollectorService/AROCollectorTraceService is null. Timestamp: " + System.currentTimeMillis());
+			Log.e(TAG, "inside AROCollectorHomeActivity.stopARODataCollector, but AROCollectorService/AROCollectorTraceService is null. Timestamp: " + System.currentTimeMillis());
 			//this typically happens when the service had been killed by Android and has not been restarted.
-			//so here, we will request the service start and schedule a task to check  
-			
-			if (AROCollectorService.getServiceObj() == null){
-				startService(new Intent(getApplicationContext(), AROCollectorService.class));
-			}
-			
-			if (AROCollectorTraceService.getServiceObj() == null){
-				startService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
-			}
-			
-			delayedStopTimer = new Timer();
-			
-			TimerTask stopTask = new TimerTask(){
-				//schedule a task to request the data collector stop in 5 sec
-				public void run(){
-					Log.i(TAG, "timer's up, will try to stop tcpdump. Timestamp: " + System.currentTimeMillis());
-					if (AROCollectorService.getServiceObj() != null && AROCollectorTraceService.getServiceObj() != null) {
-						Log.i(TAG, "AROCollectorService and AROCollectorTraceService are running, will invoke requestDataCollectorStop(). Timestamp: " + System.currentTimeMillis());
-						// Sends the STOP Command to tcpdump socket and Stop the Video
-						// capture on device
-						AROCollectorService.getServiceObj().requestDataCollectorStop();
-						mApp.cancleAROAlertNotification();
-						delayedStopTimer.cancel();
-					}
-					else {
-						Log.i(TAG, "AROCollectorService/AROCollectorTraceService is still not restarted yet. Will try again in 3secs. Timestamp: " + System.currentTimeMillis());
-					}
-				}
-
-			};
-			
-			Log.i(TAG, "scheduling a timer task to keep checking for when the AROCollectorService/AROCollectorTraceService will be started by Android");
-			delayedStopTimer.schedule(stopTask, 5000, 3000);
+			//This should no longer happen since we implemented these services as foreground service
 		}
 
 	}
 	
 	/**
-	 * USBBroadcastReceiver
+	 * USBBroadcastReceiver to listen to usb connect/disconnect event. This is used
+	 * to enable/disable the stop button when the trace is started from the analyzer
 	 */
 	private BroadcastReceiver USBBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -297,7 +268,10 @@ public class AROCollectorHomeActivity extends Activity {
         }
     };
 	
-	@Override
+	/**
+	 * override the parent method to register the usb broadcast receiver
+	 */
+    @Override
 	public void onResume() {
 		super.onResume();		
 		

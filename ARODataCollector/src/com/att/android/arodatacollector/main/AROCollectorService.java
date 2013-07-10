@@ -40,6 +40,8 @@ import java.util.TimerTask;
 
 import org.apache.http.client.ClientProtocolException;
 
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -153,14 +155,19 @@ public class AROCollectorService extends Service {
 		return mDataCollectorService;
 	}
 	
+	
+	
+	
+	
 	/**
-	 * s processing when an AROCollectorService object is created.
+	 * Gets processing when an AROCollectorService object is created.
 	 * Overrides the android.app.Service#onCreate method.
 	 * 
 	 * @see android.app.Service#onCreate()
 	 */
 	@Override
 	public void onCreate() {
+		
 		// Initializes the data controls and starts the Data Collector trace
 		// (i.e tcpdump,VideoCapture)
 		mDataCollectorService = this;
@@ -186,23 +193,38 @@ public class AROCollectorService extends Service {
 		if (DEBUG) {
 			Log.d(TAG, "flurry-TelephonyManager deviceId: " + mAROtelManager.getDeviceId());
 		}
-
 		disableScreenTimeout();
-		
 		TRACE_FOLDERNAME = mApp.getDumpTraceFolderName();
 		mVideoRecording = mApp.getCollectVideoOption();
 		startDataCollectorVideoCapture();
 		statDataCollectortcpdumpCapture();
 	}
 
-	private static final int THIRTY_MIN_IN_MILLIS = 30 * 60 * 1000;
+	@Override
+	public int onStartCommand(Intent intent, int flags, int startId) {
+
+		Notification mAROnotification = mApp.getARONotification();
+		NotificationManager mAROnotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+		mAROnotificationManager.notify(ARODataCollector.NOTIFICATION_ID, mAROnotification);
+		startForeground(ARODataCollector.NOTIFICATION_ID, mAROnotification);
+		
+		if (DEBUG){
+			Log.d(TAG, "AROCollectorService started in foreground at timestamp:" + System.currentTimeMillis());
+		}
+		
+		return (START_NOT_STICKY);
+
+	}
+	
+	/** constant used for setting the user screen timeout during the trace*/
+	private static final int TEN_MIN_IN_MILLIS = 10 * 60 * 1000;
+	
+	/**
+	 * method to save the initial user timeout setting, then set the
+	 * timeout to 10 minute when ARO trace starts 
+	 */
 	private void disableScreenTimeout() {
 		try {
-			//Record the screen timeout
-			//TODO: make sure this only gets called the first time the trace starts.
-			//Sometimes android stops and restarts background services, so if it's called
-			//multiple times, the original user timeout value will be overwritten.
-			//Also need to handle the case where the trace fail to stop properly
 			int mScreenTimeout = getScreenTimeOut();
 			mApp.setUserInitialScreenTimeout(mScreenTimeout);
 
@@ -214,23 +236,23 @@ public class AROCollectorService extends Service {
 			
 			String deviceName = getDeviceName();
 			Log.i(TAG, "deviceName: " + deviceName);
-			if (deviceName.contains("nexus") && deviceName.contains("4")){
-				//nexus 4
-				setScreenTimeOut(THIRTY_MIN_IN_MILLIS);
-				Log.i(TAG, "screen timeout set to 30 min for nexus 4");
-			}
-			else {
-				setScreenTimeOut(-1);
-				Log.i(TAG, "screen timeout disabled at timestamp: " + System.currentTimeMillis());
-			}
+			
+			//some devices don't support -1 value, but allow it to be set without giving error, then
+			//produce unexpected behavior. We can't tell which devices don't support -1 value, so 
+			//we'll just set the timeout value to 10 min
+			setScreenTimeOut(TEN_MIN_IN_MILLIS);
+			Log.i(TAG, "screen timeout set to 10 min for " + deviceName);
 
 		} catch (Exception e) {
-			Log.e(TAG, "exception in getting device settings. Failed to get screen timeout", e);
+			Log.e(TAG, "exception in getting device settings. Failed to get/set screen timeout", e);
 		}
 	}
 
-	
-	public String getDeviceName() {
+	/**
+	 * get the device name (manufacturer + model)
+	 * @return device manufacturer and model in lower case
+	 */
+	private String getDeviceName() {
 		String manufacturer = Build.MANUFACTURER.toLowerCase();
 		String model = Build.MODEL.toLowerCase();
 		if (model.startsWith(manufacturer)) {

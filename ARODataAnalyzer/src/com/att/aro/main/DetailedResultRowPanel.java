@@ -48,6 +48,7 @@ public class DetailedResultRowPanel {
 
 	private static final ImageIcon passIcon = Images.BP_PASS_DARK.getIcon();
 	private static final ImageIcon failIcon = Images.BP_FAIL_DARK.getIcon();
+	private static ImageIcon warningIcon = Images.BP_WARNING_DARK.getIcon();
 	private static final ImageIcon notRunIcon = Images.BP_SELFTEST_TRIGGERED
 			.getIcon();
 	private static final ImageIcon manualIcon = Images.BP_MANUAL.getIcon();
@@ -55,6 +56,7 @@ public class DetailedResultRowPanel {
 			.getDefaultBundle();
 	private static final String PASS = rb.getString("bestPractice.tooltip.pass");
 	private static final String FAIL = rb.getString("bestPractice.tooltip.fail");
+	private static String WARNING = rb.getString("bestPractice.tooltip.warning");
 	private static final String MANUAL = rb.getString("bestPractice.tooltip.manual");
 
 	private static final Font textFont = new Font("TextFont", Font.PLAIN, 12);
@@ -119,11 +121,22 @@ public class DetailedResultRowPanel {
 				iconLabel.setToolTipText(PASS);
 				resultDetailsLabel.setText(bp.resultText(analysisData));
 				result = Boolean.TRUE;
-			} else {
-				iconLabel.setIcon(failIcon);
-				iconLabel.setToolTipText(FAIL);
-				resultDetailsLabel.setText(bp.resultText(analysisData));
-				result = Boolean.FALSE;
+			}else{
+				if(((bp.getDetailTitle()).equals(rb.getString("caching.cacheControl.detailedTitle")))
+						|| ((bp.getDetailTitle()).equals(rb.getString("caching.usingCache.detailedTitle")))
+						|| ((bp.getDetailTitle()).equals(rb.getString("connections.offloadingToWifi.detailedTitle")))
+						|| ((bp.getDetailTitle()).equals(rb.getString("other.accessingPeripherals.detailedTitle")))
+						|| ((bp.getDetailTitle()).equals(rb.getString("html.httpUsage.title")))
+						){
+					iconLabel.setIcon(warningIcon);
+					iconLabel.setToolTipText(WARNING);
+					resultDetailsLabel.setText(bp.resultText(analysisData));
+				}else {
+					iconLabel.setIcon(failIcon);
+					iconLabel.setToolTipText(FAIL);
+					resultDetailsLabel.setText(bp.resultText(analysisData));
+					result = Boolean.FALSE;
+				}
 			}
 		}
 

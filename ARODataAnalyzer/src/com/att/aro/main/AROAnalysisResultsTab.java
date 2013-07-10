@@ -106,7 +106,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 
 		aroBestPracticesMainPanel.add(getHeaderPanel(), BorderLayout.NORTH);
 
-		ImagePanel panel = new ImagePanel(Images.BACKGROUND.getImage());
+		ImagePanel panel = new ImagePanel(null);
 		panel.setLayout(new GridBagLayout());
 		Insets insets = new Insets(10, 10, 10, 10);
 

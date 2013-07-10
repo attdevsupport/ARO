@@ -49,7 +49,6 @@ import javax.media.MediaTimeSetEvent;
 import javax.media.NoPlayerException;
 import javax.media.Player;
 import javax.media.StartEvent;
-import javax.media.StopEvent;
 import javax.media.Time;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -63,6 +62,7 @@ import com.att.aro.images.Images;
 import com.att.aro.main.AROAdvancedTabb;
 import com.att.aro.main.ResourceBundleManager;
 import com.att.aro.model.TraceData;
+import com.att.aro.util.Util;
 
 /**
  * Displays the ARO Video Player UI, and provides Video player handling for the
@@ -93,12 +93,13 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 	private JButton jButton;
 	private boolean syncVideoClicked =false;
 	private TraceData traceData;
-	private  Time pauseVideoTime;
 	private boolean videoStarted = false;
 	private boolean showInfoMsg = true;
 	private int controllerState;
-	private boolean showPauseNotification;
-	boolean isVideoPlayerStopped = false;
+	private boolean reSync;
+	private double userClickPosition;
+	private boolean userClickBeforeSyncPoint;
+		
 	public enum FileTypeEnum {
 		QT, WMV, WMA, MPEG, _3GP, ASF, AVI, ASf, DV, MKV, MPG, RMVB, VOB, MOV, MP4;
 		
@@ -114,7 +115,7 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 		private double userPausedPos;
 		private double prevSeconds;
 		private double timeAdjustment;
-
+		
 		@Override
 		public void run() {
 
@@ -149,27 +150,70 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 								public void run() {
 									// Sync external video and traces, in case of native video normal behavior is retained.
 									if (syncVideoClicked || traceData.getExVideoStatus()){
-										userPausedPos = videoOffset;
-										if ( seconds >= userPausedPos ){
-											timeAdjustment = (seconds-userPausedPos);
-											aroAdvancedTab.setTimeLineLinkedComponents(timeAdjustment);
+										if(!aroAdvancedTab.IsGraphPanelClicked()){
+											userPausedPos = videoOffset;
+											if ( (seconds >= userPausedPos)){
+												timeAdjustment = (seconds-userPausedPos);
+												aroAdvancedTab.setTimeLineLinkedComponents(timeAdjustment);
+												if(syncVideoClicked){
+													syncVideoClicked = false;
+												}else if(traceData.getExVideoStatus()){
+													traceData.setExVideoStatus(false);
+												}
+												prevSeconds = seconds;
+											}
+										}else{
+											aroAdvancedTab.setTimeLineLinkedComponents(seconds+videoOffset);
 											if(syncVideoClicked){
 												syncVideoClicked = false;
 											}else if(traceData.getExVideoStatus()){
 												traceData.setExVideoStatus(false);
 											}
-											prevSeconds = seconds;
+												
 										}
 									}else{
 										 //In case of native video , fall back on the native track.
-										if(!syncVideoClicked && !(traceData.getExVideoStatus()) && traceData.isNativeVideo()){
-											prevSeconds = 0.0;
+										if(!syncVideoClicked && !(traceData.getExVideoStatus())){
+											if(traceData.isNativeVideo()){ 
+												prevSeconds = 0.0;
+											}
+											if(reSync){
+												prevSeconds = 0.0;
+												reSync = false;
+											}
 										}
 										if(prevSeconds > 0.0){
-											aroAdvancedTab.setTimeLineLinkedComponents((seconds - prevSeconds)- timeAdjustment );
+											
+											if(aroAdvancedTab.IsGraphPanelClicked()){
+												if(seconds <= 0.0)
+												{
+													/*if user starts the video slider from the begining reset the blue line*/
+													aroAdvancedTab.setTimeLineLinkedComponents(-1.0);
+													aroAdvancedTab.setGraphPanelClicked(false);
+													
+												}else{
+													//if(userClickBeforeSyncPoint){
+													if(userClickPosition < videoOffset){
+														//aroAdvancedTab.setTimeLineLinkedComponents(userClickPosition);
+														aroAdvancedTab.setTimeLineLinkedComponents(seconds - videoOffset);
+														//userClickBeforeSyncPoint = false;
+														
+													}else{
+														aroAdvancedTab.setTimeLineLinkedComponents(seconds - videoOffset);													
+													}
+												}
+											}else{
+												aroAdvancedTab.setTimeLineLinkedComponents((seconds - prevSeconds)- timeAdjustment );
 											}
+										}
 										else{
-											aroAdvancedTab.setTimeLineLinkedComponents(seconds+videoOffset);
+												if(seconds <=0.0){
+													/*if user starts the video slider from the begining reset the blue line*/
+													aroAdvancedTab.setTimeLineLinkedComponents(-1.0);
+													aroAdvancedTab.setGraphPanelClicked(false);
+												}else{
+													aroAdvancedTab.setTimeLineLinkedComponents(seconds+videoOffset);
+												}
 										}
 										
 									}
@@ -244,6 +288,9 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 		 * 			reset the blue line and the video slider .
 		 * */
 		
+		/*
+		 * TODO Make sure video is not playing based on state???
+		 */
 		if(traceData.isPcapFile()){
 			 file = new File(traceData.getTraceDir().getParentFile(), outVideoTimeFileName);
 		}else{
@@ -252,7 +299,7 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 		if (file.exists()){
 			if(MessageDialogFactory.showConfirmDialog(
 		    		AROVideoPlayer.this,
-		    		"Video is already Synched.Do you want to Re-Sync again?", "Information",
+		    		Util.RB.getString("video.error.synchAgain"), "Information",
 		    		JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION){
 				// delete the exVideo_time file.
 				try {
@@ -266,48 +313,30 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 						- ((double) traceData.getTraceDateTime().getTime() / 1000)
 						: 0.0;
 				traceData.setExVideoTimeFileStatus(true);
-				
 				videoPlayer.stop();
-				isVideoPlayerStopped = true;
 				setMediaDisplayTime(0.0);
 				aroAdvancedTab.setTimeLineLinkedComponents(0.0);
-				pauseVideoTime = null;
 				videoStarted=false;
+				reSync = true;
+				
 				
 			}
 		}else{
 			if (videoPlayer != null) {
-				if (videoStarted){
-					
-					if(isVideoPlayerStopped){
-						pauseVideoTime = null;
-						isVideoPlayerStopped = false;
-					}
-					if (pauseVideoTime == null){
-						MessageDialogFactory.showMessageDialog(
-								AROVideoPlayer.this,
-								"Pause the video before syncing.", "Error",
-								JOptionPane.ERROR_MESSAGE);
-						return;
-			    	}
-			   }else{
-			   	   //Ask the user to start the video and pause it.
-			  	   if (pauseVideoTime == null){
-			  		   MessageDialogFactory.showMessageDialog(
-			  				   AROVideoPlayer.this,
-			  				   "Start the video and Pause where the traces should start Syncing.", "Error",
-			  				   JOptionPane.ERROR_MESSAGE);
-			  		   return;
-			  	   }
-			    }
-					
-				//File does not exist,first time.
+				/*File does not exist,first time or resync*/
 				syncVideoClicked = true;
-				showPauseNotification=false;
-				externalVideoStartTime = (pauseVideoTime.getSeconds() + ((double) traceData.getTraceDateTime().getTime() / 1000));
-				aroAdvancedTab.setTimeLineLinkedComponents(0.0);
-				this.videoOffset = pauseVideoTime.getSeconds();
+				Time current = null;
+				/* checking timing with this thread and event handlers for MediaTimeSetEvent
+				*get in line behind event handler threads*/
+				synchronized (AROVideoPlayer.this) {
+					current = videoPlayer.getMediaTime();
+				}
+				externalVideoStartTime = (current.getSeconds() + ((double) traceData.getTraceDateTime().getTime() / 1000));
+				aroAdvancedTab.setGraphPanelClicked(false);
 				setMediaDisplayTime(0.0);
+				aroAdvancedTab.setTimeLineLinkedComponents(0.0);
+				this.videoOffset = current.getSeconds();
+				
 				
 				//Write video_time file.
 				try {
@@ -402,34 +431,22 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 
 					if ((evt instanceof StartEvent) && showInfoMsg
 							&& traceData.getExVideoTimeFileStatus()) {
-						MessageDialogFactory
-								.showMessageDialog(
-										AROVideoPlayer.this,
-										"The Analyzer loaded an external video. The video may not be in Sync with"
-												+ " the traces. Pause the video at the trace starting point and " +
-														"click Sync Video button.",
-										"Information", 1);
-						videoStarted = true;
-						showInfoMsg = false;
-						showPauseNotification=true;
-						
-					}
-					new Thread(syncThread).start();
-				}
-				if (evt instanceof StopEvent) {
-					if (videoPlayer!=null){
-						controllerState = videoPlayer.getState();
-						if(!showInfoMsg && (controllerState == 600) && showPauseNotification){
-							MessageDialogFactory.showMessageDialog(
-						    		AROVideoPlayer.this,
-						    		"Pause the video to sync.", "Error",
-						    		JOptionPane.ERROR_MESSAGE);
-							isVideoPlayerStopped = false;
-						    		return;
+						//TODO show dialog some time other than clicking start to handle slidebar drag
+						if(!syncVideoClicked){
+							MessageDialogFactory
+							
+									.showMessageDialog(
+											AROVideoPlayer.this,
+											rb.getString("video.syncPointClear"),
+											"Information", 1);
+							videoStarted = true;
+							showInfoMsg = false;
 						}else{
-							pauseVideoTime = videoPlayer.getMediaTime();
+							videoStarted = true;
+							showInfoMsg = false;
 						}
 					}
+					new Thread(syncThread).start();
 				}
 			}
 		});
@@ -440,7 +457,13 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 			jButton.setVisible(true);
 		}
 		videoStarted = false;
-		pauseVideoTime = null;	
+		aroAdvancedTab.setGraphPanelClicked(false);
+			
+	}
+	
+	public Player getVideoPlayer()
+	{
+		return this.videoPlayer;
 	}
 	/**
 	 * Helper function which resets the sync button during trace reload.
@@ -553,10 +576,12 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 	 *            length of the video.
 	 */
 	public synchronized void setMediaDisplayTime(double dCurrentTimeInSeconds) {
+		 
 		if ((videoPlayer != null) && (videoPlayer.getDuration() != null)) {
+			
 			double videoTime = dCurrentTimeInSeconds - this.videoOffset;
 
-			if (videoTime < 0.0) {
+			if ((videoTime < 0.0) && (dCurrentTimeInSeconds == 0.0)) {
 				videoPlayer.setMediaTime(new Time(0.0));
 				return;
 			}
@@ -565,7 +590,25 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 						.getSeconds()));
 				return;
 			}
-			videoPlayer.setMediaTime(new Time(videoTime));
+			if((videoTime < 0.0) && (dCurrentTimeInSeconds > 0.0)){
+				if(!aroAdvancedTab.getTCPPacketFoundStatus()){
+					aroAdvancedTab.reSetTCPPacketFoundStatus(true);
+				}
+				else {
+					userClickPosition = dCurrentTimeInSeconds;
+					userClickBeforeSyncPoint = true;
+					videoTime = dCurrentTimeInSeconds+this.videoOffset;
+					videoPlayer.setMediaTime(new Time(videoTime));
+				}
+			}else{
+				if(!traceData.isNativeVideo()){
+					userClickPosition =dCurrentTimeInSeconds;
+					videoTime = dCurrentTimeInSeconds+this.videoOffset;
+					videoPlayer.setMediaTime(new Time(videoTime));
+				}else{
+					videoPlayer.setMediaTime(new Time(videoTime));
+				}
+			}
 		}
 	}
 
@@ -608,6 +651,7 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 			videoOffset= 0.0;
 		}
 		syncVideoClicked = false;
+		
 	}
 
 	/**

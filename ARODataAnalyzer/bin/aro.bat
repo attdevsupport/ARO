@@ -25,5 +25,4 @@ goto run
 if "%_JAVA%" == "" set _JAVA=java.exe
 
 :run
-"%_JAVA%" -classpath "%~dp0..\lib\ARO.jar;%~dp0..\lib\ddmlib.jar;%~dp0..\lib\jcommon-1.0.13.jar;%~dp0..\lib\jfreechart-1.0.13.jar;%~dp0..\lib\jmf.jar" -Xms100m -Xmx1024m com.att.aro.main.Launch
-
+"%_JAVA%" -cp "%~dp0..\lib\*" -Xms100m -Xmx1024m com.att.aro.main.Launch

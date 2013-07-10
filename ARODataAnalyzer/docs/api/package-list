@@ -1,4 +1,9 @@
 com.att.aro.bp
+com.att.aro.bp.asynccheck
+com.att.aro.bp.fileorder
+com.att.aro.bp.imageSize
+com.att.aro.bp.minification
+com.att.aro.bp.spriteimage
 com.att.aro.commonui
 com.att.aro.datadump
 com.att.aro.images

@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.01000
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -95,24 +95,24 @@ public class DatacollectorBridge {
 	private static final String KEYDB = rb.getString("Name.keyevent");
 	private static final String TRACE_ROOT = "/sdcard/ARO/";
 	private static final int TCPDUMP_PORT = 50999;
-	private static final String[] mDataDeviceCollectortraceFileNames = { TraceData.CPU_FILE,
-			TraceData.APPID_FILE, TraceData.APPNAME_FILE, TraceData.TIME_FILE,
-			TraceData.USER_EVENTS_FILE, TraceData.PCAP_FILE,
+	private static final String[] mDataDeviceCollectortraceFileNames = {
+			TraceData.CPU_FILE, TraceData.APPID_FILE, TraceData.APPNAME_FILE,
+			TraceData.TIME_FILE, TraceData.USER_EVENTS_FILE,
 			TraceData.ACTIVE_PROCESS_FILE, TraceData.BATTERY_FILE,
-			TraceData.BLUETOOTH_FILE,TraceData.CAMERA_FILE,
-			TraceData.DEVICEDETAILS_FILE,TraceData.DEVICEINFO_FILE,
-			TraceData.GPS_FILE,TraceData.NETWORKINFO_FILE,
-			TraceData.PROP_FILE,TraceData.RADIO_EVENTS_FILE,
-			TraceData.SCREEN_STATE_FILE,TraceData.SCREEN_ROTATIONS_FILE,
-			TraceData.TIME_FILE,TraceData.USER_INPUT_LOG_EVENTS_FILE,
-			TraceData.VIDEO_TIME_FILE,TraceData.WIFI_FILE
-			};
-
+			TraceData.BLUETOOTH_FILE, TraceData.CAMERA_FILE,
+			TraceData.DEVICEDETAILS_FILE, TraceData.DEVICEINFO_FILE,
+			TraceData.GPS_FILE, TraceData.NETWORKINFO_FILE,
+			TraceData.PROP_FILE, TraceData.RADIO_EVENTS_FILE,
+			TraceData.SCREEN_STATE_FILE, TraceData.SCREEN_ROTATIONS_FILE,
+			TraceData.TIME_FILE, TraceData.USER_INPUT_LOG_EVENTS_FILE,
+			TraceData.VIDEO_TIME_FILE, TraceData.WIFI_FILE, TraceData.PCAP_FILE };
+	
 	private static final String[] mDataEmulatorCollectortraceFileNames = { TraceData.CPU_FILE,
 		TraceData.APPID_FILE, TraceData.APPNAME_FILE, TraceData.TIME_FILE,
 		TraceData.USER_EVENTS_FILE, TraceData.PCAP_FILE,
 		};
 
+	private static final int AROSDCARD_TIMERCHECK_FREQUENCY= 10000;
 	private static final int AROSDCARD_MIN_SPACEBYTES = 5120; // 5MB Minimum
 																// Space
 																// required to
@@ -137,7 +137,7 @@ public class DatacollectorBridge {
 	 *
 	 * For the delay setting for the synchronization between the device and the file
 	 * */
-	private static final long DELAY_TO_FINISH_STORE_FILES_ON_DEVICE = 2000; //TODO: Will replace with a device communication to notify on traces stop.  
+	private static final long DELAY_TO_FINISH_STORE_FILES_ON_DEVICE = 20000; //TODO: Will replace with a device communication to notify on traces stop.  
 
 	/*
 	 * Time in seconds to wait for the collector to start
@@ -191,6 +191,9 @@ public class DatacollectorBridge {
 	 */
 	private long tcpdumpStartTime;
 
+	//String to handle the shellOutput 
+	String shellLineOutput = null;
+	
 	private boolean usbDisconnectedFlag = false;
 	private boolean isAroNotOnTheDevice = false;
 	
@@ -346,7 +349,6 @@ public class DatacollectorBridge {
 						return;
 					}
 				} else if (shelloutPut.sdcardFull) {
-
 					// SD Card is full
 					MessageDialogFactory.showErrorDialog(mAROAnalyzer,
 							rb.getString("Error.sdcardfull"));
@@ -460,79 +462,35 @@ public class DatacollectorBridge {
 						logger.log(Level.WARNING, "Unexpected InterruptedException stopping tcpdump", e);
 					}
 
-					String stopTcpCmd = rb.getString("Emulator.stopTCPDump");
-
 					/*
 					 * Sending a 'ps tcpdump' command to the device to check the collector is actually stopped.
 					 * Checking the status of tcpdump with a one minute delay till tcpdump returns empty.
 					 * */
-					try
-					{
-						do {
-							try {
-								Thread.sleep(1000);
-							} catch (InterruptedException e) {
-								logger.log(Level.SEVERE,"InterruptedException while sleep");
-						}
-						
-						mAndroidDevice
-						.executeShellCommand(stopTcpCmd,
-								new IShellOutputReceiver(){
-						
-						public boolean isCancelled(){
-							return false;
-						}
-						
-						public void flush(){
-							
-						}
-						
-						//Taking the output of the stopTCPCommand to make sure it returns empty
-						public void addOutput(byte []data, int off, int len){
-							shellOutput = new String(data);							
-						}
-						
-						});
-						logger.log(Level.INFO,"Waiting for TCPDump to stop");
-						logger.log(Level.FINE,"shellOutput"+shellOutput);
-						}while(shellOutput.contains("arodatacollector"));//Checking with the empty tcpdumplength to make sure that tcpdump is stopped on the device.
-					}
-					catch(IOException io)
-					{
-						logger.log(Level.SEVERE,"IO Exception while sending tcpdump");
-					}
+					
+					try {
+						stopDataCollectoronDevice();
+					} catch (IOException e) {
+						logger.log(Level.WARNING,
+								"Unexpected IOException stopping tcpdump", e);
+					} 
 					// Stop video if necessary
 					if (mVideoCapture != null) {
 						mVideoCapture.stopRecording();
 						try {
 							BufferedWriter videoTimeStampWriter = new BufferedWriter(
-									new FileWriter(
-											new File(
-													localTraceFolder,
-													TraceData.VIDEO_TIME_FILE)));
+									new FileWriter(new File(localTraceFolder,TraceData.VIDEO_TIME_FILE)));
 							try {
 								// Writing a video time in file.
-								videoTimeStampWriter
-										.write(Double
-												.toString(mVideoCapture
-														.getVideoStartTime()
-														.getTime() / 1000.0));
+								videoTimeStampWriter.write(Double.toString(mVideoCapture.getVideoStartTime().getTime() / 1000.0));
 								if (tcpdumpStartTime > 0) {
-									videoTimeStampWriter
-											.write(" "
-													+ Double.toString(tcpdumpStartTime / 1000.0));
+									videoTimeStampWriter.write(" "+ Double.toString(tcpdumpStartTime / 1000.0));
 								}
 							} finally {
 								videoTimeStampWriter.close();
 							}
 						} catch (IOException e) {
-							MessageDialogFactory
-									.showUnexpectedExceptionDialog(
-											mAROAnalyzer, e);
-							logger.log(
-									Level.SEVERE,
-									"Error writing video time file",
-									e);
+							MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
+							logger.log(Level.SEVERE,"Error writing video time file",e);
 						} finally {
 							mVideoCapture = null;
 						}
@@ -542,14 +500,12 @@ public class DatacollectorBridge {
 				
 				@Override
 				protected void done() {
-					/*If USB is disconnected*/
-					if(isUsbDisconnectedFlag()){
-						super.done();
-						progress.dispose();
-						return;
-					}
 					super.done();
 					progress.dispose();
+					/*If USB is disconnected*/
+					if(isUsbDisconnectedFlag()){
+						return;
+					}
 					startPullAROTraceFiles();
 					
 				}
@@ -638,10 +594,8 @@ public class DatacollectorBridge {
 					try {
 						Thread.sleep(DELAY_TO_FINISH_STORE_FILES_ON_DEVICE);
 						} catch (InterruptedException e) {
-							MessageDialogFactory.showUnexpectedExceptionDialog(
-									mAROAnalyzer, e);
-							logger.log(Level.SEVERE,
-									"Error calling sleep", e);
+							MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
+							logger.log(Level.SEVERE,"Error calling sleep", e);
 						}
 					
 					// Pull files from emulator/device one at a time
@@ -668,7 +622,21 @@ public class DatacollectorBridge {
 							if (result.getCode() != SyncService.RESULT_OK) {
 								return result.getMessage();
 							}
-						}						
+						}
+						//We do need to pull multiple pcap files if they are 
+						//available in trace directory (traffic1.cap,traffic2.cap ...)
+						for (int index = 1; index < 50; index++) {
+								final String fileName = "traffic" + index + ".cap";
+								SyncResult result = service.pullFile(
+										deviceTracePath + "/" + fileName,
+										new File(localTraceFolder, fileName)
+												.getAbsolutePath(), SyncService
+												.getNullProgressMonitor());
+								if (result.getCode() != SyncService.RESULT_OK) {
+									System.out.println(result.getMessage());
+									return result.getMessage();
+								}
+							}
 					}
 					}
 					return null;
@@ -690,11 +658,12 @@ public class DatacollectorBridge {
 									.showErrorDialog(mAROAnalyzer, MessageFormat.format(
 											rb.getString("Error.withretrievingsdcardinfo"), result));
 							}
-							else{
-								MessageDialogFactory
-								.showErrorDialog(mAROAnalyzer, MessageFormat.format(
-										rb.getString("Error.withretrievingdevicesdcardinfo"), result));
-							}
+							//TODO : To validate error message as this is misleading even when we are 
+									//able to pull good traces. Need to validate. Doing intermin fox for 2.3 release
+//							else{
+//								
+//								MessageDialogFactory.showErrorDialog(mAROAnalyzer, MessageFormat.format(rb.getString("Error.withretrievingdevicesdcardinfo"), result));
+//							}
 						}
 
 						Double duration = TraceData.readTimes(localTraceFolder).getDuration();
@@ -735,8 +704,9 @@ public class DatacollectorBridge {
 						setStatus(Status.READY);
 						try {
 							//Only deleting from Emulator, not from the device
-							if (mAndroidDevice.isEmulator())
-							removeEmulatorData();
+							if (mAndroidDevice.isEmulator()){
+								removeEmulatorData();
+							}
 						} catch (IOException e) {
 							logger.log(Level.SEVERE, "Unexpected exception deleting trace files from emulator device", e);
 						}
@@ -841,15 +811,11 @@ public class DatacollectorBridge {
 			logger.log(Level.SEVERE, "IOException accessing device SD card", e);
 			if (mAndroidDevice.isEmulator()){	
 				MessageDialogFactory.showMessageDialog(
-						mAROAnalyzer,
-						MessageFormat.format(rb.getString("Error.withretrievingsdcardinfo"),
-								e.getLocalizedMessage()));
+						mAROAnalyzer,MessageFormat.format(rb.getString("Error.withretrievingsdcardinfo"),e.getLocalizedMessage()));
 			}
 			else{
 				MessageDialogFactory.showMessageDialog(
-						mAROAnalyzer,
-						MessageFormat.format(rb.getString("Error.withretrievingdevicesdcardinfo"),
-								e.getLocalizedMessage()));
+						mAROAnalyzer,MessageFormat.format(rb.getString("Error.withretrievingdevicesdcardinfo"),e.getLocalizedMessage()));
 			}
 			return false;
 		}
@@ -913,7 +879,10 @@ public class DatacollectorBridge {
 							//Ignore
 						}
 					} catch (IOException e1) {
-						// Ignore since IOException is probably for same reason as original exception
+						setUsbDisconnectedFlag(true);
+						setStatus(Status.READY);
+						MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.emulatoradbconnectionerror"));
+						logger.log(Level.SEVERE, "Connection to device or emulator is lost. Please wait for sometime before starting data collector.", e);
 					}
 					
 					//Throw the restart the device dialog only of the device is connected
@@ -923,7 +892,7 @@ public class DatacollectorBridge {
 					}
 				}
 			}
-		}, 10000, 10000);
+		}, AROSDCARD_TIMERCHECK_FREQUENCY, AROSDCARD_TIMERCHECK_FREQUENCY);
 	}
 
 	/**
@@ -987,14 +956,14 @@ public class DatacollectorBridge {
 				
 				//Taking the length of the stopTCPCommand to make sure it returns empty
 				public void addOutput(byte []data, int off, int len){
-					shellOutput = new String(data);
+					shellLineOutput = new String(data);
 					
 				}
 			
 			});
 			
 			logger.log(Level.INFO,"Checking whether the collector is not running on the device");
-			if  (isCollectorRunningInShell(shellOutput)){
+			if  (isCollectorRunningInShell(shellLineOutput)){
 				/*
 				 * if the collector version is running automatically,
 				 * a) Delete the folder from the computer  
@@ -1071,10 +1040,7 @@ public class DatacollectorBridge {
 								// Starts collector application on device.
 								ShellOutputReceiver shelloutPut = new ShellOutputReceiver();
 								String shellCmd = MessageFormat.format(rb.getString("Emulator.startDeviceApk"), traceFolderName);
-								mAndroidDevice
-										.executeShellCommand(
-												shellCmd,
-												shelloutPut);
+								mAndroidDevice.executeShellCommand(shellCmd,shelloutPut);
 
 								/*
 								 * Checking whether ARO collector is installed on the device or not
@@ -1092,7 +1058,8 @@ public class DatacollectorBridge {
 								while (!isUsbDisconnectedFlag()) {
 									Thread.sleep(5000);
 									//TODO update to check socket for unexpected end of collector
-								}								
+								}	
+								
 							}
 							catch (InterruptedException e){}
 						}
@@ -1110,12 +1077,14 @@ public class DatacollectorBridge {
 						// tcpdump has exited or device collector has been stopped.
 						// Make sure everything else is stopped
 						synchronized (DatacollectorBridge.this) {
+							
+							setStatus(Status.STOPPING);
+							
 							if (isUsbDisconnectedFlag())
 								return;
 							if (isAroNotOnTheDevice())
 								return;
-
-							setStatus(Status.STOPPING);
+							
 							try {
 									// Check for exceptions
 									try {
@@ -1243,7 +1212,7 @@ public class DatacollectorBridge {
 				
 				if (Status.STARTED == getStatus()){
 					if (mARORecordTraceVideo) {
-						mVideoCapture = new VideoCaptureThread(mAndroidDevice, new File(
+						mVideoCapture = new VideoCaptureThread(mAndroidDevice,mAROAnalyzer.getTraceData(), new File(
 								localTraceFolder, TraceData.VIDEO_MOV_FILE));
 						mVideoCapture.start();
 					} else {
@@ -1281,6 +1250,7 @@ public class DatacollectorBridge {
 		}
 	}
 
+	
 	/**
 	 * Updates the status of the data collector bridge and notifies the ARO
 	 * analyzer window.
@@ -1301,6 +1271,42 @@ public class DatacollectorBridge {
 	}	
 	
 	/**
+	 * This function sends the STOP command to started ARO Data Collector on device 
+	 * connected via USB bridge
+	 * @throws IOException 
+	 * 
+	 * @throws IOException
+	 */
+	private void stopDataCollectoronDevice() throws IOException {
+		//Cancel the SD card check
+		if (checkSDCardSpace != null) {
+			checkSDCardSpace.cancel();
+			checkSDCardSpace = null;
+		}
+		final String stopTcpCmd = rb.getString("Emulator.stopTCPDump");
+		do {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				logger.log(Level.SEVERE,"InterruptedException while sleep");
+			}
+			mAndroidDevice.executeShellCommand(stopTcpCmd,
+					new IShellOutputReceiver() {
+						public boolean isCancelled() {
+							return false;
+						}
+						public void flush() {
+						}
+						public void addOutput(
+								byte[] data, int off,
+								int len) {
+							shellLineOutput = new String(data);
+						}
+					});
+		
+		} while (shellLineOutput.contains("arodatacollector"));
+	}
+	/**
 	 * This function connects to the server socket started by tcpdump and ends
 	 * the tcpdump. The thread in which tcpdump is running will then be allowed
 	 * to complete which will close the rest of the data collector.
@@ -1313,7 +1319,6 @@ public class DatacollectorBridge {
 				checkSDCardSpace.cancel();
 				checkSDCardSpace = null;
 			}
-
 			Socket emulatorSocket = new Socket("127.0.0.1", TCPDUMP_PORT);
 			try {
 				OutputStream out = emulatorSocket.getOutputStream();
@@ -1638,8 +1643,7 @@ public class DatacollectorBridge {
 						SyncService.getNullProgressMonitor());
 				File verCollectingApp = getAroCollectorFilesFromJar(APPVERAPK);
 				// Installs application version collection apk in emulator.
-				mAndroidDevice
-						.installPackage(verCollectingApp.getPath(), false);
+				mAndroidDevice.installPackage(verCollectingApp.getPath(), false);
 				Thread.sleep(1000);
 				ShellOutputReceiver shelloutPut = new ShellOutputReceiver();
 				// Starts application in emulator.
@@ -1668,8 +1672,7 @@ public class DatacollectorBridge {
 		}
 	}
 	
-	//String to handle the shellOutput 
-	String shellOutput = null;
+	
 	/*Method to check whether the collector is running on the device.
 	 * */
 	private boolean isCollectorRunningOnDevice() throws IOException	{
@@ -1687,14 +1690,14 @@ public class DatacollectorBridge {
 				
 				//Taking the length of the stopTCPCommand to make sure it returns empty
 				public void addOutput(byte []data, int off, int len)		{
-					shellOutput = new String(data);
+					shellLineOutput = new String(data);
 				}
 			
 			});
 		
 		logger.log(Level.INFO,"Checking whether the collector is running on the device");
 	
-		if  (isCollectorRunningInShell(shellOutput))
+		if  (isCollectorRunningInShell(shellLineOutput))
 			return true;
 		else 
 			return false;		

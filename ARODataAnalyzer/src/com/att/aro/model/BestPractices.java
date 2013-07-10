@@ -25,6 +25,21 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.att.aro.bp.BestPracticeDisplayFactory;
+import com.att.aro.bp.fileorder.FileOrderAnalysis;
+import com.att.aro.bp.fileorder.FileOrderEntry;
+import com.att.aro.bp.fileorder.FileOrderResultPanel;
+import com.att.aro.bp.imageSize.ImageSizeAnalysis;
+import com.att.aro.bp.imageSize.ImageSizeEntry;
+import com.att.aro.bp.imageSize.ImageSizeResultPanel;
+import com.att.aro.bp.minification.MinificationAnalysis;
+import com.att.aro.bp.minification.MinificationEntry;
+import com.att.aro.bp.minification.MinificationResultPanel;
+import com.att.aro.bp.spriteimage.SpriteImageAnalysis;
+import com.att.aro.bp.spriteimage.SpriteImageEntry;
+import com.att.aro.bp.spriteimage.SpriteImageResultPanel;
+import com.att.aro.bp.asynccheck.AsyncCheckAnalysis;
+import com.att.aro.bp.asynccheck.AsyncCheckEntry;
+import com.att.aro.bp.asynccheck.AsyncCheckResultPanel;
 import com.att.aro.main.TextFileCompressionResultPanel;
 import com.att.aro.model.HttpRequestResponseInfo.Direction;
 
@@ -71,6 +86,8 @@ public class BestPractices {
 	private double cameraActiveStateRatio = 0;
 	private int hitNotExpiredDup = 0;
 	private int hitExpired304 = 0;
+	private int inefficientCssRequests = 0;
+	private int inefficientJsRequests = 0;
 	private double cacheHeaderRatio = 0.0;
 	private double tcpControlEnergyRatio = 0.0;
 	private double tcpControlEnergy = 0.0;
@@ -79,6 +96,7 @@ public class BestPractices {
 	private PacketInfo noCacheHeaderFirstPacket;
 	private PacketInfo dupContentFirstPacket;
 	private PacketInfo cacheControlFirstPacket = null;
+	private PacketInfo consecutiveCssJsFirstPacket = null;
 
 	/**
 	 * Initializes an instance of the BestPractices class, using the specified set of 
@@ -158,8 +176,12 @@ public class BestPractices {
 			this.largestEnergyTime = largestEnergyTime;
 		}
 
-		// Check HTTP 1.0 best practice and HTTP 301/302 and 4xx/5xx best practices
+		/* Check HTTP 1.0 best practice and HTTP 301/302 and 4xx/5xx best practices
+		 * and calculate number of inefficient Css and Js requests.
+		*/
 		for (TCPSession s : analysisData.getTcpSessions()) {
+			double cssLastTimeStamp = 0.0;
+			double jsLastTimeStamp = 0.0;
 			for (HttpRequestResponseInfo reqRessInfo : s.getRequestResponseInfo()) {
 				if (HttpRequestResponseInfo.HTTP10.equals(reqRessInfo.getVersion())) {
 					++http1_0HeaderCount;
@@ -183,6 +205,7 @@ public class BestPractices {
 						firstErrorRespMap.put(status, reqRessInfo);
 					}
 				}
+				
 				if (reqRessInfo.getDirection() == Direction.RESPONSE
 						&& HttpRequestResponseInfo.HTTP_SCHEME
 								.equals(reqRessInfo.getScheme())) {
@@ -201,6 +224,44 @@ public class BestPractices {
 						}
 					}
 				}
+				
+				/* Calculate number of inefficient Css and Js requests. */
+				if (reqRessInfo.getDirection() == Direction.RESPONSE) {
+					if (reqRessInfo.getContentType() != null) {
+						PacketInfo pktInfo = reqRessInfo.getFirstDataPacket();
+						if (pktInfo != null) {
+							if (reqRessInfo.getContentType().equalsIgnoreCase("text/css")) {
+								if (cssLastTimeStamp == 0.0) {
+									cssLastTimeStamp = pktInfo.getTimeStamp();
+									continue;
+								} else {
+									if ((pktInfo.getTimeStamp() - cssLastTimeStamp) <= 2.0) {
+										inefficientCssRequests++;
+										if (consecutiveCssJsFirstPacket == null) {
+											consecutiveCssJsFirstPacket = pktInfo;
+										}
+									}
+									cssLastTimeStamp = pktInfo.getTimeStamp();
+								}
+							} else if (reqRessInfo.getContentType().equalsIgnoreCase("text/javascript") 
+								|| reqRessInfo.getContentType().equalsIgnoreCase("application/x-javascript")
+								|| reqRessInfo.getContentType().equalsIgnoreCase("application/javascript")) {
+								if (jsLastTimeStamp == 0.0) {
+									jsLastTimeStamp = pktInfo.getTimeStamp();
+									continue;
+								} else {
+									if ((pktInfo.getTimeStamp() - jsLastTimeStamp) < 2.0) {
+										inefficientJsRequests++;
+										if (consecutiveCssJsFirstPacket == null) {
+											consecutiveCssJsFirstPacket = pktInfo;
+										}
+									}
+									jsLastTimeStamp = pktInfo.getTimeStamp();
+								}
+							}
+						}
+					}
+				}//End of /* Calculate number of inefficient Css and Js requests. */
 			}
 		}
         TimeRange timeRange = analysisData.getFilter().getTimeRange();
@@ -293,6 +354,11 @@ public class BestPractices {
 		this.duplicateContent = duplicateContentsize <= 3;
 
 		setResultsOfTextFileCompressionTest(analysisData);
+		setResultsOfImageSizeTest(analysisData);
+		setResultsOfMinificationTest(analysisData);
+		setResultsOfSpriteImageTest(analysisData);
+		setResultsOfAsyncCheckTest(analysisData);
+		setResultsOfFileOrderTest(analysisData);
 	}
 
 	/**
@@ -301,11 +367,77 @@ public class BestPractices {
 	 * @param analysisData
 	 */
 	private void setResultsOfTextFileCompressionTest(TraceData.Analysis analysisData) {
-		// obtain the results of TFC Analysis
+		// obtain the results of Text File Compression Analysis
 		TextFileCompressionAnalysis tfca = analysisData.getTextFileCompressionAnalysis();
 		List<TextFileCompressionEntry> tfcaResult = tfca.getResults();
 		TextFileCompressionResultPanel tfc = BestPracticeDisplayFactory.getInstance().getTextFileCompression();
 		tfc.setData(tfcaResult);
+	}
+
+	/**
+	 * Sets image size test results.
+	 * 
+	 * @param analysisData
+	 */
+	private void setResultsOfImageSizeTest(TraceData.Analysis analysisData) {
+		// obtain the results of Image Size Analysis
+		ImageSizeAnalysis isa = analysisData.getImageSizeAnalysis();
+		List<ImageSizeEntry> results = isa.getResults();
+		ImageSizeResultPanel panel = BestPracticeDisplayFactory.getInstance().getImageSize();
+		panel.setData(results);
+	}
+
+	/**
+	 * Sets minification test results.
+	 * 
+	 * @param analysisData
+	 */
+	private void setResultsOfMinificationTest(TraceData.Analysis analysisData) {
+		// obtain the results of Minification Analysis
+		MinificationAnalysis ma = analysisData.getMinificationAnalysis();
+		List<MinificationEntry> results = ma.getResults();
+		MinificationResultPanel panel = BestPracticeDisplayFactory.getInstance().getMinification();
+		panel.setData(results);
+	}
+	
+	/**
+	 * Sets Sprite Image test results.
+	 * 
+	 * @param analysisData
+	 */
+	private void setResultsOfSpriteImageTest(TraceData.Analysis analysisData) {
+		// obtain the results of Sprite Image Analysis
+		SpriteImageAnalysis siAnalysis = analysisData.getSpriteImageAnalysis();
+		List<SpriteImageEntry> results = siAnalysis.getResults();
+		SpriteImageResultPanel panel = BestPracticeDisplayFactory.getInstance().getSpriteImageResults();
+		panel.setData(results);
+	}
+
+	/**
+	 * Sets Async loading results
+	 * 
+	 * @param analysisData
+	 */
+	private void setResultsOfAsyncCheckTest(TraceData.Analysis analysisData) {
+		// obtain the results of TFC Analysis
+		AsyncCheckAnalysis asyncAnalysis = analysisData.getAsyncCheckAnalysis();
+		List<AsyncCheckEntry> asyncAnalysisResults = asyncAnalysis.getResults();
+		AsyncCheckResultPanel AsyncResultPanel = BestPracticeDisplayFactory.getInstance().getAsyncCheckResults();
+		AsyncResultPanel.setData(asyncAnalysisResults);
+	}
+
+	/**
+	 * Sets File Order results 
+	 * 
+	 * @param analysisData
+	 */
+	private void setResultsOfFileOrderTest(TraceData.Analysis analysisData) {
+		// obtain the results of TFC Analysis
+		FileOrderAnalysis fileOrderAnalysis = analysisData.getFileOrderAnalysis();
+		
+		List<FileOrderEntry> fileOrderResults = fileOrderAnalysis.getResults();
+		FileOrderResultPanel fileOrderResultPanel = BestPracticeDisplayFactory.getInstance().getFileOrderResultPanel();
+		fileOrderResultPanel.setData(fileOrderResults);
 	}
 
 	/**
@@ -415,6 +547,15 @@ public class BestPractices {
 	 */
 	public PacketInfo getDupContentStartTime() {
 		return dupContentFirstPacket;
+	}
+	
+	/**
+	 * Returns the PacketInfo of session with consecutive Css or Js.
+	 * 
+	 * @return PacketInfo.
+	 */
+	public PacketInfo getConsecutiveCssJsFirstPacket() {
+		return consecutiveCssJsFirstPacket;
 	}
 
 	/**
@@ -609,6 +750,24 @@ public class BestPractices {
 	public int getHttp1_0HeaderCount() {
 		return http1_0HeaderCount;
 	}
+	
+	/**
+	 * Returns the count of inefficient Css requests. 
+	 * 
+	 * @return An int that is the number of inefficient Css requests.
+	 */
+	public int getInefficientCssRequests() {
+		return inefficientCssRequests;
+	}
+	
+	/**
+	 * Returns the count of inefficient Js requests. 
+	 * 
+	 * @return An int that is the number of inefficient Js requests.
+	 */
+	public int getInefficientJsRequests() {
+		return inefficientJsRequests;
+	}
 
 	/**
 	 * Returns an object containing the HTTP 1.0 session. 
@@ -620,14 +779,53 @@ public class BestPractices {
 	}
 
 	/**
+	 * Returns a boolean indicating the async check test result 
+	 * 
+	 * @return true/false based on the test result
+	 */
+	public boolean isAsyncCheckTestFailed()	{
+		AsyncCheckAnalysis asyncAnalysis = analysisData.getAsyncCheckAnalysis();
+		return asyncAnalysis.isTestFailed();
+	}
+	
+	/**
+	 * Returns the count for synchronously loaded files 
+	 * 
+	 * @return integer for the count
+	 */
+	public int getSyncLoadedCount(){
+		AsyncCheckAnalysis asyncAnalysis = analysisData.getAsyncCheckAnalysis();
+		return asyncAnalysis.getSyncPacketCount();
+	}
+	
+	/**
+	 * Returns the count for asynchronously loaded files 
+	 * 
+	 * @return integer for the count
+	 */
+	public int getSyncPacketCount(){
+		AsyncCheckAnalysis asyncAnalysis = analysisData.getAsyncCheckAnalysis();
+		return asyncAnalysis.getSyncPacketCount();
+	}
+
+	/**
+	 * Returns the count for asynchronously loaded files 
+	 * 
+	 * @return integer for the count
+	 */
+	public int getAsyncPacketCount(){
+		AsyncCheckAnalysis asyncAnalysis = analysisData.getAsyncCheckAnalysis();
+		return asyncAnalysis.getAsyncPacketCount();
+	}
+
+	
+	/**
 	 * Indicates whether the Text File Compression test failed or not.
 	 * 
 	 * @return File Compression test status.
 	 */
 	public boolean isTextFileCompresionTestFailed() {
-		// obtain the results of TFC Analysis
-		TextFileCompressionAnalysis tfca = analysisData.getTextFileCompressionAnalysis();
-		return tfca.isTestFailed();
+		return analysisData.getTextFileCompressionAnalysis().isTestFailed();
 	}
 
 	/**
@@ -651,6 +849,49 @@ public class BestPractices {
 		TextFileCompressionAnalysis tfca = analysisData.getTextFileCompressionAnalysis();
 		return tfca.getTotalSize();
 	}
+
+	/**
+	 * Get the number of large image files.
+	 * 
+	 * @return number of large image files
+	 */
+	public int getNumberOfImageFiles() {
+		return analysisData.getImageSizeAnalysis().getNumberOfImageFiles();
+	}
+	
+	/**
+	 * Get the number of minify files.
+	 * 
+	 * @return number of files to minify
+	 */
+	public int getNumberOfMinifyFiles() {
+		return analysisData.getMinificationAnalysis().getNumberOfMinifyFiles();
+	}
+	
+	/**
+	 * Get the number of sprite image files.
+	 * 
+	 * @return number of sprite image files
+	 */
+	public int getNumberOfFilesToBeSprited() {
+		return analysisData.getSpriteImageAnalysis().getNumberOfFilesToBeSprited();
+	}
+	
+	//Returns a boolean value depends on the file order test failure
+	 
+	public boolean isFileOrderTestFailed(){
+		FileOrderAnalysis fileOrderAnalysis = analysisData.getFileOrderAnalysis();
+		return fileOrderAnalysis.isTestFailed();
+	}
+	
+	/**
+	 * Returns the number of files which fails file order test
+	 * */
+	public int getFileOrderCount(){
+		FileOrderAnalysis fileOrderAnalysis = analysisData.getFileOrderAnalysis();
+		return fileOrderAnalysis.getFileOrderCount();
+	}
+	
 
 	/**
 	 * Returns a sorted map of the counts of HTTP error status codes that 
@@ -704,5 +945,4 @@ public class BestPractices {
 	public TraceData.Analysis getAnalysisData() {
 		return analysisData;
 	}
-
 }

@@ -136,7 +136,7 @@ public class AROCollectorSplashActivity extends Activity {
 	/**
 	 * Initializes data members with a saved instance of an AROCollectorMainActivity object. 
 	 * Overrides the android.app.Activity#onCreate method. 
-	 * @param savedInstanceState � A saved instance of an AROCollectorSplashActivity object.
+	 * @param savedInstanceState A saved instance of an AROCollectorSplashActivity object.
 	 * @see android.app.Activity#onCreate(android.os.Bundle)
 	 */
 	@Override
@@ -157,7 +157,8 @@ public class AROCollectorSplashActivity extends Activity {
 		mApp = (ARODataCollector) getApplication();
 		
 		mScreenDisplay = getWindowManager().getDefaultDisplay();
-		
+		mApp.setDeviceScreenHeight(mScreenDisplay.getHeight());
+		mApp.setDeviceScreenWidth(mScreenDisplay.getWidth());
 		setContentView(R.layout.splash);
 		final TextView version = (TextView) findViewById(R.id.version);
 		version.setText("Version " + mApp.getVersion());
@@ -176,6 +177,7 @@ public class AROCollectorSplashActivity extends Activity {
 		// displayed for at least SPLASH_DISPLAY_TIME seconds
 		final Thread timerThread = new Thread(new Runnable() {
 			public void run() {
+				Log.i(TAG, "timerThread started at timestamp:" + System.currentTimeMillis());
 				long timeRemaining = SPLASH_DISPLAY_TIME;
 				long stopTime = System.currentTimeMillis() + timeRemaining;
 
@@ -209,6 +211,7 @@ public class AROCollectorSplashActivity extends Activity {
 				if (!mActivityFinished) {
 					mHandler.post(new Runnable() {
 						public void run() {
+							Log.i(TAG, "checking for root access at timestamp:" + System.currentTimeMillis());
 							if (mApp != null){
 								
 								if (mApp.hasRootAccess()){
@@ -230,13 +233,13 @@ public class AROCollectorSplashActivity extends Activity {
 		// and another thread to do whatever initialization is needed
 		final Thread initializeThread = new Thread(new Runnable() {
 			public void run() {
-				Log.i(TAG, "initializing");
+				Log.i(TAG, "start initializeThread at timestamp:" + System.currentTimeMillis());
 				try {
 					if (mApp != null){
 						mApp.initARODataCollector();
 					}
 				} finally {
-					Log.i(TAG, "initialization complete");
+					Log.i(TAG, "initialization complete at timestamp:" + System.currentTimeMillis());
 					synchronized (mMutex) {
 						mInitialized = true;
 						mMutex.notify();

@@ -31,10 +31,15 @@ public final class Util {
 	
 	private Util() {}
 	
-	private static final Logger logger = Logger.getLogger(Util.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(Util.class.getName());
 	public static final ResourceBundle RB = ResourceBundleManager.getDefaultBundle();
 	private static final double TIME_CORRECTION = 1.0E9;
-
+	public static final String TRAFFIC_FILE = RB.getString("datadump.trafficFile");
+	public static final String OS_NAME = System.getProperty("os.name");
+	public static final String OS_ARCHYTECTURE = System.getProperty("os.arch");
+	public static final String FILE_SEPARATOR = System.getProperty("file.separator"); 
+	//platform independent directory to store temporary files
+	public static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
 	
 	/**
 	 * Returns a string representing Unknown App if appName is empty, blank, or null.
@@ -89,8 +94,8 @@ public final class Util {
 	 * @throws IOException
 	 */
 	public static String fetchFile(URL url) throws IOException {
-		if (logger.isLoggable(Level.FINER)){
-			logger.finer("Connecting to - " + url.toExternalForm());
+		if (LOGGER.isLoggable(Level.FINER)){
+			LOGGER.finer("Connecting to - " + url.toExternalForm());
 		}
 		HttpURLConnection connection = null;
 		StringBuilder contentSb = null;
@@ -115,15 +120,15 @@ public final class Util {
 					}
 				}
 				
-				if (logger.isLoggable(Level.FINER)){
-					logger.finer("Connection succeeded");
+				if (LOGGER.isLoggable(Level.FINER)){
+					LOGGER.finer("Connection succeeded");
 				}
 			}
 
 		} finally {
 			if (connection != null) {
-				if (logger.isLoggable(Level.FINER)){
-					logger.finer("Disconnecting");
+				if (LOGGER.isLoggable(Level.FINER)){
+					LOGGER.finer("Disconnecting");
 				}
 				connection.disconnect();
 			}
@@ -135,4 +140,5 @@ public final class Util {
 			return "";
 		}
 	}
+	
 }

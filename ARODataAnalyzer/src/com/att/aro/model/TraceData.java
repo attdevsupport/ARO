@@ -17,7 +17,6 @@ package com.att.aro.model;
 import java.io.BufferedReader;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -44,6 +43,11 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.att.aro.bp.fileorder.FileOrderAnalysis;
+import com.att.aro.bp.imageSize.ImageSizeAnalysis;
+import com.att.aro.bp.minification.MinificationAnalysis;
+import com.att.aro.bp.spriteimage.SpriteImageAnalysis;
+import com.att.aro.bp.asynccheck.AsyncCheckAnalysis;
 import com.att.aro.main.ResourceBundleManager;
 import com.att.aro.model.BluetoothInfo.BluetoothState;
 import com.att.aro.model.CameraInfo.CameraState;
@@ -107,12 +111,17 @@ public class TraceData implements Serializable {
 		private RRCStateMachine rrcStateMachine;
 		private CacheAnalysis cacheAnalysis;
 		private TextFileCompressionAnalysis textFileCompressionAnalysis;
+		private AsyncCheckAnalysis asyncCheckAnalysis;
+		private FileOrderAnalysis fileOrderAnalysis;
+		private ImageSizeAnalysis imageSizeAnalysis;
+		private MinificationAnalysis minificationAnalysis;
+		private SpriteImageAnalysis spriteImageAnalysis;
 		private CacheInfoParser cacheInfoParser;
 		private BestPractices bestPractice;
 		private ApplicationScore applicationScore;
 		private EnergyModel energyModel;
 		private static final double SESSION_TERMINATION_THRESHOLD = 1.0;
-
+		
 		// List of Burst Collection Info
 		private BurstCollectionAnalysis bcAnalysis;
 		
@@ -681,7 +690,45 @@ public class TraceData implements Serializable {
 		public TextFileCompressionAnalysis getTextFileCompressionAnalysis() {
 			return textFileCompressionAnalysis;
 		}
+	
+		/**
+		 * Returns result of async check analysis
+		 * @return async check analysis
+		 */
+		public AsyncCheckAnalysis getAsyncCheckAnalysis() {
+			return asyncCheckAnalysis;
+		}
+	
+		/**
+		 * Returns results of file order analysis
+		 * */
+		public FileOrderAnalysis getFileOrderAnalysis(){
+			return fileOrderAnalysis;
+		}
+		/**
+		 * Returns result of image size analysis
+		 * @return Image Size analysis
+		 */
+		public ImageSizeAnalysis getImageSizeAnalysis() {
+			return imageSizeAnalysis;
+		}
+
+		/**
+		 * Returns result of minification analysis
+		 * @return minification analysis
+		 */
+		public MinificationAnalysis getMinificationAnalysis() {
+			return minificationAnalysis;
+		}
 		
+		/**
+		 * Returns result of Sprite Image analysis
+		 * @return Sprite Image analysis
+		 */
+		public SpriteImageAnalysis getSpriteImageAnalysis() {
+			return spriteImageAnalysis;
+		}
+
 		/**
 		 * @return The cacheAnalysis
 		 */
@@ -840,6 +887,26 @@ public class TraceData implements Serializable {
 			// Do text file compression analysis
 			logger.fine("Performing text file compression analysis");
 			this.textFileCompressionAnalysis = new TextFileCompressionAnalysis(this.tcpSessions);
+			
+			// Do async check analysis 
+			logger.fine("Performing async loading of scripts analysis");
+			this.asyncCheckAnalysis = new AsyncCheckAnalysis(this.tcpSessions);
+		
+			//Do File Order Analysis
+			logger.fine("Performing file order analysis");
+			this.fileOrderAnalysis = new FileOrderAnalysis(this.tcpSessions);
+			
+			// Do image size analysis
+			logger.fine("Performing image size analysis");
+			this.imageSizeAnalysis = new ImageSizeAnalysis(this.tcpSessions, getDeviceScreenSizeX(), getDeviceScreenSizeY());
+
+			// Do minification analysis
+			logger.fine("Performing minification analysis");
+			this.minificationAnalysis = new MinificationAnalysis(this.tcpSessions);
+			
+			// Do Sprite image analysis
+			logger.fine("Performing Sprite image analysis");
+			this.spriteImageAnalysis = new SpriteImageAnalysis(this.tcpSessions);
 
 			// Do cache analysis
 			logger.fine("Performing cache analysis");
@@ -1580,6 +1647,8 @@ public class TraceData implements Serializable {
 	private String osType;
 	private String osVersion;
 	private String collectorVersion;
+	private int deviceScreenSizeX = 480; //DEFAULT_SCREENSIZE_X;
+	private int deviceScreenSizeY = 800; //DEFAULT_SCREENSIZE_Y;
 	private double pcapTime0;
 	private Date traceDateTime;
 	private double eventTime0;
@@ -1860,6 +1929,24 @@ public class TraceData implements Serializable {
 	public Set<String> getMissingFiles() {
 		return Collections.unmodifiableSet(missingFiles);
 	}
+	
+	/**
+	 * Get device screen width.
+	 * 
+	 * @return the deviceScreenSizeX
+	 */
+	public int getDeviceScreenSizeX() {
+		return deviceScreenSizeX;
+	}
+
+	/**
+	 * Get device screen height.
+	 * 
+	 * @return the deviceScreenSizeY
+	 */
+	public int getDeviceScreenSizeY() {
+		return deviceScreenSizeY;
+	}
 
 	/**
 	 * Runs analysis on the trace data for the specified collection filter,
@@ -2056,31 +2143,74 @@ public class TraceData implements Serializable {
 		BufferedReader br = new BufferedReader(new FileReader(file));
 
 		try {
+			// line #1
 			this.collectorName = br.readLine();
+			// line #2
 			this.deviceModel = br.readLine();
+			// line #3
 			this.deviceMake = br.readLine();
+			// line #4
 			this.osType = br.readLine();
+			// line #5
 			this.osVersion = br.readLine();
+			// line #6
 			this.collectorVersion = br.readLine();
-
-			try {
-				String networkTypeStr = br.readLine();
-				if (networkTypeStr != null && networkTypeStr.length() > 0) {
-
-					int networkTypeCode = networkTypeStr != null ? Integer.parseInt(networkTypeStr
-							.trim()) : 0;
-					this.networkType = getNetworkTypeFromCode(networkTypeCode);
-
-				}
-
-			} catch (NumberFormatException e) {
-				networkType = NetworkType.none;
-			}
-			if (networkType != null) {
-				networkTypeInfos.add(new NetworkBearerTypeInfo(0, traceDuration, networkType));
-			}
+			// line #7
+			readNetworkType(br);
+			// line #8
+			readScreenResolution(br);
+			
 		} finally {
 			br.close();
+		}
+	}
+
+	/**
+	 * Reads device screen resolution.
+	 * 
+	 * @param br
+	 *            BufferedReader
+	 * @throws IOException
+	 */
+	private void readScreenResolution(BufferedReader br) {
+		String ln;
+		try {
+			ln = br.readLine();
+			if (null != ln) {
+				String[] resolution = ln.split("\\*");
+				deviceScreenSizeX = Integer.parseInt(resolution[0]);
+				deviceScreenSizeY = Integer.parseInt(resolution[1]);
+				logger.log(Level.FINE, "Screen resolution: {0} x {1}", new Object[] { resolution[0], resolution[1] });
+			} else {
+				logger.log(Level.FINE, "Device screen size is not available.");
+			}
+		} catch (IOException e) {
+			logger.log(Level.SEVERE, "Unable to read device screen size.");
+		}
+	}
+
+	/**
+	 * Read network type information.
+	 * 
+	 * @param br
+	 *            BufferedReader
+	 * @throws IOException
+	 */
+	private void readNetworkType(BufferedReader br) throws IOException {
+		try {
+			String networkTypeStr = br.readLine();
+			if (networkTypeStr != null && networkTypeStr.length() > 0) {
+
+				int networkTypeCode = networkTypeStr != null ? Integer.parseInt(networkTypeStr.trim()) : 0;
+				this.networkType = getNetworkTypeFromCode(networkTypeCode);
+
+			}
+
+		} catch (NumberFormatException e) {
+			networkType = NetworkType.none;
+		}
+		if (networkType != null) {
+			networkTypeInfos.add(new NetworkBearerTypeInfo(0, traceDuration, networkType));
 		}
 	}
 
@@ -2320,16 +2450,13 @@ public class TraceData implements Serializable {
 						appName = appInfos.get(appIdIdx);
 					} else {
 						logger.log(Level.WARNING, "Invalid app ID {0} for packet {1}", new Object[] {appIdIdx, packetIdx});
-						assert false;
 					}
 				} else if (appIdIdx != VALID_UNKNOWN_APP_ID) {
 					logger.log(Level.WARNING, "Invalid app ID {0} for packet {1}", new Object[] {appIdIdx, packetIdx});
-					assert false;
 				}
 				
 			} else {
 				logger.log(Level.WARNING, "No app ID for packet {0}", packetIdx);
-				assert false;
 			}
 		}
 

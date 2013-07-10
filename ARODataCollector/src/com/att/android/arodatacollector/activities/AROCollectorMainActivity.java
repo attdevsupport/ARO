@@ -118,7 +118,7 @@ public class AROCollectorMainActivity extends Activity {
 	/**
 	 * Initializes data members with a saved instance of an AROCollectorMainActivity 
 	 * object. Overrides the android.app.Activity#onCreate method. 
-	 * @param savedInstanceState � A saved instance of an AROCollectorMainActivity object.
+	 * @param savedInstanceState A saved instance of an AROCollectorMainActivity object.
 	 * @see android.app.Activity#onCreate(android.os.Bundle)
 	 */
 	@Override
@@ -131,6 +131,9 @@ public class AROCollectorMainActivity extends Activity {
 		registerAnalyzerTimeoutReceiver();
 	}
 
+	/**
+	 * method to register the receiver that listens to analyzer timeout
+	 */
 	private void registerAnalyzerTimeoutReceiver() {
 		if (DEBUG){
 			Log.i(TAG, "registering analyzerTimeOutReceiver");
@@ -437,7 +440,7 @@ public class AROCollectorMainActivity extends Activity {
 
 	
 	/**
-	 * 
+	 * show the error message saying that ARO is already running
 	 */
 	private void showARORunningError() {
 		m_dialog = Dialog_Type.ARO_INSTANCE_RUNNING;
@@ -464,9 +467,9 @@ public class AROCollectorMainActivity extends Activity {
 	/**
 	 * Handles the result of an activity performed on the UI of the Landing screen. 
 	 * Overrides the android.app.Activity# onActivityResult method.
-	 * @param requestCode � A code representing a request to the UI of the Landing screen.
-	 * @param resultCode � A code representing the result of an activity performed on the UI of the Landing screen.
-	 * @param data � An Intent object that contains data associated with the result of the activity
+	 * @param requestCode A code representing a request to the UI of the Landing screen.
+	 * @param resultCode A code representing the result of an activity performed on the UI of the Landing screen.
+	 * @param data An Intent object that contains data associated with the result of the activity
 	 * @see android.app.Activity#onActivityResult(int, int,
 	 *      android.content.Intent)
 	 */
@@ -636,6 +639,9 @@ public class AROCollectorMainActivity extends Activity {
 		}
 	}
 	
+	/**
+	 * receiver to listen to the timeout broadcast sent from the analyzer
+	 */
 	private BroadcastReceiver analyzerTimeoutReceiver = new BroadcastReceiver() {
 	    @Override
 	    public void onReceive(Context ctx, Intent intent) {
@@ -646,7 +652,9 @@ public class AROCollectorMainActivity extends Activity {
 	    }
 	};
 
-
+	/**
+	 * method to unregister the receiver that listens to analyzer timeout
+	 */
 	private void unregisterTimeoutReceiver() {
 		if (DEBUG){
 			Log.i(TAG, "inside unregisterTimeoutReceiver");

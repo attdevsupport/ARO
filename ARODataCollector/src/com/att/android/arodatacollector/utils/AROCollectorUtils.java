@@ -58,7 +58,7 @@ public class AROCollectorUtils {
 	/** Logging string for the ARO Collector Utils class. */
 	public static final String TAG = "AROCollectorUtils";
 	
-	//used for exiting the activity when the analyzer timeout happens
+	/** used for exiting the activity when the analyzer timeout happens */
 	public static final String ANALYZER_TIMEOUT_SHUTDOWN_INTENT = "arodatacollector.timeout.SHUTDOWN";
 
 	/**
