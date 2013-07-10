@@ -60,24 +60,40 @@ Contact Us:  http://developer.att.com/developer/contact_us.jsp
 
 
 **Version:**  
-ARO Data Collector 2.2.1  
-ARO Data Analyzer  2.2.1
+ARO Data Collector 2.3  
+ARO Data Analyzer  2.3
 
-**New Features:**  
-In this release, ARO has added the ability to record video via USB. For Android devices on which the ARO Data Collector can be installed directly, trace video can now be recorded via USB using commands on the ARO Data Analyzer.  
 
-**Known Issues:** 
-+  The ARO Data Analyzer may not display complete user input/screen touch data for traces collected on some devices.  
-+  On some devices ARO is unable to turn off sleep mode, so the device must be manually taken out of sleep mode during the trace.
-+  To sync to an externally captured video in the  ARO Data Analyzer, you must first delete the video_time file from the trace folder before adding the external video to the folder.  
-+  An externally captured video must always be longer than the duration of the trace it is being synced with. Trace duration can be found in the Test Statistics section of the Best Practices tab in the ARO Data Analyzer.  
-+  Due to a variety of factors, including trace size, platform dependence, and interference from solar flares, a delay of plus/minus 5 seconds when syncing an external video to a trace file is expected.  
-+  When using the ARO Data Analyzer USB video capture feature on HTC devices that use Android 4.0.X (ICS), traces that are longer than 5 minutes can cause the device to freeze such that it  will need to be restarted.  
-+  The ARO Data Collector or ARO Data Analyzer may become out of sync during a trace using USB video capture. If this occurs, disconnect the USB cable, click the "Stop Collector" button, and restart the trace collection. 
-+  When a trace using USB video capture is started on the ARO Data Analyzer, the trace must be started on the device within 30 seconds or the trace will terminate and a message stating "Timeout in starting the collector trace" will appear in the ARO Data Analyzer. 
-+  When collecting multiple traces using USB video during the same ARO Data Collector session, dismiss the "Trace Completed" screen at the end of each trace by using the "Back" button on your device, this will ensure that it is not displayed in the background during the next trace.  
-+  When capturing video that will be synced with a trace in the ARO Data Analyzer, we recommend that you do not use HD video because the high frame rate of HD results in an extremely large video file when it is converted by ARO. The converted file will be so large that it will not load, or will not load in a reasonable time. 
-+  When the ARO Data Analyzer opens a directory it automatically creates a .csv (data dump) file in that directory, even if that directory does not contain trace files. Please note that if the directory does not contain trace files, the Analyzer will not display an error message and will not begin analysis. If a directory that does not contain trace files is opened in error, we recommend that you delete the .csv dump file that is created and open a valid trace directory.  
+**What’s new in Release 2.3?**  
+
++  **Improvements to the AT&T ARO Best Practices Results Tab** - The test results have been reorganized into two columns and four categories, expanded with six new tests (see below), and a new test type called "Warning" has been added.  
+
++  **Added new Best Practice tests:**
+	+  **"Resize Images for Mobile"** - Identifies images in your app which may not be sized properly for mobile devices and could slow down rendering.
+	+  **"Combine JavaScript and CSS Requests"** - Checks for multiple CSS file requests and multiple JavaScript file requests which can be combined together to cut out unneeded round trips to the server and help your app load pages faster.
+	+  **"Asynchronous Load of JavaScript in HTML"** - Identifies JavaScript files in your app which could be loaded asynchronously to speed up page rendering.
+	+  **"File Order"** - Reports potential problems with the order in which JavaScript and CSS files are loaded in your HTML documents. A simple file order change can improve rendering speed.
+	+  **"Use CSS Sprites for Images"** - Identifies groups of small images which could be converted into CSS sprites to reduce the number of server requests, save bandwidth, and speed the loading of pages in your app.
+	+  **"Minify CSS, JS, and HTML"** - Reports text files in your app that could be minified to speed up their loading time.
+
+
+
+**What are the known issues in Release 2.3:**  
+ 
++  **ARO Analyzer Installation feature:**  The ARO Installer will allow you to install multiple versions of the application in different folders. However, we do not recommend this because of the confusion that can arise from using different versions of the ARO Analyzer application on the same computer.  
+
++  **Video Sync/Video Correlation feature:**  This feature allows you to sync externally captured video to PCAP data by placing it in the trace folder. When using this feature in ARO 2.3, note the following:  
+
+	+  Please ensure that the video duration is at least as long as the trace duration.  
+	+  Avoid clicking in the Diagnostics Chart when the video is playing; the timing of response may be affected.  
+	+  Certain 64 bit Windows 7 computers may have unexpected/random video sync issues. If this occurs, Re-sync the trace to the video.  
+	+  Do not use a High Definition (HD) video file with the Video Sync feature.  
+	+  Avoid disconnecting the USB cable during the collection of a trace, it may cause unexpected behavior.  
+	+  On a Mac computer, the Trace Summary notification window may appear distorted. This will be fixed in a future release.  
+
++  **USB Video Feature:**  In some cases, the following notification may appear incorrectly when the trace is completed: "Unexpected error accessing device SD card. ADB Connection Error" When this occurs, the trace is intact and the error message can be disregarded.  
+
++  **Recording video in a trace:**  Some devices may not record video during a trace due to hardware limitations. For these devices, use the USB Video feature to record a video for the trace.  
 
 
 ##Documentation:
