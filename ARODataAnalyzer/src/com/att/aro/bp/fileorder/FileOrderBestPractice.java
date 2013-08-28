@@ -73,7 +73,7 @@ public class FileOrderBestPractice implements BestPracticeDisplay {
 	public String resultText(Analysis analysisData) {
 		BestPractices bp = analysisData.getBestPractice();
 		String key = isPass(analysisData) ? "html.fileorder.pass"
-				: "html.fileorder.results";
+				: analysisData.getBestPractice().getFileOrderCount() > 1 ?"html.fileorder.pluresults" : "html.fileorder.singresults";
 		return MessageFormat.format(Util.RB.getString(key),
 				bp.getFileOrderCount());
 	}

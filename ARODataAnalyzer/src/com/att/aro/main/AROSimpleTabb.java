@@ -226,7 +226,7 @@ public class AROSimpleTabb extends JPanel {
 	 * 
 	 * @return CacheAnalysisPanel The Duplicate Contents Panel.
 	 */
-	private CacheAnalysisPanel getJDuplicatesPanel() {
+	public  CacheAnalysisPanel getJDuplicatesPanel() {
 		if (jDuplicatesPanel == null) {
 			jDuplicatesPanel = new CacheAnalysisPanel(parent);
 		}

@@ -21,9 +21,7 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.ResourceBundle;
 
 import javax.swing.JPanel;
@@ -31,12 +29,25 @@ import javax.swing.event.HyperlinkEvent;
 
 import com.att.aro.bp.asynccheck.AsyncCheckResultPanel;
 import com.att.aro.bp.asynccheck.BPAsyncCheckInScript;
+import com.att.aro.bp.displaynoneincss.DisplayNoneInCSSBestPractice;
+import com.att.aro.bp.displaynoneincss.DisplayNoneInCSSResultPanel;
+import com.att.aro.bp.duplicate.DuplicateBestPractice;
+import com.att.aro.bp.duplicate.DuplicateResultPanel;
+import com.att.aro.bp.emptyurl.EmptyUrlBestPractice;
 import com.att.aro.bp.fileorder.FileOrderBestPractice;
 import com.att.aro.bp.fileorder.FileOrderResultPanel;
+import com.att.aro.bp.flash.FlashBestPractice;
+import com.att.aro.bp.httprspcd.Http3xxBestPractice;
+import com.att.aro.bp.http4xx5xxrespcodes.Http4xx5xxBestPractice;
+import com.att.aro.bp.http4xx5xxrespcodes.Http4xx5xxStatusResponseCodesResultPanel;
+import com.att.aro.bp.httprspcd.HttpCode3XXResultPanel;
 import com.att.aro.bp.imageSize.ImageSizeBestPractice;
 import com.att.aro.bp.imageSize.ImageSizeResultPanel;
 import com.att.aro.bp.minification.MinificationBestPractice;
 import com.att.aro.bp.minification.MinificationResultPanel;
+import com.att.aro.bp.scripts.Scripts;
+//import com.att.aro.bp.smallrequest.SmallRequestBestPractice;
+//import com.att.aro.bp.smallrequest.SmallRequestResultPanel;
 import com.att.aro.bp.spriteimage.SpriteImageBestPractice;
 import com.att.aro.bp.spriteimage.SpriteImageResultPanel;
 import com.att.aro.main.ApplicationResourceOptimizer;
@@ -110,9 +121,18 @@ public class BestPracticeDisplayFactory {
 					rb.getString("bestPractices.header.fileDownloadDescription"),
 					rb.getString("bestPractice.referSection.fileDownload"),
 					Arrays.asList(FILE_COMPRESSION, DUPLICATE_CONTENT,USING_CACHE, CACHE_CONTROL,
-							PREFETCHING,COMBINE_CS_JSS,IMAGE_SIZE, MINIFICATION, SPRITEIMAGE));
+							PREFETCHING,COMBINE_CS_JSS,IMAGE_SIZE, MINIFICATION, SPRITEIMAGE/*, SMALLREQUEST*/));
 		}
 		return fileDownloadSection;
+	}
+	
+	/**
+	 * Returns a results panel for duplicate content.
+	 * 
+	 * @return result panel
+	 */	
+	public DuplicateResultPanel getDupicate() {
+		return (DuplicateResultPanel) DUPLICATE_CONTENT.getTestResults();
 	}
 	
 	/**
@@ -150,7 +170,33 @@ public class BestPracticeDisplayFactory {
 	public SpriteImageResultPanel getSpriteImageResults() {
 		return (SpriteImageResultPanel) SPRITEIMAGE.getTestResults();
 	}
-
+	
+//	/**
+//	 * Returns a result panel for Small Request test.
+//	 * 
+//	 * @return result panel
+//	 */
+//	public SmallRequestResultPanel getSmallRequestResults() {
+//		return (SmallRequestResultPanel) SMALLREQUEST.getTestResults();
+//	}
+	
+	/**
+	 * Returns a result panel for HTTP response code test.
+	 * 
+	 * @return result panel
+	 */
+	public HttpCode3XXResultPanel getHttpRspCdResults() {
+		 return (HttpCode3XXResultPanel) HTTP_3XX_CODE.getTestResults();
+	}
+	
+	/**
+	 * Returns a result panel for HTTP 4xx/5xx response code test.
+	 * 
+	 * @return result panel
+	 */
+	public Http4xx5xxStatusResponseCodesResultPanel getHttp4xx5xxResults() {
+		 return (Http4xx5xxStatusResponseCodesResultPanel) HTTP_4XX_5XX.getTestResults();
+	}
 	/**
 	 * Returns a result panel for asynchronous script downloading check test.
 	 * 
@@ -168,6 +214,17 @@ public class BestPracticeDisplayFactory {
 	public FileOrderResultPanel getFileOrderResultPanel(){
 		return (FileOrderResultPanel)FILE_ORDER.getTestResults();
 	}
+	
+	/**
+	 * Returns a result panel for Display None in CSS test
+	 * 
+	 * @return result panel
+	 */
+	public DisplayNoneInCSSResultPanel getDisplayNoneInCSSResultPanel(){
+		return (DisplayNoneInCSSResultPanel)DISPLAY_NONE_IN_CSS.getTestResults();
+	}
+	
+	
 	/**
 	 * Returns the pre-defined connections best practice section
 	 * @return The best practice display group for connections
@@ -180,7 +237,8 @@ public class BestPracticeDisplayFactory {
 					rb.getString("bestPractice.referSection.connections"),
 					Arrays.asList(CONNECTION_OPENING, UNNECESSARY_CONNECTIONS,
 							PERIODIC_TRANSFER, SCREEN_ROTATION,
-							CONNECTION_CLOSING, WIFI_OFFLOADING, HTTP_4XX_5XX, HTTP_3XX));
+							CONNECTION_CLOSING, WIFI_OFFLOADING, HTTP_4XX_5XX, HTTP_3XX_CODE,
+							SCRIPTS_URL));
 		}
 		return connectionsSection;
 	}
@@ -195,7 +253,7 @@ public class BestPracticeDisplayFactory {
 					rb.getString("bestPractices.header.html"),
 					rb.getString("bestPractices.header.htmlDescription"),
 					rb.getString("bestPractice.referSection.html"),
-					Arrays.asList(ASYNC_CHECK, HTTP_1_0_USAGE,FILE_ORDER));
+					Arrays.asList(ASYNC_CHECK, HTTP_1_0_USAGE, FILE_ORDER, EMPTY_URL, FLASH, DISPLAY_NONE_IN_CSS));
 		}
 		return htmlSection;
 	}
@@ -218,95 +276,7 @@ public class BestPracticeDisplayFactory {
 	/**
 	 * Pre-defined duplicate content best practice
 	 */
-	protected static final BestPracticeDisplay DUPLICATE_CONTENT = new BestPracticeDisplay() {
-
-		private static final int DUPLICATE_CONTENT_DENOMINATOR = 1048576;
-
-		@Override
-		public String getOverviewTitle() {
-			return rb.getString("caching.duplicateContent.title");
-		}
-
-		@Override
-		public String getDetailTitle() {
-			return rb.getString("caching.duplicateContent.detailedTitle");
-		}
-
-		@Override
-		public boolean isSelfTest() {
-			return false;
-		}
-
-		@Override
-		public String getAboutText() {
-			return rb.getString("caching.duplicateContent.desc");
-		}
-
-		@Override
-		public URI getLearnMoreURI() {
-			return URI.create(rb.getString("caching.duplicateContent.url"));
-		}
-
-		@Override
-		public boolean isPass(TraceData.Analysis analysis) {
-			return analysis.getBestPractice().getDuplicateContent();
-		}
-
-		@Override
-		public String resultText(Analysis analysisData) {
-			if (isPass(analysisData)) {
-				return rb.getString("caching.duplicateContent.pass");
-			} else {
-				BestPractices bp = analysisData.getBestPractice();
-				NumberFormat nf = NumberFormat.getInstance();
-				nf.setMaximumFractionDigits(1);
-				NumberFormat nf2 = NumberFormat.getInstance();
-				nf2.setMaximumFractionDigits(3);
-
-				return MessageFormat.format(
-						rb.getString("caching.duplicateContent.results"),
-						nf.format(bp.getDuplicateContentBytesRatio() * 100.0),
-						bp.getDuplicateContentsize(),
-						nf2.format(((double) bp.getDuplicateContentBytes())
-								/ DUPLICATE_CONTENT_DENOMINATOR),
-						nf2.format(((double) bp.getTotalContentBytes())
-								/ DUPLICATE_CONTENT_DENOMINATOR));
-			}
-		}
-
-		@Override
-		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
-			parent.displaySimpleTab();
-		}
-
-		@Override
-		public List<BestPracticeExport> getExportData(Analysis analysisData) {
-			BestPractices bp = analysisData.getBestPractice();
-			NumberFormat nf = NumberFormat.getInstance();
-			nf.setMaximumFractionDigits(1);
-			NumberFormat nf2 = NumberFormat.getInstance();
-			nf2.setMaximumFractionDigits(3);
-
-			List<BestPracticeExport> result = new ArrayList<BestPracticeExport>(3);
-			result.add(new BestPracticeExport(nf.format(bp
-					.getDuplicateContentBytesRatio() * 100.0), rb
-					.getString("exportall.csvPct")));
-			result.add(new BestPracticeExport(String.valueOf(bp
-					.getDuplicateContentsize()), rb
-					.getString("exportall.csvFiles")));
-			result.add(new BestPracticeExport(nf2.format(((double) bp
-					.getDuplicateContentBytes())
-					/ DUPLICATE_CONTENT_DENOMINATOR), rb
-					.getString("statics.csvUnits.mbytes")));
-			return result;
-		}
-
-		@Override
-		public JPanel getTestResults() {
-			return null;
-		}
-		
-	};
+	protected static final BestPracticeDisplay DUPLICATE_CONTENT = new DuplicateBestPractice() ;
 	
 	/**
 	 * Pre-defined cache control best practice
@@ -686,8 +656,7 @@ public class BestPracticeDisplayFactory {
 			} else {
 				BurstCollectionAnalysis bursts = analysisData.getBcAnalysis();
 				int burstSet = bursts.getTightlyCoupledBurstCount();
-				return burstSet > 1 ? MessageFormat.format(rb.getString("connections.unnecssaryConn.results"),
-						burstSet) : MessageFormat.format(rb.getString("connections.unnecssaryConn.result"),
+				return MessageFormat.format(rb.getString("connections.unnecssaryConn.result"),
 								burstSet);
 			}
 		}
@@ -945,218 +914,7 @@ public class BestPracticeDisplayFactory {
 	/**
 	 * Pre-defined HTTP 4xx/5xx errors best practice
 	 */
-	protected static final BestPracticeDisplay HTTP_4XX_5XX = new BestPracticeDisplay() {
-
-		@Override
-		public String getOverviewTitle() {
-			return rb.getString("connections.http4xx5xx.title");
-		}
-
-		@Override
-		public String getDetailTitle() {
-			return rb.getString("connections.http4xx5xx.detailedTitle");
-		}
-
-		@Override
-		public boolean isSelfTest() {
-			return false;
-		}
-
-		@Override
-		public String getAboutText() {
-			return rb.getString("connections.http4xx5xx.desc");
-		}
-
-		@Override
-		public URI getLearnMoreURI() {
-			return URI.create(rb.getString("connections.http4xx5xx.url"));
-		}
-
-		@Override
-		public boolean isPass(TraceData.Analysis analysis) {
-			return analysis.getBestPractice().getHttpErrorCounts().isEmpty();
-		}
-
-		@Override
-		public String resultText(Analysis analysisData) {
-			Map<Integer, Integer> map = analysisData.getBestPractice().getHttpErrorCounts();
-			Iterator<Map.Entry<Integer, Integer>> i = map.entrySet().iterator();
-			if (i.hasNext()) {
-				Map.Entry<Integer, Integer> entry = i.next();
-				String message = formatError(entry);
-				if (i.hasNext()) {
-					entry = i.next();
-					while (i.hasNext()) {
-						message = MessageFormat.format(rb
-								.getString("connections.http4xx5xx.errorList"),
-								message, formatError(entry));
-						entry = i.next();
-					}
-					message = MessageFormat
-							.format(rb
-									.getString("connections.http4xx5xx.errorListEnd"),
-									message, formatError(entry));
-				}
-				
-				return MessageFormat.format(
-						rb.getString("connections.http4xx5xx.results"), message);
-			} else {
-				return rb.getString("connections.http4xx5xx.pass");
-			}
-		}
-
-		@Override
-		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
-			try {
-				
-				// Find a response with the selected status code
-				int status = Integer.parseInt(h.getDescription());
-				parent.displayDiagnosticTab();
-				parent.getAroAdvancedTab().setHighlightedRequestResponse(
-						parent.getAnalysisData().getBestPractice()
-								.getFirstErrorRespMap().get(status));
-			} catch (NumberFormatException e) {
-				// Ignore
-			}
-		}
-		
-		@Override
-		public List<BestPracticeExport> getExportData(Analysis analysisData) {
-			Map<Integer, Integer> map = analysisData.getBestPractice().getHttpErrorCounts();
-			List<BestPracticeExport> result = new ArrayList<BestPracticeExport>(map.size());
-			for (Map.Entry<Integer, Integer> entry : analysisData.getBestPractice().getHttpErrorCounts().entrySet()) {
-				result.add(new BestPracticeExport(String.valueOf(entry.getValue()),
-						MessageFormat.format(rb.getString("exportall.csvHttpError"), entry.getKey())));
-			}
-			return result;
-		}
-
-		private String formatError(Map.Entry<Integer, Integer> entry) {
-			int count = entry.getValue();
-			if (count > 1) {
-				return MessageFormat.format(
-						rb.getString("connections.http4xx5xx.errorPlural"),
-						count, entry.getKey());
-			} else {
-				return MessageFormat.format(
-						rb.getString("connections.http4xx5xx.errorSingular"),
-						entry.getKey());
-			}
-		}
-
-		@Override
-		public JPanel getTestResults() {
-			return null;
-		}
-	};
-	
-	/**
-	 * Pre-defined HTTP 301/302 errors best practice
-	 */
-	protected static final BestPracticeDisplay HTTP_3XX = new BestPracticeDisplay() {
-
-		@Override
-		public String getOverviewTitle() {
-			return rb.getString("connections.http3xx.title");
-		}
-
-		@Override
-		public String getDetailTitle() {
-			return rb.getString("connections.http3xx.detailedTitle");
-		}
-
-		@Override
-		public boolean isSelfTest() {
-			return false;
-		}
-
-		@Override
-		public String getAboutText() {
-			return rb.getString("connections.http3xx.desc");
-		}
-
-		@Override
-		public URI getLearnMoreURI() {
-			return URI.create(rb.getString("connections.http3xx.url"));
-		}
-
-		@Override
-		public boolean isPass(TraceData.Analysis analysis) {
-			return analysis.getBestPractice().getHttpRedirectCounts().isEmpty();
-		}
-
-		@Override
-		public String resultText(Analysis analysisData) {
-			Map<Integer, Integer> map = analysisData.getBestPractice().getHttpRedirectCounts();
-			Iterator<Map.Entry<Integer, Integer>> i = map.entrySet().iterator();
-			if (i.hasNext()) {
-				Map.Entry<Integer, Integer> entry = i.next();
-				String message = formatError(entry);
-				if (i.hasNext()) {
-					entry = i.next();
-					while (i.hasNext()) {
-						message = MessageFormat.format(rb
-								.getString("connections.http3xx.errorList"),
-								message, formatError(entry));
-						entry = i.next();
-					}
-					message = MessageFormat
-							.format(rb
-									.getString("connections.http3xx.errorListEnd"),
-									message, formatError(entry));
-				}
-				
-				return MessageFormat.format(
-						rb.getString("connections.http3xx.results"), message);
-			} else {
-				return rb.getString("connections.http3xx.pass");
-			}
-		}
-
-		@Override
-		public void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent) {
-			try {
-				
-				// Find a response with the selected status code
-				int status = Integer.parseInt(h.getDescription());
-				parent.displayDiagnosticTab();
-				parent.getAroAdvancedTab().setHighlightedRequestResponse(
-						parent.getAnalysisData().getBestPractice()
-								.getFirstRedirectRespMap().get(status));
-			} catch (NumberFormatException e) {
-				// Ignore
-			}
-		}
-		
-		@Override
-		public List<BestPracticeExport> getExportData(Analysis analysisData) {
-			Map<Integer, Integer> map = analysisData.getBestPractice().getHttpRedirectCounts();
-			List<BestPracticeExport> result = new ArrayList<BestPracticeExport>(map.size());
-			for (Map.Entry<Integer, Integer> entry : analysisData.getBestPractice().getHttpRedirectCounts().entrySet()) {
-				result.add(new BestPracticeExport(String.valueOf(entry.getValue()),
-						MessageFormat.format(rb.getString("exportall.csvHttpError"), entry.getKey())));
-			}
-			return result;
-		}
-
-		private String formatError(Map.Entry<Integer, Integer> entry) {
-			int count = entry.getValue();
-			if (count > 1) {
-				return MessageFormat.format(
-						rb.getString("connections.http3xx.errorPlural"),
-						count, entry.getKey());
-			} else {
-				return MessageFormat.format(
-						rb.getString("connections.http3xx.errorSingular"),
-						entry.getKey());
-			}
-		}
-
-		@Override
-		public JPanel getTestResults() {
-			return null;
-		}
-	};
+	protected static final Http4xx5xxBestPractice HTTP_4XX_5XX = new Http4xx5xxBestPractice();
 	
 	/**
 	 * Pre-defined wifi off-loading best practice
@@ -1269,15 +1027,25 @@ public class BestPracticeDisplayFactory {
 
 		@Override
 		public String resultText(Analysis analysisData) {
+			String cameraPer;
 			BestPractices bp = analysisData.getBestPractice();
 			NumberFormat nf = NumberFormat.getIntegerInstance();
+			NumberFormat numFor = NumberFormat.getPercentInstance();
+			
+			if(bp.getCameraActiveStateRatio() < 1.0){
+				 cameraPer = numFor.format(bp.getCameraActiveStateRatio());
+				 int per = cameraPer.lastIndexOf("%");
+				 cameraPer = cameraPer.substring(0,per);
+			}else{
+				 cameraPer = nf.format(bp.getCameraActiveStateRatio());
+			}
 
 			String key = isPass(analysisData) ? "other.accessingPeripherals.pass"
 					: "other.accessingPeripherals.results";
 			return MessageFormat.format(rb.getString(key),
 					nf.format(bp.getGPSActiveStateRatio()),
 					nf.format(bp.getBluetoothActiveStateRatio()),
-					nf.format(bp.getCameraActiveStateRatio()));
+					cameraPer);
 		}
 
 		@Override
@@ -1394,9 +1162,34 @@ public class BestPracticeDisplayFactory {
 	protected static final BestPracticeDisplay MINIFICATION = new MinificationBestPractice();
 
 	/**
+	 * Empty URL tags best practice
+	 */
+	protected static final BestPracticeDisplay EMPTY_URL = new EmptyUrlBestPractice();
+
+	/**
+	 * Flash best practice
+	 */
+	protected static final BestPracticeDisplay FLASH = new FlashBestPractice();
+	
+	/**
+	 * 3d party scripts best practice
+	 */
+	protected static final BestPracticeDisplay SCRIPTS_URL = new Scripts();
+
+	/**
 	 * Sprite Image best practice
 	 */
 	protected static final BestPracticeDisplay SPRITEIMAGE = new SpriteImageBestPractice();
+	
+	/**
+	 * Small Request best practice
+	 */
+	//protected static final BestPracticeDisplay SMALLREQUEST = new SmallRequestBestPractice();
+	
+	/**
+	* Pre-defined HTTP 301/302 errors best practice
+	*/
+	protected static final BestPracticeDisplay HTTP_3XX_CODE = new Http3xxBestPractice();
 
 	/**
 	 * Asynchronous loading of JavaScript in HEAD best practice
@@ -1407,6 +1200,11 @@ public class BestPracticeDisplayFactory {
 	 * File order checking best practice. In the HEAD, CSS files should be loaded before JS files 
 	 * */
 	protected static final BestPracticeDisplay FILE_ORDER = new FileOrderBestPractice();
+	
+	/**
+	 * DIsplay None in CSS Best Practice.
+	 * */
+	protected static final BestPracticeDisplay DISPLAY_NONE_IN_CSS = new DisplayNoneInCSSBestPractice();
 	
 	/**
 	 * Refreshes and displays the burst graph in diagnostic view.

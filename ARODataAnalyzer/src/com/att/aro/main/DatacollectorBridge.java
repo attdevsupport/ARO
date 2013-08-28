@@ -1,5 +1,4 @@
 /*
- * Copyright 2012 AT&T
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +15,14 @@
 
 package com.att.aro.main;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.text.MessageFormat;
@@ -86,13 +87,15 @@ public class DatacollectorBridge {
 		 */
 		PULLING
 	}
-
 	private static final Logger logger = Logger.getLogger(DatacollectorBridge.class.getName());
 	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
-
 	private static final String TCPDUMP = rb.getString("Name.tcpdump");
 	private static final String APPVERAPK = rb.getString("Name.appverapk");
 	private static final String KEYDB = rb.getString("Name.keyevent");
+	private static final String EMULATORSTARBATCH = rb.getString("Name.startemul");
+	private static final String WAITDEVICESBATCH = rb.getString("Name.waitfordevices");
+	private static final String EMULATORSTARBATCHMAC = rb.getString("Name.startemulmac");
+	private static final String WAITDEVICESBATCHMAC = rb.getString("Name.waitfordevicesmac");
 	private static final String TRACE_ROOT = "/sdcard/ARO/";
 	private static final int TCPDUMP_PORT = 50999;
 	private static final String[] mDataDeviceCollectortraceFileNames = {
@@ -112,7 +115,7 @@ public class DatacollectorBridge {
 		TraceData.USER_EVENTS_FILE, TraceData.PCAP_FILE,
 		};
 
-	private static final int AROSDCARD_TIMERCHECK_FREQUENCY= 10000;
+	private static final int AROSDCARD_TIMERCHECK_FREQUENCY= 2000;
 	private static final int AROSDCARD_MIN_SPACEBYTES = 5120; // 5MB Minimum
 																// Space
 																// required to
@@ -139,11 +142,17 @@ public class DatacollectorBridge {
 	 * */
 	private static final long DELAY_TO_FINISH_STORE_FILES_ON_DEVICE = 20000; //TODO: Will replace with a device communication to notify on traces stop.  
 
-	/*
+	/**
 	 * Time in seconds to wait for the collector to start
-	 * 
-	 * */
+	 */
 	private static final int WAIT_TO_START_COLLECTOR = 30;
+	
+	private static final int WAIT_FOR_EMULATOR_READY = 52000;
+	/**
+	 * Timer to stop data collector
+	 */
+	private final Timer aroCollectorStopTimeTimer = new Timer();
+	
 	/**
 	 * Indicates status of bridge
 	 */
@@ -194,9 +203,12 @@ public class DatacollectorBridge {
 	//String to handle the shellOutput 
 	String shellLineOutput = null;
 	
+	/**
+	 * Indicates if Data Collector was launched from command line argument
+	 */
+	
 	private boolean usbDisconnectedFlag = false;
 	private boolean isAroNotOnTheDevice = false;
-	
 	public boolean isAroNotOnTheDevice() {
 		return isAroNotOnTheDevice;
 	}
@@ -218,6 +230,8 @@ public class DatacollectorBridge {
 	 * emulator
 	 */
 	private Timer checkSDCardSpace;
+	
+	private static boolean isAROOnMac = false;
 
 	/**
 	 * Used to track progress window
@@ -247,11 +261,106 @@ public class DatacollectorBridge {
 	 * class through the constructor.
 	 */
 	public void startARODataCollector() {
-		if (checkAROEmulatorBridge() != null) {
-			new DataCollectorStartDialog(mAROAnalyzer, this).setVisible(true);
+		
+		if(CommandLineHandler.getInstance().IsCommandLineEvent() == false) {
+			if (checkAROEmulatorBridge() != null) {
+				new DataCollectorStartDialog(mAROAnalyzer, this).setVisible(true);
+			}
 		}
-	}
+		else {
+			//If collector is started from command line
+			updateDataCollectorMenuItem(false, false);
+			try {
+				String os = System.getProperty("os.name").toLowerCase();
+				if (os.indexOf("mac") >= 0) {
+					isAROOnMac = true;
+					getAroCollectorFilesFromJar(EMULATORSTARBATCHMAC);
+					getAroCollectorFilesFromJar(WAITDEVICESBATCHMAC);
+				} else {
+					isAROOnMac = false;
+					getAroCollectorFilesFromJar(EMULATORSTARBATCH);
+					getAroCollectorFilesFromJar(WAITDEVICESBATCH);					
+				}
+				final String mStartEmulatorScriptPath = "cmd /c start " + EMULATORSTARBATCH;
+				final String mWaitDevicesScriptPath = "cmd /c start " + WAITDEVICESBATCH;
+				
+				final String mStartEmulatorScriptMacPath = "./" + EMULATORSTARBATCH;
+				final String mWaitDevicesScriptMacPath = "./" + WAITDEVICESBATCH;
+				
+				//Worker thread that starts collector
+				new SwingWorker<String, Object>() {
+					@Override
+					protected String doInBackground() {
+						final Runtime mAROProcessRuntime = Runtime.getRuntime();
+						Process startEmulator = null;
+						Process waitForDevices = null;
 
+						try {
+							if(isAROOnMac){
+								startEmulator = mAROProcessRuntime.exec(mStartEmulatorScriptMacPath);
+								
+							} else {
+								startEmulator = mAROProcessRuntime.exec(mStartEmulatorScriptPath);
+							}
+						} catch (IOException e) {
+							logger.log(Level.SEVERE,"Failed to start Android emulator", e);
+						}
+						Runtime mAROProcessWaitDevices = Runtime.getRuntime();
+						try {
+							if (isAROOnMac) {
+								waitForDevices = mAROProcessWaitDevices.exec(mWaitDevicesScriptMacPath);
+							} else {
+								waitForDevices = mAROProcessWaitDevices.exec(mWaitDevicesScriptPath);
+							}
+							InputStream outCmdStream = waitForDevices.getInputStream();
+							InputStreamReader outCmdReader = new InputStreamReader(outCmdStream);
+							BufferedReader outCmdBufReader = new BufferedReader(outCmdReader);
+							String outLine;
+							while ((outLine = outCmdBufReader.readLine()) != null) {
+								logger.log(Level.INFO,"startARODataCollector(): outCmdBufReader.readLine()",outLine);
+							}
+							InputStream errStream = waitForDevices.getErrorStream();
+							InputStreamReader errReader = new InputStreamReader(errStream);
+							BufferedReader errBufReader = new BufferedReader(errReader);
+							String errLine;
+							while ((errLine = errBufReader.readLine()) != null) {
+								logger.log(Level.INFO,"startARODataCollector(): errBufReader.readLine()",errLine);
+							}
+							waitForDevices.waitFor();
+							// Giving time for graceful launch of ARO emulator
+							
+							progress = new AROProgressDialog(mAROAnalyzer, rb.getString("cmdline.waitingForEmulatorReady"));
+							progress.setVisible(true);
+							
+							//We need to sleep for 50 sec before we could see emulator in ready state
+							
+							Thread.sleep(WAIT_FOR_EMULATOR_READY);
+							
+						} catch (InterruptedException e) {
+							logger.log(Level.SEVERE,
+									"Failed to wait for devices", e);
+
+						} catch (IOException e1) {
+							logger.log(Level.SEVERE,
+									"Failed to wait for devices", e1);
+						}
+						return null;
+					}
+
+					@Override
+					protected void done() {
+						super.done();
+						startARODataCollectorCmd(CommandLineHandler.getInstance().getTraceDirectoryName(), true);
+					}
+				}.execute();
+			} catch (IOException e1) {
+				logger.log(Level.SEVERE,
+						"Exception in getAroCollectorFilesFromJar at startARODataCollector", e1);
+			}
+		}
+		
+	}
+	
 	/**
 	 * Initializes the video capture thread and starts the ARO Data Collector
 	 * traces. This method should be run on the UI thread, because error
@@ -269,30 +378,11 @@ public class DatacollectorBridge {
 	 */
 	public synchronized void startARODataCollector(final String traceFolderName,
 			boolean mRecordTraceVideo) {
-
-		// Make sure proper status of bridge
+		
 		if (getStatus() == Status.READY) {
-
-			// Check that valid device is connected
-			this.mAndroidDevice = checkAROEmulatorBridge();
-			if (mAndroidDevice == null) {
-				return;
-			}
-
-			setUsbDisconnectedFlag(false);
-			// Initialize member variables for trace
-			this.traceFolderName = traceFolderName;
-			this.mARORecordTraceVideo = mRecordTraceVideo;
-			String os = System.getProperty("os.name").toLowerCase();
-			if (os.indexOf("mac") >= 0) {
-				this.localTraceFolder = new File(rb.getString("Emulator.localtracepathmac")
-						+ File.separator + traceFolderName);
-			} else {
-				this.localTraceFolder = new File(rb.getString("Emulator.localtracepath")
-						+ File.separator + traceFolderName);
-			}
-
-			this.deviceTracePath = TRACE_ROOT + traceFolderName;
+			
+			checkDeviceAndInitializeVars(traceFolderName, mRecordTraceVideo);
+			
 			try {
 				ShellOutputReceiver shelloutPut = new ShellOutputReceiver();
 				if (mAndroidDevice.isEmulator()) {
@@ -312,10 +402,12 @@ public class DatacollectorBridge {
 					// Prompt user for overwrite of trace folders
 					Object[] options = { rb.getString("jdialog.option.yes"),
 							rb.getString("jdialog.option.no") };
-					int confirmSelected = JOptionPane.showOptionDialog(mAROAnalyzer,
+					int confirmSelected = 100;
+					confirmSelected = JOptionPane.showOptionDialog(mAROAnalyzer,
 							rb.getString("Error.tracedirexists"), rb.getString("aro.title.short"),
 							JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options,
-							options[0]);
+							options[0]);	
+					
 					if (confirmSelected == JOptionPane.YES_OPTION) {
 						TraceData traceData = mAROAnalyzer.getTraceData();
 						if (traceData != null && traceData.getTraceDir().equals(localTraceFolder)) {
@@ -338,7 +430,7 @@ public class DatacollectorBridge {
 						} else {
 							deleteTraceFolderData(shelloutPut);
 						}
-					} else if ((confirmSelected == JOptionPane.NO_OPTION)) {
+					} else if ((confirmSelected == JOptionPane.NO_OPTION )) {
 						// Re-prompt for trace folder name
 						setStatus(Status.READY);
 						new DataCollectorStartDialog(mAROAnalyzer, this, traceFolderName,
@@ -362,8 +454,7 @@ public class DatacollectorBridge {
 				if (mAndroidDevice.isEmulator()){
 					this.progress = new AROProgressDialog(mAROAnalyzer,
 							rb.getString("Message.startcollector"));
-				}
-				else{	
+				} else {	
 					this.progress = new AROProgressDialog(mAROAnalyzer,
 							rb.getString("Message.startcollectorOnDevice"));
 				}
@@ -409,8 +500,7 @@ public class DatacollectorBridge {
 							mAROAnalyzer,
 							MessageFormat.format(rb.getString("Error.withretrievingsdcardinfo"),
 									e.getLocalizedMessage()));
-				}
-				else{
+				} else {
 					MessageDialogFactory.showErrorDialog(
 							mAROAnalyzer,
 							MessageFormat.format(rb.getString("Error.withretrievingdevicesdcardinfo"),
@@ -421,12 +511,166 @@ public class DatacollectorBridge {
 				&& mRecordTraceVideo == mARORecordTraceVideo) {
 			// Selected to start with same arguments
 			return;
-		}
-		else {
+		} else {
 			throw new IllegalStateException(rb.getString("Error.datacollectostart"));
 		}
 	}
 
+	/**
+	 * In case of command line arguments, it initializes the video capture thread and starts 
+	 * the ARO Data Collector traces. This method should be run on the UI thread, because 
+	 * error messages may be displayed. Bridge status updates will be reported to the
+	 * ApplicationResourceOptimizer parent instance that is associated with this class 
+	 * through the constructor.
+	 * 
+	 * @param traceFolderName
+	 *            The name of the folder in which the ARO Data Collector trace
+	 *            files should be stored.
+	 * 
+	 * @param mRecordTraceVideo
+	 *            A boolean value that indicates whether to record video for
+	 *            this trace or not.
+	 */
+	public synchronized void startARODataCollectorCmd(final String traceFolderName,
+			boolean mRecordTraceVideo) {
+		
+		if (getStatus() == Status.READY) {
+			
+			if(checkDeviceAndInitializeVars(traceFolderName, mRecordTraceVideo) == null) {
+				return;
+			}
+			CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.traceFolderInPropFile"), this.localTraceFolder.toString());
+			
+			try {
+				ShellOutputReceiver shelloutPut = new ShellOutputReceiver();
+				if (mAndroidDevice.isEmulator()) {
+					// Make sure the root ARO trace directory exists on SD CARD
+					mAndroidDevice.executeShellCommand("mkdir " + TRACE_ROOT,
+							new ShellOutputReceiver());
+					mAndroidDevice.executeShellCommand("mkdir "
+							+ deviceTracePath, shelloutPut);
+				
+					if (shelloutPut.shellError) {
+						CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), rb.getString("Error.mkdirfail"));
+						CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+						return;
+					}
+				}
+				
+				if (localTraceFolder.exists()) {
+					// If trace directory already exists.
+					CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), rb.getString("cmdline.traceFolderExists"));
+					CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+					return;
+				} else if (shelloutPut.sdcardFull) {
+					// If SD Card is full.
+					CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), rb.getString("Error.sdcardfull"));
+					CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+					return;
+				}
+
+				// Show progress dialog that indicates
+				setStatus(Status.STARTING);
+				localTraceFolder.mkdirs();
+
+				if (mAndroidDevice.isEmulator()){
+					this.progress = new AROProgressDialog(mAROAnalyzer,
+							rb.getString("Message.startcollector"));
+				} else {	
+					this.progress = new AROProgressDialog(mAROAnalyzer,
+							rb.getString("Message.startcollectorOnDevice"));
+				}
+				progress.setVisible(true);
+
+				// Worker thread that starts collector
+				new SwingWorker<String, Object>() {
+
+					@Override
+					protected String doInBackground() {
+
+						// Start the data collector
+						return startDataCollector();
+					}
+
+					@Override
+					protected void done() {
+						super.done();
+						progress.dispose();
+						try {
+							// Check for startup error
+							String result = get();
+							if (result != null) {
+								logger.log(Level.SEVERE, "startDataCollectorOnEmulator :: "
+										+ result);
+								CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), result);
+								CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+								setStatus(Status.READY);
+							}
+						} catch (ExecutionException e) {
+							CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), e.getMessage());
+							CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+							setStatus(Status.READY);
+						} catch (InterruptedException e) {
+							CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), e.getMessage());
+							CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+							setStatus(Status.READY);
+						}
+					}
+
+				}.execute();
+			} catch (IOException e) {
+				logger.log(Level.WARNING, "Unexpected IOException starting data collector", e);
+				if (mAndroidDevice.isEmulator()){
+					CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), 
+							rb.getString("Error.withretrievingsdcardinfo") + e.getLocalizedMessage());
+					CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+					return;
+				} else {
+					CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), 
+							rb.getString("Error.withretrievingdevicesdcardinfo") + e.getLocalizedMessage());
+					CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+					return;
+				}
+			}
+		} else if (getStatus() == Status.STARTING && traceFolderName.equals(this.traceFolderName)
+				&& mRecordTraceVideo == mARORecordTraceVideo) {
+			// Selected to start with same arguments
+			return;
+		} else {
+			throw new IllegalStateException(rb.getString("Error.datacollectostart"));
+		}
+	}
+	
+	/**
+	 * Checks that valid device is connected and initialize member variables for trace.
+	 */
+	IDevice checkDeviceAndInitializeVars(final String traceFolderName,
+			boolean mRecordTraceVideo) {
+		
+		// Check that valid device is connected
+		this.mAndroidDevice = checkAROEmulatorBridge();
+		if (mAndroidDevice == null) {
+			return null;
+		}
+
+		setUsbDisconnectedFlag(false);
+		
+		// Initialize member variables for trace
+		this.traceFolderName = traceFolderName;
+		this.mARORecordTraceVideo = mRecordTraceVideo;
+		String os = System.getProperty("os.name").toLowerCase();
+		if (os.indexOf("mac") >= 0) {
+			this.localTraceFolder = new File(rb.getString("Emulator.localtracepathmac")
+					+ File.separator + traceFolderName);
+		} else {
+			this.localTraceFolder = new File(rb.getString("Emulator.localtracepath")
+					+ File.separator + traceFolderName);
+		}
+
+		this.deviceTracePath = TRACE_ROOT + traceFolderName;
+		return this.mAndroidDevice;
+	}
+	
 	/**
 	 * Stops the ARO Data Collector process threads. This method should be run
 	 * on the UI thread, because error messages may be displayed. Bridge status
@@ -452,10 +696,8 @@ public class DatacollectorBridge {
 						
 						// Wait until data collector is stopped
 						while (getStatus() != Status.STOPPED) {
-							
 							Thread.sleep(1000);
 						}	
-						
 					} catch (IOException e) {
 						logger.log(Level.WARNING, "Unexpected IOException stopping tcpdump", e);
 					} catch (InterruptedException e) {
@@ -489,7 +731,12 @@ public class DatacollectorBridge {
 								videoTimeStampWriter.close();
 							}
 						} catch (IOException e) {
-							MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
+							if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+								MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
+							} else {
+								CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), e.getLocalizedMessage());
+								CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+							}
 							logger.log(Level.SEVERE,"Error writing video time file",e);
 						} finally {
 							mVideoCapture = null;
@@ -506,8 +753,7 @@ public class DatacollectorBridge {
 					if(isUsbDisconnectedFlag()){
 						return;
 					}
-					startPullAROTraceFiles();
-					
+					startPullAROTraceFiles();					
 				}
 			}.execute();
 		} else if (getStatus() == Status.STOPPING || getStatus() == Status.STOPPED) {
@@ -515,7 +761,6 @@ public class DatacollectorBridge {
 		} else {
 			throw new IllegalStateException(rb.getString("Error.datacollectostop"));
 		}
-
 	}
 
 	/**
@@ -582,10 +827,13 @@ public class DatacollectorBridge {
 								devicedetailsWriter.close();
 							}
 						} catch (IOException e) {
-							MessageDialogFactory.showUnexpectedExceptionDialog(
-									mAROAnalyzer, e);
-							logger.log(Level.SEVERE,
-									"Error writing device details file", e);
+							if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+								MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
+							} else {
+								CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), e.getLocalizedMessage());
+								CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+							}
+							logger.log(Level.SEVERE, "Error writing device details file", e);
 						}
 					}
 
@@ -594,7 +842,12 @@ public class DatacollectorBridge {
 					try {
 						Thread.sleep(DELAY_TO_FINISH_STORE_FILES_ON_DEVICE);
 						} catch (InterruptedException e) {
-							MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
+							if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+								MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
+							} else {
+								CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), e.getLocalizedMessage());
+								CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+							}
 							logger.log(Level.SEVERE,"Error calling sleep", e);
 						}
 					
@@ -654,9 +907,14 @@ public class DatacollectorBridge {
 						String result = get();
 						if (result != null) {
 							if (mAndroidDevice.isEmulator()){
-								MessageDialogFactory
-									.showErrorDialog(mAROAnalyzer, MessageFormat.format(
+								if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+									MessageDialogFactory.showErrorDialog(mAROAnalyzer, MessageFormat.format(
 											rb.getString("Error.withretrievingsdcardinfo"), result));
+								} else {
+									CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), MessageFormat.format(
+											rb.getString("Error.withretrievingsdcardinfo"), result));
+									CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+								}
 							}
 							//TODO : To validate error message as this is misleading even when we are 
 									//able to pull good traces. Need to validate. Doing intermin fox for 2.3 release
@@ -665,7 +923,6 @@ public class DatacollectorBridge {
 //								MessageDialogFactory.showErrorDialog(mAROAnalyzer, MessageFormat.format(rb.getString("Error.withretrievingdevicesdcardinfo"), result));
 //							}
 						}
-
 						Double duration = TraceData.readTimes(localTraceFolder).getDuration();
 						String durationStr;
 						if (duration != null) {
@@ -687,9 +944,16 @@ public class DatacollectorBridge {
 										.getString("Emulator.noDataValue"), durationStr);
 
 						Object[] options = { rb.getString("Button.ok"), rb.getString("Button.open") };
-						if (JOptionPane.showOptionDialog(mAROAnalyzer, summaryPanel,
-								rb.getString("confirm.title"), JOptionPane.YES_NO_OPTION,
-								JOptionPane.INFORMATION_MESSAGE, null, options, options[0]) != JOptionPane.YES_OPTION) {
+						if(CommandLineHandler.getInstance().IsCommandLineEvent() == false) {
+							if (JOptionPane.showOptionDialog(mAROAnalyzer, summaryPanel,
+									rb.getString("confirm.title"), JOptionPane.YES_NO_OPTION,
+									JOptionPane.INFORMATION_MESSAGE, null, options, options[0]) != JOptionPane.YES_OPTION) {
+								mAROAnalyzer.openTrace(localTraceFolder.getAbsoluteFile());
+							}
+						} else {
+							CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.passed"));
+							
+						  	//Opening the trace pulled to local drive when launched from command line
 							mAROAnalyzer.openTrace(localTraceFolder.getAbsoluteFile());
 						}
 					}
@@ -698,9 +962,17 @@ public class DatacollectorBridge {
 					 * */
 					catch (Exception e) {
 						logger.log(Level.SEVERE, "Unexpected exception pulling traces", e);
-						MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
+						if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+							MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
+						} else {
+							CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), e.getLocalizedMessage());
+							CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+						}
 						
 					} finally {
+						//Reset all variables for user for UI usage.
+						updateDataCollectorMenuItem(true, false);
+
 						setStatus(Status.READY);
 						try {
 							//Only deleting from Emulator, not from the device
@@ -708,7 +980,7 @@ public class DatacollectorBridge {
 								removeEmulatorData();
 							}
 						} catch (IOException e) {
-							logger.log(Level.SEVERE, "Unexpected exception deleting trace files from emulator device", e);
+							logger.log(Level.SEVERE, "Unexpected exception deleting trace files from emulator device", e);							
 						}
 					}
 				}
@@ -786,36 +1058,74 @@ public class DatacollectorBridge {
 			ShellCommandCheckSDCardOutputReceiver shellCheckSDCard = new ShellCommandCheckSDCardOutputReceiver(
 					device);
 			if (!shellCheckSDCard.isSDCardAttached()) {
-
-					MessageDialogFactory.showMessageDialog(mAROAnalyzer,
-							rb.getString("Error.sdcardnotavailable"));
+				if (CommandLineHandler.getInstance().IsCommandLineEvent()) {
+					try {
+						Thread.sleep(WAIT_FOR_EMULATOR_READY * 2);
+						this.progress.dispose();
+						
+						ShellCommandCheckSDCardOutputReceiver shellCheckSDCard_Retry = new ShellCommandCheckSDCardOutputReceiver(device);
+						if(!shellCheckSDCard_Retry.isSDCardAttached()) {
+							CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), rb.getString("Error.sdcardnotavailable"));
+							CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+							return false;
+						} else {
+							return true;
+						}
+					} catch (Exception e) {
+						logger.log(Level.SEVERE,"Failed to wait for devices", e);
+					}
+				}
+				
+				MessageDialogFactory.showMessageDialog(mAROAnalyzer,rb.getString("Error.sdcardnotavailable"));
 				return false;
 			} else if (!shellCheckSDCard.doesSDCardHaveEnoughSpace(AROSDCARD_MIN_SPACEBYTES)) {
 
 				// Not enough free space on SD card
-				if (mAndroidDevice.isEmulator())
-				{	
-					MessageDialogFactory.showMessageDialog(mAROAnalyzer,
-							rb.getString("Error.sdcardnotenoughspace"));
-				}
-				else
-				{
-					MessageDialogFactory.showMessageDialog(mAROAnalyzer,
+				if (mAndroidDevice.isEmulator()) {
+					if (CommandLineHandler.getInstance().IsCommandLineEvent()) {
+						CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), rb.getString("Error.sdcardnotenoughspace"));
+						CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+					} else {
+						MessageDialogFactory.showMessageDialog(mAROAnalyzer,
+								rb.getString("Error.sdcardnotenoughspace"));
+					}
+				} else {
+					if (CommandLineHandler.getInstance().IsCommandLineEvent()) {
+						CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), rb.getString("Error.devicesdcardnotenoughspace"));
+						CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+					} else {
+						MessageDialogFactory.showMessageDialog(mAROAnalyzer,
 							rb.getString("Error.devicesdcardnotenoughspace"));
+					}
 				}
 				return false;
+			}
+			
+			if (CommandLineHandler.getInstance().IsCommandLineEvent()) {
+				this.progress.dispose();
 			}
 			// SD card is ready
 			return true;
 		} catch (IOException e) {
 			logger.log(Level.SEVERE, "IOException accessing device SD card", e);
-			if (mAndroidDevice.isEmulator()){	
-				MessageDialogFactory.showMessageDialog(
-						mAROAnalyzer,MessageFormat.format(rb.getString("Error.withretrievingsdcardinfo"),e.getLocalizedMessage()));
-			}
-			else{
-				MessageDialogFactory.showMessageDialog(
+			if (mAndroidDevice.isEmulator()) {
+				if (CommandLineHandler.getInstance().IsCommandLineEvent()) {
+					CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), 
+							MessageFormat.format(rb.getString("Error.withretrievingsdcardinfo"), e.getLocalizedMessage()));
+					CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+				} else {
+					MessageDialogFactory.showMessageDialog(
+						mAROAnalyzer, MessageFormat.format(rb.getString("Error.withretrievingsdcardinfo"), e.getLocalizedMessage()));
+				}
+			} else {
+				if (CommandLineHandler.getInstance().IsCommandLineEvent()) {
+					CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), 
+							MessageFormat.format(rb.getString("Error.withretrievingdevicesdcardinfo"), e.getLocalizedMessage()));
+					CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+				} else {
+					MessageDialogFactory.showMessageDialog(
 						mAROAnalyzer,MessageFormat.format(rb.getString("Error.withretrievingdevicesdcardinfo"),e.getLocalizedMessage()));
+				}
 			}
 			return false;
 		}
@@ -848,15 +1158,22 @@ public class DatacollectorBridge {
 							.doesSDCardHaveEnoughSpace(AROSDCARD_MIN_SPACEKBYTES_TO_COLLECT)) {
 
 						// Not enough remaining SD card space
-						if (mAndroidDevice.isEmulator())
-						{
-							MessageDialogFactory.showMessageDialog(mAROAnalyzer,
-									rb.getString("Error.sdcardnospacetocollect"));
-						}
-						else
-						{
-							MessageDialogFactory.showMessageDialog(mAROAnalyzer,
-									rb.getString("Error.devicesdcardnospacetocollect"));
+						if (mAndroidDevice.isEmulator()) {
+							if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+								MessageDialogFactory.showMessageDialog(mAROAnalyzer,
+										rb.getString("Error.sdcardnospacetocollect"));
+							} else {
+								CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), rb.getString("Error.sdcardnospacetocollect"));
+								CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+							}
+						} else	{
+							if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+								MessageDialogFactory.showMessageDialog(mAROAnalyzer,
+										rb.getString("Error.devicesdcardnospacetocollect"));
+							} else {
+								CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), rb.getString("Error.devicesdcardnospacetocollect"));
+								CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+							}
 						}
 						// Stop the data collection
 						stopARODataCollector();
@@ -869,8 +1186,17 @@ public class DatacollectorBridge {
 						if ((e.getMessage().contains("device not found")) && (!isUsbDisconnectedFlag())){
 							setUsbDisconnectedFlag(true);
 							logger.log(Level.SEVERE,"Device got disconnected. Please check the connection");
-							MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.devicenotfound"));
+							
+							if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+								MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.devicenotfound"));
+							} else {
+								CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), rb.getString("Error.devicenotfound"));
+								CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+							}
+							
 							setStatus(Status.READY);
+							checkSDCardSpace.cancel();
+							checkSDCardSpace = null;							
 						}
 						else if (isUsbDisconnectedFlag()){
 							logger.log(Level.SEVERE,"Device got disconnected. Please check the connection");							
@@ -881,13 +1207,24 @@ public class DatacollectorBridge {
 					} catch (IOException e1) {
 						setUsbDisconnectedFlag(true);
 						setStatus(Status.READY);
-						MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.emulatoradbconnectionerror"));
+						if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+							MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.emulatoradbconnectionerror"));
+						} else {
+							CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), rb.getString("Error.emulatoradbconnectionerror"));
+							CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+						}
+						
 						logger.log(Level.SEVERE, "Connection to device or emulator is lost. Please wait for sometime before starting data collector.", e);
 					}
 					
 					//Throw the restart the device dialog only of the device is connected
-					if (!isUsbDisconnectedFlag()){	
-						MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.emulatorunexpectederror"));
+					if (!isUsbDisconnectedFlag()){
+						if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+							MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.emulatorunexpectederror"));
+						} else {
+							CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), rb.getString("Error.emulatorunexpectederror"));
+							CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+						}						
 						logger.log(Level.SEVERE, "IOException occurred checking SD card space", e);
 					}
 				}
@@ -944,37 +1281,40 @@ public class DatacollectorBridge {
 			//check whether the collector is running on the device already.
 			String stopTcpCmd = rb.getString("Emulator.stopTCPDump");
 			mAndroidDevice.executeShellCommand(stopTcpCmd,
-					new IShellOutputReceiver(){
+					new IShellOutputReceiver() {
 			
-				public boolean isCancelled(){
+				public boolean isCancelled() {
 					return false;
 				}
 				
-				public void flush(){
+				public void flush() {
 					
 				}
 				
 				//Taking the length of the stopTCPCommand to make sure it returns empty
-				public void addOutput(byte []data, int off, int len){
-					shellLineOutput = new String(data);
-					
-				}
-			
+				public void addOutput(byte []data, int off, int len) {
+					shellLineOutput = new String(data);					
+				}			
 			});
 			
 			logger.log(Level.INFO,"Checking whether the collector is not running on the device");
-			if  (isCollectorRunningInShell(shellLineOutput)){
+			if (isCollectorRunningInShell(shellLineOutput)) {
 				/*
 				 * if the collector version is running automatically,
 				 * a) Delete the folder from the computer  
 				 * b) Show an error dialog box showing Collector is already running on the device
 				 * c) Put the status of the Analyzer to Ready
 				 * */
-				if (localTraceFolder.exists()){
+				if (localTraceFolder.exists()) {
 					deleteLocalTraceFolder();
 				}
 				
-				MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.collectorisalreadyrunning"));
+				if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+					MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.collectorisalreadyrunning"));
+				} else {
+					CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), rb.getString("Error.collectorisalreadyrunning"));
+					CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+				}
 				setStatus(Status.READY);			
 				return null;
 			}
@@ -1047,10 +1387,17 @@ public class DatacollectorBridge {
 								 * by checking the shell output
 								 * */
 								setAroNotOnTheDevice(false);
-								if (ShellOutputReceiver.noARO){
+								if (ShellOutputReceiver.noARO) {
 									setAroNotOnTheDevice(true);
 									logger.log(Level.SEVERE,"ARO Collector is not installed on the device");
-									MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.nocollector"));
+									if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+										MessageDialogFactory.showErrorDialog(mAROAnalyzer, rb.getString("Error.nocollector"));
+									} else {
+										CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), rb.getString("Error.nocollector"));
+										CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+										setStatus(Status.READY);
+										return null;
+									}
 									setStatus(Status.READY);
 									return rb.getString("Error.nocollector");
 								}
@@ -1058,8 +1405,7 @@ public class DatacollectorBridge {
 								while (!isUsbDisconnectedFlag()) {
 									Thread.sleep(5000);
 									//TODO update to check socket for unexpected end of collector
-								}	
-								
+								}								
 							}
 							catch (InterruptedException e){}
 						}
@@ -1077,11 +1423,10 @@ public class DatacollectorBridge {
 						// tcpdump has exited or device collector has been stopped.
 						// Make sure everything else is stopped
 						synchronized (DatacollectorBridge.this) {
-							
-							setStatus(Status.STOPPING);
-							
 							if (isUsbDisconnectedFlag())
 								return;
+							
+							setStatus(Status.STOPPING);
 							if (isAroNotOnTheDevice())
 								return;
 							
@@ -1090,21 +1435,22 @@ public class DatacollectorBridge {
 									try {
 										get();
 									} catch (InterruptedException e1) {
-										MessageDialogFactory
-												.showUnexpectedExceptionDialog(
-														mAROAnalyzer, e1);
-										logger.log(
-												Level.SEVERE,
-												"Error starting data collector",
-												e1);
+										
+										if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+											MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e1);
+										} else {
+											CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), e1.getLocalizedMessage());
+											CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+										}										
+										logger.log(Level.SEVERE, "Error starting data collector", e1);
 									} catch (ExecutionException e1) {
-										MessageDialogFactory
-												.showUnexpectedExceptionDialog(
-														mAROAnalyzer, e1);
-										logger.log(
-												Level.SEVERE,
-												"Error starting data collector",
-												e1);
+										if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+											MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e1);
+										} else {
+											CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), e1.getLocalizedMessage());
+											CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+										}
+										logger.log(Level.SEVERE, "Error starting data collector", e1);
 									} catch (CancellationException e) {
 										//do nothing, USB video cancelled
 									}
@@ -1146,8 +1492,7 @@ public class DatacollectorBridge {
 					}
 					checkSDCardStatus();					
 				}
-				
-				
+								
 				int checkCount = 0;
 				do
 				{
@@ -1158,16 +1503,15 @@ public class DatacollectorBridge {
 						logger.log(Level.INFO,"ARO Collector activity is not started. Its current task has been brought to the front.");
 						setStatus(Status.READY);
 						return rb.getString("Error.collectoractivityondevice");
-					}
-					else{
+					} else {
 						logger.log(Level.INFO,"No msg on the shell regarding the activity not there on the forefront");
-					}						
+					}		
+					
 					/*Checking whether collector is running on device*/
-					if (isCollectorRunningOnDevice()){
+					if (isCollectorRunningOnDevice()) {
 						setStatus(Status.STARTED);
 						break;
-					}
-					else{
+					} else {
 						setStatus(Status.STARTING);
 					}
 					
@@ -1182,7 +1526,7 @@ public class DatacollectorBridge {
 				
 				if (Status.STARTING == getStatus())	{
 					/*Deletes the local folder from PC*/
-					if (localTraceFolder.exists()){
+					if (localTraceFolder.exists()) {
 						deleteLocalTraceFolder();
 					}
 					
@@ -1193,24 +1537,20 @@ public class DatacollectorBridge {
 							.executeShellCommand(
 									shellCmd,
 									shelloutPut);
-
-					if (mAndroidDevice.isEmulator()){
+					
+					if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
 						JOptionPane.showMessageDialog(mAROAnalyzer,
 								rb.getString("Error.collectortimeout"),
 								rb.getString("aro.title.short"),
 								JOptionPane.INFORMATION_MESSAGE);
 								setStatus(Status.READY);
-					}
-					else{
-						JOptionPane.showMessageDialog(mAROAnalyzer,
-								rb.getString("Error.collectortimeout"),
-								rb.getString("aro.title.short"),
-								JOptionPane.INFORMATION_MESSAGE);
-								setStatus(Status.READY);
-					}					
+					} else {
+						CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), rb.getString("Error.collectortimeout"));
+						CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+					}										
 				}
 				
-				if (Status.STARTED == getStatus()){
+				if (Status.STARTED == getStatus()) {
 					if (mARORecordTraceVideo) {
 						mVideoCapture = new VideoCaptureThread(mAndroidDevice,mAROAnalyzer.getTraceData(), new File(
 								localTraceFolder, TraceData.VIDEO_MOV_FILE));
@@ -1220,32 +1560,43 @@ public class DatacollectorBridge {
 					}
 
 
-					if (mAndroidDevice.isEmulator()){
-						JOptionPane.showMessageDialog(mAROAnalyzer,
+					if (mAndroidDevice.isEmulator()) {
+						
+						//Setting up Timer Task to Stop Data Collector as per passed duration 
+						//from command line argument 
+						if (CommandLineHandler.getInstance().IsCommandLineEvent() == true) {
+							aroCollectorStopTimeTimer.schedule(new TimerTask() {
+								@Override
+								public void run() {
+									stopARODataCollector();
+								}
+							}, (long) CommandLineHandler.getInstance().getTraceDuration());
+						} else {
+							JOptionPane.showMessageDialog(mAROAnalyzer,
 								rb.getString("Message.datacollectorrunning"),
 								rb.getString("aro.title.short"),
 								JOptionPane.INFORMATION_MESSAGE);
-					}
-					else{
-						JOptionPane.showMessageDialog(mAROAnalyzer,
+						}
+					} else {
+							JOptionPane.showMessageDialog(mAROAnalyzer,
 								rb.getString("Message.datacollectorrunningOnDevice"),
 								rb.getString("aro.title.short"),
 								JOptionPane.INFORMATION_MESSAGE);
 					}
 				}
-			return null;
+				
+				return null;
 			} else {
 				return rb.getString("Error.withtcpdumppush");
 			}
 		} catch (IOException e) {
-			if(e.getMessage().contains("device not found"))	{
+			if (e.getMessage().contains("device not found"))	{
 				//Ignore as the usb device got disconnected message is getting thrown from the video capture thread
 				return null;				
-			}
-			else{
-			String msg = rb.getString("Error.withemulatorioexecution");
-			logger.log(Level.SEVERE, msg, e);
-			return msg;
+			} else {
+				String msg = rb.getString("Error.withemulatorioexecution");
+				logger.log(Level.SEVERE, msg, e);
+				return msg;
 			}
 		}
 	}
@@ -1260,6 +1611,13 @@ public class DatacollectorBridge {
 	private void setStatus(Status status) {
 		this.status = status;
 		mAROAnalyzer.dataCollectorStatusCallBack(status);
+	}
+	
+	/**
+	 * Updates Data Collector menu items in case of command line arguments.
+	 */
+	private void updateDataCollectorMenuItem(boolean bStartItem, boolean bStopItem) {
+		mAROAnalyzer.dataCollectorStatusCallBack(bStartItem, bStopItem);
 	}
 
 	
@@ -1345,6 +1703,7 @@ public class DatacollectorBridge {
 		private static final Pattern SEG_ERROR = Pattern.compile("Segmentation fault");
 		private static final Pattern NO_ARO = Pattern.compile("does not exist");
 		private static final Pattern ACTIVITY_RUNNING = Pattern.compile("current task has been brought to the front");
+		private static final Pattern FILE_EXISTS = Pattern.compile("File exists");
 		
 		private boolean shellError;
 		private boolean sdcardFull;
@@ -1359,6 +1718,13 @@ public class DatacollectorBridge {
 
 					noARO = false;
 					isActivityRunning = false;
+					
+					//Check if file already exists
+					Matcher file_exists = FILE_EXISTS.matcher(line);
+					if (file_exists.find()) {
+						return;
+					}
+					
 					// set Android SD card memory full flag
 					Matcher sdcardfull = SDCARDFULL.matcher(line);
 					if (sdcardfull.find()) {
@@ -1447,11 +1813,13 @@ public class DatacollectorBridge {
 		@Override
 		public void processNewLines(String[] lines) {
 			for (String oneLine : lines) {
+				
+				
 				//Checks the SDCard line from 'DF' command output
-				if ((oneLine.contains(rb.getString("Emulator.dfsdcardoutput")))) { 
+				if ((oneLine.toLowerCase().contains(rb.getString("Emulator.dfsdcardoutput").toLowerCase()))) { 
 					// We find SD card is attached to emulator instance
 					emualatorSDCardAttached = true;
-
+					
 					String strFileSize = null;
 					String strValues[] = oneLine.split("\\s+");
 					try {
@@ -1505,10 +1873,10 @@ public class DatacollectorBridge {
 				}
 
 				//Checks the SDCard line from 'DF' command output
-				if (oneLine.contains("mnt/shell")) { 
+				if (oneLine.toLowerCase().contains("mnt/shell")) { 
 					// We find SD card is attached to emulator instance
 					emualatorSDCardAttached = true;
-
+					
 					String strFileSize = null;
 					String strValues[] = oneLine.split("\\emu+");
 					try {
@@ -1558,12 +1926,9 @@ public class DatacollectorBridge {
 									"ShellCommandCheckSDCardOutputReceiver number format exception",
 									e);
 						}
-
 					}
-				}
-				
-			}
-			
+				}				
+			}			
 		}
 
 		@Override
@@ -1610,10 +1975,9 @@ public class DatacollectorBridge {
 	/*
 	 * Deletes only the trace folder from the local folder
 	 * */
-	private void deleteLocalTraceFolder()throws IOException	{
-		if (localTraceFolder.isDirectory()){
-			for (File f: localTraceFolder.listFiles())
-			{
+	private void deleteLocalTraceFolder() throws IOException	{
+		if (localTraceFolder.isDirectory()) {
+			for (File f: localTraceFolder.listFiles()) {
 				f.delete();
 			}
 		}
@@ -1707,5 +2071,5 @@ public class DatacollectorBridge {
 	private boolean isCollectorRunningInShell(String shellOutput) {
 		logger.log(Level.INFO,"shelloutput: " + shellOutput);
 		return shellOutput.contains("arodatacollector");
-	}
+	}	
 }

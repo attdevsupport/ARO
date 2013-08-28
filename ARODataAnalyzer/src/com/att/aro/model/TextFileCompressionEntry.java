@@ -51,8 +51,17 @@ public class TextFileCompressionEntry implements Serializable {
 			this.httpObjectName = rsp.getObjName();
 			this.hostName = rsp.getHostName();
 		} else {
-			this.httpObjectName = "";
-			this.hostName = "";
+			if(rr.getFileName() != null) {
+				this.httpObjectName = rr.getFileName();
+			} else {
+				this.httpObjectName = "";
+			}
+			
+			if(rr.getHostName() != null) {
+				this.hostName = rr.getHostName();
+			} else {
+				this.hostName = "";
+			}
 		}
 
 		LOGGER.log(Level.FINE, "Host: {0}, Domain: {1}", new Object[] { rr.getHostName(), rr.getSession().getDomainName() });

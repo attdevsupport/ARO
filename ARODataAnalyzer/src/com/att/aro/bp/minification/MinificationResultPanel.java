@@ -26,14 +26,17 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.Collection;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.SwingConstants;
 
+import com.att.aro.bp.BestPracticeButtonPanel;
 import com.att.aro.commonui.DataTable;
 import com.att.aro.main.ApplicationResourceOptimizer;
 import com.att.aro.util.Util;
@@ -46,16 +49,21 @@ public class MinificationResultPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
 	@SuppressWarnings("unused")
-	private static final Logger LOGGER = Logger.getLogger(MinificationResultPanel.class.getName());
+	private static final Logger LOGGER = Logger
+			.getLogger(MinificationResultPanel.class.getName());
 
 	private static final int ROW_HEIGHT = 20;
 	private static final int NO_OF_ROWS = 6;
-	private static final int SCROLL_PANE_HEIGHT = MinificationResultPanel.NO_OF_ROWS * MinificationResultPanel.ROW_HEIGHT;
+	private static final int SCROLL_PANE_HEIGHT = MinificationResultPanel.NO_OF_ROWS
+			* MinificationResultPanel.ROW_HEIGHT;
 	private static final int SCROLL_PANE_LENGHT = 300;
+	private boolean isExpanded = false;
+	private int noOfRecords = 0;
 
 	private JLabel title;
 	private JPanel contentPanel;
 	private JScrollPane scrollPane;
+	private BestPracticeButtonPanel bpButtonPanel;
 	private MinificationTableModel tableModel;
 	private DataTable<MinificationEntry> contentTable;
 
@@ -64,13 +72,33 @@ public class MinificationResultPanel extends JPanel {
 	 * 
 	 */
 	public MinificationResultPanel() {
+		LOGGER.fine("init. DuplicateResultPanel");
+		initialize();
+	}
+	/**
+	 * Sets the Minification best practice result data.
+	 * 
+	 * @param data
+	 *            the data to be displayed in the result content table
+	 */
+	public void setData(Collection<MinificationEntry> data) {
+		this.tableModel.setData(data);
+		noOfRecords = data.size();
+		if (bpButtonPanel != null)
+			bpButtonPanel.setNoOfRecords(noOfRecords);
+	}
+
+	/**
+	 * Initializes the DuplicateResultPanel.
+	 */
+	private void initialize() {
 		this.setLayout(new BorderLayout());
 		this.add(getContentPanel(), BorderLayout.CENTER);
 		JPanel contentPanelWidth = new JPanel(new GridLayout(2, 1, 5, 5));
 		JPanel contentPanelWidthAdjust = new JPanel(new GridBagLayout());
-		contentPanelWidthAdjust.add(contentPanelWidth, new GridBagConstraints(0, 0, 1, 1, 1.0, 1.0,
-				GridBagConstraints.NORTH, GridBagConstraints.NONE, new Insets(
-						5, 5, 5, 30), 0, 0));
+		contentPanelWidthAdjust.add(contentPanelWidth, new GridBagConstraints(
+				0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.NORTH,
+				GridBagConstraints.NONE, new Insets(5, 5, 5, 30), 0, 0));
 		contentPanelWidthAdjust.setBackground(Color.WHITE);
 		this.add(contentPanelWidthAdjust, BorderLayout.EAST);
 	}
@@ -78,11 +106,13 @@ public class MinificationResultPanel extends JPanel {
 	/**
 	 * Returns the title label.
 	 * 
-	 * @return JLabel title 
+	 * @return JLabel title
 	 */
 	private JLabel getTitle() {
 		if (this.title == null) {
-			this.title = new JLabel(Util.RB.getString("minification.table.header"), SwingConstants.CENTER);
+			this.title = new JLabel(
+					Util.RB.getString("minification.table.header"),
+					SwingConstants.CENTER);
 		}
 		return this.title;
 	}
@@ -94,11 +124,44 @@ public class MinificationResultPanel extends JPanel {
 	 */
 	private JPanel getContentPanel() {
 		if (this.contentPanel == null) {
-			contentPanel = new JPanel(new BorderLayout());
-			contentPanel.add(getTitle(), BorderLayout.NORTH);
-			contentPanel.add(getScrollPane(), BorderLayout.CENTER);
+			this.contentPanel = new JPanel(new BorderLayout());
+			this.contentPanel.add(getScrollPane(), BorderLayout.CENTER);
+			this.contentPanel.add(getButtonsPanel(), BorderLayout.EAST);
 		}
 		return this.contentPanel;
+	}
+
+	/**
+	 * Initializes and returns the JPanel that contains the button.
+	 */
+	private JPanel getButtonsPanel() {
+		if (this.bpButtonPanel == null) {
+
+			bpButtonPanel = new BestPracticeButtonPanel();
+			bpButtonPanel.setScrollPane(getScrollPane());
+			bpButtonPanel.setNoOfRecords(noOfRecords);
+
+		}
+		return this.bpButtonPanel;
+	}
+
+	/**
+	 * Restores the table.
+	 */
+	public void restoreTable() {
+		JButton viewBtn = ((BestPracticeButtonPanel) getButtonsPanel())
+				.getViewBtn();
+		if (this.noOfRecords > 5) {
+
+			((BestPracticeButtonPanel) getButtonsPanel()).setExpanded(false);
+			viewBtn.setEnabled(true);
+			viewBtn.setText("+");
+		} else {
+			viewBtn.setEnabled(false);
+		}
+		this.scrollPane.setPreferredSize(new Dimension(
+				MinificationResultPanel.SCROLL_PANE_LENGHT,
+				MinificationResultPanel.SCROLL_PANE_HEIGHT));
 	}
 
 	/**
@@ -109,7 +172,6 @@ public class MinificationResultPanel extends JPanel {
 	private JScrollPane getScrollPane() {
 		if (this.scrollPane == null) {
 			this.scrollPane = new JScrollPane(getContentTable());
-			this.scrollPane.setPreferredSize(new Dimension(MinificationResultPanel.SCROLL_PANE_LENGHT, MinificationResultPanel.SCROLL_PANE_HEIGHT));
 		}
 		return this.scrollPane;
 	}
@@ -122,24 +184,16 @@ public class MinificationResultPanel extends JPanel {
 	private DataTable<MinificationEntry> getContentTable() {
 		if (this.contentTable == null) {
 			this.tableModel = new MinificationTableModel();
-			this.contentTable = new DataTable<MinificationEntry>(this.tableModel);
+			this.contentTable = new DataTable<MinificationEntry>(
+					this.tableModel);
 			this.contentTable.setAutoCreateRowSorter(true);
 			this.contentTable.setGridColor(Color.LIGHT_GRAY);
 			this.contentTable.setRowHeight(MinificationResultPanel.ROW_HEIGHT);
 			this.contentTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
-			this.contentTable.addMouseListener(getMinificationTableMouseListener());
+			this.contentTable
+					.addMouseListener(getMinificationTableMouseListener());
 		}
 		return this.contentTable;
-	}
-
-	/**
-	 * Sets the Minification best practice result data.
-	 * 
-	 * @param data
-	 *            the data to be displayed in the result content table
-	 */
-	public void setData(Collection<MinificationEntry> data) {
-		this.tableModel.setData(data);
 	}
 
 	/**
@@ -153,15 +207,41 @@ public class MinificationResultPanel extends JPanel {
 
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				MinificationEntry entry = MinificationResultPanel.this.contentTable.getSelectedItem();
+				MinificationEntry entry = MinificationResultPanel.this.contentTable
+						.getSelectedItem();
 				if ((e.getClickCount() == 2) && (entry != null)) {
-					ApplicationResourceOptimizer aro = ApplicationResourceOptimizer.getAroFrame();
+					ApplicationResourceOptimizer aro = ApplicationResourceOptimizer
+							.getAroFrame();
 					aro.displayDiagnosticTab();
-					aro.getAroAdvancedTab().setHighlightedRequestResponse(entry.getHttpRequestResponse());
+					aro.getAroAdvancedTab().setHighlightedRequestResponse(
+							entry.getHttpRequestResponse());
 				}
 			}
 		};
 
 		return ml;
 	}
+
+	/**
+	 * Sets number of records in table.
+	 */
+	public void setNoOfRecords(int noOfRecords) {
+		this.noOfRecords = noOfRecords;
+		restoreTable();
+	}
+
+	/**
+	 * Updates the table.
+	 */
+	public void updateTableForPrint() {
+		// Check if already expanded, do nothing.
+		BestPracticeButtonPanel bpanel=	((BestPracticeButtonPanel) getButtonsPanel());
+		JButton viewBtn = bpanel.getViewBtn();
+		if (!bpanel.isExpanded() && this.noOfRecords > 5) {
+			
+			viewBtn.doClick();
+			this.scrollPane.revalidate();
+		}
+	}
+
 }

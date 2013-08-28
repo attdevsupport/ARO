@@ -794,39 +794,41 @@ public class BurstCollectionAnalysis implements Serializable {
 		for (TCPSession tcpSession : analysis.getTcpSessions()) {
 
 			// Get a list of timestamps of established sessions with each remote IP
-			PacketInfo firstPacket = tcpSession.getPackets().get(0);
-			if (firstPacket.getTcpInfo() == TcpInfo.TCP_ESTABLISH) {
-				List<Double> res = connectedIP2tsList.get(tcpSession.getRemoteIP());
-				if (res == null) {
-					res = new ArrayList<Double>();
-					connectedIP2tsList.put(tcpSession.getRemoteIP(), res);
-				}
-				res.add(Double.valueOf(firstPacket.getTimeStamp()));
-			}
-
-			// Get a list of timestamps of HTTP requests to hosts/object names
-			for (HttpRequestResponseInfo rr : tcpSession.getRequestResponseInfo()) {
-				PacketInfo pkt = rr.getFirstDataPacket();
-				if (rr.getDirection() == HttpRequestResponseInfo.Direction.REQUEST) {
-					Double ts0 = Double.valueOf(pkt.getTimeStamp());
-					if (rr.getHostName() != null) {
-						List<Double> tempRequestHostEventList = requestedHost2tsList.get(rr.getHostName());
-						if (tempRequestHostEventList == null) {
-							tempRequestHostEventList = new ArrayList<Double>();
-							requestedHost2tsList.put(rr.getHostName(), tempRequestHostEventList);
-						}
-						tempRequestHostEventList.add(ts0);
+			if(!tcpSession.isUDP()){
+				PacketInfo firstPacket = tcpSession.getPackets().get(0);
+				if (firstPacket.getTcpInfo() == TcpInfo.TCP_ESTABLISH) {
+					List<Double> res = connectedIP2tsList.get(tcpSession.getRemoteIP());
+					if (res == null) {
+						res = new ArrayList<Double>();
+						connectedIP2tsList.put(tcpSession.getRemoteIP(), res);
 					}
-
-					if (rr.getObjName() != null) {
-						String objName = rr.getObjNameWithoutParams();
-						List<Double> tempRequestObjEventList = requestedObj2tsList.get(objName);
-
-						if (tempRequestObjEventList == null) {
-							tempRequestObjEventList = new ArrayList<Double>();
-							requestedObj2tsList.put(objName, tempRequestObjEventList);
+					res.add(Double.valueOf(firstPacket.getTimeStamp()));
+				}
+	
+				// Get a list of timestamps of HTTP requests to hosts/object names
+				for (HttpRequestResponseInfo rr : tcpSession.getRequestResponseInfo()) {
+					PacketInfo pkt = rr.getFirstDataPacket();
+					if (rr.getDirection() == HttpRequestResponseInfo.Direction.REQUEST) {
+						Double ts0 = Double.valueOf(pkt.getTimeStamp());
+						if (rr.getHostName() != null) {
+							List<Double> tempRequestHostEventList = requestedHost2tsList.get(rr.getHostName());
+							if (tempRequestHostEventList == null) {
+								tempRequestHostEventList = new ArrayList<Double>();
+								requestedHost2tsList.put(rr.getHostName(), tempRequestHostEventList);
+							}
+							tempRequestHostEventList.add(ts0);
 						}
-						tempRequestObjEventList.add(ts0);
+	
+						if (rr.getObjName() != null) {
+							String objName = rr.getObjNameWithoutParams();
+							List<Double> tempRequestObjEventList = requestedObj2tsList.get(objName);
+	
+							if (tempRequestObjEventList == null) {
+								tempRequestObjEventList = new ArrayList<Double>();
+								requestedObj2tsList.put(objName, tempRequestObjEventList);
+							}
+							tempRequestObjEventList.add(ts0);
+						}
 					}
 				}
 			}
@@ -969,21 +971,23 @@ public class BurstCollectionAnalysis implements Serializable {
 	private void findPeriodicalBursts(Set<String> hostPeriodicInfoSet, Set<String> hostList, Set<String> objList, Burst burst, PacketInfo firstUplinkPayloadPacket) {
 
 		for (TCPSession session : analysis.getTcpSessions()) {
-			for (HttpRequestResponseInfo httpInfo : session.getRequestResponseInfo()) {
-				if (httpInfo.getDirection() == HttpRequestResponseInfo.Direction.REQUEST
-						&& (hostList.contains(httpInfo.getHostName()) || objList.contains(httpInfo.getObjNameWithoutParams()))) {
-					if (httpInfo.getFirstDataPacket() == firstUplinkPayloadPacket) {
-						LOGGER.fine("Found packet which is the firstUplinkPayloadPacket");
-						periodicCount++;
-						burst.setBurstInfo(BurstCategory.PERIODICAL);
-						burst.setFirstUplinkDataPacket(firstUplinkPayloadPacket);
-						if (hostList.contains(httpInfo.getHostName())) {
-							hostPeriodicInfoSet.add(httpInfo.getHostName());
-						} else {
-							hostPeriodicInfoSet.add(httpInfo.getObjNameWithoutParams());
+			if(!session.isUDP()){
+				for (HttpRequestResponseInfo httpInfo : session.getRequestResponseInfo()) {
+					if (httpInfo.getDirection() == HttpRequestResponseInfo.Direction.REQUEST
+							&& (hostList.contains(httpInfo.getHostName()) || objList.contains(httpInfo.getObjNameWithoutParams()))) {
+						if (httpInfo.getFirstDataPacket() == firstUplinkPayloadPacket) {
+							LOGGER.fine("Found packet which is the firstUplinkPayloadPacket");
+							periodicCount++;
+							burst.setBurstInfo(BurstCategory.PERIODICAL);
+							burst.setFirstUplinkDataPacket(firstUplinkPayloadPacket);
+							if (hostList.contains(httpInfo.getHostName())) {
+								hostPeriodicInfoSet.add(httpInfo.getHostName());
+							} else {
+								hostPeriodicInfoSet.add(httpInfo.getObjNameWithoutParams());
+							}
+							LOGGER.log(Level.FINE, LOG_MSG1, burst.getBurstInfos());
+							continue;
 						}
-						LOGGER.log(Level.FINE, LOG_MSG1, burst.getBurstInfos());
-						continue;
 					}
 				}
 			}
@@ -1297,6 +1301,7 @@ public class BurstCollectionAnalysis implements Serializable {
 					++count;
 				}
 			}
+			//Checking for 4 burts within 60 sec 
 			if (count >= 4) {
 				++setCount;
 				if (count > maxCount) {
@@ -1304,25 +1309,7 @@ public class BurstCollectionAnalysis implements Serializable {
 					maxBurst = burstInfo;
 				}
 				i = i + count;
-			} else if (count == 3) {
-				endTime = startTime + 15.0;
-				count = 1;
-				for (int j = i + 1; j < burstCollection.size()
-						&& burstCollection.get(j).getEndTime() <= endTime; ++j) {
-					if (burstCollection.get(j).getBurstCategory() != BurstCategory.USER_INPUT
-							|| burstInfo.getBurstCategory() == BurstCategory.SCREEN_ROTATION) {
-						++count;
-					}
-				}
-				if (count >= 3) {
-					++setCount;
-					if (count > maxCount) {
-						maxCount = count;
-						maxBurst = burstInfo;
-					}
-					i = i + count;
-				}
-			}
+			} 
 		}
 
 		tightlyCoupledBurstCount = setCount;
@@ -1362,7 +1349,7 @@ public class BurstCollectionAnalysis implements Serializable {
 			shortestPeriodPacketInfo = packetId;
 			shortestPeriodTCPSession = packetId.getSession();
 		}
-		if (minimumRepeatTime != Double.MAX_VALUE) {
+		if (minimumRepeatTime != Double.MAX_VALUE && this.periodicCount >= 3) {
 			minimumPeriodicRepeatTime = minimumRepeatTime;
 		}
 	}

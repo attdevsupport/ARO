@@ -74,15 +74,28 @@ import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileFilter;
 
+import com.att.aro.bp.BestPracticeDisplayFactory;
+import com.att.aro.bp.asynccheck.AsyncCheckResultPanel;
+import com.att.aro.bp.displaynoneincss.DisplayNoneInCSSResultPanel;
+import com.att.aro.bp.duplicate.DuplicateResultPanel;
+import com.att.aro.bp.fileorder.FileOrderResultPanel;
+import com.att.aro.bp.http4xx5xxrespcodes.Http4xx5xxStatusResponseCodesResultPanel;
+import com.att.aro.bp.httprspcd.HttpCode3XXResultPanel;
+import com.att.aro.bp.imageSize.ImageSizeResultPanel;
+import com.att.aro.bp.minification.MinificationResultPanel;
+//import com.att.aro.bp.smallrequest.SmallRequestResultPanel;
+import com.att.aro.bp.spriteimage.SpriteImageResultPanel;
 import com.att.aro.commonui.AROProgressDialog;
 import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.datadump.DataDump;
+import com.att.aro.diagnostics.AROAdvancedTabb;
 import com.att.aro.images.Images;
 import com.att.aro.main.menu.view.ChartPlotOptionsDialog;
 import com.att.aro.main.menu.view.ExcludeTimeRangeAnalysisDialog;
 import com.att.aro.main.menu.view.FilterApplicationsAndIpDialog;
 import com.att.aro.main.menu.view.FilterProcessesDialog;
 import com.att.aro.model.AnalysisFilter;
+import com.att.aro.model.BestPractices;
 import com.att.aro.model.NetworkType;
 import com.att.aro.model.Profile;
 import com.att.aro.model.Profile3G;
@@ -111,6 +124,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private static final int DEFAULT_APP_HEIGHT = 775;
 
 	private static String token = null;
+	private static String errorMessage;
 	private static ApplicationResourceOptimizer aroFrame;
 
 	// Menu bar
@@ -157,7 +171,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 	private JTabbedPane jMainTabbedPane;
 	private AROSimpleTabb aroSimpleTab = new AROSimpleTabb(this);
-	private AROAdvancedTabb aroAdvancedTab = new AROAdvancedTabb();
+	private AROAdvancedTabb aroAdvancedTab = new AROAdvancedTabb(this);
 	private AROAnalysisResultsTab analyisResultsPanel = new AROAnalysisResultsTab(this);
 	private AROWaterfallTabb aroWaterfallTab = new AROWaterfallTabb(this);
 	private AROVideoPlayer aroVideoPlayer;
@@ -180,7 +194,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private DatacollectorBridge aroDataCollectorBridge;
 
 	private Profile profile;
-
+	
 	/**
 	 * Initializes a new instance of the ApplicationResourceOptimizer class.
 	 */
@@ -188,21 +202,6 @@ public class ApplicationResourceOptimizer extends JFrame {
 		super();
 		ApplicationResourceOptimizer.aroFrame = this;
 		initialize();
-	}
-
-	/**
-	 * Initializes a new instance of the ApplicationResourceOptimizer class.
-	 * 
-	 * @param isWebStart
-	 */
-	public ApplicationResourceOptimizer(boolean isWebStart) {
-		this();
-		
-		if (isWebStart) {
-			MessageDialogFactory.showMessageDialog(mAROAnalyzer,
-					RB.getString("aro.jnlpAlert"));
-			System.exit(0);
-		}
 	}
 	
 	/**
@@ -374,7 +373,14 @@ public class ApplicationResourceOptimizer extends JFrame {
 						missingFiles.append(file + "\n");
 					}
 
-					MessageDialogFactory.showMessageDialog(mAROAnalyzer, MessageFormat.format(RB.getString("file.missingAlert"), missingFiles));
+					if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+						MessageDialogFactory.showMessageDialog(mAROAnalyzer, MessageFormat.format(RB.getString("file.missingAlert"), missingFiles));
+					} else {
+						CommandLineHandler.getInstance().UpdateTraceInfoFile("WARNING", MessageFormat.format(RB.getString("file.missingAlert"), missingFiles));
+						
+						//Reset command line variable for user for UI usage.
+						CommandLineHandler.getInstance().SetCommandLineEvent(false);
+					}						
 				}
 			} catch (Exception e) {
 				LOGGER.log(Level.SEVERE, "Exception while finding the missing files");
@@ -640,29 +646,43 @@ public class ApplicationResourceOptimizer extends JFrame {
 	public void dataCollectorStatusCallBack(DatacollectorBridge.Status status) {
 		switch (status) {
 		case STOPPED:
-			setDataCollectorMenuItems(true, false);
+			if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+				setDataCollectorMenuItems(true, false);
+			}
 			setStoppedRecordingIndicator();
 			this.setRecordingIndicatorVisible(false);
 			break;
 		case STARTING:
 			setStartingRecordingIndicator();
 			setRecordingIndicatorVisible(true);
-			setDataCollectorMenuItems(false, false);
+			if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+				setDataCollectorMenuItems(false, false);
+			}
 			displayRecordingIndicatorToolTip();
 			break;
 		case STARTED:
-			setDataCollectorMenuItems(false, true);
+			if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+				setDataCollectorMenuItems(false, true);
+			}
 			this.setRecordingIndicatorVisible(true);
 			setActiveRecordingIndicator();
 			break;
 		case READY:
 			this.setRecordingIndicatorVisible(false);
-			setDataCollectorMenuItems(true, false);
+			if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+				setDataCollectorMenuItems(true, false);
+			}
 			break;
-		default:
-			this.setRecordingIndicatorVisible(false);
-			setDataCollectorMenuItems(false, false);
+		
 		}
+	}
+	
+	/**
+	 * A callback method that is invoked when changes are made to the status of
+	 * the ARO Data Collector menu items.
+	 */
+	public void dataCollectorStatusCallBack(boolean bStartItem, boolean bStopItem) {
+		setDataCollectorMenuItems(bStartItem, bStopItem);
 	}
 
 	/**
@@ -1467,6 +1487,13 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
+					
+					/*Expands HTTP 3xx/4xx/5xx tables*/
+					//if(tabbedPane.getSelectedIndex() == 0)
+					{
+						expandBestPracticeTables();
+					}
+					
 					final Component c = tabbedPane.getSelectedComponent();
 					if (c instanceof Printable) {
 						final PrinterJob printJob = PrinterJob.getPrinterJob();
@@ -1498,6 +1525,77 @@ public class ApplicationResourceOptimizer extends JFrame {
 	}
 
 	/**
+	 * Expands HTTP 3xx/4xx/5xx tables for printing.
+	 */
+	public void expandBestPracticeTables() {
+		try {
+			TraceData.Analysis analysis = getAnalysisData();
+			if(analysis != null) {
+				BestPractices bp = analysis.getBestPractice();
+				if(bp != null) {
+					HttpCode3XXResultPanel http_code_3XX_panel = bp.getHttpPanel();
+					Http4xx5xxStatusResponseCodesResultPanel http4xx5xxStatusResponseCodesResultPanel
+					= bp.getHttp4xx5xxPanel();
+					DuplicateResultPanel duplicateResultPanel
+					= bp.getDuplicatePanel();
+					AsyncCheckResultPanel asyncCheckResultPanel
+					= bp.getAsyncPanel();
+					DisplayNoneInCSSResultPanel displayNoneInCSSResultPanel
+					= bp.getdisplayNoneInCSSResultPanel();
+					FileOrderResultPanel fileOrderResultPanel
+					= bp.getfileOrderResultPanel();
+					ImageSizeResultPanel imageSizeResultPanel
+					= bp.getimageSizeResultPanel();
+					MinificationResultPanel minificationResultPanel
+					= bp.getminificationResultPanel();
+//					SmallRequestResultPanel smallRequestResultPanel
+//					= bp.getsmallRequestResultPanel();
+					SpriteImageResultPanel spriteImageResultPanel
+					= bp.getspriteImageResultPanel();
+					TextFileCompressionResultPanel textFileCompressionResultPanel
+					= bp.gettextFileCompressionResultPanel();
+					
+					if(http_code_3XX_panel != null) {
+						http_code_3XX_panel.updateTableForPrint();
+					}
+					if(http4xx5xxStatusResponseCodesResultPanel != null) {
+						http4xx5xxStatusResponseCodesResultPanel.updateTableForPrint();
+					}
+					if(duplicateResultPanel != null) {
+						duplicateResultPanel.updateTableForPrint();
+					}
+					if(asyncCheckResultPanel != null) {
+						asyncCheckResultPanel.updateTableForPrint();
+					}
+					if(displayNoneInCSSResultPanel != null) {
+						displayNoneInCSSResultPanel.updateTableForPrint();
+					}
+					if(fileOrderResultPanel != null) {
+						fileOrderResultPanel.updateTableForPrint();
+					}
+					if(imageSizeResultPanel != null) {
+						imageSizeResultPanel.updateTableForPrint();
+					}
+					if(minificationResultPanel != null) {
+						minificationResultPanel.updateTableForPrint();
+					}
+//					if(smallRequestResultPanel != null) {
+//						smallRequestResultPanel.updateTableForPrint();
+//					}
+					if(spriteImageResultPanel != null) {
+						spriteImageResultPanel.updateTableForPrint();
+					}
+					if(textFileCompressionResultPanel != null) {
+						textFileCompressionResultPanel.updateTableForPrint();
+					}
+				}
+			}
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
 	 * Initializes and returns the Exit menu item under the File menu.
 	 */
 	private JMenuItem getJExitMenuItem() {
@@ -1525,21 +1623,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 		this.setTitle(MessageFormat.format(RB.getString("aro.title"), ""));
 		this.setResizable(true);
 		
-		try {
-			PCapAdapter.loadAroJpacaLib();
-			PCapAdapter.ping();
-		} catch (UnsatisfiedLinkError ule) {
-
-			String uleMsg = ule.getMessage();
-			if (uleMsg.endsWith("in java.library.path")) {
-				String dllName = PCapAdapter.getAroJpcapLibName() + ".dll";
-				String errorMsg = MessageFormat.format(RB.getString("aro.jpcap_lib_error"), dllName);
-				LOGGER.log(Level.SEVERE, "UnsatisfiedLinkError, {0}", errorMsg);
-				MessageDialogFactory.showErrorDialog(this, errorMsg);
-			} else if (uleMsg.endsWith("Can't find dependent libraries")) {
-				LOGGER.log(Level.SEVERE, "UnsatisfiedLinkError: {0}", ule.getMessage() + " " + ule.getCause());
-				MessageDialogFactory.showErrorDialog(this, RB.getString("aro.winpcap_error"));
-			}
+		if (!loadAroJpacapLib()) {
+			MessageDialogFactory.showErrorDialog(this, errorMessage);
 			System.exit(-1);
 		}
 
@@ -1565,6 +1650,53 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 		chartPlotOptionsDialog = new ChartPlotOptionsDialog(ApplicationResourceOptimizer.this, aroAdvancedTab);
 
+	}
+
+	/**
+	 * Load ARO Jpcap DLL lib file.
+	 * 
+	 * @return Returns false when the library cannot be loaded otherwise returns
+	 *         true.
+	 *         
+	 */
+	public static boolean loadAroJpacapLib() {
+		try {
+			PCapAdapter.loadAroJpacapLib();
+			PCapAdapter.ping();
+		} catch (UnsatisfiedLinkError e) {
+
+			String uleMsg = e.getMessage();
+			if (uleMsg.endsWith("in java.library.path")) {
+
+				errorMessage = MessageFormat.format(RB.getString("aro.jpcap_lib_error"), PCapAdapter.getAroJpcapLibFileName());
+				LOGGER.log(Level.SEVERE, "UnsatisfiedLinkError, {0}", errorMessage);
+
+			} else if (uleMsg.endsWith("Can't find dependent libraries")) {
+
+				LOGGER.log(Level.SEVERE, "UnsatisfiedLinkError: {0}", e.getMessage() + " " + e.getCause());
+				errorMessage = RB.getString("aro.winpcap_error");
+			}
+			return false;
+		}
+		return true;
+	}
+	
+	/**
+	 * Used to check whether WinPcap or native Pcap libraries are accessible.
+	 * 
+	 * @param path 
+	 * 		Location of the libraries.
+	 * @return 
+	 * 		Returns true if the libraries are accessible otherwise returns false.
+	 */
+	public static boolean loadAroJpacapLib(String path) {
+		try {
+			PCapAdapter.loadAroJpacapLib(path);
+			PCapAdapter.ping();
+		} catch (UnsatisfiedLinkError e) {
+			return false;
+		}
+		return true;
 	}
 
 	/**

@@ -48,18 +48,24 @@ public class MinificationTableModel extends DataTableModel<MinificationEntry> {
 	private static final int COL3_MIN = 70;
 	private static final int COL3_MAX = 100;
 	private static final int COL3_PREF = 70;
+	
+	private static final int COL4_MIN = 70;
+	private static final int COL4_MAX = 100;
+	private static final int COL4_PREF = 70;
 
-	private static final int COL4_MIN = 500;
-	private static final int COL4_PREF = 500;
+	private static final int COL5_MIN = 500;
+	private static final int COL5_PREF = 500;
 
 	private static final int COL_1 = 0;
 	private static final int COL_2 = 1;
 	private static final int COL_3 = 2;
 	private static final int COL_4 = 3;
+	private static final int COL_5 = 4;
 	private static final String[] COLUMNS = { Util.RB.getString("minification.table.col1"),
 											  Util.RB.getString("minification.table.col2"),
 											  Util.RB.getString("minification.table.col3"),
-											  Util.RB.getString("minification.table.col4") };
+											  Util.RB.getString("minification.table.col4"),
+											  Util.RB.getString("minification.table.col5")};
 
 	/**
 	 * Initializes a new instance of the MinificationTableModel.
@@ -104,6 +110,11 @@ public class MinificationTableModel extends DataTableModel<MinificationEntry> {
 		col = cols.getColumn(MinificationTableModel.COL_4);
 		col.setMinWidth(MinificationTableModel.COL4_MIN);
 		col.setPreferredWidth(MinificationTableModel.COL4_PREF);
+		col.setMaxWidth(MinificationTableModel.COL4_MAX);
+		
+		col = cols.getColumn(MinificationTableModel.COL_5);
+		col.setMinWidth(MinificationTableModel.COL5_MIN);
+		col.setPreferredWidth(MinificationTableModel.COL5_PREF);
 
 		return cols;
 	}
@@ -130,6 +141,8 @@ public class MinificationTableModel extends DataTableModel<MinificationEntry> {
 		case COL_3:
 			return Integer.class;
 		case COL_4:
+			return Integer.class;
+		case COL_5:
 			return String.class;
 		default:
 			return super.getColumnClass(columnIndex);
@@ -158,6 +171,8 @@ public class MinificationTableModel extends DataTableModel<MinificationEntry> {
 		case COL_3:
 			return item.getFileSize();
 		case COL_4:
+			return item.getSavingsSize();
+		case COL_5:
 			return item.getHttpObjectName();
 		default:
 			return null;

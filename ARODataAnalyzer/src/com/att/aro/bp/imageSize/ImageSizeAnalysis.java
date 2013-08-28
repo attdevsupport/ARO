@@ -17,28 +17,21 @@ package com.att.aro.bp.imageSize;
 
 import java.io.IOException;
 import org.jsoup.Jsoup;
-import org.jsoup.helper.Validate;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.ImageIcon;
 
-import com.att.aro.bp.spriteimage.SpriteImageEntry;
 import com.att.aro.model.ContentException;
 import com.att.aro.model.HttpRequestResponseInfo;
-import com.att.aro.model.PacketInfo;
 import com.att.aro.model.TCPSession;
 import com.att.aro.model.HttpRequestResponseInfo.Direction;
-import com.att.aro.util.Util;
 
 /**
  * Represents image size analysis.
@@ -46,8 +39,8 @@ import com.att.aro.util.Util;
  */
 public class ImageSizeAnalysis {
 
+	@SuppressWarnings("unused")
 	private static final Logger LOGGER = Logger.getLogger(ImageSizeAnalysis.class.getName());
-	private static final ResourceBundle RB = Util.RB;
 
 	// results of the analysis
 	private List<ImageSizeEntry> results = new ArrayList<ImageSizeEntry>();
@@ -107,7 +100,9 @@ public class ImageSizeAnalysis {
 	 */
 	private List<HtmlImage> checkThisImageInAllHTMLOrCSS(TCPSession tcpSession, HttpRequestResponseInfo reqRessInfo) {
 		ArrayList<HtmlImage> htmlImageLst = new ArrayList<HtmlImage>();
+		int noOfRRRecords =0;
 		for (HttpRequestResponseInfo rr : tcpSession.getRequestResponseInfo()) {
+			++noOfRRRecords;
 			if (rr.getDirection() == Direction.RESPONSE && rr.getContentType() != null) {
 				String contentType = rr.getContentType();
 				if (contentType.equalsIgnoreCase("text/css") || contentType.equalsIgnoreCase("text/html")) {
@@ -118,7 +113,7 @@ public class ImageSizeAnalysis {
 						try {
 							imageDownloaded = rr.getContentString();
 						} catch (ContentException e) {
-							e.printStackTrace();
+						e.printStackTrace();
 						} catch (IOException e) {
 							e.printStackTrace();
 						}
@@ -129,26 +124,47 @@ public class ImageSizeAnalysis {
 								for (Element src : images) {
 									 if (src.tagName().equals("img")) {
 										 if ((src.attr("abs:src")).contains(imageToSearchFor)) {
-											 m_ImageFoundInHtmlOrCss = true;
-											 
-											 /* Get width and height from HTML or CSS*/
-											 String width = src.attr("width");
-											 String height = src.attr("height");
-											  if (!width.isEmpty() && !height.isEmpty()) {
-												  int iWidth = Integer.parseInt(width);
-												  int iHeight = Integer.parseInt(height);
-												  htmlImageLst.add(new HtmlImage(iWidth, iHeight));
-											  }
+											m_ImageFoundInHtmlOrCss = true;
+												
+											/* Get width and height from HTML or CSS*/
+											String width = extractNumericValue(src.attr("width"));
+											String height = extractNumericValue(src.attr("height"));
+											if (!width.isEmpty() && !height.isEmpty()) {
+												 double iWidth = Double.parseDouble(width);
+												 double iHeight = Double.parseDouble(height);
+												 htmlImageLst.add(new HtmlImage((int)iWidth, (int)iHeight));
+												 break;
+											}
 										 }
 									 }
 								}
 							}							
 						}
 					}
-				} 
-			}			
+				} else if(!m_ImageFoundInHtmlOrCss && (noOfRRRecords == tcpSession.getRequestResponseInfo().size())){
+						/* searched all the RR records in this session. calculate the size of this image w.r.t to screen
+						 * size*/
+						m_ImageFoundInHtmlOrCss = true;
+				}
+			}	
 		}
 		return htmlImageLst;
+	}
+	
+	/**
+	 * This method extracts only numeric value from string.
+	 * 
+	 * @return String with numeric value 
+	 */
+	String extractNumericValue(String str) {
+		String result = "";
+	    for (int i = 0; i<str.length(); i++) {
+	        Character character = str.charAt(i);
+	        if (Character.isDigit(character) || character == '.') {
+	            result += character;
+	        }
+	    }
+		return result;		
 	}
 	
 	/**

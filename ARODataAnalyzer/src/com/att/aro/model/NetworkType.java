@@ -31,6 +31,11 @@ public enum NetworkType {
 	WIFI,
 
 	/**
+	 * Identifies the Enhanced Data Rates for GSM Evolution network.
+	 */
+	EDGE,
+	
+	/**
 	 * Identifies the General Packet Radio Service (GPRS) network.
 	 */
 	GPRS,

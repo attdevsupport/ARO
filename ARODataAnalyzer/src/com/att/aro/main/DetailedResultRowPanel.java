@@ -126,7 +126,7 @@ public class DetailedResultRowPanel {
 						|| ((bp.getDetailTitle()).equals(rb.getString("caching.usingCache.detailedTitle")))
 						|| ((bp.getDetailTitle()).equals(rb.getString("connections.offloadingToWifi.detailedTitle")))
 						|| ((bp.getDetailTitle()).equals(rb.getString("other.accessingPeripherals.detailedTitle")))
-						|| ((bp.getDetailTitle()).equals(rb.getString("html.httpUsage.title")))
+						|| ((bp.getDetailTitle()).equals(rb.getString("html.httpUsage.detailedTitle")))
 						){
 					iconLabel.setIcon(warningIcon);
 					iconLabel.setToolTipText(WARNING);

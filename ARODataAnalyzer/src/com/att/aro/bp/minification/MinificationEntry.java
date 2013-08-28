@@ -32,6 +32,7 @@ public class MinificationEntry {
 	private String hostName;
 	private String httpObjectName;
 	private HttpRequestResponseInfo httpRequestResponse;
+	private int savingsSize;
 
 	/**
 	 * Creates an instance of the the Minification test result.
@@ -40,12 +41,12 @@ public class MinificationEntry {
 	 *            HTTP object
 	 * @param saving 
 	 */
-	public MinificationEntry(HttpRequestResponseInfo rr, int saving) {
+	public MinificationEntry(HttpRequestResponseInfo rr, int saving,int savingsSize) {
 
 		this.timeStamp = rr.getTimeStamp();
 		this.fileSize = saving;
 		this.httpRequestResponse = rr;
-
+        this.savingsSize=savingsSize;
 		HttpRequestResponseInfo rsp = rr.getAssocReqResp();
 		if (rsp != null) {
 			this.httpObjectName = rsp.getObjName();
@@ -56,6 +57,17 @@ public class MinificationEntry {
 		}
 
 		LOGGER.log(Level.FINE, "Host: {0}, Domain: {1}", new Object[] { rr.getHostName(), rr.getSession().getDomainName() });
+	}
+
+
+    /**
+	 * Returns saving size.
+	 * 
+	 * @return saving size
+	 */
+	 
+	public int getSavingsSize() {
+		return savingsSize;
 	}
 
 	/**

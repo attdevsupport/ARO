@@ -464,7 +464,7 @@ public abstract class DataDumpHelper {
 	 * @throws IOException
 	 */
 	void addHeadersLine2a(FileWriter writer, Collection<BestPracticeDisplay> bpc) throws IOException {
-		addCommas(writer, 2);
+		addCommas(writer, 4);
 		addBestPractice(writer, bpc);
 		addContinuousHeader(writer, basicStat, 3);
 	}
@@ -477,6 +477,10 @@ public abstract class DataDumpHelper {
 	 */
 	void addTraceInfoHeaderLine3a(FileWriter writer) throws IOException {
 		writer.append(Util.RB.getString("datadump.tracename"));
+		writer.append(COMMA_SEP);
+		writer.append(Util.RB.getString("datadump.tracedate"));
+		writer.append(COMMA_SEP);
+		writer.append(Util.RB.getString("datadump.tracetime"));
 		writer.append(COMMA_SEP);
 		writer.append(Util.RB.getString("datadump.appVersion"));
 		writer.append(COMMA_SEP);

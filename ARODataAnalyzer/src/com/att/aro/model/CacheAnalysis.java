@@ -142,7 +142,9 @@ public class CacheAnalysis implements Serializable {
 		// Build a sorted list of all of the HTTP request/response in the trace
 		List<HttpRequestResponseInfo> rrInfo = new ArrayList<HttpRequestResponseInfo>();
 		for (TCPSession session : sessions) {
-			rrInfo.addAll(session.getRequestResponseInfo());
+			if(!session.isUDP()){
+				rrInfo.addAll(session.getRequestResponseInfo());
+			}
 		}
 		Collections.sort(rrInfo);
 
@@ -230,8 +232,13 @@ public class CacheAnalysis implements Serializable {
 						CacheEntry.Diagnosis.CACHING_DIAG_CACHE_MISSED, 
 						response.getSession().getPackets().get(0));
 				addToCache(newCacheEntry);
+				newCacheEntry.setCacheCount(1);
 				diagnosisResults.add(newCacheEntry);
 				continue;
+			}else{
+				
+				int oldCount=cacheEntry.getCacheCount();
+				cacheEntry.setCacheCount(oldCount+1);
 			}
 
 			CacheExpiration expStatus = cacheExpired(cacheEntry,
@@ -357,7 +364,7 @@ public class CacheAnalysis implements Serializable {
 
 			cacheExpirationResponses.get(expStatus).add(newCacheEntry);
 			newCacheEntry.setCacheHit(cacheEntry);
-			addToCache(newCacheEntry);
+			//addToCache(newCacheEntry);
 
 		} // END: Iterate through responses looking for duplicates
 

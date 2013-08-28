@@ -50,14 +50,16 @@ public class DomainTCPSessions implements Serializable {
 		Map<String, ArrayList<TCPSession>> distinctMap = new HashMap<String, ArrayList<TCPSession>>();
 		for (TCPSession tcpSession : sessions) {
 			if (null != tcpSession) {
-				String domainName = tcpSession.getDomainName();
-
-				ArrayList<TCPSession> tempList = distinctMap.get(domainName);
-				if (tempList == null) {
-					tempList = new ArrayList<TCPSession>();
-					distinctMap.put(domainName, tempList);
+				if(!tcpSession.isUDP()){
+					String domainName = tcpSession.getDomainName();
+	
+					ArrayList<TCPSession> tempList = distinctMap.get(domainName);
+					if (tempList == null) {
+						tempList = new ArrayList<TCPSession>();
+						distinctMap.put(domainName, tempList);
+					}
+					tempList.add(tcpSession);
 				}
-				tempList.add(tcpSession);
 			}
 		}
 
@@ -86,9 +88,11 @@ public class DomainTCPSessions implements Serializable {
 		this.sessions = Collections.unmodifiableCollection(sessions);
 		double sessionLength = 0;
 		for (TCPSession session : sessions) {
-			sessionLength += session.getSessionEndTime()
-					- session.getSessionStartTime();
-			numFiles += session.getFileDownloadCount();
+			if(!session.isUDP()){
+				sessionLength += session.getSessionEndTime()
+						- session.getSessionStartTime();
+				numFiles += session.getFileDownloadCount();
+			}
 		}
 		int size = sessions.size();
 		this.avgSessionLength = (double) sessionLength / size;

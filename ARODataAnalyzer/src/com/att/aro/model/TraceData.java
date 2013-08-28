@@ -15,12 +15,11 @@
  */
 package com.att.aro.model;
 import java.io.BufferedReader;
-
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.Inet4Address;
@@ -43,11 +42,16 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.att.aro.bp.asynccheck.AsyncCheckAnalysis;
+import com.att.aro.bp.displaynoneincss.DisplayNoneInCSSAnalysis;
+import com.att.aro.bp.emptyurl.EmptyUrlAnalysis;
 import com.att.aro.bp.fileorder.FileOrderAnalysis;
+import com.att.aro.bp.flash.FlashAnalysis;
 import com.att.aro.bp.imageSize.ImageSizeAnalysis;
 import com.att.aro.bp.minification.MinificationAnalysis;
+import com.att.aro.bp.scripts.ScriptsAnalysis;
+//import com.att.aro.bp.smallrequest.SmallRequestAnalysis;
 import com.att.aro.bp.spriteimage.SpriteImageAnalysis;
-import com.att.aro.bp.asynccheck.AsyncCheckAnalysis;
 import com.att.aro.main.ResourceBundleManager;
 import com.att.aro.model.BluetoothInfo.BluetoothState;
 import com.att.aro.model.CameraInfo.CameraState;
@@ -63,6 +67,7 @@ import com.att.aro.pcap.NetmonAdapter;
 import com.att.aro.pcap.PCapAdapter;
 import com.att.aro.pcap.Packet;
 import com.att.aro.pcap.PacketListener;
+import com.att.aro.pcap.TCPPacket;
 import com.att.aro.util.Util;
 
 /**
@@ -105,6 +110,7 @@ public class TraceData implements Serializable {
 		private Collection<ApplicationPacketSummary> applicationPacketSummary = new ArrayList<ApplicationPacketSummary>();
 		private Collection<IPPacketSummary> ipPacketSummary = new ArrayList<IPPacketSummary>();
 		private long totalBytes = 0;
+		private long totalHTTPSBytes = 0;
 		private double packetsDuration = 0.0;
 		private double avgKbps = 0.0;
 		private List<TCPSession> tcpSessions;
@@ -115,8 +121,13 @@ public class TraceData implements Serializable {
 		private FileOrderAnalysis fileOrderAnalysis;
 		private ImageSizeAnalysis imageSizeAnalysis;
 		private MinificationAnalysis minificationAnalysis;
+		private EmptyUrlAnalysis emptyUrlAnalysis;
+		private FlashAnalysis flashAnalysis;
+		private ScriptsAnalysis scriptsAnalysis;
 		private SpriteImageAnalysis spriteImageAnalysis;
+		//private SmallRequestAnalysis smallRequestAnalysis;
 		private CacheInfoParser cacheInfoParser;
+		private DisplayNoneInCSSAnalysis displayNoneInCSSAnalysis;
 		private BestPractices bestPractice;
 		private ApplicationScore applicationScore;
 		private EnergyModel energyModel;
@@ -318,23 +329,25 @@ public class TraceData implements Serializable {
 			int totalContentLength = 0;
 			if (analysisData != null) {
 				for (TCPSession tcp : analysisData.getTcpSessions()) {
-					for (HttpRequestResponseInfo info : tcp.getRequestResponseInfo()) {
-						if (com.att.aro.model.HttpRequestResponseInfo.Direction.RESPONSE
-								.equals(info.getDirection())) {
-							long contentLength = info.getActualByteCount();
-							if (contentLength > 0) {
-								String contentType = info.getContentType();
-								if (contentType == null || contentType.trim().length() == 0) {
-									contentType = Util.RB.getString("chart.filetype.unknown");
+					if(!tcp.isUDP()){
+						for (HttpRequestResponseInfo info : tcp.getRequestResponseInfo()) {
+							if (com.att.aro.model.HttpRequestResponseInfo.Direction.RESPONSE
+									.equals(info.getDirection())) {
+								long contentLength = info.getActualByteCount();
+								if (contentLength > 0) {
+									String contentType = info.getContentType();
+									if (contentType == null || contentType.trim().length() == 0) {
+										contentType = Util.RB.getString("chart.filetype.unknown");
+									}
+									FileTypeSummary summary = content.get(contentType);
+									if (summary == null) {
+										summary = new FileTypeSummary(contentType);
+										content.put(contentType, summary);
+									}
+									// summary.bytes += contentLength;
+									summary.setBytes(summary.getBytes() + contentLength);
+									totalContentLength += contentLength;
 								}
-								FileTypeSummary summary = content.get(contentType);
-								if (summary == null) {
-									summary = new FileTypeSummary(contentType);
-									content.put(contentType, summary);
-								}
-								// summary.bytes += contentLength;
-								summary.setBytes(summary.getBytes() + contentLength);
-								totalContentLength += contentLength;
 							}
 						}
 					}
@@ -431,11 +444,13 @@ public class TraceData implements Serializable {
 			int termSessions = 0;
 			int properTermSessions = 0;
 			for (TCPSession session : analysis.getTcpSessions()) {
-				TCPSession.Termination termination = session.getSessionTermination();
-				if (termination != null) {
-					++termSessions;
-					if (termination.getSessionTerminationDelay() <= SESSION_TERMINATION_THRESHOLD) {
-						++properTermSessions;
+				if(!session.isUDP()){
+					TCPSession.Termination termination = session.getSessionTermination();
+					if (termination != null) {
+						++termSessions;
+						if (termination.getSessionTerminationDelay() <= SESSION_TERMINATION_THRESHOLD) {
+							++properTermSessions;
+						}
 					}
 				}
 			}
@@ -722,6 +737,30 @@ public class TraceData implements Serializable {
 		}
 		
 		/**
+		 * Returns result of empty URL analysis
+		 * @return empty HTML analysis
+		 */
+		public EmptyUrlAnalysis getEmptyUrlAnalysis() {
+			return emptyUrlAnalysis;
+		}
+
+		/**
+		 * Returns result of flash analysis
+		 * @return flash analysis
+		 */
+		public FlashAnalysis getFlashAnalysis() {
+			return flashAnalysis;
+		}
+		
+		/**
+		 * Returns result of 3rd party scripts analysis
+		 * @return result of 3rd party scripts analysis
+		 */
+		public ScriptsAnalysis getScriptsAnalysis() {
+			return scriptsAnalysis;
+		}
+
+		/**
 		 * Returns result of Sprite Image analysis
 		 * @return Sprite Image analysis
 		 */
@@ -729,11 +768,26 @@ public class TraceData implements Serializable {
 			return spriteImageAnalysis;
 		}
 
+//		/**
+//		 * Returns result of Small Request analysis
+//		 * @return Small Request analysis
+//		 */
+//		public SmallRequestAnalysis getSmallRequestAnalysis() {
+//			return smallRequestAnalysis;
+//		} 
+		
 		/**
 		 * @return The cacheAnalysis
 		 */
 		public CacheInfoParser getCacheInfoParser() {
 			return cacheInfoParser;
+		}
+		
+		/**
+		 * @return The displayNoneInCSSAnalysis
+		 */
+		public DisplayNoneInCSSAnalysis getDisplayNoneInCSSAnalysis() {
+			return displayNoneInCSSAnalysis;
 		}
 
 		/**
@@ -791,6 +845,16 @@ public class TraceData implements Serializable {
 		public long getTotalBytes() {
 			return totalBytes;
 		}
+		
+		/**
+		 * Returns the total number of HTTPS bytes analyzed
+		 * 
+		 * @return The HTTPS bytes
+		 */
+		public long getTotalHTTPSBytes() {
+			return totalHTTPSBytes;
+		}
+
 
 		/**
 		 * Returns the duration of time from the first packet to the last
@@ -826,6 +890,13 @@ public class TraceData implements Serializable {
 				Map<InetAddress, PacketCounter> ipPackets = new HashMap<InetAddress, PacketCounter>();
 				for (PacketInfo packet : packets) {
 					totalBytes += packet.getLen();
+					
+					if (packet.getPacket() instanceof TCPPacket) {
+						TCPPacket tcp = (TCPPacket) packet.getPacket();
+						if ((tcp.isSsl()) || (tcp.getDestinationPort() == 443) || (tcp.getSourcePort() == 443)) {
+							totalHTTPSBytes += packet.getLen();							
+						}
+					}
 
 					String appName = packet.getAppName();
 					appNames.add(appName);
@@ -859,6 +930,7 @@ public class TraceData implements Serializable {
 						pc.add(packet);
 					}
 				}
+				
 				for (Map.Entry<InetAddress, PacketCounter> m : ipPackets.entrySet()) {
 					ipPacketSummary.add(new IPPacketSummary(m.getKey(), m.getValue().packetCount, m
 							.getValue().totalBytes));
@@ -904,6 +976,22 @@ public class TraceData implements Serializable {
 			logger.fine("Performing minification analysis");
 			this.minificationAnalysis = new MinificationAnalysis(this.tcpSessions);
 			
+			// Do empty URL analysis
+			logger.fine("Performing empty URL analysis");
+			this.emptyUrlAnalysis = new EmptyUrlAnalysis(this.tcpSessions);
+
+			// Do 3rd party scripts analysis
+			logger.fine("Performing 3rd party scripts analysis");
+			this.scriptsAnalysis = new ScriptsAnalysis(this.tcpSessions);
+
+			// Do flash analysis
+			logger.fine("Performing flash analysis");
+			this.flashAnalysis = new FlashAnalysis(this.tcpSessions);
+			
+//			// Do Small request analysis
+//			logger.fine("Performing Small request analysis");
+//			this.smallRequestAnalysis = new SmallRequestAnalysis(this.tcpSessions);
+			
 			// Do Sprite image analysis
 			logger.fine("Performing Sprite image analysis");
 			this.spriteImageAnalysis = new SpriteImageAnalysis(this.tcpSessions);
@@ -911,6 +999,10 @@ public class TraceData implements Serializable {
 			// Do cache analysis
 			logger.fine("Performing cache analysis");
 			this.cacheAnalysis = new CacheAnalysis(this.tcpSessions);
+			
+			// Do DisplayNoneInCSS analysis
+			logger.fine("Performing Display:none in CSS analysis");
+			this.displayNoneInCSSAnalysis = new DisplayNoneInCSSAnalysis(this.tcpSessions);
 
 			// Simulate RRC state machine
 			logger.fine("Initializing RRCStateMachine");
@@ -1529,6 +1621,7 @@ public class TraceData implements Serializable {
 	private static final int NONE = 0;
 	private static final int WIFI = -1;
 	private static final int GPRS = 1;
+	private static final int EDGE = 2;
 	private static final int UMTS = 3;
 	private static final int ETHERNET = 5;
 	private static final int HSDPA = 8;
@@ -3740,6 +3833,8 @@ public class TraceData implements Serializable {
 		switch (networkTypeCode) {
 		case WIFI:
 			return NetworkType.WIFI;
+		case EDGE:
+			return NetworkType.EDGE;
 		case GPRS:
 			return NetworkType.GPRS;
 		case UMTS:

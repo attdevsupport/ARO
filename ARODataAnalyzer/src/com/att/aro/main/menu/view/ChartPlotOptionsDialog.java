@@ -43,7 +43,7 @@ import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
 
-import com.att.aro.main.AROAdvancedTabb;
+import com.att.aro.diagnostics.AROAdvancedTabb;
 import com.att.aro.main.ApplicationResourceOptimizer;
 import com.att.aro.main.ChartPlotOptions;
 import com.att.aro.main.ResourceBundleManager;

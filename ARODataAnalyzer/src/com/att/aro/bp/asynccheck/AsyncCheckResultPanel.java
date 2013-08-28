@@ -30,11 +30,14 @@ import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.SwingConstants;
 
+import com.att.aro.bp.BestPracticeButtonPanel;
 import com.att.aro.commonui.DataTable;
 import com.att.aro.main.ApplicationResourceOptimizer;
 //import com.att.aro.model.TextFileCompressionEntry;
@@ -51,12 +54,15 @@ public class AsyncCheckResultPanel extends JPanel {
 
 	private static final int ROW_HEIGHT = 20;
 	private static final int NO_OF_ROWS = 6;
-	private static final int SCROLL_PANE_HEIGHT = NO_OF_ROWS * ROW_HEIGHT;
+	private static final int SCROLL_PANE_HEIGHT = AsyncCheckResultPanel.NO_OF_ROWS * AsyncCheckResultPanel.ROW_HEIGHT;
 	private static final int SCROLL_PANE_LENGHT = 300;
+	private boolean isExpanded = false;
+	private int noOfRecords = 0;
 
 	private JLabel title;
 	private JPanel contentPanel;
 	private JScrollPane scrollPane;
+	private BestPracticeButtonPanel bpButtonPanel;
 	private AsyncCheckTableModel tableModel;
 	private DataTable<AsyncCheckEntry> contentTable;
 
@@ -82,6 +88,10 @@ public class AsyncCheckResultPanel extends JPanel {
 	public void setData(Collection<AsyncCheckEntry> data) {
 		LOGGER.log(Level.FINE, "setData, size: {0}", new Object[] { data.size() });
 		this.tableModel.setData(data);
+		noOfRecords=data.size();
+		if(bpButtonPanel!=null)
+		bpButtonPanel.setNoOfRecords(noOfRecords);
+
 	}
 
 	/**
@@ -113,41 +123,75 @@ public class AsyncCheckResultPanel extends JPanel {
 	 * Initializes and returns the content panel.
 	 */
 	private JPanel getContentPanel() {
-		if (contentPanel == null) {
-			contentPanel = new JPanel(new BorderLayout());
-			contentPanel.add(getTitle(), BorderLayout.NORTH);
-			contentPanel.add(getScrollPane(), BorderLayout.CENTER);
+		if (this.contentPanel == null) {
+			this.contentPanel = new JPanel(new BorderLayout());
+			this.contentPanel.add(getScrollPane(), BorderLayout.CENTER);
+			this.contentPanel.add(getButtonsPanel(), BorderLayout.EAST);
 		}
-		return contentPanel;
+		return this.contentPanel;
 	}
-
+	
 	/**
-	 * Initializes and returns the Scroll Pane.
+	 * Initializes and returns the JPanel that contains the 
+	 * button.
 	 */
-	private JScrollPane getScrollPane() {
-		if (scrollPane == null) {
-			scrollPane = new JScrollPane(getContentTable());
-			scrollPane.setPreferredSize(new Dimension(SCROLL_PANE_LENGHT, SCROLL_PANE_HEIGHT));
+	private JPanel getButtonsPanel() {
+			if (this.bpButtonPanel == null) {
+			
+			bpButtonPanel=new BestPracticeButtonPanel();
+			bpButtonPanel.setScrollPane(getScrollPane());
+			bpButtonPanel.setNoOfRecords(noOfRecords);
+		
+	    	}
+		return this.bpButtonPanel;
+	}
+	
+	/**
+	 * Restores the table.
+	 */
+	public void restoreTable() {
+		 JButton viewBtn=((BestPracticeButtonPanel)getButtonsPanel()).getViewBtn();
+		if(this.noOfRecords > 5) {
+			
+			((BestPracticeButtonPanel)getButtonsPanel()).setExpanded(false);
+			viewBtn.setEnabled(true);
+			viewBtn.setText("+");			
+		} else {
+			viewBtn.setEnabled(false);
 		}
-		return scrollPane;
+		this.scrollPane.setPreferredSize(new Dimension(AsyncCheckResultPanel.SCROLL_PANE_LENGHT, AsyncCheckResultPanel.SCROLL_PANE_HEIGHT));
+	}
+	/**
+	* Initializes and returns the Scroll Pane.
+	*/
+	private JScrollPane getScrollPane() {
+		if (this.scrollPane == null) {
+			this.scrollPane = new JScrollPane(getContentTable());
+		}
+		return this.scrollPane;
 	}
 
 	/**
 	 * Initializes and returns the content table.
 	 */
 	private DataTable<AsyncCheckEntry> getContentTable() {
-		if (contentTable == null) {
-			tableModel = new AsyncCheckTableModel();
-			contentTable = new DataTable<AsyncCheckEntry>(tableModel);
-			contentTable.setAutoCreateRowSorter(true);
-			contentTable.setGridColor(Color.LIGHT_GRAY);
-			contentTable.setRowHeight(ROW_HEIGHT);
-			contentTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
-			contentTable.addMouseListener(getAsyncCheckTableMouseListener());
+		if (this.contentTable == null) {
+			this.tableModel = new AsyncCheckTableModel();
+			this.contentTable = new DataTable<AsyncCheckEntry>(tableModel);
+			this.contentTable.setAutoCreateRowSorter(true);
+			this.contentTable.setGridColor(Color.LIGHT_GRAY);
+			this.contentTable.setRowHeight(AsyncCheckResultPanel.ROW_HEIGHT);
+			this.contentTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+			this.contentTable.addMouseListener(getAsyncCheckTableMouseListener());
 		}
 		return contentTable;
 	}
 
+	/**
+	 * Returns mouse listener.
+	 * 
+	 * @return mouse listener
+	 */
 	private MouseListener getAsyncCheckTableMouseListener() {
 
 		MouseListener ml;
@@ -164,6 +208,28 @@ public class AsyncCheckResultPanel extends JPanel {
 		};
 		
 		return ml;
+	}
+
+	/**
+	 * Sets number of records in table.
+	 */
+public void setNoOfRecords(int noOfRecords) {
+		this.noOfRecords = noOfRecords;
+		restoreTable();	
+		}
+
+	/**
+	 * Updates the table.
+	 */
+	public void updateTableForPrint() {
+		// Check if already expanded, do nothing.
+		BestPracticeButtonPanel bpanel=	((BestPracticeButtonPanel) getButtonsPanel());
+		JButton viewBtn = bpanel.getViewBtn();
+		if (!bpanel.isExpanded() && this.noOfRecords > 5) {
+			
+			viewBtn.doClick();
+			this.scrollPane.revalidate();
+		}
 	}
 
 }

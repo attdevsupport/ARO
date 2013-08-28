@@ -132,33 +132,42 @@ public class ExpandedDomainTableModel extends DataTableModel<TCPSession> {
 	protected Object getColumnValue(TCPSession item, int columnIndex) {
 		switch (columnIndex) {
 		case SESSION_TIME:
-			return item.getSessionStartTime();
+			//if (!item.isUDP())
+				return item.getSessionStartTime();
 		case EXTERNAL_IP:
-			return item.getRemoteIP().getHostAddress();
+			//if (!item.isUDP())
+				return item.getRemoteIP().getHostAddress();
 		case LOCAL_PORT:
-			return item.getLocalPort();
+			//if (!item.isUDP())
+				return item.getLocalPort();
 		case CONN_LEN:
-			return item.getSessionEndTime() - item.getSessionStartTime();
+			//if (!item.isUDP())
+				return item.getSessionEndTime() - item.getSessionStartTime();
 		case BYTES:
-			return item.getBytesTransferred();
+			//if (!item.isUDP())
+				return item.getBytesTransferred();
 		case TIME_GAP:
-			Termination status = item.getSessionTermination();
-			return status != null ? status.getSessionTerminationDelay() : null;
+			//if (!item.isUDP()){
+				Termination status = item.getSessionTermination();
+				return status != null ? status.getSessionTerminationDelay() : null;
+			//}
 		case CLOSED_CONN:
-			Termination packetStatus = item.getSessionTermination();
-			if (packetStatus != null) {
-				PacketInfo packet = packetStatus.getPacket();
-				switch (packet.getDir()) {
-				case UPLINK:
-					return rb.getString("expanded.domain.name.client");
-				case DOWNLINK:
-					return rb.getString("expanded.domain.name.server");
-				default:
+			//if (!item.isUDP()){
+				Termination packetStatus = item.getSessionTermination();
+				if (packetStatus != null) {
+					PacketInfo packet = packetStatus.getPacket();
+					switch (packet.getDir()) {
+					case UPLINK:
+						return rb.getString("expanded.domain.name.client");
+					case DOWNLINK:
+						return rb.getString("expanded.domain.name.server");
+					default:
+						return null;
+					}
+				} else {
 					return null;
 				}
-			} else {
-				return null;
-			}
+		//	}
 		default:
 			return null;
 		}

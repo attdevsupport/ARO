@@ -133,7 +133,7 @@ public class CacheAnalysisPanel extends JPanel {
 	/**
 	 * Initializes and returns the RequestResponseTable.
 	 */
-	private DataTable<CacheEntry> getJDuplicateContentTable() {
+	public DataTable<CacheEntry> getJDuplicateContentTable() {
 		if (jDuplicateContentTable == null) {
 			jDuplicateContentTable = new DataTable<CacheEntry>(jDuplicateContentTableModel);
 			jDuplicateContentTable.setAutoCreateRowSorter(true);

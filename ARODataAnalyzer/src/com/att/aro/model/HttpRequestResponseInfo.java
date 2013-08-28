@@ -163,6 +163,7 @@ public class HttpRequestResponseInfo implements
 
 	private HttpRequestResponseInfo assocReqResp;
 	private RequestResponseTimeline waterfallInfos;
+	private String allHeaders;
 
 	/**
 	 * The HttpRequestResponseInfo.Direction Enumeration specifies constant
@@ -236,6 +237,8 @@ public class HttpRequestResponseInfo implements
 		private static final String PROXYREVALIDATE = "proxy-revalidate";
 		private static final String ONLYIFCACHED = "only-if-cached";
 
+		private static final Object HEADERS_SEPARATOR = " ";
+
 		private static Pattern strReRequestType = Pattern
 				.compile("(\\S*)\\s* \\s*(\\S*)\\s* \\s*(HTTP/1\\.[0|1]|RTSP/1\\.[0|1])");
 		private static Pattern strReRequestHost = Pattern.compile("[H|h]ost:");
@@ -298,105 +301,106 @@ public class HttpRequestResponseInfo implements
 			extractHttpRequestResponseInfo(PacketInfo.Direction.DOWNLINK);
 			Collections.sort(result);
 			result.trimToSize();
-
-			if (result.size() > 0) {
-				
-				// Get DNS info for waterfall
-				Double dns = null;
-				if (session.getDnsRequestPacket() != null && session.getDnsResponsePacket() != null) {
-					dns = session.getDnsRequestPacket().getTimeStamp();
-				}
-
-				// Find syn and ack packets for session
-				Double synTime = null;
-				for (PacketInfo p : session.getPackets()) {
-					if (p.getPacket() instanceof TCPPacket) {
-						TCPPacket tcp = (TCPPacket) p.getPacket();
-						if (tcp.isSYN()) {
-							synTime = p.getTimeStamp();
-							break;
+			if(!session.isUDP()){/* By pass for UDP packets*/
+				if (result.size() > 0) {
+					
+					// Get DNS info for waterfall
+					Double dns = null;
+					if (session.getDnsRequestPacket() != null && session.getDnsResponsePacket() != null) {
+						dns = session.getDnsRequestPacket().getTimeStamp();
+					}
+	
+					// Find syn and ack packets for session
+					Double synTime = null;
+					for (PacketInfo p : session.getPackets()) {
+						if (p.getPacket() instanceof TCPPacket) {
+							TCPPacket tcp = (TCPPacket) p.getPacket();
+							if (tcp.isSYN()) {
+								synTime = p.getTimeStamp();
+								break;
+							}
 						}
 					}
-				}
-				
-				Double sslNegTime = null;
-				PacketInfo handshake = session.getLastSslHandshakePacket();
-				if (handshake != null) {
-					sslNegTime = handshake.getTimeStamp();
-				}
-
-				// Associate requests/responses
-				List<HttpRequestResponseInfo> reqs = new ArrayList<HttpRequestResponseInfo>(
-						result.size());
-				for (HttpRequestResponseInfo rr : result) {
-					if (rr.direction == Direction.REQUEST) {
-						reqs.add(rr);
-					} else if (rr.direction == Direction.RESPONSE) {
-						if (!reqs.isEmpty()) {
-							rr.assocReqResp = reqs.remove(0);
-							rr.assocReqResp.assocReqResp = rr;
+					
+					Double sslNegTime = null;
+					PacketInfo handshake = session.getLastSslHandshakePacket();
+					if (handshake != null) {
+						sslNegTime = handshake.getTimeStamp();
+					}
+	
+					// Associate requests/responses
+					List<HttpRequestResponseInfo> reqs = new ArrayList<HttpRequestResponseInfo>(
+							result.size());
+					for (HttpRequestResponseInfo rr : result) {
+						if (rr.direction == Direction.REQUEST) {
+							reqs.add(rr);
+						} else if (rr.direction == Direction.RESPONSE) {
+							if (!reqs.isEmpty()) {
+								rr.assocReqResp = reqs.remove(0);
+								rr.assocReqResp.assocReqResp = rr;
+							}
 						}
 					}
-				}
-
-				// Build waterfall for each request/response pair
-				for (HttpRequestResponseInfo rr : result) {
-					if (rr.getDirection() != Direction.REQUEST || rr.getAssocReqResp() == null) {
-						// Only process non-HTTPS request/response pairs
-						continue;
-					}
-					
-					double startTime = -1;
-					double firstReqPacket = rr.firstDataPacket.getTimeStamp();
-					double lastReqPacket = rr.lastDataPacket.getTimeStamp();
-					
-					HttpRequestResponseInfo resp = rr.getAssocReqResp();
-					double firstRespPacket = resp.firstDataPacket.getTimeStamp();
-					double lastRespPacket = resp.lastDataPacket.getTimeStamp();
-
-					// Add DNS and initial connect to fist req/resp pair only
-					Double dnsDuration = null;
-					if (dns != null) {
-						startTime = dns.doubleValue();
+	
+					// Build waterfall for each request/response pair
+					for (HttpRequestResponseInfo rr : result) {
+						if (rr.getDirection() != Direction.REQUEST || rr.getAssocReqResp() == null) {
+							// Only process non-HTTPS request/response pairs
+							continue;
+						}
+						
+						double startTime = -1;
+						double firstReqPacket = rr.firstDataPacket.getTimeStamp();
+						double lastReqPacket = rr.lastDataPacket.getTimeStamp();
+						
+						HttpRequestResponseInfo resp = rr.getAssocReqResp();
+						double firstRespPacket = resp.firstDataPacket.getTimeStamp();
+						double lastRespPacket = resp.lastDataPacket.getTimeStamp();
+	
+						// Add DNS and initial connect to fist req/resp pair only
+						Double dnsDuration = null;
+						if (dns != null) {
+							startTime = dns.doubleValue();
+							if (synTime != null) {
+								dnsDuration = synTime.doubleValue() - dns.doubleValue();
+							} else {
+								logger.warning("Found DNS connection with no initial session connection");
+								dnsDuration = firstReqPacket - dns.doubleValue();
+							}
+							
+							// Prevent from being added again
+							dns = null;
+						}
+						
+						Double initConnDuration = null;
 						if (synTime != null) {
-							dnsDuration = synTime.doubleValue() - dns.doubleValue();
-						} else {
-							logger.warning("Found DNS connection with no initial session connection");
-							dnsDuration = firstReqPacket - dns.doubleValue();
+							initConnDuration = firstReqPacket - synTime;
+							if (startTime < 0.0) {
+								startTime = synTime.doubleValue();
+							}
+							
+							// Prevent from being added again
+							synTime = null;
 						}
 						
-						// Prevent from being added again
-						dns = null;
-					}
-					
-					Double initConnDuration = null;
-					if (synTime != null) {
-						initConnDuration = firstReqPacket - synTime;
+						// Calculate request time
 						if (startTime < 0.0) {
-							startTime = synTime.doubleValue();
+							startTime = firstReqPacket;
 						}
 						
-						// Prevent from being added again
-						synTime = null;
-					}
-					
-					// Calculate request time
-					if (startTime < 0.0) {
-						startTime = firstReqPacket;
-					}
-					
-					// Store waterfall in request/response
-					if (sslNegTime != null) {
-						rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, initConnDuration, sslNegTime - firstReqPacket, 0, 0, lastRespPacket - sslNegTime);
-					} else {
-						if (firstRespPacket >= lastReqPacket) {
-							rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, initConnDuration, null, lastReqPacket - firstReqPacket, firstRespPacket - lastReqPacket, lastRespPacket - firstRespPacket);
+						// Store waterfall in request/response
+						if (sslNegTime != null) {
+							rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, initConnDuration, sslNegTime - firstReqPacket, 0, 0, lastRespPacket - sslNegTime);
 						} else {
-							rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, initConnDuration, null, 0, 0, lastRespPacket - firstReqPacket);
+							if (firstRespPacket >= lastReqPacket) {
+								rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, initConnDuration, null, lastReqPacket - firstReqPacket, firstRespPacket - lastReqPacket, lastRespPacket - firstRespPacket);
+							} else {
+								rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, initConnDuration, null, 0, 0, lastRespPacket - firstReqPacket);
+							}
 						}
 					}
 				}
-			}
+			} /* by pass for UDP sessions.*/
 		}
 
 		/**
@@ -439,9 +443,7 @@ public class HttpRequestResponseInfo implements
 
 			this.counter = 0;
 
-			HttpRequestResponseInfo rrInfo = findNextRequestResponse(direction,
-					packetOffsets);
-
+			HttpRequestResponseInfo rrInfo = findNextRequestResponse(direction,	packetOffsets);
 			String line;
 			while ((line = readLine()) != null && rrInfo != null) {
 
@@ -520,9 +522,9 @@ public class HttpRequestResponseInfo implements
 					}
 					rrInfo = findNextRequestResponse(direction, packetOffsets);
 				} else {
-					parseLine(line, rrInfo);
+					parseHeaderLine(line, rrInfo);
 				}
-			}
+			} // end: while
 		}
 
 		/**
@@ -736,18 +738,21 @@ public class HttpRequestResponseInfo implements
 		/**
 		 * Parse data from the line of text
 		 * 
-		 * @param line
+		 * @param headerLine
 		 * @param rrInfo
 		 */
-		private synchronized void parseLine(String line,
-				HttpRequestResponseInfo rrInfo) {
+		private synchronized void parseHeaderLine(String headerLine,
+												  HttpRequestResponseInfo rrInfo) {
+			
+			appendHeaderToHttpRequestResponseInfo(headerLine, rrInfo);
+			
 			Matcher matcher;
 			String[] s;
 
 			// Get request host
-			matcher = strReRequestHost.matcher(line);
+			matcher = strReRequestHost.matcher(headerLine);
 			if (matcher.lookingAt()) {
-				String hostName = line.substring(matcher.end()).trim();
+				String hostName = headerLine.substring(matcher.end()).trim();
 				
 				// Strip port info if included
 				int i = hostName.indexOf(':');
@@ -759,32 +764,32 @@ public class HttpRequestResponseInfo implements
 			}
 
 			// Get request content length
-			matcher = strReResponseContentLength.matcher(line);
+			matcher = strReResponseContentLength.matcher(headerLine);
 			if (matcher.lookingAt() && rrInfo.contentLength == 0) {
-				rrInfo.contentLength = Integer.parseInt(line.substring(
+				rrInfo.contentLength = Integer.parseInt(headerLine.substring(
 						matcher.end()).trim());
 				return;
 			}
 
 			// Get request transfer encoding
-			matcher = strReTransferEncoding.matcher(line);
+			matcher = strReTransferEncoding.matcher(headerLine);
 			if (matcher.lookingAt()) {
-				rrInfo.chunked = CHUNKED.equals(line.substring(matcher.end())
+				rrInfo.chunked = CHUNKED.equals(headerLine.substring(matcher.end())
 						.trim());
 				return;
 			}
 
 			// Get request transfer encoding
-			matcher = strReResponseContentEncoding.matcher(line);
+			matcher = strReResponseContentEncoding.matcher(headerLine);
 			if (matcher.lookingAt()) {
-				rrInfo.contentEncoding = line.substring(matcher.end()).trim().toLowerCase();
+				rrInfo.contentEncoding = headerLine.substring(matcher.end()).trim().toLowerCase();
 				return;
 			}
 
 			// Get content type
-			matcher = strReResponseContentType.matcher(line);
+			matcher = strReResponseContentType.matcher(headerLine);
 			if (matcher.lookingAt()) {
-				s = line.substring(matcher.end()).trim().split(";");
+				s = headerLine.substring(matcher.end()).trim().split(";");
 				rrInfo.contentType = s[0].trim().toLowerCase();
 				for (int i = 1; i < s.length; ++i) {
 					int index = s[i].indexOf("=");
@@ -799,14 +804,14 @@ public class HttpRequestResponseInfo implements
 			}
 
 			// Date
-			matcher = strReResponseDate.matcher(line);
+			matcher = strReResponseDate.matcher(headerLine);
 			if (matcher.lookingAt()) {
 				rrInfo.date = readHttpDate(matcher.group(1), false);
 				return;
 			}
 
 			// Pragma: no-cache
-			matcher = strReResponsePragmaNoCache.matcher(line);
+			matcher = strReResponsePragmaNoCache.matcher(headerLine);
 			if (matcher.lookingAt()) {
 				rrInfo.hasCacheHeaders = true;
 				rrInfo.pragmaNoCache = true;
@@ -814,7 +819,7 @@ public class HttpRequestResponseInfo implements
 			}
 
 			// Cache-Control
-			matcher = strReResponseCacheControl.matcher(line);
+			matcher = strReResponseCacheControl.matcher(headerLine);
 			if (matcher.lookingAt()) {
 				s = matcher.group(1).split(",");
 				if (s.length > 0) {
@@ -888,35 +893,35 @@ public class HttpRequestResponseInfo implements
 			if (rrInfo.direction == Direction.RESPONSE) {
 
 				// ETag
-				matcher = strReResponseEtag.matcher(line);
+				matcher = strReResponseEtag.matcher(headerLine);
 				if (matcher.lookingAt()) {
 					rrInfo.etag = matcher.group(2);
 					return;
 				}
 
 				// Age
-				matcher = strReResponseAge.matcher(line);
+				matcher = strReResponseAge.matcher(headerLine);
 				if (matcher.lookingAt()) {
 					rrInfo.age = Long.valueOf(matcher.group(1));
 					return;
 				}
 
 				// Expires
-				matcher = strReResponseExpires.matcher(line);
+				matcher = strReResponseExpires.matcher(headerLine);
 				if (matcher.lookingAt()) {
 					rrInfo.expires = readHttpDate(matcher.group(1), true);
 					return;
 				}
 
 				// Last modified
-				matcher = strReResponseLastMod.matcher(line);
+				matcher = strReResponseLastMod.matcher(headerLine);
 				if (matcher.lookingAt()) {
 					rrInfo.lastModified = readHttpDate(matcher.group(1), false);
 					return;
 				}
 
 				// Content-Range
-				matcher = strReContentRange.matcher(line);
+				matcher = strReContentRange.matcher(headerLine);
 				if (matcher.lookingAt()) {
 					rrInfo.rangeResponse = true;
 					rrInfo.rangeFirst = Integer.parseInt(matcher.group(1));
@@ -933,7 +938,7 @@ public class HttpRequestResponseInfo implements
 			} else if (rrInfo.direction == Direction.REQUEST) {
 
 				// Referrer
-				matcher = strReResponseReferer.matcher(line);
+				matcher = strReResponseReferer.matcher(headerLine);
 				if (matcher.lookingAt()) {
 					try {
 						rrInfo.referrer = new URI(matcher.group(1).trim());
@@ -945,19 +950,34 @@ public class HttpRequestResponseInfo implements
 				}
 
 				// If-Modified-Since
-				matcher = strReIfModifiedSince.matcher(line);
+				matcher = strReIfModifiedSince.matcher(headerLine);
 				if (matcher.lookingAt()) {
 					rrInfo.ifModifiedSince = true;
 					return;
 				}
 
 				// If-None-Match
-				matcher = strReIfNoneMatch.matcher(line);
+				matcher = strReIfNoneMatch.matcher(headerLine);
 				if (matcher.lookingAt()) {
 					rrInfo.ifNoneMatch = true;
 					return;
 				}
 
+			}
+			
+			logger.log(Level.FINEST, "found a line that was not parsed: {0}", headerLine);
+		}
+
+		private void appendHeaderToHttpRequestResponseInfo(String line, HttpRequestResponseInfo rrInfo) {
+			if (rrInfo != null) {
+				StringBuilder headersBuilder;
+				if (rrInfo.allHeaders == null) {
+					headersBuilder = new StringBuilder();
+				} else {
+					headersBuilder = new StringBuilder(rrInfo.allHeaders);
+				}
+				headersBuilder.append(HEADERS_SEPARATOR).append(line);
+				rrInfo.allHeaders = headersBuilder.toString();
 			}
 		}
 
@@ -1478,6 +1498,15 @@ public class HttpRequestResponseInfo implements
 		return packetDirection;
 	}
 
+	/**
+	 * Returns all headers.
+	 * 
+	 * @return Headers as a long string.
+	 */
+	public String getAllHeaders() {
+		return allHeaders;
+	}
+	
 	/**
 	 * Returns the binary content of the request/response body.
 	 * 

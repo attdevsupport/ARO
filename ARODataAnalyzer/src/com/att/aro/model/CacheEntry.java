@@ -98,6 +98,13 @@ public class CacheEntry implements Serializable, Comparable<CacheEntry> {
 	private long bytesInCache;
 	private long bytesNotInCache;
 	private PacketInfo sessionFirstPacket;
+	private int cacheCount=0;
+	
+
+	private long contentLength;
+	private Double timeStamp;
+	private HttpRequestResponseInfo httpRequestResponse;
+	private String httpObjectName;
 
 	/**
 	 * Initializes an instance of the CacheEntry class using the specified HTTP request 
@@ -143,11 +150,23 @@ public class CacheEntry implements Serializable, Comparable<CacheEntry> {
 			this.request = request;
 			this.rawBytes += request.getRawSize();
 		}
-
+		
+		if (request != null) {
+		    this.timeStamp=0.0;//request.getTimeStamp();
+			this.httpObjectName = request.getObjName();
+			this.hostName = request.getHostName();
+			httpRequestResponse=request.getAssocReqResp();
+		} else {
+			this.httpObjectName = "";
+			this.hostName = "";
+		}
+		
+		
 		// Response cannot be null
 		this.response = response;
 		this.rawBytes += response.getRawSize();
-
+		
+	    this.contentLength =	getResponse().getContentLength();
 		this.diagnosis = diagnosis;
 		this.bytesInCache = Math.min(bytesInCache, rawBytes);
 		this.bytesNotInCache = Math.max(0, rawBytes - bytesInCache);
@@ -254,5 +273,66 @@ public class CacheEntry implements Serializable, Comparable<CacheEntry> {
 	 */
 	public boolean hasCacheHeaders() {
 		return response.isHasCacheHeaders() || (request != null && request.isHasCacheHeaders());
+	}
+	
+	/**
+	 * Returns a value that indicates whether the HTTP request/response . 
+	 * 
+	 * @return HttpRequestResponse 
+	 *.
+	 */
+	public HttpRequestResponseInfo getHttpRequestResponse() {
+		return httpRequestResponse;
+	}
+
+	/**
+	 * Returns timeStamp of duplicate content . 
+	 * 
+	 * @return timeStamp 
+	 *.
+	 */
+	public Double getTimeStamp() {
+		return timeStamp;
+	}
+
+	/**
+	 * Returns content of duplicate content . 
+	 * 
+	 * @return contentLength 
+	 *.
+	 */
+	public long getContentLength() {
+		return contentLength;
+	}
+
+	/**
+	 * Returns hostName of duplicate content . 
+	 * 
+	 * @return hostName 
+	 *.
+	 */
+	private String hostName;
+	public String getHostName() {
+		return hostName;
+	}
+
+	
+	public String getHttpObjectName() {
+		return httpObjectName;
+	}
+		public int getCacheHitCount() {
+		return cacheHit.getCacheCount();
+	}
+	
+	public void setCacheHitCount(int cacheCount){
+		
+		cacheHit.setCacheCount(cacheCount);
+	}
+	public int getCacheCount() {
+		return cacheCount;
+	}
+
+	public void setCacheCount(int cacheCount) {
+		this.cacheCount = cacheCount;
 	}
 }

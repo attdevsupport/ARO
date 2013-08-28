@@ -81,6 +81,7 @@ public class AROBpOverallResulsPanel extends JPanel {
 
 	private DateTraceAppDetailPanel dateTraceAppDetailPanel;
 
+	private JLabel httpsPercentValueLabel;
 	private JLabel durationValueLabel;
 	private JLabel totalDataValueLabel;
 	private JLabel energyConsumedValueLabel;
@@ -92,6 +93,8 @@ public class AROBpOverallResulsPanel extends JPanel {
 	private Map<BestPracticeDisplayGroup, List<BPResultRowPanel>> panelMap = new HashMap<BestPracticeDisplayGroup, List<BPResultRowPanel>>();
 	private List<BPResultRowPanel> panels = new ArrayList<BPResultRowPanel>();
 	private Collection<BestPracticeDisplayGroup> bpGroups;
+	
+	private NumberFormat pctFmt = null;
 
 	/**
 	 * Initializes a new instance of the AROBpOverallResulsPanel class.
@@ -106,6 +109,9 @@ public class AROBpOverallResulsPanel extends JPanel {
 		gridY = addDateAndTraceInfo(gridY);
 		gridY = addTestsConductedHeader(gridY);
 		gridY = addTestsConductedSummary(gridY);
+		
+		pctFmt = NumberFormat.getPercentInstance();
+		pctFmt.setMaximumFractionDigits(1);
 	}
 
 	/**
@@ -222,7 +228,7 @@ public class AROBpOverallResulsPanel extends JPanel {
 	private int addDateAndTraceInfo(int gridY) {
 		// Add date panel
 		this.dateTraceAppDetailPanel = new DateTraceAppDetailPanel();
-		this.add(dateTraceAppDetailPanel, new GridBagConstraints(0, gridY++, 3, 1, 1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+		this.add(dateTraceAppDetailPanel, new GridBagConstraints(0, gridY++, 6, 1, 1.0, 0.0, GridBagConstraints.NORTHEAST, GridBagConstraints.HORIZONTAL,
 				BASIC_INSETS, 0, 0));
 		this.add(createTestStatisticsPanel(), new GridBagConstraints(0, gridY++, 3, 1, 0.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
 				BASIC_INSETS, 0, 0));
@@ -276,6 +282,10 @@ public class AROBpOverallResulsPanel extends JPanel {
 			nf.setMaximumFractionDigits(1);
 			nf.setMinimumFractionDigits(1);
 			nf.setMinimumIntegerDigits(1);
+			httpsPercentValueLabel.setText(MessageFormat.format(
+					RB.getString("bestPractices.percentageHTTPSValue"),
+					pctFmt.format((double)analysisData.getTotalHTTPSBytes()/analysisData.getTotalBytes()), 
+					analysisData.getTotalHTTPSBytes()/1024));
 			durationValueLabel.setText(MessageFormat.format(
 					RB.getString("bestPractices.durationValue"),
 					nf.format(analysisData.getTraceData().getTraceDuration() / 60)));
@@ -303,6 +313,7 @@ public class AROBpOverallResulsPanel extends JPanel {
 				bpp.refreshFields(analysisData);
 			}
 		} else {
+			httpsPercentValueLabel.setText(null);
 			durationValueLabel.setText(null);
 			energyConsumedValueLabel.setText(null);
 			totalDataValueLabel.setText(null);
@@ -335,6 +346,15 @@ public class AROBpOverallResulsPanel extends JPanel {
 		statisticsHeaderLabel.setBackground(Color.WHITE);
 		statisticsHeaderLabel.setFont(HEADER_FONT);
 
+		JPanel httpsPercentPanel = new JPanel(new GridLayout(1, 2));
+		httpsPercentPanel.setBackground(Color.WHITE);
+		JLabel httpsPercentLabel = new JLabel(RB.getString("bestPractices.percentageHTTPS"));
+		httpsPercentLabel.setFont(TEXT_FONT);
+		httpsPercentValueLabel = new JLabel();
+		httpsPercentValueLabel.setFont(TEXT_FONT);
+		httpsPercentPanel.add(httpsPercentLabel);
+		httpsPercentPanel.add(httpsPercentValueLabel);
+		
 		JPanel durationPanel = new JPanel(new GridLayout(1, 2));
 		durationPanel.setBackground(Color.WHITE);
 		JLabel durationLabel = new JLabel(RB.getString("bestPractices.duration"));
@@ -424,6 +444,7 @@ public class AROBpOverallResulsPanel extends JPanel {
 		titlePanel.setBackground(Color.WHITE);
 		titlePanel.add(summaryFillerHeaderLabel);
 		titlePanel.add(statisticsHeaderLabel);
+		titlePanel.add(httpsPercentPanel);
 		titlePanel.add(durationPanel);
 		titlePanel.add(totalDataPanel);
 		titlePanel.add(energyConsumedPanel);
@@ -605,9 +626,17 @@ public class AROBpOverallResulsPanel extends JPanel {
 		nf.setMinimumFractionDigits(1);
 		nf.setMinimumIntegerDigits(1);
 
+		writer = addKeyValue(writer, RB.getString("bestPractices.percentageHTTPS"),
+				MessageFormat.format(
+						RB.getString("exportall.csvPercentageHTTPSValue"),
+						pctFmt.format((double)analysisData.getTotalHTTPSBytes()/analysisData.getTotalBytes())));
+		writer.append(RB.getString("statics.csvCell.seperator"));
+		writer.append(MessageFormat.format(
+				RB.getString("exportall.csvByteHTTPSValue"), analysisData.getTotalHTTPSBytes()/1024));
+		writer.append(lineSep);
+
 		writer = addKeyValue(writer, RB.getString("bestPractices.duration"),
 				String.valueOf(nf.format(analysisData.getTraceData().getTraceDuration() / 60)));
-
 		writer.append(RB.getString("statics.csvCell.seperator"));
 		writer.append(RB.getString("statics.csvUnits.minutes"));
 		writer.append(lineSep);

@@ -58,8 +58,8 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
 import com.att.aro.commonui.MessageDialogFactory;
+import com.att.aro.diagnostics.AROAdvancedTabb;
 import com.att.aro.images.Images;
-import com.att.aro.main.AROAdvancedTabb;
 import com.att.aro.main.ResourceBundleManager;
 import com.att.aro.model.TraceData;
 import com.att.aro.util.Util;
@@ -177,10 +177,10 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 											if(traceData.isNativeVideo()){ 
 												prevSeconds = 0.0;
 											}
-											if(reSync){
-												prevSeconds = 0.0;
-												reSync = false;
-											}
+										//	if(reSync){
+											//	prevSeconds = 0.0;
+										//		reSync = false;
+										//	}
 										}
 										if(prevSeconds > 0.0){
 											
@@ -192,14 +192,11 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 													aroAdvancedTab.setGraphPanelClicked(false);
 													
 												}else{
-													//if(userClickBeforeSyncPoint){
 													if(userClickPosition < videoOffset){
-														//aroAdvancedTab.setTimeLineLinkedComponents(userClickPosition);
 														aroAdvancedTab.setTimeLineLinkedComponents(seconds - videoOffset);
-														//userClickBeforeSyncPoint = false;
 														
 													}else{
-														aroAdvancedTab.setTimeLineLinkedComponents(seconds - videoOffset);													
+														aroAdvancedTab.setTimeLineLinkedComponents(seconds - videoOffset);
 													}
 												}
 											}else{
@@ -276,7 +273,7 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 	 */
 	public void actionPerformed(ActionEvent e){
 		   
-		double externalVideoStartTime;
+		double externalVideoStartTime=0.0;
 		File file;
 		/*
 		 * Check if exvideo_time file exist
@@ -307,23 +304,33 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 				}catch(Exception ex){
 					logger.log(Level.WARNING, "Exception in deleting exVideo_time file. " + ex);
 				}
-				showInfoMsg = true;
-				double videoStartTime =traceData.getPcapTime0();
-				this.videoOffset = videoStartTime > 0.0 ? videoStartTime
-						- ((double) traceData.getTraceDateTime().getTime() / 1000)
-						: 0.0;
+				//showInfoMsg = true;
+				syncVideoClicked = true;
+				//double videoStartTime =traceData.getPcapTime0();
+				//this.videoOffset = videoStartTime > 0.0 ? videoStartTime
+				//		- ((double) traceData.getTraceDateTime().getTime() / 1000)
+				//		: 0.0;
+				Time current = null;
+				/* checking timing with this thread and event handlers for MediaTimeSetEvent
+				*get in line behind event handler threads*/
+				synchronized (AROVideoPlayer.this) {
+					current = videoPlayer.getMediaTime();
+				}
+				externalVideoStartTime = (current.getSeconds() + ((double) traceData.getTraceDateTime().getTime() / 1000));
+				this.videoOffset = current.getSeconds();
 				traceData.setExVideoTimeFileStatus(true);
-				videoPlayer.stop();
+				aroAdvancedTab.setGraphPanelClicked(false);
+				//videoPlayer.stop();
 				setMediaDisplayTime(0.0);
 				aroAdvancedTab.setTimeLineLinkedComponents(0.0);
 				videoStarted=false;
-				reSync = true;
+				//reSync = true;
 				
 				
 			}
 		}else{
 			if (videoPlayer != null) {
-				/*File does not exist,first time or resync*/
+				/*File does not exist,first time.*/
 				syncVideoClicked = true;
 				Time current = null;
 				/* checking timing with this thread and event handlers for MediaTimeSetEvent
@@ -339,16 +346,24 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 				
 				
 				//Write video_time file.
-				try {
-					writeVideoTraceTime(Double.toString(externalVideoStartTime));
-				    closeVideoTraceTimeFile();
-					} catch (IOException ex) {
-						logger.log(Level.WARNING, "IOException in writing External video start time - " + ex);
-					}
+				//try {
+				//	writeVideoTraceTime(Double.toString(externalVideoStartTime));
+				//    closeVideoTraceTimeFile();
+				//	} catch (IOException ex) {
+				//		logger.log(Level.WARNING, "IOException in writing External video start time - " + ex);
+				//	}
 			}
 		}
+		//Write video_time file.
+		try {
+			writeVideoTraceTime(Double.toString(externalVideoStartTime));
+		    closeVideoTraceTimeFile();
+			} catch (IOException ex) {
+				logger.log(Level.WARNING, "IOException in writing External video start time - " + ex);
+			}
 	}
 
+	
 	/**
 	 * Refreshes the Video player display using the specified analysis data.
 	 * 
@@ -434,10 +449,9 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 						//TODO show dialog some time other than clicking start to handle slidebar drag
 						if(!syncVideoClicked){
 							MessageDialogFactory
-							
 									.showMessageDialog(
 											AROVideoPlayer.this,
-											rb.getString("video.syncPointClear"),
+											"The Analyzer loaded an external video. The video may not be in Sync with the traces.",
 											"Information", 1);
 							videoStarted = true;
 							showInfoMsg = false;

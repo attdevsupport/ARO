@@ -38,9 +38,8 @@ public interface BestPracticeDisplay {
 	String getOverviewTitle();
 
 	/**
-	 * Returns the title of the best practice displayed in the detail panel
-	 * for the best practice group.
-	 * @return the title string
+	 * Returns the title of the best practice that is displayed in the detail panel for the best practice group.
+	 * @return The title string.
 	 */
 	String getDetailTitle();
 
@@ -51,9 +50,8 @@ public interface BestPracticeDisplay {
 	boolean isSelfTest();
 
 	/**
-	 * Returns the detailed about description of the best practice displayed
-	 * in the detail panel for the best practice group.
-	 * @return the text string
+	 * Returns the detailed About description of the best practice that is displayed in the detail panel for the best practice group.
+	 * @return The text string that is the About description.
 	 */
 	String getAboutText();
 

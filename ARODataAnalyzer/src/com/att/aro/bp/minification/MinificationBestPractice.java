@@ -71,8 +71,9 @@ public class MinificationBestPractice implements BestPracticeDisplay {
 	@Override
 	public String resultText(Analysis analysisData) {
 		int numOfFiles = analysisData.getBestPractice().getNumberOfMinifyFiles();
+		long saingsInKb=analysisData.getBestPractice().getMinifyFileszsavings();
 		String key = isPass(analysisData) ? "minification.pass" : "minification.results";
-		return MessageFormat.format(Util.RB.getString(key), numOfFiles);
+		return MessageFormat.format(Util.RB.getString(key), numOfFiles,saingsInKb);
 	}
 
 	@Override

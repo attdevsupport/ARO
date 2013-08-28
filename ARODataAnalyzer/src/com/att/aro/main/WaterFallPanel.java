@@ -210,14 +210,16 @@ public class WaterFallPanel extends JPanel {
 			range = Math.min(this.traceDuration, DEFAULT_TIMELINE);
 			
 			for (TCPSession tcpSession : analysis.getTcpSessions()) {
-				logger.fine("Got one TCP Session with number HTTP req/rsp: " + tcpSession.getRequestResponseInfo().size());
-				for (HttpRequestResponseInfo reqRes : tcpSession.getRequestResponseInfo()) {
-					if (reqRes.getDirection() == Direction.REQUEST
-							&& reqRes.getWaterfallInfos() != null) {
-						logger.fine("Found HTTP request with Waterfall info");
-						categoryList.add(new WaterfallCategory(reqRes));
-					} else {
-						logger.fine("Found HTTP request but w/o Waterfall info");
+				if(!tcpSession.isUDP()){
+					logger.fine("Got one TCP Session with number HTTP req/rsp: " + tcpSession.getRequestResponseInfo().size());
+					for (HttpRequestResponseInfo reqRes : tcpSession.getRequestResponseInfo()) {
+						if (reqRes.getDirection() == Direction.REQUEST
+								&& reqRes.getWaterfallInfos() != null) {
+							logger.fine("Found HTTP request with Waterfall info");
+							categoryList.add(new WaterfallCategory(reqRes));
+						} else {
+							logger.fine("Found HTTP request but w/o Waterfall info");
+						}
 					}
 				}
 			}

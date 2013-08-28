@@ -90,6 +90,8 @@ public class RequestResponseTableModel extends DataTableModel<HttpRequestRespons
 		switch (columnIndex) {
 		case TIME_COL:
 			return Double.class;
+		case ON_WIRE_CONTENT_LENGTH:
+			return Long.class;
 		default:
 			return super.getColumnClass(columnIndex);
 		}

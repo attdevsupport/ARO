@@ -12,9 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 package com.att.aro.model;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -25,31 +26,43 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.att.aro.bp.BestPracticeDisplayFactory;
+import com.att.aro.bp.asynccheck.AsyncCheckAnalysis;
+import com.att.aro.bp.asynccheck.AsyncCheckEntry;
+import com.att.aro.bp.asynccheck.AsyncCheckResultPanel;
+import com.att.aro.bp.displaynoneincss.DisplayNoneInCSSAnalysis;
+import com.att.aro.bp.displaynoneincss.DisplayNoneInCSSEntry;
+import com.att.aro.bp.displaynoneincss.DisplayNoneInCSSResultPanel;
+import com.att.aro.bp.duplicate.DuplicateResultPanel;
 import com.att.aro.bp.fileorder.FileOrderAnalysis;
 import com.att.aro.bp.fileorder.FileOrderEntry;
 import com.att.aro.bp.fileorder.FileOrderResultPanel;
+import com.att.aro.bp.httprspcd.HttpCode3XXEntry;
+import com.att.aro.bp.httprspcd.HttpCode3XXResultPanel;
+import com.att.aro.bp.http4xx5xxrespcodes.Http4xx5xxStatusResponseCodesEntry;
+import com.att.aro.bp.http4xx5xxrespcodes.Http4xx5xxStatusResponseCodesResultPanel;
 import com.att.aro.bp.imageSize.ImageSizeAnalysis;
 import com.att.aro.bp.imageSize.ImageSizeEntry;
 import com.att.aro.bp.imageSize.ImageSizeResultPanel;
 import com.att.aro.bp.minification.MinificationAnalysis;
 import com.att.aro.bp.minification.MinificationEntry;
 import com.att.aro.bp.minification.MinificationResultPanel;
+//import com.att.aro.bp.smallrequest.SmallRequestAnalysis;
+//import com.att.aro.bp.smallrequest.SmallRequestEntry;
+//import com.att.aro.bp.smallrequest.SmallRequestResultPanel;
 import com.att.aro.bp.spriteimage.SpriteImageAnalysis;
 import com.att.aro.bp.spriteimage.SpriteImageEntry;
 import com.att.aro.bp.spriteimage.SpriteImageResultPanel;
-import com.att.aro.bp.asynccheck.AsyncCheckAnalysis;
-import com.att.aro.bp.asynccheck.AsyncCheckEntry;
-import com.att.aro.bp.asynccheck.AsyncCheckResultPanel;
 import com.att.aro.main.TextFileCompressionResultPanel;
 import com.att.aro.model.HttpRequestResponseInfo.Direction;
 
 /**
- * A bean class that contains the information that appears on the Best Practices tab, 
- * such as the pass/fail status of the test, and the test results.
+ * A bean class that contains the information that appears on the Best Practices
+ * tab, such as the pass/fail status of the test, and the test results.
  */
 public class BestPractices {
 
-	private static final Logger LOGGER = Logger.getLogger(BestPractices.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(BestPractices.class
+			.getName());
 
 	private static final int PERIPHERAL_ACTIVE_LIMIT = 5;
 
@@ -58,12 +71,25 @@ public class BestPractices {
 
 	private int http1_0HeaderCount = 0;
 	private TCPSession http10Session = null;
-	
+
 	private SortedMap<Integer, Integer> httpErrorCounts = new TreeMap<Integer, Integer>();
 	private Map<Integer, HttpRequestResponseInfo> firstErrorRespMap = new HashMap<Integer, HttpRequestResponseInfo>();
 	private SortedMap<Integer, Integer> httpRedirectCounts = new TreeMap<Integer, Integer>();
 	private Map<Integer, HttpRequestResponseInfo> firstRedirectRespMap = new HashMap<Integer, HttpRequestResponseInfo>();
-
+	private List<HttpCode3XXEntry> httpRspCd = new ArrayList<HttpCode3XXEntry>();
+	private List<Http4xx5xxStatusResponseCodesEntry> results = new ArrayList<Http4xx5xxStatusResponseCodesEntry>();
+	private HttpCode3XXResultPanel http_code_3XX_panel = null;
+	private Http4xx5xxStatusResponseCodesResultPanel http4xx5xxStatusResponseCodesResultPanel;
+	private DisplayNoneInCSSResultPanel displayNoneInCSSResultPanel;
+	private DuplicateResultPanel duplicateResultPanel;
+	private AsyncCheckResultPanel asyncCheckResultPanel;
+	private FileOrderResultPanel fileOrderResultPanel;
+	private ImageSizeResultPanel imageSizeResultPanel;
+	private MinificationResultPanel minificationResultPanel;
+	//private SmallRequestResultPanel smallRequestResultPanel;
+	private SpriteImageResultPanel spriteImageResultPanel;
+	private TextFileCompressionResultPanel textFileCompressionResultPanel;
+	
 	private boolean multipleTcpCon = true;
 	private boolean periodicTrans = true;
 	private int userInputBurstCount;
@@ -99,10 +125,11 @@ public class BestPractices {
 	private PacketInfo consecutiveCssJsFirstPacket = null;
 
 	/**
-	 * Initializes an instance of the BestPractices class, using the specified set of 
-	 * trace analysis data.
+	 * Initializes an instance of the BestPractices class, using the specified
+	 * set of trace analysis data.
 	 * 
-	 * @param analysisData An Analysis object containing the set of trace analysis data.
+	 * @param analysisData
+	 *            An Analysis object containing the set of trace analysis data.
 	 */
 	public BestPractices(TraceData.Analysis analysisData) {
 		this.analysisData = analysisData;
@@ -111,7 +138,8 @@ public class BestPractices {
 		BurstCollectionAnalysis bcAnalysis = analysisData.getBcAnalysis();
 
 		// Setting the best practices
-		this.multipleTcpCon = (bcAnalysis.getTightlyCoupledBurstCount() == 0);
+		// Checking for 4 burts within 60 sec occuring 4 times in trace
+		this.multipleTcpCon = (bcAnalysis.getTightlyCoupledBurstCount() < 4);
 		this.periodicTrans = (bcAnalysis.getMinimumPeriodicRepeatTime() == 0.0);
 
 		double largestBurstTime = 0.0;
@@ -124,9 +152,9 @@ public class BestPractices {
 
 		// Burst Best practices.
 		for (Burst burst : analysisData.getBcAnalysis().getBurstCollection()) {
-			
-			LOGGER.log(Level.FINE, "Burst category: {0}", burst.getBurstCategory());
-			
+
+			LOGGER.log(Level.FINE, "Burst category: {0}",
+					burst.getBurstCategory());
 
 			// Largest burst time
 			double time = burst.getEndTime() - burst.getBeginTime();
@@ -136,18 +164,20 @@ public class BestPractices {
 			}
 
 			/*
-			 * Counts number of subsequent USER bursts.
-			 * Stores the highest number to be used for the best practice tab. 
+			 * Counts number of subsequent USER bursts. Stores the highest
+			 * number to be used for the best practice tab.
 			 */
 			if (BurstCategory.USER_INPUT == burst.getBurstCategory()) {
 				burstCategoryCount++;
 			} else {
 				burstCategoryCount = 0;
 			}
-			LOGGER.log(Level.FINE, "burstCategoryCount set to: {0}", burstCategoryCount);
-			tmpUserInputBurstCount = Math.max(tmpUserInputBurstCount, burstCategoryCount);
-			LOGGER.log(Level.FINE, "tmpUserInputBurstCount set to: {0}", tmpUserInputBurstCount);
-
+			LOGGER.log(Level.FINE, "burstCategoryCount set to: {0}",
+					burstCategoryCount);
+			tmpUserInputBurstCount = Math.max(tmpUserInputBurstCount,
+					burstCategoryCount);
+			LOGGER.log(Level.FINE, "tmpUserInputBurstCount set to: {0}",
+					tmpUserInputBurstCount);
 
 			if (burst.getBurstCategory() == BurstCategory.TCP_PROTOCOL) {
 				double currentEnergy = burst.getEnergy();
@@ -157,10 +187,12 @@ public class BestPractices {
 					largestEnergyTime = burst.getBeginTime();
 				}
 			}
-			
-			//Verifying burst category to update screen rotation flag value which 
-			//shows whether screen rotation triggered network activity or not.
-			if (BurstCategory.SCREEN_ROTATION == burst.getBurstCategory() && this.screenRotation) {
+
+			// Verifying burst category to update screen rotation flag value
+			// which
+			// shows whether screen rotation triggered network activity or not.
+			if (BurstCategory.SCREEN_ROTATION == burst.getBurstCategory()
+					&& this.screenRotation) {
 				this.screenRotation = false;
 				this.screenRotationBurstTime = burst.getBeginTime();
 			}
@@ -169,32 +201,37 @@ public class BestPractices {
 		this.userInputBurstCount = tmpUserInputBurstCount;
 		this.offloadingToWiFi = (bcAnalysis.getLongBurstCount() <= 3);
 		if (bcAnalysis.getTotalEnergy() > 0) {
-			double percentageWasted = wastedBurstEnergy / bcAnalysis.getTotalEnergy();
+			double percentageWasted = wastedBurstEnergy
+					/ bcAnalysis.getTotalEnergy();
 			this.conClosingProb = (percentageWasted < 0.05);
 			this.tcpControlEnergy = wastedBurstEnergy;
 			this.tcpControlEnergyRatio = percentageWasted;
 			this.largestEnergyTime = largestEnergyTime;
 		}
 
-		/* Check HTTP 1.0 best practice and HTTP 301/302 and 4xx/5xx best practices
-		 * and calculate number of inefficient Css and Js requests.
-		*/
+		/*
+		 * Check HTTP 1.0 best practice and HTTP 301/302 and 4xx/5xx best
+		 * practices and calculate number of inefficient Css and Js requests.
+		 */
 		for (TCPSession s : analysisData.getTcpSessions()) {
 			double cssLastTimeStamp = 0.0;
 			double jsLastTimeStamp = 0.0;
-			for (HttpRequestResponseInfo reqRessInfo : s.getRequestResponseInfo()) {
-				if (HttpRequestResponseInfo.HTTP10.equals(reqRessInfo.getVersion())) {
+			for (HttpRequestResponseInfo reqRessInfo : s
+					.getRequestResponseInfo()) {
+				if (HttpRequestResponseInfo.HTTP10.equals(reqRessInfo
+						.getVersion())) {
 					++http1_0HeaderCount;
 					if (null == http10Session) {
 						http10Session = s;
 					}
 				}
-				
+
 				if (reqRessInfo.getDirection() == Direction.RESPONSE
 						&& HttpRequestResponseInfo.HTTP_SCHEME
 								.equals(reqRessInfo.getScheme())
 						&& reqRessInfo.getStatusCode() >= 400) {
-					Integer status = Integer.valueOf(reqRessInfo.getStatusCode());
+					Integer status = Integer.valueOf(reqRessInfo
+							.getStatusCode());
 					Integer count = httpErrorCounts.get(status);
 					if (count != null) {
 						httpErrorCounts.put(status, count + 1);
@@ -204,8 +241,10 @@ public class BestPractices {
 					if (firstErrorRespMap.get(status) == null) {
 						firstErrorRespMap.put(status, reqRessInfo);
 					}
+					results.add(new Http4xx5xxStatusResponseCodesEntry(
+							reqRessInfo));
 				}
-				
+
 				if (reqRessInfo.getDirection() == Direction.RESPONSE
 						&& HttpRequestResponseInfo.HTTP_SCHEME
 								.equals(reqRessInfo.getScheme())) {
@@ -222,15 +261,17 @@ public class BestPractices {
 						if (firstRedirectRespMap.get(status) == null) {
 							firstRedirectRespMap.put(status, reqRessInfo);
 						}
+						this.httpRspCd.add(new HttpCode3XXEntry(reqRessInfo));
 					}
 				}
-				
+
 				/* Calculate number of inefficient Css and Js requests. */
 				if (reqRessInfo.getDirection() == Direction.RESPONSE) {
 					if (reqRessInfo.getContentType() != null) {
 						PacketInfo pktInfo = reqRessInfo.getFirstDataPacket();
 						if (pktInfo != null) {
-							if (reqRessInfo.getContentType().equalsIgnoreCase("text/css")) {
+							if (reqRessInfo.getContentType().equalsIgnoreCase(
+									"text/css")) {
 								if (cssLastTimeStamp == 0.0) {
 									cssLastTimeStamp = pktInfo.getTimeStamp();
 									continue;
@@ -243,9 +284,14 @@ public class BestPractices {
 									}
 									cssLastTimeStamp = pktInfo.getTimeStamp();
 								}
-							} else if (reqRessInfo.getContentType().equalsIgnoreCase("text/javascript") 
-								|| reqRessInfo.getContentType().equalsIgnoreCase("application/x-javascript")
-								|| reqRessInfo.getContentType().equalsIgnoreCase("application/javascript")) {
+							} else if (reqRessInfo.getContentType()
+									.equalsIgnoreCase("text/javascript")
+									|| reqRessInfo.getContentType()
+											.equalsIgnoreCase(
+													"application/x-javascript")
+									|| reqRessInfo.getContentType()
+											.equalsIgnoreCase(
+													"application/javascript")) {
 								if (jsLastTimeStamp == 0.0) {
 									jsLastTimeStamp = pktInfo.getTimeStamp();
 									continue;
@@ -261,31 +307,37 @@ public class BestPractices {
 							}
 						}
 					}
-				}//End of /* Calculate number of inefficient Css and Js requests. */
+				}// End of /* Calculate number of inefficient Css and Js
+					// requests. */
 			}
 		}
-        TimeRange timeRange = analysisData.getFilter().getTimeRange();
-        
+		TimeRange timeRange = analysisData.getFilter().getTimeRange();
+
 		double traceDuration = traceData.getTraceDuration();
 		double activeGPSRatio = 0.0;
 		double activeBluetoothRatio = 0.0;
 		double activeCameraRatio = 0.0;
-		
-		if(timeRange != null){
-			
-			double timeRangeDuration = timeRange.getEndTime() - timeRange.getBeginTime();
-			
-			activeGPSRatio = (analysisData.getGPSActiveDuration() * 100) / timeRangeDuration;
+
+		if (timeRange != null) {
+
+			double timeRangeDuration = timeRange.getEndTime()
+					- timeRange.getBeginTime();
+
+			activeGPSRatio = (analysisData.getGPSActiveDuration() * 100)
+					/ timeRangeDuration;
 			activeBluetoothRatio = (analysisData.getBluetoothActiveDuration() * 100)
 					/ timeRangeDuration;
-			activeCameraRatio = (analysisData.getCameraActiveDuration() * 100) / timeRangeDuration;
-			
-		}else{
-			
-			activeGPSRatio = (analysisData.getGPSActiveDuration() * 100) / traceDuration;
+			activeCameraRatio = (analysisData.getCameraActiveDuration() * 100)
+					/ timeRangeDuration;
+
+		} else {
+
+			activeGPSRatio = (analysisData.getGPSActiveDuration() * 100)
+					/ traceDuration;
 			activeBluetoothRatio = (analysisData.getBluetoothActiveDuration() * 100)
 					/ traceDuration;
-			activeCameraRatio = (analysisData.getCameraActiveDuration() * 100) / traceDuration;
+			activeCameraRatio = (analysisData.getCameraActiveDuration() * 100)
+					/ traceDuration;
 		}
 
 		this.accessingPeripherals = ((activeGPSRatio > PERIPHERAL_ACTIVE_LIMIT
@@ -330,13 +382,15 @@ public class BestPractices {
 				++validCount;
 				if (!entry.hasCacheHeaders()) {
 					if (noCacheHeadersCount == 0) {
-						this.noCacheHeaderFirstPacket = entry.getSessionFirstPacket();
+						this.noCacheHeaderFirstPacket = entry
+								.getSessionFirstPacket();
 					}
 					++noCacheHeadersCount;
 				}
 			}
-			
-			if (this.cacheControlFirstPacket == null && hitNotExpiredDup > hitExpired304) {
+
+			if (this.cacheControlFirstPacket == null
+					&& hitNotExpiredDup > hitExpired304) {
 				this.cacheControlFirstPacket = entry.getSessionFirstPacket();
 			}
 		}
@@ -344,12 +398,14 @@ public class BestPractices {
 		this.hitNotExpiredDup = hitNotExpiredDup;
 		this.cacheControl = (hitNotExpiredDup > hitExpired304 ? false : true);
 
-		this.cacheHeaderRatio = validCount > 0 ? (100.0 * noCacheHeadersCount) / validCount : 0.0;
+		this.cacheHeaderRatio = validCount > 0 ? (100.0 * noCacheHeadersCount)
+				/ validCount : 0.0;
 		this.usingCache = cacheHeaderRatio <= 10.0;
 
 		this.duplicateContentBytes = cacheAnalysis.getDuplicateContentBytes();
 		this.totalContentBytes = cacheAnalysis.getTotalBytesDownloaded();
-		this.duplicateContentBytesRatio = cacheAnalysis.getDuplicateContentBytesRatio();
+		this.duplicateContentBytesRatio = cacheAnalysis
+				.getDuplicateContentBytesRatio();
 		this.duplicateContentsize = cacheAnalysis.getDuplicateContent().size();
 		this.duplicateContent = duplicateContentsize <= 3;
 
@@ -357,21 +413,70 @@ public class BestPractices {
 		setResultsOfImageSizeTest(analysisData);
 		setResultsOfMinificationTest(analysisData);
 		setResultsOfSpriteImageTest(analysisData);
+		//setResultsOfSmallRequestTest(analysisData);
+		setResultsOfHTTPRspCodeTest(analysisData);
 		setResultsOfAsyncCheckTest(analysisData);
 		setResultsOfFileOrderTest(analysisData);
+		setResultsOfDisplayNoneInCSS(analysisData);
+		setResultsOfHttp4xx5xxStatusResponseCodes(analysisData);
+		setResultsOfCacheTest(analysisData);
+
 	}
 
 	/**
+	 * 
+	 * Sets duplicate content test results.
+	 * 
+	 * @param analysisData
+	 */
+	private void setResultsOfCacheTest(TraceData.Analysis analysisData) {
+		// obtain the results of Text File Compression Analysis
+		CacheAnalysis ca = analysisData.getCacheAnalysis();
+		List<CacheEntry> caResult = ca.getDuplicateContent();
+		duplicateResultPanel = BestPracticeDisplayFactory.getInstance()
+				.getDupicate();
+
+		if (duplicateResultPanel != null) {
+			duplicateResultPanel.setNoOfRecords(caResult.size());
+			if (caResult.size() > 0) {
+				duplicateResultPanel.setData(caResult);
+				duplicateResultPanel.setVisible(true);
+			} else {
+				duplicateResultPanel.setVisible(false);
+			}
+		}
+	}
+
+	public DuplicateResultPanel getDuplicatePanel() {
+		return duplicateResultPanel;
+	}
+
+	/**
+	 * 
 	 * Sets text file compression test results.
 	 * 
 	 * @param analysisData
 	 */
-	private void setResultsOfTextFileCompressionTest(TraceData.Analysis analysisData) {
+	private void setResultsOfTextFileCompressionTest(
+			TraceData.Analysis analysisData) {
 		// obtain the results of Text File Compression Analysis
-		TextFileCompressionAnalysis tfca = analysisData.getTextFileCompressionAnalysis();
+		TextFileCompressionAnalysis tfca = analysisData
+				.getTextFileCompressionAnalysis();
 		List<TextFileCompressionEntry> tfcaResult = tfca.getResults();
-		TextFileCompressionResultPanel tfc = BestPracticeDisplayFactory.getInstance().getTextFileCompression();
-		tfc.setData(tfcaResult);
+		textFileCompressionResultPanel = BestPracticeDisplayFactory
+				.getInstance().getTextFileCompression();
+		if (textFileCompressionResultPanel != null) {
+			textFileCompressionResultPanel.setNoOfRecords(tfcaResult.size());
+			if (tfcaResult.size() > 0) {
+				textFileCompressionResultPanel.setData(tfcaResult);
+				textFileCompressionResultPanel.setVisible(true);
+			} else {
+				textFileCompressionResultPanel.setVisible(false);
+			}
+		}
+	}
+	public TextFileCompressionResultPanel gettextFileCompressionResultPanel() {
+		return textFileCompressionResultPanel;
 	}
 
 	/**
@@ -383,10 +488,23 @@ public class BestPractices {
 		// obtain the results of Image Size Analysis
 		ImageSizeAnalysis isa = analysisData.getImageSizeAnalysis();
 		List<ImageSizeEntry> results = isa.getResults();
-		ImageSizeResultPanel panel = BestPracticeDisplayFactory.getInstance().getImageSize();
-		panel.setData(results);
+		imageSizeResultPanel = BestPracticeDisplayFactory.getInstance()
+				.getImageSize();
+		if (imageSizeResultPanel != null) {
+			imageSizeResultPanel.setNoOfRecords(results.size());
+			if (results.size() > 0) {
+				imageSizeResultPanel.setData(results);
+				imageSizeResultPanel.setVisible(true);
+			} else {
+				imageSizeResultPanel.setVisible(false);
+			}
+		}
 	}
-
+	public ImageSizeResultPanel getimageSizeResultPanel() {
+		return imageSizeResultPanel;
+	}
+	
+			
 	/**
 	 * Sets minification test results.
 	 * 
@@ -396,10 +514,22 @@ public class BestPractices {
 		// obtain the results of Minification Analysis
 		MinificationAnalysis ma = analysisData.getMinificationAnalysis();
 		List<MinificationEntry> results = ma.getResults();
-		MinificationResultPanel panel = BestPracticeDisplayFactory.getInstance().getMinification();
-		panel.setData(results);
+		minificationResultPanel  = BestPracticeDisplayFactory
+				.getInstance().getMinification();
+		if (minificationResultPanel != null) {
+			minificationResultPanel.setNoOfRecords(results.size());
+			if (results.size() > 0) {
+				minificationResultPanel.setData(results);
+				minificationResultPanel.setVisible(true);
+			} else {
+				minificationResultPanel.setVisible(false);
+			}
+		}
 	}
-	
+	public MinificationResultPanel getminificationResultPanel() {
+		return minificationResultPanel;
+	}
+
 	/**
 	 * Sets Sprite Image test results.
 	 * 
@@ -409,8 +539,72 @@ public class BestPractices {
 		// obtain the results of Sprite Image Analysis
 		SpriteImageAnalysis siAnalysis = analysisData.getSpriteImageAnalysis();
 		List<SpriteImageEntry> results = siAnalysis.getResults();
-		SpriteImageResultPanel panel = BestPracticeDisplayFactory.getInstance().getSpriteImageResults();
-		panel.setData(results);
+		spriteImageResultPanel = BestPracticeDisplayFactory.getInstance()
+				.getSpriteImageResults();
+		if (spriteImageResultPanel != null) {
+			spriteImageResultPanel.setNoOfRecords(results.size());
+			if (results.size() > 0) {
+				spriteImageResultPanel.setData(results);
+				spriteImageResultPanel.setVisible(true);
+			} else {
+				spriteImageResultPanel.setVisible(false);
+			}
+		}
+	}
+	public SpriteImageResultPanel getspriteImageResultPanel() {
+		return spriteImageResultPanel;
+	}
+
+//	/**
+//	 * Sets small request test results.
+//	 * 
+//	 * @param analysisData
+//	 */
+//	private void setResultsOfSmallRequestTest(TraceData.Analysis analysisData) {
+//		// obtain the results of small request Analysis
+//		SmallRequestAnalysis siAnalysis = analysisData
+//				.getSmallRequestAnalysis();
+//		List<SmallRequestEntry> results = siAnalysis.getResults();
+//		smallRequestResultPanel = BestPracticeDisplayFactory
+//				.getInstance().getSmallRequestResults();
+//		if (smallRequestResultPanel != null) {
+//			smallRequestResultPanel.setNoOfRecords(results.size());
+//			if (results.size() > 0) {
+//				smallRequestResultPanel.setData(results);
+//				smallRequestResultPanel.setVisible(true);
+//			} else {
+//				smallRequestResultPanel.setVisible(false);
+//			}
+//		}
+//	}
+//	
+//	public SmallRequestResultPanel getsmallRequestResultPanel() {
+//		return smallRequestResultPanel;
+//	}
+
+	/**
+	 * Sets http response code test results.
+	 * 
+	 * @param analysisData
+	 */
+	private void setResultsOfHTTPRspCodeTest(TraceData.Analysis analysisData) {
+		// obtain the results of http response code Analysis
+		http_code_3XX_panel = BestPracticeDisplayFactory.getInstance()
+				.getHttpRspCdResults();
+		if (http_code_3XX_panel != null) {
+			http_code_3XX_panel.setNumberOfRecords(this.getHttpRspCodeResults()
+					.size());
+			if (this.getHttpRspCodeResults().size() > 0) {
+				http_code_3XX_panel.setData(this.getHttpRspCodeResults());
+				http_code_3XX_panel.setVisible(true);
+			} else {
+				http_code_3XX_panel.setVisible(false);
+			}
+		}
+	}
+
+	public HttpCode3XXResultPanel getHttpPanel() {
+		return http_code_3XX_panel;
 	}
 
 	/**
@@ -422,124 +616,212 @@ public class BestPractices {
 		// obtain the results of TFC Analysis
 		AsyncCheckAnalysis asyncAnalysis = analysisData.getAsyncCheckAnalysis();
 		List<AsyncCheckEntry> asyncAnalysisResults = asyncAnalysis.getResults();
-		AsyncCheckResultPanel AsyncResultPanel = BestPracticeDisplayFactory.getInstance().getAsyncCheckResults();
-		AsyncResultPanel.setData(asyncAnalysisResults);
+		asyncCheckResultPanel = BestPracticeDisplayFactory.getInstance()
+				.getAsyncCheckResults();
+		if (asyncCheckResultPanel != null) {
+			asyncCheckResultPanel.setNoOfRecords(asyncAnalysisResults.size());
+			if (asyncAnalysisResults.size() > 0) {
+				asyncCheckResultPanel.setData(asyncAnalysisResults);
+				asyncCheckResultPanel.setVisible(true);
+			} else {
+				asyncCheckResultPanel.setVisible(false);
+			}
+		}
+	}
+
+	public AsyncCheckResultPanel getAsyncPanel() {
+		return asyncCheckResultPanel;
 	}
 
 	/**
-	 * Sets File Order results 
+	 * Sets File Order results
 	 * 
 	 * @param analysisData
 	 */
 	private void setResultsOfFileOrderTest(TraceData.Analysis analysisData) {
 		// obtain the results of TFC Analysis
 		FileOrderAnalysis fileOrderAnalysis = analysisData.getFileOrderAnalysis();
-		
 		List<FileOrderEntry> fileOrderResults = fileOrderAnalysis.getResults();
-		FileOrderResultPanel fileOrderResultPanel = BestPracticeDisplayFactory.getInstance().getFileOrderResultPanel();
-		fileOrderResultPanel.setData(fileOrderResults);
+		fileOrderResultPanel = BestPracticeDisplayFactory.getInstance().getFileOrderResultPanel();
+		if(fileOrderResultPanel != null) {
+			fileOrderResultPanel.setNoOfRecords(fileOrderResults.size());
+			if (fileOrderResults.size() > 0) {
+				fileOrderResultPanel.setData(fileOrderResults);
+				fileOrderResultPanel.setVisible(true);
+			} else {
+				fileOrderResultPanel.setVisible(false);
+			}		
+		
+		}
+	}
+
+	public FileOrderResultPanel getfileOrderResultPanel() {
+		return fileOrderResultPanel;
 	}
 
 	/**
-	 * Returns a value that indicates if any multiple TCP connections were found.
+	 * Sets File Order results
 	 * 
-	 * @return A boolean value that is true if any multiple TCP connections were found, 
-	 * and is false otherwise.
+	 * @param analysisData
+	 */
+	private void setResultsOfDisplayNoneInCSS(TraceData.Analysis analysisData) {
+
+		DisplayNoneInCSSAnalysis displayNoneInCSS = analysisData
+				.getDisplayNoneInCSSAnalysis();
+		List<DisplayNoneInCSSEntry> displayNoneInCSSResults = displayNoneInCSS
+				.getResults();
+
+		displayNoneInCSSResultPanel = BestPracticeDisplayFactory.getInstance()
+				.getDisplayNoneInCSSResultPanel();
+		if (displayNoneInCSSResultPanel != null) {
+			displayNoneInCSSResultPanel.setNoOfRecords(displayNoneInCSSResults
+					.size());
+			if (displayNoneInCSSResults.size() > 0) {
+				displayNoneInCSSResultPanel.setData(displayNoneInCSSResults);
+				displayNoneInCSSResultPanel.setVisible(true);
+			} else {
+				displayNoneInCSSResultPanel.setVisible(false);
+			}
+		}
+	}
+
+	public DisplayNoneInCSSResultPanel getdisplayNoneInCSSResultPanel() {
+		return displayNoneInCSSResultPanel;
+	}
+
+	/**
+	 * Sets HTTP 4xx/5xx Status Response Codes Results
+	 * 
+	 * @param analysisData
+	 */
+	private void setResultsOfHttp4xx5xxStatusResponseCodes(
+			TraceData.Analysis analysisData) {
+
+		/* Get the results of http 4xx/5xx response status codes. */
+
+		http4xx5xxStatusResponseCodesResultPanel = BestPracticeDisplayFactory
+				.getInstance().getHttp4xx5xxResults();
+		if (http4xx5xxStatusResponseCodesResultPanel != null) {
+			http4xx5xxStatusResponseCodesResultPanel
+					.setNumberOfRecords(get4xx5xxResults().size());
+			if (get4xx5xxResults().size() > 0) {
+				http4xx5xxStatusResponseCodesResultPanel
+						.setData(get4xx5xxResults());
+				http4xx5xxStatusResponseCodesResultPanel.setVisible(true);
+			} else {
+				http4xx5xxStatusResponseCodesResultPanel.setVisible(false);
+			}
+		}
+	}
+
+	public Http4xx5xxStatusResponseCodesResultPanel getHttp4xx5xxPanel() {
+		return http4xx5xxStatusResponseCodesResultPanel;
+	}
+
+	/**
+	 * Returns a value that indicates if any multiple TCP connections were
+	 * found.
+	 * 
+	 * @return A boolean value that is true if any multiple TCP connections were
+	 *         found, and is false otherwise.
 	 */
 	public boolean getMultipleTcpCon() {
 		return multipleTcpCon;
 	}
 
 	/**
-	 * Returns a value that indicates if any periodic transfers occurred. 
+	 * Returns a value that indicates if any periodic transfers occurred.
 	 * 
-	 * @return A boolean value that is true if any periodic transfers occurred, and is 
-	 * false otherwise.
+	 * @return A boolean value that is true if any periodic transfers occurred,
+	 *         and is false otherwise.
 	 */
 	public boolean getPeriodicTransfer() {
 		return periodicTrans;
 	}
 
 	/**
-	 * Returns a value indicating whether or not more than 5% of the total energy is being 
-	 * used for TCP control; a level that indicates a connection closing problem.
+	 * Returns a value indicating whether or not more than 5% of the total
+	 * energy is being used for TCP control; a level that indicates a connection
+	 * closing problem.
 	 * 
-	 * @return A boolean value that is false if the trace data shows a connection closing 
-	 * problem, and true otherwise.
+	 * @return A boolean value that is false if the trace data shows a
+	 *         connection closing problem, and true otherwise.
 	 */
 	public boolean getConnectionClosingProblem() {
 		return conClosingProb;
 	}
-	
+
 	/**
-	 * Returns a value that indicates whether or not, a network traffic burst was detected 
-	 * after the screen was rotated.
+	 * Returns a value that indicates whether or not, a network traffic burst
+	 * was detected after the screen was rotated.
 	 * 
-	 * @return A boolean value that is true if the trace data shows a screen rotation 
-	 * 		   problem (a network burst after screen rotation), and false otherwise.
+	 * @return A boolean value that is true if the trace data shows a screen
+	 *         rotation problem (a network burst after screen rotation), and
+	 *         false otherwise.
 	 */
 	public boolean getScreenRotationProblem() {
 		return screenRotation;
 	}
 
 	/**
-	 * Returns a value that indicates if any offloading to WiFi occurred. 
+	 * Returns a value that indicates if any offloading to WiFi occurred.
 	 * 
-	 * @return A boolean value that is true if offloading to WiFi occurred, and is false 
-	 * otherwise.
+	 * @return A boolean value that is true if offloading to WiFi occurred, and
+	 *         is false otherwise.
 	 */
 	public boolean getOffloadingToWiFi() {
 		return offloadingToWiFi;
 	}
 
 	/**
-	 * Returns a value indicating whether or not more than 3 files were downloaded in a 
-	 * duplicate manner; a level that indicates an issue with duplicate content. 
+	 * Returns a value indicating whether or not more than 3 files were
+	 * downloaded in a duplicate manner; a level that indicates an issue with
+	 * duplicate content.
 	 * 
-	 * @return A boolean value that is true if a duplicate content issue has been 
-	 * identified, and false otherwise.
+	 * @return A boolean value that is true if a duplicate content issue has
+	 *         been identified, and false otherwise.
 	 */
 	public boolean getDuplicateContent() {
 		return duplicateContent;
 	}
 
 	/**
-	 * Returns a value that indicates if any prefetching occurred. 
+	 * Returns a value that indicates if any prefetching occurred.
 	 * 
-	 * @return A boolean value that is true if it any prefetching occurred, and is false 
-	 * otherwise.
+	 * @return A boolean value that is true if it any prefetching occurred, and
+	 *         is false otherwise.
 	 */
 	public boolean getPrefetching() {
 		return (userInputBurstCount < 5);
 	}
 
 	/**
-	 * Returns a count of the number of user input bursts. 
+	 * Returns a count of the number of user input bursts.
 	 * 
 	 * @return An int that is the number of user input bursts.
 	 */
 	public int getUserInputBurstCount() {
 		return userInputBurstCount;
 	}
-	
+
 	/**
-	 * Returns the PacketInfo of session with no cache header. 
+	 * Returns the PacketInfo of session with no cache header.
 	 * 
 	 * @return PacketInfo.
 	 */
 	public PacketInfo getNoCacheHeaderStartTime() {
 		return noCacheHeaderFirstPacket;
 	}
-	
+
 	/**
-	 * Returns the PacketInfo of session with cache control. 
+	 * Returns the PacketInfo of session with cache control.
 	 * 
 	 * @return PacketInfo.
 	 */
 	public PacketInfo getCacheControlStartTime() {
 		return cacheControlFirstPacket;
 	}
-	
+
 	/**
 	 * Returns the PacketInfo of session with duplicate content.
 	 * 
@@ -548,7 +830,7 @@ public class BestPractices {
 	public PacketInfo getDupContentStartTime() {
 		return dupContentFirstPacket;
 	}
-	
+
 	/**
 	 * Returns the PacketInfo of session with consecutive Css or Js.
 	 * 
@@ -559,7 +841,8 @@ public class BestPractices {
 	}
 
 	/**
-	 * Returns the count of expired but correct 304 responses from the serverhitExpired304. 
+	 * Returns the count of expired but correct 304 responses from the
+	 * serverhitExpired304.
 	 * 
 	 * @return An int that is the number of expired but correct 304 responses.
 	 */
@@ -577,8 +860,8 @@ public class BestPractices {
 	}
 
 	/**
-	 * Returns the ratio of the amount of content containing cache headers compared with 
-	 * the total amount of content. 
+	 * Returns the ratio of the amount of content containing cache headers
+	 * compared with the total amount of content.
 	 * 
 	 * @return A double value that is the cache header ratio.
 	 */
@@ -587,8 +870,8 @@ public class BestPractices {
 	}
 
 	/**
-	 * Returns the ratio of the amount of time that the GPS is in an active state compared 
-	 * to the total duration.
+	 * Returns the ratio of the amount of time that the GPS is in an active
+	 * state compared to the total duration.
 	 * 
 	 * @return A double value that is the GPS active state ratio.
 	 */
@@ -597,8 +880,8 @@ public class BestPractices {
 	}
 
 	/**
-	 * Returns the ratio of the amount of time that Bluetooth is in an active state 
-	 * compared to the total duration. 
+	 * Returns the ratio of the amount of time that Bluetooth is in an active
+	 * state compared to the total duration.
 	 * 
 	 * @return A double value that is the Bluetooth active state ratio.
 	 */
@@ -607,8 +890,8 @@ public class BestPractices {
 	}
 
 	/**
-	 * Returns the ratio of the amount of time that the camera is in an active state 
-	 * compared to the total duration. 
+	 * Returns the ratio of the amount of time that the camera is in an active
+	 * state compared to the total duration.
 	 * 
 	 * @return A double value that is the camera active state ratio.
 	 */
@@ -619,26 +902,27 @@ public class BestPractices {
 	/**
 	 * Returns the state of the Accessing Peripherals test.
 	 * 
-	 * @return A boolean value that is true if any peripherals were on for more than 5% of 
-	 * the total duration, and is false otherwise.
+	 * @return A boolean value that is true if any peripherals were on for more
+	 *         than 5% of the total duration, and is false otherwise.
 	 */
 	public boolean getAccessingPeripherals() {
 		return accessingPeripherals;
 	}
 
 	/**
-	 * Returns a value that indicates if an HTTP 1.0 header was found in the content.
+	 * Returns a value that indicates if an HTTP 1.0 header was found in the
+	 * content.
 	 * 
-	 * @return A boolean value that is true if getHttp1_0HeaderCount() returns a value 
-	 * greater than 0, and is false otherwise.
+	 * @return A boolean value that is true if getHttp1_0HeaderCount() returns a
+	 *         value greater than 0, and is false otherwise.
 	 */
 	public boolean getHttp10Usage() {
 		return http1_0HeaderCount == 0;
 	}
 
 	/**
-	 * Returns the ratio of the amount of duplicate content in bytes, compared to the 
-	 * total amount of content in bytes. 
+	 * Returns the ratio of the amount of duplicate content in bytes, compared
+	 * to the total amount of content in bytes.
 	 * 
 	 * @return A double that is the duplicate content bytes ratio.
 	 */
@@ -647,7 +931,7 @@ public class BestPractices {
 	}
 
 	/**
-	 * Returns the size of duplicate content files in bytes. 
+	 * Returns the size of duplicate content files in bytes.
 	 * 
 	 * @return An int that is the duplicate content size.
 	 */
@@ -656,7 +940,7 @@ public class BestPractices {
 	}
 
 	/**
-	 * Returns the amount of duplicate content in bytes. 
+	 * Returns the amount of duplicate content in bytes.
 	 * 
 	 * @return The amount of duplicate content in bytes.
 	 */
@@ -665,7 +949,7 @@ public class BestPractices {
 	}
 
 	/**
-	 * Returns the total amount of content in bytes. 
+	 * Returns the total amount of content in bytes.
 	 * 
 	 * @return A long that is the total amount of content in bytes.
 	 */
@@ -674,40 +958,41 @@ public class BestPractices {
 	}
 
 	/**
-	 * Returns a value that indicates whether the application is using a cache. 
+	 * Returns a value that indicates whether the application is using a cache.
 	 * 
-	 * @return A boolean value that is true if the application is using a cache, and is 
-	 * false otherwise.
+	 * @return A boolean value that is true if the application is using a cache,
+	 *         and is false otherwise.
 	 */
 	public boolean isUsingCache() {
 		return usingCache;
 	}
 
 	/**
-	 * Returns a value that indicates if the Best Practices Cache Control test has passed. 
-	 * The test passes when the amount of "not expired duplicate data" is NOT greater than 
-	 * the amount of "not changed data" (data for which a 304 response is received, 
-	 * indicating that the data has not been modified since it was last requested). 
+	 * Returns a value that indicates if the Best Practices Cache Control test
+	 * has passed. The test passes when the amount of
+	 * "not expired duplicate data" is NOT greater than the amount of
+	 * "not changed data" (data for which a 304 response is received, indicating
+	 * that the data has not been modified since it was last requested).
 	 * 
-	 * @return A boolean value that is true if the Cache Control test has passed, and is 
-	 * false otherwise.
+	 * @return A boolean value that is true if the Cache Control test has
+	 *         passed, and is false otherwise.
 	 */
 	public boolean isCacheControl() {
 		return cacheControl;
 	}
 
 	/**
-	 * Returns the ratio of the amount of TCP control energy compared with the total 
-	 * amount of energy. 
+	 * Returns the ratio of the amount of TCP control energy compared with the
+	 * total amount of energy.
 	 * 
-	 * @return A double value that is the TCP control energy ratio. 
+	 * @return A double value that is the TCP control energy ratio.
 	 */
 	public double getTcpControlEnergyRatio() {
 		return tcpControlEnergyRatio;
 	}
 
 	/**
-	 * Returns the amount of energy used for TCP control. 
+	 * Returns the amount of energy used for TCP control.
 	 * 
 	 * @return A double that is the amount of TCP control energy.
 	 */
@@ -716,14 +1001,14 @@ public class BestPractices {
 	}
 
 	/**
-	 * Returns the largest energy time. 
+	 * Returns the largest energy time.
 	 * 
 	 * @return A double that is the largest energytime.
 	 */
 	public double getLargestEnergyTime() {
 		return largestEnergyTime;
 	}
-	
+
 	/**
 	 * Returns the begin time of the screen rotation burst.
 	 * 
@@ -734,7 +1019,8 @@ public class BestPractices {
 	}
 
 	/**
-	 * Returns the total amount of active DCH time for bursts in the Large Burst category.
+	 * Returns the total amount of active DCH time for bursts in the Large Burst
+	 * category.
 	 * 
 	 * @return A double that is the Large Burst time.
 	 */
@@ -743,25 +1029,25 @@ public class BestPractices {
 	}
 
 	/**
-	 * Returns the count of HTTP 1.0 headers. 
+	 * Returns the count of HTTP 1.0 headers.
 	 * 
 	 * @return An int that is the number of HTTP 1.0 headers.
 	 */
 	public int getHttp1_0HeaderCount() {
 		return http1_0HeaderCount;
 	}
-	
+
 	/**
-	 * Returns the count of inefficient Css requests. 
+	 * Returns the count of inefficient Css requests.
 	 * 
 	 * @return An int that is the number of inefficient Css requests.
 	 */
 	public int getInefficientCssRequests() {
 		return inefficientCssRequests;
 	}
-	
+
 	/**
-	 * Returns the count of inefficient Js requests. 
+	 * Returns the count of inefficient Js requests.
 	 * 
 	 * @return An int that is the number of inefficient Js requests.
 	 */
@@ -770,7 +1056,7 @@ public class BestPractices {
 	}
 
 	/**
-	 * Returns an object containing the HTTP 1.0 session. 
+	 * Returns an object containing the HTTP 1.0 session.
 	 * 
 	 * @return A TCPSession object containing the HTTP 1.0 session.
 	 */
@@ -779,46 +1065,45 @@ public class BestPractices {
 	}
 
 	/**
-	 * Returns a boolean indicating the async check test result 
+	 * Returns a boolean indicating the async check test result
 	 * 
 	 * @return true/false based on the test result
 	 */
-	public boolean isAsyncCheckTestFailed()	{
+	public boolean isAsyncCheckTestFailed() {
 		AsyncCheckAnalysis asyncAnalysis = analysisData.getAsyncCheckAnalysis();
 		return asyncAnalysis.isTestFailed();
 	}
-	
+
 	/**
-	 * Returns the count for synchronously loaded files 
+	 * Returns the count for synchronously loaded files
 	 * 
 	 * @return integer for the count
 	 */
-	public int getSyncLoadedCount(){
-		AsyncCheckAnalysis asyncAnalysis = analysisData.getAsyncCheckAnalysis();
-		return asyncAnalysis.getSyncPacketCount();
-	}
-	
-	/**
-	 * Returns the count for asynchronously loaded files 
-	 * 
-	 * @return integer for the count
-	 */
-	public int getSyncPacketCount(){
+	public int getSyncLoadedCount() {
 		AsyncCheckAnalysis asyncAnalysis = analysisData.getAsyncCheckAnalysis();
 		return asyncAnalysis.getSyncPacketCount();
 	}
 
 	/**
-	 * Returns the count for asynchronously loaded files 
+	 * Returns the count for asynchronously loaded files
 	 * 
 	 * @return integer for the count
 	 */
-	public int getAsyncPacketCount(){
+	public int getSyncPacketCount() {
+		AsyncCheckAnalysis asyncAnalysis = analysisData.getAsyncCheckAnalysis();
+		return asyncAnalysis.getSyncPacketCount();
+	}
+
+	/**
+	 * Returns the count for asynchronously loaded files
+	 * 
+	 * @return integer for the count
+	 */
+	public int getAsyncPacketCount() {
 		AsyncCheckAnalysis asyncAnalysis = analysisData.getAsyncCheckAnalysis();
 		return asyncAnalysis.getAsyncPacketCount();
 	}
 
-	
 	/**
 	 * Indicates whether the Text File Compression test failed or not.
 	 * 
@@ -835,10 +1120,11 @@ public class BestPractices {
 	 */
 	public double getFileCompressionPercentage() {
 		// obtain the results of TFC Analysis
-		TextFileCompressionAnalysis tfca = analysisData.getTextFileCompressionAnalysis();
+		TextFileCompressionAnalysis tfca = analysisData
+				.getTextFileCompressionAnalysis();
 		return tfca.getPercentage();
 	}
-	
+
 	/**
 	 * Get total size of all uncompressed files in kilobytes.
 	 * 
@@ -846,7 +1132,8 @@ public class BestPractices {
 	 */
 	public double getTotalSize() {
 		// obtain the results of TFC Analysis
-		TextFileCompressionAnalysis tfca = analysisData.getTextFileCompressionAnalysis();
+		TextFileCompressionAnalysis tfca = analysisData
+				.getTextFileCompressionAnalysis();
 		return tfca.getTotalSize();
 	}
 
@@ -858,7 +1145,7 @@ public class BestPractices {
 	public int getNumberOfImageFiles() {
 		return analysisData.getImageSizeAnalysis().getNumberOfImageFiles();
 	}
-	
+
 	/**
 	 * Get the number of minify files.
 	 * 
@@ -867,60 +1154,141 @@ public class BestPractices {
 	public int getNumberOfMinifyFiles() {
 		return analysisData.getMinificationAnalysis().getNumberOfMinifyFiles();
 	}
-	
+
+	/**
+	 * Get the Minify File Savings.
+	 * 
+	 * @return Minify File Savings in kB
+	 */
+	public long getMinifyFileszsavings() {
+		Long value = analysisData.getMinificationAnalysis()
+				.getTotalSavingsInKb();
+		if (value != 0)
+			value = value / 1024;
+		return value;
+	}
+
+	/**
+	 * Get the number of empty URL files.
+	 * 
+	 * @return number of files with empty URL
+	 */
+	public int getNumberOfEmptyUrlFiles() {
+		return analysisData.getEmptyUrlAnalysis().getNumberOfEmptyUrlFiles();
+	}
+
+	/**
+	 * Get the number of flash files.
+	 * 
+	 * @return number of files with flash
+	 */
+	public int getNumberOfFlashFiles() {
+		return analysisData.getFlashAnalysis().getNumberOfFlashlFiles();
+	}
+
+	/**
+	 * Get the number of files with 3rd party scripts.
+	 * 
+	 * @return number of files with 3rd party scripts
+	 */
+	public int getNumberOfScriptFiles() {
+		return analysisData.getScriptsAnalysis().getNumberOfFiles();
+	}
+
 	/**
 	 * Get the number of sprite image files.
 	 * 
 	 * @return number of sprite image files
 	 */
 	public int getNumberOfFilesToBeSprited() {
-		return analysisData.getSpriteImageAnalysis().getNumberOfFilesToBeSprited();
+		return analysisData.getSpriteImageAnalysis()
+				.getNumberOfFilesToBeSprited();
 	}
-	
-	//Returns a boolean value depends on the file order test failure
-	 
-	public boolean isFileOrderTestFailed(){
-		FileOrderAnalysis fileOrderAnalysis = analysisData.getFileOrderAnalysis();
+
+//	/**
+//	 * Get the number of Small Request.
+//	 * 
+//	 * @return number of Small Request
+//	 */
+//	public int getNumberOfSmallRequest() {
+//		return analysisData.getSmallRequestAnalysis()
+//				.getNumberOfSmallRequests();
+//	}
+
+	/**
+	 * Get the number of http response code.
+	 * 
+	 * @return number of http response code
+	 */
+	public List<HttpCode3XXEntry> getHttpRspCodeResults() {
+		return this.httpRspCd;
+	}
+
+	/**
+	 * Returns a list of files of type Http4xx5xxStatusResponseCodesEntry
+	 * 
+	 * @return the results
+	 */
+	public List<Http4xx5xxStatusResponseCodesEntry> get4xx5xxResults() {
+		return results;
+	}
+
+	// Returns a boolean value depends on the file order test failure
+
+	public boolean isFileOrderTestFailed() {
+		FileOrderAnalysis fileOrderAnalysis = analysisData
+				.getFileOrderAnalysis();
 		return fileOrderAnalysis.isTestFailed();
 	}
-	
+
 	/**
 	 * Returns the number of files which fails file order test
 	 * */
-	public int getFileOrderCount(){
-		FileOrderAnalysis fileOrderAnalysis = analysisData.getFileOrderAnalysis();
+	public int getFileOrderCount() {
+		FileOrderAnalysis fileOrderAnalysis = analysisData
+				.getFileOrderAnalysis();
 		return fileOrderAnalysis.getFileOrderCount();
 	}
-	
 
 	/**
-	 * Returns a sorted map of the counts of HTTP error status codes that 
-	 * occurred in the trace analysis.  Note that only status codes of 400+ are
+	 * Get the number CSS files containing Display:none.
+	 */
+	public int getNumberOfCSSFilesWithDisplayNone() {
+		return analysisData.getDisplayNoneInCSSAnalysis()
+				.getNumberOfCSSFilesWithDisplayNone();
+	}
+
+	/**
+	 * Returns a sorted map of the counts of HTTP error status codes that
+	 * occurred in the trace analysis. Note that only status codes of 400+ are
 	 * included.
+	 * 
 	 * @return the httpErrorCounts map key is HTTP status code and value is
-	 * number of occurrences of the status code
+	 *         number of occurrences of the status code
 	 */
 	public SortedMap<Integer, Integer> getHttpErrorCounts() {
 		return Collections.unmodifiableSortedMap(httpErrorCounts);
 	}
-	
+
 	/**
 	 * Returns map of HTTP status codes to first response instance in analysis
-	 * that has the specified error code.  Note that only status codes of 400+
+	 * that has the specified error code. Note that only status codes of 400+
 	 * are included.
+	 * 
 	 * @return the firstErrorRespMap map key is HTTP status code and value is
-	 * associated HTTP response
+	 *         associated HTTP response
 	 */
 	public Map<Integer, HttpRequestResponseInfo> getFirstErrorRespMap() {
 		return Collections.unmodifiableMap(firstErrorRespMap);
 	}
-	
+
 	/**
-	 * Returns a sorted map of the counts of HTTP redirect status codes that 
-	 * occurred in the trace analysis.  Note that only status codes of 301/302
+	 * Returns a sorted map of the counts of HTTP redirect status codes that
+	 * occurred in the trace analysis. Note that only status codes of 301/302
 	 * are included.
+	 * 
 	 * @return the httpRedirectCounts map key is HTTP status code and value is
-	 * number of occurrences of the status code
+	 *         number of occurrences of the status code
 	 */
 	public SortedMap<Integer, Integer> getHttpRedirectCounts() {
 		return Collections.unmodifiableSortedMap(httpRedirectCounts);
@@ -928,10 +1296,11 @@ public class BestPractices {
 
 	/**
 	 * Returns map of HTTP status codes to first response instance in analysis
-	 * that has the specified error code.  Note that only status codes of 301/302
+	 * that has the specified error code. Note that only status codes of 301/302
 	 * are included.
+	 * 
 	 * @return the firstErrorRespMap map key is HTTP status code and value is
-	 * associated HTTP response
+	 *         associated HTTP response
 	 */
 	public Map<Integer, HttpRequestResponseInfo> getFirstRedirectRespMap() {
 		return Collections.unmodifiableMap(firstRedirectRespMap);

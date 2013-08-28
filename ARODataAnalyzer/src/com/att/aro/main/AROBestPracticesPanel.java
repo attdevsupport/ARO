@@ -219,6 +219,7 @@ public class AROBestPracticesPanel extends JScrollPane implements Printable {
 		String cellSep = BestPracticeExport.COMMA;
 		String pass = rb.getString("bestPractice.tooltip.pass");
 		String fail = rb.getString("bestPractice.tooltip.fail");
+		String warning = rb.getString("bestPractice.tooltip.warning");
 		String manual = rb.getString("bestPractice.tooltip.manual");
 
 		// Write the section header
@@ -236,7 +237,16 @@ public class AROBestPracticesPanel extends JScrollPane implements Printable {
 			if (bp.isSelfTest()) {
 				BestPracticeExport.writeValue(writer, manual);
 			} else {
-				BestPracticeExport.writeValue(writer, bp.isPass(analysisData) ? pass : fail);
+				if(((bp.getOverviewTitle()).equals(rb.getString("caching.usingCache.title")))
+						|| ((bp.getOverviewTitle()).equals(rb.getString("caching.cacheControl.title")))
+						|| ((bp.getOverviewTitle()).equals(rb.getString("connections.offloadingToWifi.title")))
+						|| ((bp.getOverviewTitle()).equals(rb.getString("html.httpUsage.title")))
+						|| ((bp.getOverviewTitle()).equals(rb.getString("other.accessingPeripherals.title")))
+						) {
+					BestPracticeExport.writeValue(writer, bp.isPass(analysisData) ? pass : warning);
+				} else {
+					BestPracticeExport.writeValue(writer, bp.isPass(analysisData) ? pass : fail);
+				}
 			}
 			writer.write(lineSep);
 			

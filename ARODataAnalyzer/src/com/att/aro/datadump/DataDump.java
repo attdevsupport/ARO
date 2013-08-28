@@ -22,6 +22,7 @@ import java.awt.Window;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
@@ -284,7 +285,7 @@ public class DataDump {
 			 * The 1nd, 2rd, and 3th line in CSV file:
 			 */
 			writer.append(Util.RB.getString("menu.profile") + ": " + currentProfile.getName());
-			DataDumpHelper.addCommas(writer, 2);
+			DataDumpHelper.addCommas(writer, 4);
 			if (currentProfile instanceof Profile3G) {
 				new DataDump3G().addHeader(writer, this.bestPractices);
 			} else if (currentProfile instanceof ProfileLTE) {
@@ -720,6 +721,15 @@ public class DataDump {
 
 		writer.append(QUOTE_SEP + traceDirRelativeName + QUOTE_SEP);
 		writer.append(COMMA_SEP);
+		
+		//Add start date and time of trace
+		DateFormat format = DateFormat.getDateInstance();
+		writer.append(QUOTE_SEP + format.format(analysis.getTraceData().getTraceDateTime()) + QUOTE_SEP);
+		writer.append(COMMA_SEP);		
+		format = DateFormat.getTimeInstance();
+		writer.append(QUOTE_SEP + format.format(analysis.getTraceData().getTraceDateTime()) + QUOTE_SEP);
+		writer.append(COMMA_SEP);
+		
 		writer.append(QUOTE_SEP + analysis.getTraceData().getCollectorVersion()
 				+ QUOTE_SEP);
 		writer.append(COMMA_SEP);
@@ -825,10 +835,20 @@ public class DataDump {
 	private FileWriter addBestPractices(FileWriter writer, Analysis analysis) throws IOException {
 		final String bpPass = Util.RB.getString("bestPractices.pass");
 		final String bpFail = Util.RB.getString("bestPractices.fail");
+		String bpWarning = Util.RB.getString("bestPractice.tooltip.warning");
 		final String commaSepWithSpace = COMMA_SEP + " ";
 		
 		for (BestPracticeDisplay bp : this.bestPractices) {
-			writer.append(bp.isPass(analysis) ? bpPass : bpFail);
+			if(((bp.getOverviewTitle()).equals(Util.RB.getString("caching.usingCache.title")))
+					|| ((bp.getOverviewTitle()).equals(Util.RB.getString("caching.cacheControl.title")))
+					|| ((bp.getOverviewTitle()).equals(Util.RB.getString("connections.offloadingToWifi.title")))
+					|| ((bp.getOverviewTitle()).equals(Util.RB.getString("html.httpUsage.title")))
+					|| ((bp.getOverviewTitle()).equals(Util.RB.getString("other.accessingPeripherals.title")))
+					) {
+				writer.append(bp.isPass(analysis) ? bpPass : bpWarning);
+			} else {
+				writer.append(bp.isPass(analysis) ? bpPass : bpFail);
+			}
 			writer.append(COMMA_SEP);
 			
 			List<BestPracticeExport> bpes = bp.getExportData(analysis);

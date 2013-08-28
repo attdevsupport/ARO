@@ -109,7 +109,9 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 	private int remotePort;
 	private int localPort;
 	private boolean ssl;
+	private boolean udpOnly = false;
 	private List<PacketInfo> packets = new ArrayList<PacketInfo>();
+	private List<PacketInfo> udpPackets = new ArrayList<PacketInfo>();
 	private Set<String> appNames = new HashSet<String>(1);
 	private Termination sessionTermination;
 	private List<HttpRequestResponseInfo> requestResponseInfo = new ArrayList<HttpRequestResponseInfo>();
@@ -178,6 +180,7 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 		logger.entering("com.att.aro.model.TCPSession", "extractTCPSessions(Collection<PacketInfo>)");
 		Map<String, TCPSession> allSessions = new LinkedHashMap<String, TCPSession>();
 		List<PacketInfo> dnsPackets = new ArrayList<PacketInfo>();
+		List<PacketInfo> udpPackets = new ArrayList<PacketInfo>();
 		Map<InetAddress, String> hostMap = new HashMap<InetAddress, String>();
 		
 		logger.finest("Starting loop through packets");
@@ -191,6 +194,7 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 				// Check for DNS packets
 				if (packet.getPacket() instanceof UDPPacket) {
 					UDPPacket udp = (UDPPacket) packet.getPacket();
+					udpPackets.add(packet);
 					if (udp.isDNSPacket()) {
 						dnsPackets.add(packet);
 						DomainNameSystem dns = udp.getDns();
@@ -598,9 +602,167 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 		logger.finest("End of sorting sessions");
 
 		logger.exiting("com.att.aro.model.TCPSession", "extractTCPSessions(Collection<PacketInfo>)");
+		
+		/*Get UDP sessions.*/
+		if(!udpPackets.isEmpty()){
+			List<TCPSession> udpSessions = getUDPSessions(udpPackets,sessions);
+			sessions.addAll(udpSessions);
+		}
+
 		return sessions;
 	}
+/**
+ * Get the UDP sessions from different UDP packets.
+ * @return Collection of TCPSession objects containing only UDP packets
+ * */
+	
+	private static List<TCPSession> getUDPSessions(
+			List<PacketInfo> udpPackets,List<TCPSession> sessions)throws IOException{
+		Map<String, TCPSession> allUDPSessions = new LinkedHashMap<String, TCPSession>();	
+		ListIterator<PacketInfo> iter = null;// = udpPackets.listIterator();//(udpPackets.size());
+		DomainNameSystem dns = null;
+		Reassembler ul = new Reassembler();
+		Reassembler dl = new Reassembler();
 
+		/*Remove all the dns packets part of TCP connections*/
+		for (TCPSession sess : sessions){
+			iter = udpPackets.listIterator();
+			while (iter.hasNext()) {
+				PacketInfo p = iter.next();
+				UDPPacket udp = ((UDPPacket) p.getPacket());
+				if(udp.isDNSPacket()){
+					dns = udp.getDns();
+					if(!dns.isResponse()){
+						if(sess.dnsRequestPacket != null){
+							String domainName = ((UDPPacket)sess.dnsRequestPacket.getPacket()).getDns().getDomainName();
+							if(domainName.equals(dns.getDomainName()))
+									iter.remove();
+									
+						}
+					}else{
+						if(sess.dnsResponsePacket != null){
+							String domainName = ((UDPPacket)sess.dnsResponsePacket.getPacket()).getDns().getDomainName();
+							if(domainName.equals(dns.getDomainName())
+								&& (dns.getIpAddresses().contains(sess.remoteIP)))
+								iter.remove();
+						}
+					}
+				}
+			}
+		}
+	/*Create a UDP session for those UDP packets which are not associated with TCP connection*/	
+		for (PacketInfo packet : udpPackets) {
+			UDPPacket udp = (UDPPacket) packet.getPacket();
+			int localPort;
+			int remotePort;
+			InetAddress remoteIP;
+			switch (packet.getDir()) {
+				case UPLINK:
+					localPort = udp.getSourcePort();
+					remoteIP = udp.getDestinationIPAddress();
+					remotePort = udp.getDestinationPort();
+					break;
+				case DOWNLINK:
+					localPort = udp.getDestinationPort();
+					remoteIP = udp.getSourceIPAddress();
+					remotePort = udp.getSourcePort();
+					break;
+				default:
+					logger.warning("29 - Unable to determine packet direction");
+					continue;
+			}
+			String key = localPort + " " + remotePort + " " + remoteIP.getHostAddress();
+			TCPSession session = allUDPSessions.get(key);
+			if (session == null) {
+				session = new TCPSession(remoteIP, remotePort, localPort);
+				if (udp.isDNSPacket()){
+					dns = udp.getDns();
+					if(dns != null){
+						//session.domainName = dns.getDomainName();
+						session.remoteHostName = dns.getDomainName();
+						
+					}
+				}
+				if (session.remoteHostName == null){
+					session.remoteHostName = session.remoteIP.getHostAddress();
+				}
+				session.udpOnly = true;
+				/* stores the created session*/
+				allUDPSessions.put(key, session);
+			} // END: Create new session
+			session.udpPackets.add(packet);	
+		}
+		List<TCPSession> udpSessions = new ArrayList<TCPSession>(allUDPSessions.values());
+		for (int sessionIndex = 0; sessionIndex < udpSessions.size(); ++sessionIndex) {
+			
+			TCPSession session = udpSessions.get(sessionIndex);
+			ul.clear();
+			dl.clear();
+			for (PacketInfo packetInfo: session.udpPackets) {
+				UDPPacket packet = (UDPPacket) packetInfo.getPacket();
+	
+				Reassembler reassembledSession;
+				switch (packetInfo.getDir()) {
+				case UPLINK:
+					reassembledSession = ul;
+					break;
+
+				case DOWNLINK:
+					reassembledSession = dl;
+					break;
+
+				default:
+					logger.warning("91 - No direction for packet");
+					continue;
+				}
+				if (packet.getPayloadLen() > 0) {
+					
+					byte[] data = packet.getData();
+					int l = packet.getPayloadLen();
+					int dataOffset = packet.getDataOffset();
+					if (data.length >= dataOffset + l) {
+						reassembledSession.packetOffsets.put(reassembledSession.storage.size(), packetInfo);
+						reassembledSession.storage.write(data, dataOffset, l);
+					}
+				}
+					
+			}
+			session.storageDl = dl.storage.toByteArray();
+			session.packetOffsetsDl = dl.packetOffsets;
+			session.storageUl = ul.storage.toByteArray();
+			session.packetOffsetsUl = ul.packetOffsets;
+
+		}
+		for (TCPSession sess : udpSessions) {
+			sess.requestResponseInfo = HttpRequestResponseInfo.extractHttpRequestResponseInfo(sess);
+			
+			for (HttpRequestResponseInfo rr : sess.requestResponseInfo) {
+				if (rr.getDirection() == HttpRequestResponseInfo.Direction.REQUEST) {
+
+					// Assume first host found is same for entire session
+					if (sess.domainName == null) {
+						String host = rr.getHostName();
+						if (host != null) {
+							URI referrer = rr.getReferrer();
+							sess.remoteHostName = host;
+							sess.domainName = referrer != null ? referrer
+									.getHost() : host;
+						}
+					}
+				} 
+			}
+			if (sess.domainName == null) {
+				sess.domainName = sess.remoteHostName != null ? sess.remoteHostName : sess.remoteIP.getHostAddress();
+			}
+			
+		}
+		ul.clear();
+		dl.clear();
+		return new ArrayList<TCPSession>(allUDPSessions.values());
+	}
+	
+	
+	
 	/**
 	 * Returns the set of appli	 * Compares the specified HttpRequestResponseInfo object to this one.
 	 * 
@@ -723,6 +885,19 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 	}
 
 	/**
+	 * Returns all the UDP packets
+	 * 
+	 * @return A List of PacketInfo objects containing the packet data.
+	 */
+	public List<PacketInfo> getUDPPackets() {
+		return Collections.unmodifiableList(udpPackets);
+	}	
+	
+	public boolean isUDP()
+	{
+		return udpOnly;
+	}
+	/**
 	 * Gets the start time of the session, in seconds, relative to the start of the trace. 
 	 * 
 	 * @return The start time of the session.
@@ -739,7 +914,28 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 	public double getSessionEndTime() {
 		return packets.get(packets.size() - 1).getTimeStamp();
 	}
+	
+	/**
+	 * Gets the start time of the UDP session, in seconds, relative to the start of the trace. 
+	 * 
+	 * @return The start time of the UDP session.
+	 */
+	public double getUDPSessionStartTime() {
+		return udpPackets.get(0).getTimeStamp();
+	}
 
+	/**
+	 * Gets the end time of the UDP session, in seconds, relative to the start of the trace. 
+	 * 
+	 * @return The end time of the UDP session.
+	 */
+	public double getUDPSessionEndTime() {
+		return udpPackets.get(udpPackets.size() - 1).getTimeStamp();
+	}
+
+	
+	
+	
 	/**
 	 * Return the request/response information for all of the packets. 
 	 * 
