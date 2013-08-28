@@ -106,7 +106,7 @@ ARO Data Analyzer  2.4
 ##Documentation:
 ARO Compilation and Build Guide - Describes how to compile and build the ARO components.  
 ARO Data Collector API Reference - To read this reference, open the file **index.html** in the folder ARODataCollector\docs\api  
-ARO Data Analyzer API Reference - To read this reference, open the file **index.html** in the folder ARODataAnalyzer\docs\api
+ARO Data Analyzer API Reference - To read this reference, open the file **index.html** in the folder ARODataAnalyzer\docs\api  
 Adding Custom Best Practices in Open Source ARO - Describes how to add custom Best Practices to the ARO Data Analyzer.  
 
 
