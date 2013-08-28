@@ -21,16 +21,6 @@ import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import com.att.android.arodatacollector.main.AROCollectorCustomDialog;
-import com.att.android.arodatacollector.main.AROCollectorCustomDialog.Dialog_CallBack_Error;
-import com.att.android.arodatacollector.main.AROCollectorService;
-import com.att.android.arodatacollector.main.AROCollectorTaskManagerProcessInfo;
-import com.att.android.arodatacollector.main.AROCollectorTraceService;
-import com.att.android.arodatacollector.main.ARODataCollector;
-import com.att.android.arodatacollector.main.AROCollectorCustomDialog.Dialog_Type;
-import com.att.android.arodatacollector.utils.AROCollectorUtils;
-import com.att.android.arodatacollector.R;
-
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -42,11 +32,21 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.CheckBox;
+
+import com.att.android.arodatacollector.R;
+import com.att.android.arodatacollector.main.AROCollectorCustomDialog;
+import com.att.android.arodatacollector.main.AROCollectorCustomDialog.Dialog_CallBack_Error;
+import com.att.android.arodatacollector.main.AROCollectorCustomDialog.Dialog_Type;
+import com.att.android.arodatacollector.main.AROCollectorService;
+import com.att.android.arodatacollector.main.AROCollectorTaskManagerProcessInfo;
+import com.att.android.arodatacollector.main.AROCollectorTraceService;
+import com.att.android.arodatacollector.main.ARODataCollector;
+import com.att.android.arodatacollector.utils.AROCollectorUtils;
+import com.att.android.arodatacollector.utils.AROLogger;
 
 /**
  * Represents the Landing screen, which is the main UI screen of the ARO Data
@@ -75,17 +75,6 @@ public class AROCollectorMainActivity extends Activity {
 	 * Trace
 	 */
 	private static final int AROSDCARD_MIN_SPACEBYTES = 5120;
-
-	/**
-	 * The boolean value to enable logs based on production build or debug build
-	 */
-	private static boolean mIsProduction = false;
-
-	/**
-	 * A boolean value that indicates whether or not to enable logging for this
-	 * class in a debug build of the ARO Data Collector.
-	 */
-	private static boolean DEBUG = !mIsProduction;
 
 	/** Integer identifier to set handler case to navigate to home screen **/
 	private static final int NAVIGATE_HOME_SCREEN = 0;
@@ -124,21 +113,47 @@ public class AROCollectorMainActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		
+		if (new AROCollectorUtils().isTcpDumpRunning()) {
+			//this is the case when the main screen from a previous
+			//collector instance was destroyed by the system, so it
+			//was not cleaned up when the analyzer launches a new collector instance
+			exitMainActivity();
+			return;
+		}
+		
 		setContentView(R.layout.arocollector_main_screen);
 		validateAROAnalyzerConnectedLaunch();
 		initializeMainScreenControls();
 		
 		registerAnalyzerTimeoutReceiver();
+		registerAnalyzerLaunchReceiver();
+	}
+	
+	/**
+	 * Closes the current activity and display Home Screen of Data Collector,
+	 */
+	private void exitMainActivity() {
+		// Close the current summary screen
+		AROLogger.d(TAG, "another instance of collector already running, will exit MainActivity");
+		
+		finish();
 	}
 
 	/**
 	 * method to register the receiver that listens to analyzer timeout
 	 */
 	private void registerAnalyzerTimeoutReceiver() {
-		if (DEBUG){
-			Log.i(TAG, "registering analyzerTimeOutReceiver");
-		}
+		AROLogger.d(TAG, "registering analyzerTimeOutReceiver");
 		registerReceiver(analyzerTimeoutReceiver, new IntentFilter(AROCollectorUtils.ANALYZER_TIMEOUT_SHUTDOWN_INTENT));
+	}
+	
+	/**
+	 * method to register the receiver that listens to analyzer launch intent
+	 */
+	private void registerAnalyzerLaunchReceiver() {
+		AROLogger.d(TAG, "registering analyzerTimeOutReceiver");
+		registerReceiver(analyzerLaunchReceiver, new IntentFilter(AROCollectorUtils.ANALYZER_LAUNCH_CLEANUP_INTENT));
 	}
 
 	/**
@@ -185,12 +200,18 @@ public class AROCollectorMainActivity extends Activity {
 		startDataCollector.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
+				
+				if (getIntent().getExtras() != null){
+					//was launched from analyzer, set waiting to false since
+					//the collector is now starting
+					AROLogger.d(TAG, "collector starting, setAnalyzerLaunchInProgress(false)");
+					ARODataCollector.setAnalyzerLaunchInProgress(false);
+				}
+				
 				final String state = Environment.getExternalStorageState();
 				NetworkInfo.State wifiState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState();
 				NetworkInfo.State mobileState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState();
-				if (DEBUG){
-					Log.d(TAG, "wifiState=" + wifiState + "; mobileState=" + mobileState);
-				}
+				AROLogger.d(TAG, "wifiState=" + wifiState + "; mobileState=" + mobileState);
 				
 				// Check to validate is SD card is available for writing trace
 				// data
@@ -209,16 +230,9 @@ public class AROCollectorMainActivity extends Activity {
 					return;
 				} 
 				
-				try {
-					int tcpdumppid = mAroUtils.getProcessID("tcpdump");
-					if(tcpdumppid!=0){
-						showARORunningError();
-						return;
-					}
-				} catch (IOException e1) {
-					Log.e(TAG, "IOException in initializeMainScreenControls", e1);
-				} catch (InterruptedException e1) {
-					Log.e(TAG, "exception in initializeMainScreenControls", e1);
+				if(mAroUtils.isTcpDumpRunning()){
+					showARORunningError();
+					return;
 				}
 				
 				// Making sure root permission is set to ARO application before
@@ -228,7 +242,7 @@ public class AROCollectorMainActivity extends Activity {
 					mAROrootShell = Runtime.getRuntime().exec("su");
 					mAROrootShell.getOutputStream();
 				} catch (IOException e) {
-					Log.e(TAG, "exception in getting root permission", e);
+					AROLogger.e(TAG, "exception in getting root permission", e);
 				}
 				mAROrootShell = null;
 				if(mApp.getDumpTraceFolderName()!=null) {
@@ -309,6 +323,7 @@ public class AROCollectorMainActivity extends Activity {
 				@Override
 				public void run() {
 					if (!mApp.getTcpDumpStartFlag()) {
+						AROLogger.w(TAG, "Failed to start ARODataCollector in 15 sec");
 						stopService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
 						stopService(new Intent(getApplicationContext(), AROCollectorService.class));
 						// As we collect peripherals trace i.e wifi,GPs
@@ -335,9 +350,6 @@ public class AROCollectorMainActivity extends Activity {
 						mAROHomeScreenHandler.sendMessage(Message.obtain(mAROHomeScreenHandler, 0));
 						aroDCStartWatchTimer.cancel();
 						aroDCStartTimer.cancel();
-						if (DEBUG) {
-							Log.i(TAG, "Failed to start ARODataCollector in 15 sec");
-						}
 					}
 				}
 			}, ARO_START_TICK_TIME, ARO_START_TICK_TIME);
@@ -355,8 +367,7 @@ public class AROCollectorMainActivity extends Activity {
 		final File traceFolder = new File(mAroTraceDatapath);
 		final File traceRootFolder = new File(ARODataCollector.ARO_TRACE_ROOTDIR);
 
-		if (DEBUG)
-			Log.d(TAG, "mAroTraceDatapath=" + mAroTraceDatapath);
+		AROLogger.d(TAG, "mAroTraceDatapath=" + mAroTraceDatapath);
 
 		// Creates the trace root directory
 		if (!traceRootFolder.exists()) {
@@ -458,9 +469,7 @@ public class AROCollectorMainActivity extends Activity {
 	@Override
 	protected void onPause() {
 
-		if (DEBUG) {
-			Log.d(TAG, "onPause() called");
-		}
+		AROLogger.d(TAG, "onPause() called");
 		super.onPause();
 	}
 
@@ -490,6 +499,8 @@ public class AROCollectorMainActivity extends Activity {
 
 		super.onDestroy();
 		unregisterTimeoutReceiver();
+		unregisterLaunchReceiver();
+		AROLogger.d(TAG, "inside onDestroy, unregistered broadcast receivers");
 	}
 
 	/**
@@ -530,15 +541,11 @@ public class AROCollectorMainActivity extends Activity {
 					stopService(new Intent(getApplicationContext(), AROCollectorService.class));
 				}
 				showARODataCollectorErrorDialog(Dialog_Type.DC_FAILED_START);
-				if (DEBUG) {
-					Log.i(TAG, "Setting Data Collector stop flag");
-				}
+				AROLogger.d(TAG, "Setting Data Collector stop flag");
 				mApp.setARODataCollectorStopFlag(true);
 				collectScreenVideo.setEnabled(true);
 				startDataCollector.setEnabled(true);
-				if (DEBUG) {
-					Log.i(TAG, "Setting Data Collector stop flag");
-				}
+				AROLogger.d(TAG, "Setting Data Collector stop flag");
 				break;
 			}
 		}
@@ -573,9 +580,7 @@ public class AROCollectorMainActivity extends Activity {
 			showAirplaneModeEnabledError(true);
 			break;
 		}
-		if (DEBUG) {
-			Log.i(TAG, "handleErrorDialogs errordialogid=" + errordialogid);
-		}
+		AROLogger.d(TAG, "handleErrorDialogs errordialogid=" + errordialogid);
 	}
 
 	/**
@@ -589,9 +594,7 @@ public class AROCollectorMainActivity extends Activity {
 				com.att.android.arodatacollector.main.AROCollectorCustomDialog.Dialog_CallBack_Error errorcode,
 				boolean success) {
 			if (success) {
-				if (DEBUG) {
-					Log.i(TAG, "Device SD Card Space=" + mAroUtils.checkSDCardMemoryAvailable());
-				}
+				AROLogger.d(TAG, "Device SD Card Space=" + mAroUtils.checkSDCardMemoryAvailable());
 				// Checking if the available space of SD card is less than 5MB
 				// before start of the trace
 				if (mAroUtils.checkSDCardMemoryAvailable() < AROSDCARD_MIN_SPACEBYTES) {
@@ -645,31 +648,55 @@ public class AROCollectorMainActivity extends Activity {
 	private BroadcastReceiver analyzerTimeoutReceiver = new BroadcastReceiver() {
 	    @Override
 	    public void onReceive(Context ctx, Intent intent) {
-	    	if(DEBUG){
-	        	Log.i(TAG, "received analyzerTimeoutIntent at " + System.currentTimeMillis());
-	        }
+	    	AROLogger.d(TAG, "received analyzerTimeoutIntent at " + System.currentTimeMillis());
 	        finish();
 	    }
+	};
+	
+	/**
+	 * receiver to listen to the analyzer launch cleanup broadcast sent from the splashActivity
+	 */
+	private BroadcastReceiver analyzerLaunchReceiver = new BroadcastReceiver(){
+
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			AROLogger.d(TAG, "received analyzerLaunchCleanupIntent at " + System.currentTimeMillis());
+	        finish();
+		}
+		
 	};
 
 	/**
 	 * method to unregister the receiver that listens to analyzer timeout
 	 */
 	private void unregisterTimeoutReceiver() {
-		if (DEBUG){
-			Log.i(TAG, "inside unregisterTimeoutReceiver");
-		}
+		AROLogger.d(TAG, "inside unregisterTimeoutReceiver");
 		try {
 			if (analyzerTimeoutReceiver != null) {
 				unregisterReceiver(analyzerTimeoutReceiver);
 				analyzerTimeoutReceiver = null;
 				
-				if (DEBUG){
-					Log.i(TAG, "successfully unregistered analyzerTimeoutReceiver");
-				}
+				AROLogger.d(TAG, "successfully unregistered analyzerTimeoutReceiver");
 			}
 		} catch (Exception e){
-			Log.i(TAG, "Ignoring exception in unregisterTimeoutReceiver", e);
+			AROLogger.i(TAG, "Ignoring exception in unregisterTimeoutReceiver", e);
+		}
+	}
+	
+	/**
+	 * method to unregister the receiver that listens to analyzer launch
+	 */
+	private void unregisterLaunchReceiver() {
+		AROLogger.d(TAG, "inside unregisterLaunchReceiver");
+		try {
+			if (analyzerLaunchReceiver != null) {
+				unregisterReceiver(analyzerLaunchReceiver);
+				analyzerLaunchReceiver = null;
+				
+				AROLogger.d(TAG, "successfully unregistered analyzerLaunchReceiver");
+			}
+		} catch (Exception e){
+			AROLogger.i(TAG, "Ignoring exception in unregisterLaunchReceiver", e);
 		}
 	}
 }

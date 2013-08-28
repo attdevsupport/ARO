@@ -33,14 +33,16 @@ import java.util.Map;
 import com.att.android.arodatacollector.R;
 import com.att.android.arodatacollector.activities.AROCollectorHomeActivity;
 import com.att.android.arodatacollector.utils.AROCollectorUtils;
+import com.att.android.arodatacollector.utils.AROLogger;
 import com.flurry.android.FlurryAgent;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.util.Log;
 import android.view.Window;
 import android.app.Application;
 import android.app.Dialog;
@@ -97,12 +99,6 @@ public class ARODataCollector extends Application {
 	 * debug build
 	 */
 	private static boolean mIsProduction = false;
-
-	/**
-	 * The boolean value to enable logs depending on if production build or
-	 * debug build
-	 */
-	private static boolean DEBUG = !mIsProduction;
 
 	/** The name of the tcpdump Time file */
 	private static final String TIME_FILE = "time";
@@ -221,6 +217,13 @@ public class ARODataCollector extends Application {
 		
 	/** Stores the value to find if launch of collector from Analyzer */
 	private boolean mDataCollectorStopDisable = false;
+	
+	/** Indicates if the collector launch from the analyzer is in progress, 
+	 * (ie. waiting on the legal page or for the user to start it).
+	 * This will be set to false either when the launch timeout expired, or
+	 * the collector has started*/
+	private static boolean isAnalyzerLaunchInProgress = false;
+	
 	/**
 	 * Handles processing when an ARODataCollector object is created. Overrides
 	 * the android.app.Application#onCreate method.
@@ -229,12 +232,11 @@ public class ARODataCollector extends Application {
 	 */
 	@Override
 	public void onCreate() {
-		if (DEBUG) {
-			Log.d(TAG, "ARODataCollector.onCreate() called");
-		}
+		AROLogger.d(TAG, "ARODataCollector.onCreate() called");
 		super.onCreate();
+		registerAnalyzerTimeoutReceiver();
 	}
-
+	
 	/**
 	 * Initializes ARO Data Collector application variables, and copies the
 	 * native libraries that are used by the ARO Data Collector.
@@ -250,7 +252,7 @@ public class ARODataCollector extends Application {
 			PushDataCollectorFFmpegToNative();
 				
 		} catch (IOException e) {
-			Log.e(TAG, "Exception in initARODataCollector", e);
+			AROLogger.e(TAG, "Exception in initARODataCollector", e);
 		}
 		mDataCollectorBearerChange = false;
 		isVideoCaptureFailed = false;
@@ -311,8 +313,8 @@ public class ARODataCollector extends Application {
 	 * Clears the ARO Data Collector alert menu notification.
 	 */
 	public void cancleAROAlertNotification() {
-		if (DEBUG) {
-			Log.i(TAG, "cancleAROAlertNotification=" + mAROnotificationManager);
+		if (AROLogger.logDebug) {
+			AROLogger.d(TAG, "cancleAROAlertNotification=" + mAROnotificationManager);
 		}
 		if (mAROnotificationManager != null) {
 			mAROnotificationManager.cancel(NOTIFICATION_ID);
@@ -343,7 +345,7 @@ public class ARODataCollector extends Application {
 					}
 				}
 			} catch (PackageManager.NameNotFoundException e) {
-				Log.e(TAG, "exception in getVersion", e);
+				AROLogger.e(TAG, "exception in getVersion", e);
 			}
 			if (mApplicationVersion == null) {
 				mApplicationVersion = "";
@@ -1134,19 +1136,19 @@ public class ARODataCollector extends Application {
 		final String videoAbsolutePath = ARODataCollector.ARO_TRACE_ROOTDIR
 				+ this.getDumpTraceFolderName() + "/" + videoMp4;
 
-		if (DEBUG) {
-			Log.d(TAG, "isVideoFileExisting()--videoPath: " + videoAbsolutePath);
+		if (AROLogger.logDebug) {
+			AROLogger.d(TAG, "isVideoFileExisting()--videoPath: " + videoAbsolutePath);
 		}
 		final File videoFile = new File(videoAbsolutePath);
 		if (videoFile.isFile() && videoFile.length() > 0) {
-			if (DEBUG) {
-				Log.d(TAG, "isVideoFileExisting(): " + "returning true" + "-videoFile.isFile():"
+			if (AROLogger.logDebug) {
+				AROLogger.d(TAG, "isVideoFileExisting(): " + "returning true" + "-videoFile.isFile():"
 						+ videoFile.isFile() + "-videoFile.length():" + videoFile.length());
 			}
 			return true;
 		} else {
-			if (DEBUG) {
-				Log.d(TAG, "isVideoFileExisting(): " + "returning false" + "-videoFile.isFile():"
+			if (AROLogger.logDebug) {
+				AROLogger.d(TAG, "isVideoFileExisting(): " + "returning false" + "-videoFile.isFile():"
 						+ videoFile.isFile() + "-videoFile.length():" + videoFile.length());
 			}
 			return false;
@@ -1191,15 +1193,15 @@ public class ARODataCollector extends Application {
 			} else  {
 				FlurryAgent.logEvent(eventName, hashMapToWriteTo, true);
 			}
-			if (DEBUG) {
-				Log.d(TAG, "logged flurry Event: " + eventName + "-hashmap key: " + mapKey + "-hashmap value: " + 
+			if (AROLogger.logDebug) {
+				AROLogger.d(TAG, "logged flurry Event: " + eventName + "-hashmap key: " + mapKey + "-hashmap value: " + 
 						mapValue + "-timedEvent: " + isTimedEvent);
 			}
 		}
 		else if (eventName != null) {
 			FlurryAgent.logEvent(eventName);
-			if (DEBUG) {
-				Log.d(TAG, "logged flurry Event: " + eventName);
+			if (AROLogger.logDebug) {
+				AROLogger.d(TAG, "logged flurry Event: " + eventName);
 			}
 		}	
 	}
@@ -1218,12 +1220,12 @@ public class ARODataCollector extends Application {
 		if (hashMapToWriteTo != null) {
 
 			hashMapToWriteTo.put(mapKey, mapValue);
-			if (DEBUG) {
-				Log.d(TAG, "writeToFlurry()" + "hashMapToWriteTo()-wrote flurry" + "-hashmap: " + comment + "-key: " + mapKey + "-hashmap value: " + mapValue + "-existingState: " + existingState);
+			if (AROLogger.logDebug) {
+				AROLogger.d(TAG, "writeToFlurry()" + "hashMapToWriteTo()-wrote flurry" + "-hashmap: " + comment + "-key: " + mapKey + "-hashmap value: " + mapValue + "-existingState: " + existingState);
 			}
 		} else {
-			if (DEBUG) {
-				Log.d(TAG, "writeToFlurry()" + "hashMapToWriteTo()-" + comment + " not updated due to-currentState: " + currentState + "-existingState: " + existingState);
+			if (AROLogger.logDebug) {
+				AROLogger.d(TAG, "writeToFlurry()" + "hashMapToWriteTo()-" + comment + " not updated due to-currentState: " + currentState + "-existingState: " + existingState);
 			}
 		}
 	}
@@ -1246,23 +1248,57 @@ public class ARODataCollector extends Application {
 			
 			exitValue = sh.waitFor();
 			
-			if (DEBUG){
-				Log.d(TAG, "exitValue=" + exitValue);
+			if (AROLogger.logDebug){
+				AROLogger.d(TAG, "exitValue=" + exitValue);
 			}
 			if (exitValue == 0){
 				//successful return value, has root access
 				hasRootAccess = true;
 			}
 			else {
-				Log.e(TAG, "root access denied");
+				AROLogger.e(TAG, "root access denied");
 				hasRootAccess = false;
 			}
 			
 		} catch (Exception e){
-			Log.e(TAG, "does not have root access", e);
+			AROLogger.e(TAG, "does not have root access", e);
 		}
 		
 		return hasRootAccess;
+	}
+
+	public static boolean isAnalyzerLaunchInProgress() {
+		return isAnalyzerLaunchInProgress;
+	}
+
+	public static void setAnalyzerLaunchInProgress(boolean b) {
+		ARODataCollector.isAnalyzerLaunchInProgress = b;
+	}
+	
+	/**
+	 * Need to put the receiver here so that we always receive this event and reset
+	 * the analyzerLaunchWaiting variable. Putting this receiver in the activity
+	 * will not always work since the broadcast wont be received if the user exits
+	 * the activity and the activity gets destroyed.
+	 */
+	private BroadcastReceiver analyzerTimeoutReceiver = new BroadcastReceiver() {
+	    @Override
+	    public void onReceive(Context ctx, Intent intent) {
+	    	AROLogger.d(TAG, "received analyzerTimeoutIntent at " + System.currentTimeMillis());
+	    	if (ARODataCollector.isAnalyzerLaunchInProgress()){
+	    		//timed out, analyzer launch cancelled, no longer waiting
+	    		AROLogger.d(TAG, "analyzer timeout expired, setAnalyzerLaunchInProgress(false)");
+	    		ARODataCollector.setAnalyzerLaunchInProgress(false);
+	    	}
+	    }
+	};
+	
+	/**
+	 * method to register the receiver that listens to analyzer timeout
+	 */
+	private void registerAnalyzerTimeoutReceiver() {
+		AROLogger.d(TAG, "registering analyzerTimeOutReceiver");
+		registerReceiver(analyzerTimeoutReceiver, new IntentFilter(AROCollectorUtils.ANALYZER_TIMEOUT_SHUTDOWN_INTENT));
 	}
 }
 

@@ -16,15 +16,13 @@
 
 package com.att.android.arodatacollector.main;
 
-import com.att.android.arodatacollector.R;
-import com.att.android.arodatacollector.utils.AROCollectorUtils;
+import java.io.File;
 
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnKeyListener;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
@@ -33,7 +31,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import java.io.File;
+import com.att.android.arodatacollector.R;
+import com.att.android.arodatacollector.utils.AROCollectorUtils;
+import com.att.android.arodatacollector.utils.AROLogger;
 
 /**
  * Represents a custom dialog in the ARO Data Collector which is used for
@@ -50,18 +50,6 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 
 	/** HOME_KEY_PRESSED string **/
 	private static final String HOME_KEY_PRESSED = "HOME_KEY_PRESSED";
-
-	/**
-	 * The boolean value to enable logs depending on if production build or
-	 * debug build
-	 */
-	private static boolean mIsProduction = true;
-
-	/**
-	 * The boolean value to enable logs depending on if production build or
-	 * debug build
-	 */
-	private static boolean DEBUG = !mIsProduction;
 
 	/**
 	 * The Dialog_Type enumeration specifies constant values that describe the
@@ -131,7 +119,9 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		
 		ARO_INSTANCE_RUNNING,
 		
-		NO_ROOT_ACCESS
+		NO_ROOT_ACCESS,
+		
+		ARO_ANALYZER_LAUNCH_IN_PROGRESS
 	}
 
 	/**
@@ -284,8 +274,14 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		case ARO_INSTANCE_RUNNING:
 			createAROInstanceRunningErrorDialog();
 			break;
+		
+		case ARO_ANALYZER_LAUNCH_IN_PROGRESS:
+			createAnalyzeLaunchInProgressErrorDialog();
+			break;
+			
 		}
 	}
+
 
 	private void createARONoRootAccessErrorDialog() {
 		setContentView(R.layout.arocollector_errormessage);
@@ -296,6 +292,14 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		buttonOK.setOnClickListener(new OKListener());		
 	}
 
+	private void createAnalyzeLaunchInProgressErrorDialog() {
+		setContentView(R.layout.arocollector_errormessage);
+		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
+		mAroErrorText.setText(R.string.aro_analyzerlaunchinprogress);
+		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
+		buttonOK.setOnClickListener(new OKListener());				
+	}
+	
 	private void createAROInstanceRunningErrorDialog(){
 		setContentView(R.layout.arocollector_errormessage);
 		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
@@ -471,7 +475,7 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 			try {
 				AROCollectorCustomDialog.this.dismiss();
 			} catch (IllegalArgumentException e) {
-				Log.e(TAG, "exception in onKey", e);
+				AROLogger.e(TAG, "exception in onKey", e);
 			}
 		} else if (keyCode == KeyEvent.KEYCODE_HOME) {
 			if (keylistner != null) {
@@ -483,7 +487,7 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 			try {
 				AROCollectorCustomDialog.this.dismiss();
 			} catch (IllegalArgumentException e) {
-				Log.e(TAG, "exception in onKey", e);
+				AROLogger.e(TAG, "exception in onKey", e);
 			}
 		}
 
@@ -513,7 +517,7 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 				}
 				}
 			} catch (IllegalArgumentException e) {
-				Log.e(TAG, "exception in IllegalArgumentException", e);
+				AROLogger.e(TAG, "exception in IllegalArgumentException", e);
 			}
 		}
 	}
@@ -563,8 +567,8 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 				case TRACE_FOLDERNAME_EXISTS:
 					if (mApp.getTcpDumpTraceFolderName() != null) {
 						mAROUtils.deleteDirectory(new File(mApp.getTcpDumpTraceFolderName()));
-						if (DEBUG) {
-							Log.i(TAG,
+						if (AROLogger.logDebug) {
+							AROLogger.d(TAG,
 									"TRACE_FOLDERNAME_EXISTS deleting directory"
 											+ mApp.getTcpDumpTraceFolderName());
 						}
@@ -587,6 +591,12 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 				case ARO_INSTANCE_RUNNING:
 					AROCollectorCustomDialog.this.dismiss();
 					break;
+				case ARO_ANALYZER_LAUNCH_IN_PROGRESS:
+					AROCollectorCustomDialog.this.dismiss();
+					if (readyListener != null){
+						readyListener.ready(null, false);
+					}
+					break;
 				case TRACE_STOPPED:
 					AROCollectorCustomDialog.this.dismiss();
 					readyListener.ready(Dialog_CallBack_Error.CALLBACK_TRACEFOLDERERROR, false);
@@ -604,7 +614,7 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 
 				}
 			} catch (IllegalArgumentException e) {
-				Log.e(TAG, "exception in IllegalArgumentException", e);
+				AROLogger.e(TAG, "exception in IllegalArgumentException", e);
 			}
 		}
 	}

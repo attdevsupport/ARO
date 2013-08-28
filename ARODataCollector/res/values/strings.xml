@@ -34,7 +34,9 @@
 	<string name="aro_spcharerror">Trace folder name can not have special characters or spaces. </string>
 	<string name="aro_tracefolderexists">Trace folder already exists! Do you want to overwrite existing trace?</string>
 	<string name="aro_norootaccess">You do not have administrator-level permission (i.e., root level access) on this device. It is recommended that you use a device that is dedicated to experimentation and testing since rooting may have an adverse impact on device performance and/or manufacturer warranty.</string>
-	<string name="aro_aroinstancerunning">ARO Data Collector instance is already running on device !.</string>
+	<string name="aro_aroinstancerunning">ARO Data Collector instance is already running on the device!</string>
+	<string name="aro_analyzerlaunchinprogress">ARO Data Collector launch from the Analyzer is already in progress</string>
+	
 	<!--  Button Text -->
 	<string name="aro_oktext">OK</string>
 	<string name="aro_yestext">Yes</string>

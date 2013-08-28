@@ -20,24 +20,24 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import com.att.android.arodatacollector.R;
-import com.att.android.arodatacollector.activities.AROCollectorTaskManagerActivity;
-import com.att.android.arodatacollector.main.AROCollectorTaskManagerProcessInfo.PsRow;
-import com.att.android.arodatacollector.utils.AROCollectorUtils;
-
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.att.android.arodatacollector.R;
+import com.att.android.arodatacollector.activities.AROCollectorTaskManagerActivity;
+import com.att.android.arodatacollector.main.AROCollectorTaskManagerProcessInfo.PsRow;
+import com.att.android.arodatacollector.utils.AROCollectorUtils;
+import com.att.android.arodatacollector.utils.AROLogger;
 
 /**
  * Represents a custom list adapter for the ARO Data Collector task killer which
@@ -181,15 +181,18 @@ public class AROCollectorTaskManagerListAdapters {
 			try {
 				processId = mAroUtils.getProcessID(pid);
 			} catch (IOException e) {
-				Log.e(TAG, "IOException getting process ID for Kill Package" + e);
+				AROLogger.e(TAG, "IOException getting process ID for Kill Package" + e);
 			} catch (InterruptedException e) {
-				Log.e(TAG, "InterruptedException getting process ID for Kill Package" + e);
+				AROLogger.e(TAG, "InterruptedException getting process ID for Kill Package" + e);
 			} catch (IndexOutOfBoundsException e) {
-				Log.e(TAG, "IndexOutOfBoundsException getting process Id for Kill Package" + e);
+				AROLogger.e(TAG, "IndexOutOfBoundsException getting process Id for Kill Package" + e);
 			}
 			if (processId != 0) {
 				try {
-					Log.i("BACKGROUND", "Package Name=" + packagename + "PID=" + processId);
+					if (AROLogger.logDebug){
+						AROLogger.d("BACKGROUND", "Package Name=" + packagename + "PID=" + processId);
+					}
+					
 					sh = Runtime.getRuntime().exec("su");
 					os = new DataOutputStream(sh.getOutputStream());
 					final String Command = "kill -9 " + processId + "\n";
@@ -197,9 +200,9 @@ public class AROCollectorTaskManagerListAdapters {
 					os.flush();
 					sh.waitFor();
 				} catch (IOException e) {
-					Log.e(TAG, "Failed to kill task" + e);
+					AROLogger.e(TAG, "Failed to kill task" + e);
 				} catch (InterruptedException e) {
-					Log.e(TAG, "Failed to kill task" + e);
+					AROLogger.e(TAG, "Failed to kill task" + e);
 				} finally {
 					try {
 						os.close();

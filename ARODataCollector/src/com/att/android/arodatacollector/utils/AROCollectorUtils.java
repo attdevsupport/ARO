@@ -38,7 +38,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import android.os.StatFs;
 import android.provider.Settings;
-import android.util.Log;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -55,23 +54,16 @@ import org.apache.http.params.HttpParams;
  */
 public class AROCollectorUtils {
 
+	private static final String TCPDUMP_PROCESS_NAME = "tcpdump";
+
 	/** Logging string for the ARO Collector Utils class. */
 	public static final String TAG = "AROCollectorUtils";
 	
 	/** used for exiting the activity when the analyzer timeout happens */
 	public static final String ANALYZER_TIMEOUT_SHUTDOWN_INTENT = "arodatacollector.timeout.SHUTDOWN";
-
-	/**
-	 * The boolean value to enable logs depending on if production build or
-	 * debug build
-	 */
-	private static boolean mIsProduction = true;
-
-	/**
-	 * A boolean value that indicates whether or not to enable logging for this
-	 * class in a debug build of the ARO Data Collector.
-	 */
-	public static boolean DEBUG = !mIsProduction;
+	
+	/** used to close the old instance when a new one is launched from the analyzer*/
+	public static final String ANALYZER_LAUNCH_CLEANUP_INTENT = "arodatacollector.launch.cleanup";
 
 	/** Empty String */
 	public static String EMPTY_STRING = "";
@@ -189,10 +181,10 @@ public class AROCollectorUtils {
 
 		} catch (NoSuchFieldException exp) {
 			fieldValue = "";
-			Log.e(TAG, "Exception in getSpecifiedFieldValues NoSuchFieldException" + exp);
+			AROLogger.e(TAG, "Exception in getSpecifiedFieldValues NoSuchFieldException" + exp);
 		} catch (IllegalAccessException ile) {
 			fieldValue = "";
-			Log.e(TAG, "Exception in getSpecifiedFieldValues IllegalAccessException" + ile);
+			AROLogger.e(TAG, "Exception in getSpecifiedFieldValues IllegalAccessException" + ile);
 		}
 
 		return fieldValue;
@@ -239,12 +231,12 @@ public class AROCollectorUtils {
 							sbread.append(ls_1).append("\n");
 						}
 					} catch (IOException e) {
-						Log.e(TAG, "IOException in runCommand" + e);
+						AROLogger.e(TAG, "IOException in runCommand" + e);
 					} finally {
 						try {
 							bufferedReader.close();
 						} catch (IOException e) {
-							Log.e(TAG, "Exception in runCommand bufferedReader.close()" + e);
+							AROLogger.e(TAG, "Exception in runCommand bufferedReader.close()" + e);
 						}
 					}
 				}
@@ -261,12 +253,12 @@ public class AROCollectorUtils {
 							sberr.append(ls_1).append("\n");
 						}
 					} catch (IOException e) {
-						Log.e(TAG, "Exception in runCommand" + e);
+						AROLogger.e(TAG, "Exception in runCommand" + e);
 					} finally {
 						try {
 							bufferedReader.close();
 						} catch (IOException e) {
-							Log.e(TAG, "Exception in runCommand bufferedReader.close()" + e);
+							AROLogger.e(TAG, "Exception in runCommand bufferedReader.close()" + e);
 						}
 					}
 				}
@@ -281,19 +273,17 @@ public class AROCollectorUtils {
 			stderr = sberr.toString();
 			sRet = stdout + stderr;
 		} catch (java.io.IOException ee) {
-			Log.e(TAG, "Exception in runCommand" + ee);
+			AROLogger.e(TAG, "Exception in runCommand" + ee);
 			return null;
 		} catch (InterruptedException ie) {
-			Log.e(TAG, "Exception in runCommand" + ie);
+			AROLogger.e(TAG, "Exception in runCommand" + ie);
 			return null;
 		}
 		return sRet;
 	}
 
 	public String executePS(String processName) throws IOException, InterruptedException {
-		if (DEBUG) {
-			Log.d(TAG, "entered ps...");
-		}
+		AROLogger.d(TAG, "entered ps...");
 
 		final Process process = Runtime.getRuntime().exec("ps " + processName);
 		final InputStreamReader inputStream = new InputStreamReader(process.getInputStream());
@@ -320,13 +310,11 @@ public class AROCollectorUtils {
 				reader.close();
 				
 			} catch (Exception e){
-				Log.e(TAG, "Exception caught while closing resources in executePS. Error msg=" + e.getMessage());
-				Log.e(TAG, "execution will be allowed to continue");
+				AROLogger.e(TAG, "Exception caught while closing resources in executePS. Error msg=" + e.getMessage());
+				AROLogger.e(TAG, "execution will be allowed to continue");
 			}
 			
-			if (DEBUG) {
-				Log.d(TAG, "exiting ps...");
-			}
+			AROLogger.d(TAG, "exiting ps...");
 		}
 	}
 
@@ -346,22 +334,20 @@ public class AROCollectorUtils {
 		int pid = 0; // default
 		line = executePS(processName);
 		String[] rows = line.split("\\n");
-		if (DEBUG) {
+		if (AROLogger.logVerbose) {
 			for (int rowNum = 0; rowNum < rows.length; rowNum++) {
-				Log.d(TAG, "values row " + rowNum + ": " + ">>>" + rows[rowNum] + "<<<");
+				AROLogger.v(TAG, "values row " + rowNum + ": " + ">>>" + rows[rowNum] + "<<<");
 			}
 		}
 		if (rows[0].startsWith("USER")) {
-			if (DEBUG) {
-				Log.d(TAG, "PID should be in 2nd column in single row retrieved");
-			}
+			AROLogger.v(TAG, "PID should be in 2nd column in single row retrieved");
 			for (int rowNum = 1; rowNum < rows.length; rowNum++) {
 				final String row = rows[rowNum];
 				final String[] values_item = row.split("\\s+");
 
-				if (DEBUG) {
+				if (AROLogger.logVerbose) {
 					for (int itemNum = 0; itemNum < values_item.length; itemNum++) {
-						Log.d(TAG, "item " + itemNum + ": " + ">>>" + values_item[itemNum] + "<<<");
+						AROLogger.v(TAG, "item " + itemNum + ": " + ">>>" + values_item[itemNum] + "<<<");
 					}
 				}
 				// expects second column is PID
@@ -374,7 +360,7 @@ public class AROCollectorUtils {
 					try {
 						pid = Integer.valueOf(temp);
 					} catch (NumberFormatException nfe) {
-						Log.e(TAG, nfe.getClass().getName() + " thrown trying to parse PID");
+						AROLogger.e(TAG, nfe.getClass().getName() + " thrown trying to parse PID");
 						// will allow to return default PID of 0
 					}
 					// also check process code status
@@ -383,20 +369,16 @@ public class AROCollectorUtils {
 					if (values_item[itemNum].equals("Z")) {
 						continue;// look in next row
 					}
-					if (DEBUG) {
-						Log.d(TAG, "header column: " + itemNum + ">>PID returned: " + pid);
-					}
+					
+					AROLogger.d(TAG, "header column: " + itemNum + ">>PID returned: " + pid);
 				}
 				// }
 				return pid;
 			}
-			if (DEBUG) {
-				Log.d(TAG, "exiting if USER block with PID (without finding one): " + pid);
-			}
+			AROLogger.d(TAG, "exiting if USER block with PID (without finding one): " + pid);
+			
 		} else {
-			if (DEBUG) {
-				Log.d(TAG, "entered else-issuing ps command by itself");
-			}
+			AROLogger.d(TAG, "entered else-issuing ps command by itself");
 
 			line = executePS("");
 
@@ -406,8 +388,9 @@ public class AROCollectorUtils {
 				int column_num = -1; // default
 				for (int itemNumPS = 0; itemNumPS < rows.length; itemNumPS++) {
 					final String row = rows[itemNumPS];
-					if (DEBUG) {
-						Log.d(TAG, "row " + itemNumPS + ": " + ">>>" + row + "<<<");
+					
+					if (AROLogger.logVerbose){
+						AROLogger.v(TAG, "row " + itemNumPS + ": " + ">>>" + row + "<<<");
 					}
 
 					final String[] value_item = row.split("\\s+"); // assumption on ps
@@ -421,50 +404,38 @@ public class AROCollectorUtils {
 					// expect 1st row to return column header names; find column
 					// with "PID"
 					if (itemNumPS == 0) {
-						if (DEBUG) {
-							Log.d(TAG, "header row...");
-						}
+						AROLogger.d(TAG, "header row...");
 						for (int headerItemNum = 0; headerItemNum < value_item.length; headerItemNum++) {
-							Log.d(TAG, "header item " + headerItemNum + "="
-									+ value_item[headerItemNum]);
+							
+							if (AROLogger.logVerbose){
+								AROLogger.v(TAG, "header item " + headerItemNum + "="
+										+ value_item[headerItemNum]);
+							}
 
 							if (value_item[headerItemNum].equalsIgnoreCase("PID")) {
 								column_num = headerItemNum;
-								if (DEBUG) {
-									Log.d(TAG, "[zero-based] column number containing PID: "
-											+ column_num);
-								}
 								break;
 							}
 						}
 					} else {
-						if (DEBUG) {
-							Log.d(TAG, "rows of processes...");
-						}
+						AROLogger.v(TAG, "rows of processes...");
 						for (int processRowNum = 0; processRowNum < value_item.length; processRowNum++) {
-							Log.d(TAG, "process row entry " + processRowNum + "= "
-									+ value_item[processRowNum]);
+
 							if (value_item[processRowNum].contains(processName)) {
 								pid = Integer.valueOf(value_item[column_num]);
-								if (DEBUG) {
-									// returns 1st match
-									Log.d(TAG, "for process " + processName + " found PID: " + pid);
-								}
+								// returns 1st match
+								AROLogger.v(TAG, "for process " + processName + " found PID: " + pid);
 								return pid;
 							}
 						}
 					}
 				}
 			} else {
-				if (DEBUG) {
-					// pid is still equal to 0; nothing else to do but log
-					Log.d(TAG, "values.length: " + rows.length + "-PID: " + pid);
-				}
+				// pid is still equal to 0; nothing else to do but log
+				AROLogger.d(TAG, "values.length: " + rows.length + "-PID: " + pid);
 			}
 		}
-		if (DEBUG) {
-			Log.d(TAG, "exiting getProcessID()-returning PID: " + pid);
-		}
+		AROLogger.d(TAG, "exiting getProcessID()-returning PID: " + pid);
 		return pid;
 	}
 
@@ -533,7 +504,7 @@ public class AROCollectorUtils {
 		try {
 			ret = pm.getPackageInfo(name, PackageManager.GET_ACTIVITIES);
 		} catch (NameNotFoundException e) {
-			Log.e(TAG, "Exception in getPackageInfo" + e);
+			AROLogger.e(TAG, "Exception in getPackageInfo" + e);
 		}
 		return ret;
 	}
@@ -717,5 +688,16 @@ public class AROCollectorUtils {
 			response = null;
 
 		}
+	}
+	
+	public boolean isTcpDumpRunning(){
+		boolean isRunning = false;
+		try {
+			isRunning = getProcessID(TCPDUMP_PROCESS_NAME) != 0;
+		} catch (Exception e) {
+			AROLogger.e(TAG, "ignoring exception in isTcpDumpRunning()", e);
+		}
+		
+		return isRunning;
 	}
 }

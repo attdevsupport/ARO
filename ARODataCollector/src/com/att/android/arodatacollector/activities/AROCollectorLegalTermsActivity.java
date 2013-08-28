@@ -21,19 +21,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-import com.att.android.arodatacollector.R;
-import com.att.android.arodatacollector.utils.AROCollectorUtils;
-
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 import android.widget.Button;
+
+import com.att.android.arodatacollector.R;
+import com.att.android.arodatacollector.utils.AROCollectorUtils;
+import com.att.android.arodatacollector.utils.AROLogger;
 
 /**
  * Represents the Legal Terms screen of the ARO Data Collector. A user must
@@ -42,17 +42,6 @@ import android.widget.Button;
  */
 public class AROCollectorLegalTermsActivity extends Activity {
 
-	/**
-	 * The boolean value to enable logs based on production build or debug build
-	 */
-	private static boolean mIsProduction = false;
-
-	/**
-	 * A boolean value that indicates whether or not to enable logging for this
-	 * class in a debug build of the ARO Data Collector.
-	 */
-	public static boolean DEBUG = !mIsProduction;
-	
 	/** Android log TAG string for ARO-Data Collector Legal Screen */
 	private static final String TAG = "ARO.LegalTermsActivity";
 
@@ -71,10 +60,30 @@ public class AROCollectorLegalTermsActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		
+		if (new AROCollectorUtils().isTcpDumpRunning()) {
+			//this is the case when the tc screen from a previous
+			//collector instance was destroyed by the system, so it
+			//was not cleaned up when the analyzer launches a new collector instance
+			exitTCActivity();
+			return;
+		}
+		
 		setContentView(R.layout.aro_legal_terms);
 		initializeLegalPageControls();
 		
 		registerAnalyzerTimeoutReceiver();
+		registerAnalyzerLaunchReceiver();
+	}
+	
+	/**
+	 * Closes the current activity
+	 */
+	private void exitTCActivity() {
+		// Close the current summary screen
+		AROLogger.d(TAG, "another instance of collector already running, will exit this tc screen");
+
+		finish();
 	}
 
 	/**
@@ -109,7 +118,7 @@ public class AROCollectorLegalTermsActivity extends Activity {
 			readLegalTermsfromfile();
 			setupButtons();
 		} catch (IOException e) {
-			Log.e(TAG, "exception in initializeControls :AROCollectorLegalTermsActivity ", e);
+			AROLogger.i(TAG, "exception in initializeControls :AROCollectorLegalTermsActivity ", e);
 		}
 
 	}
@@ -138,9 +147,7 @@ public class AROCollectorLegalTermsActivity extends Activity {
 	private BroadcastReceiver analyzerTimeoutReceiver = new BroadcastReceiver() {
 	    @Override
 	    public void onReceive(Context ctx, Intent intent) {
-	    	if(DEBUG){
-	        	Log.i(TAG, "received analyzerTimeoutIntent at " + System.currentTimeMillis());
-	        }
+	    	AROLogger.d(TAG, "received analyzerTimeoutIntent at " + System.currentTimeMillis());
 	        finish();
 	    }
 	};
@@ -149,37 +156,71 @@ public class AROCollectorLegalTermsActivity extends Activity {
 	public void onDestroy(){
 		super.onDestroy();
 		unregisterTimeoutReceiver();
+		unregisterLaunchReceiver();
+		AROLogger.d(TAG, "inside onDestroyed, unregistered receivers");
 	}
 	
 	/**
 	 * method to unregister the receiver that listens for the analyzer timeout
 	 */
 	private void unregisterTimeoutReceiver() {
-		if (DEBUG){
-			Log.i(TAG, "inside unregisterTimeoutReceiver");
-		}
+		AROLogger.d(TAG, "inside unregisterTimeoutReceiver");
 		try {
 			if (analyzerTimeoutReceiver != null) {
 				unregisterReceiver(analyzerTimeoutReceiver);
 				analyzerTimeoutReceiver = null;
 				
-				if (DEBUG){
-					Log.i(TAG, "successfully unregistered analyzerTimeoutReceiver");
-				}
+				AROLogger.d(TAG, "successfully unregistered analyzerTimeoutReceiver");
 			}
 		} catch (Exception e){
-			Log.i(TAG, "Ignoring exception in unregisterTimeoutReceiver", e);
+			AROLogger.d(TAG, "Ignoring exception in unregisterTimeoutReceiver", e);
 		}
 	}
+	
+	/**
+	 * receiver to listen to the analyzer launch cleanup broadcast sent from the splashActivity
+	 */
+	private BroadcastReceiver analyzerLaunchReceiver = new BroadcastReceiver(){
+
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			AROLogger.d(TAG, "received analyzerLaunchCleanupIntent at " + System.currentTimeMillis());
+	        finish();
+		}
+		
+	};
 	
 	/**
 	 * method to register the receiver that listens to analyzer timeout
 	 */
 	private void registerAnalyzerTimeoutReceiver() {
-		if (DEBUG){
-			Log.i(TAG, "registering analyzerTimeOutReceiver");
-		}
+		AROLogger.d(TAG, "registering analyzerTimeOutReceiver");
 		registerReceiver(analyzerTimeoutReceiver, new IntentFilter(AROCollectorUtils.ANALYZER_TIMEOUT_SHUTDOWN_INTENT));
+	}
+	
+	/**
+	 * method to register the receiver that listens to analyzer launch intent
+	 */
+	private void registerAnalyzerLaunchReceiver() {
+		AROLogger.d(TAG, "registering analyzerTimeOutReceiver");
+		registerReceiver(analyzerLaunchReceiver, new IntentFilter(AROCollectorUtils.ANALYZER_LAUNCH_CLEANUP_INTENT));
+	}
+	
+	/**
+	 * method to unregister the receiver that listens to analyzer launch
+	 */
+	private void unregisterLaunchReceiver() {
+		AROLogger.d(TAG, "inside unregisterLaunchReceiver");
+		try {
+			if (analyzerLaunchReceiver != null) {
+				unregisterReceiver(analyzerLaunchReceiver);
+				analyzerLaunchReceiver = null;
+				
+				AROLogger.d(TAG, "successfully unregistered analyzerLaunchReceiver");
+			}
+		} catch (Exception e){
+			AROLogger.d(TAG, "Ignoring exception in unregisterLaunchReceiver", e);
+		}
 	}
 	
 }

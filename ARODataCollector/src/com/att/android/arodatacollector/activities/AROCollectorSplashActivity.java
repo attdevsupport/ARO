@@ -19,7 +19,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.view.Window;
@@ -35,6 +34,8 @@ import com.att.android.arodatacollector.main.AROCollectorCustomDialog.Dialog_Typ
 import com.att.android.arodatacollector.main.AROCollectorCustomDialog.ReadyListener;
 import com.att.android.arodatacollector.main.AROCollectorService;
 import com.att.android.arodatacollector.main.ARODataCollector;
+import com.att.android.arodatacollector.utils.AROCollectorUtils;
+import com.att.android.arodatacollector.utils.AROLogger;
 
 /**
  * 
@@ -106,11 +107,11 @@ public class AROCollectorSplashActivity extends Activity {
 		if (event.getAction() == MotionEvent.ACTION_DOWN) {
 			synchronized (mMutex) {
 				if (!mAbortSplash) {
-					Log.i(TAG, "splash screen touched");
+					AROLogger.d(TAG, "splash screen touched");
 					if (mInitialized) {
-						Log.i(TAG, "Initialize complete - will abort");
+						AROLogger.d(TAG, "Initialize complete - will abort");
 					} else {
-						Log.i(TAG, "Initialize still running - will abort when complete");
+						AROLogger.d(TAG, "Initialize still running - will abort when complete");
 					}
 					mAbortSplash = true;
 					mMutex.notify();
@@ -132,6 +133,41 @@ public class AROCollectorSplashActivity extends Activity {
 		mApp = null;
 		finish();
 	}
+	
+	private void exitSplashActivity() {
+		AROLogger.d(TAG, "exiting splash activity");
+		finish();
+	}
+	
+	/**
+	 * show the error message saying that analyzer launch is already in progress
+	 */
+	private void showAnalyzerLaunchInProgress() {
+
+		Dialog_Type m_dialog = Dialog_Type.ARO_ANALYZER_LAUNCH_IN_PROGRESS;
+		final AROCollectorCustomDialog myDialog = new AROCollectorCustomDialog(
+				AROCollectorSplashActivity.this, android.R.style.Theme_Translucent, m_dialog,
+				new ReadyListener(){ 
+					public void ready(Dialog_CallBack_Error errorcode, boolean success){
+						//exit
+						finish();
+						exitSplashActivity();
+					}
+
+				}, new DialogKeyListner(){
+
+					@Override
+					public void HandleKeyEvent(String key, Dialog_Type type) {
+						if (AROCollectorCustomDialog.BACK_KEY_PRESSED.equalsIgnoreCase(key)){
+							//exit
+							finish();
+							exitSplashActivity();
+						}
+					}
+				});
+		
+		myDialog.show();
+	}
 
 	/**
 	 * Initializes data members with a saved instance of an AROCollectorMainActivity object. 
@@ -146,11 +182,12 @@ public class AROCollectorSplashActivity extends Activity {
 		Display mScreenDisplay;
 		super.onCreate(savedInstanceState);
 		
-		
 		if (AROCollectorService.getServiceObj() != null) {
+			AROLogger.d(TAG, "collector already running, going to home screen");
 			startAROHomeActivity();
 			return;
 		}
+		
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
 				WindowManager.LayoutParams.FLAG_FULLSCREEN);
@@ -173,11 +210,29 @@ public class AROCollectorSplashActivity extends Activity {
 				SplashMessage.setLayoutParams(layoutParams);
 			}
 		}
+		
+		//add check after screen setup to avoid black screen
+		if (ARODataCollector.isAnalyzerLaunchInProgress()){
+			//already launched via analyzer
+			showAnalyzerLaunchInProgress();
+			return;
+		}
+		
+		//new launch, clean up old screen
+		sendAnalyzerLaunchBroadcast();
+		if (isAnalyzerLaunch()){
+			AROLogger.d(TAG, "analyzer launch, setAnalyzerLaunchInProgress(true)");
+			ARODataCollector.setAnalyzerLaunchInProgress(true);
+		}
+		
 		// we'll need a timer thread to make sure the screen is
 		// displayed for at least SPLASH_DISPLAY_TIME seconds
 		final Thread timerThread = new Thread(new Runnable() {
 			public void run() {
-				Log.i(TAG, "timerThread started at timestamp:" + System.currentTimeMillis());
+				if (AROLogger.logDebug){
+					AROLogger.d(TAG, "timerThread started at timestamp:" + System.currentTimeMillis());
+				}
+				
 				long timeRemaining = SPLASH_DISPLAY_TIME;
 				long stopTime = System.currentTimeMillis() + timeRemaining;
 
@@ -192,7 +247,7 @@ public class AROCollectorSplashActivity extends Activity {
 								mMutex.wait(timeRemaining);
 							}
 						} catch (InterruptedException e) {
-							Log.e(TAG, "Splash Screen InterruptedException", e);
+							AROLogger.e(TAG, "Splash Screen InterruptedException", e);
 
 						}
 						if (timeRemaining > 0) {
@@ -211,7 +266,10 @@ public class AROCollectorSplashActivity extends Activity {
 				if (!mActivityFinished) {
 					mHandler.post(new Runnable() {
 						public void run() {
-							Log.i(TAG, "checking for root access at timestamp:" + System.currentTimeMillis());
+							if (AROLogger.logDebug){
+								AROLogger.d(TAG, "checking for root access at timestamp:" + System.currentTimeMillis());
+							}
+							
 							if (mApp != null){
 								
 								if (mApp.hasRootAccess()){
@@ -223,7 +281,7 @@ public class AROCollectorSplashActivity extends Activity {
 								}
 							}
 							else {
-								Log.e(TAG, "mApp is null");
+								AROLogger.e(TAG, "mApp is null");
 							}
 						}
 					});
@@ -233,13 +291,17 @@ public class AROCollectorSplashActivity extends Activity {
 		// and another thread to do whatever initialization is needed
 		final Thread initializeThread = new Thread(new Runnable() {
 			public void run() {
-				Log.i(TAG, "start initializeThread at timestamp:" + System.currentTimeMillis());
+				if (AROLogger.logDebug){
+					AROLogger.d(TAG, "start initializeThread at timestamp:" + System.currentTimeMillis());
+				}
 				try {
 					if (mApp != null){
 						mApp.initARODataCollector();
 					}
 				} finally {
-					Log.i(TAG, "initialization complete at timestamp:" + System.currentTimeMillis());
+					if (AROLogger.logDebug){
+						AROLogger.d(TAG, "initialization complete at timestamp:" + System.currentTimeMillis());
+					}
 					synchronized (mMutex) {
 						mInitialized = true;
 						mMutex.notify();
@@ -275,13 +337,24 @@ public class AROCollectorSplashActivity extends Activity {
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		if (requestCode == TERMS_ACTIVITY) {
+			AROLogger.d(TAG, "inside onActivityResult, resultCode=" + resultCode);
 			if (resultCode == AROCollectorLegalTermsActivity.TERMS_ACCEPTED) {
+				AROLogger.d(TAG, "inside onActivityResult, starting main activity");
 				startMainActivity();
 			} else {
+				AROLogger.d(TAG, "inside onActivityResult, term not accepted, closing activity");
+				
+				/*if (resultCode == AROCollectorLegalTermsActivity.TERMS_REJECTED){
+					resetAnalyzerLaunchWaitingIndicator();
+				}*/
 				finish();
 			}
 		}
 		super.onActivityResult(requestCode, resultCode, data);
+	}
+	
+	private boolean isAnalyzerLaunch(){
+		return getIntent().getExtras() != null;
 	}
 
 	/**
@@ -292,6 +365,7 @@ public class AROCollectorSplashActivity extends Activity {
 		//TODO:Adding code to launch Data Collector from Analyzer
 		final Bundle apkCommandLineParameters  = getIntent().getExtras();
 		if (apkCommandLineParameters != null) {
+			//sendAnalyzerLaunchBroadcast();
 			mAROTraceFolderNamefromAnalyzer = apkCommandLineParameters.getString("TraceFolderName");
 			mApp.setTcpDumpTraceFolderName(mAROTraceFolderNamefromAnalyzer);
 		}else{
@@ -306,6 +380,14 @@ public class AROCollectorSplashActivity extends Activity {
 		splashScreenIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 		getApplication().startActivity(splashScreenIntent);
 		finish();
+	}
+
+	/**
+	 * Need to send a broadcast so that other screens from the previous
+	 * collector instance can know to exit themselves.
+	 */
+	private void sendAnalyzerLaunchBroadcast() {
+		sendBroadcast(new Intent(AROCollectorUtils.ANALYZER_LAUNCH_CLEANUP_INTENT));
 	}
 
 	/**

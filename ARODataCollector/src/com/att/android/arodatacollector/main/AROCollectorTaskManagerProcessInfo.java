@@ -19,9 +19,8 @@ package com.att.android.arodatacollector.main;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import android.util.Log;
-
 import com.att.android.arodatacollector.utils.AROCollectorUtils;
+import com.att.android.arodatacollector.utils.AROLogger;
 
 /**
  * Represents task killer process information for the ARO Data Collector. This
@@ -33,18 +32,6 @@ public class AROCollectorTaskManagerProcessInfo {
 
 	/** Logging string for the ARO Collector TaskManagerProcessInfo class. */
 	public static final String TAG = "AROCollectorTaskManagerProcessInfo";
-
-	/**
-	 * The boolean value to enable logs depending on if production build or
-	 * debug build
-	 */
-	private static boolean mIsProduction = true;
-
-	/**
-	 * A boolean value that indicates whether or not to enable logging for this
-	 * class in a debug build of the ARO Data Collector.
-	 */
-	public static boolean DEBUG = !mIsProduction;
 
 	/** process list list array */
 	private ArrayList<PsRow> pslist;
@@ -92,22 +79,20 @@ public class AROCollectorTaskManagerProcessInfo {
 			line = mAROUtlis.executePS("tcpdump");
 			
 			String[] rows = line.split("\\n");
-			if (DEBUG) {
+			if (AROLogger.logVerbose) {
 				for (int rowNum = 0; rowNum < rows.length; rowNum++) {
-					Log.d(TAG, "values row " + rowNum + ": " + ">>>" + rows[rowNum] + "<<<");
+					AROLogger.v(TAG, "values row " + rowNum + ": " + ">>>" + rows[rowNum] + "<<<");
 				}
 			}
 			if (rows[0].startsWith("USER")) {
-				if (DEBUG) {
-					Log.d(TAG, "PID should be in 2nd column in single row retrieved");
-				}
+				AROLogger.v(TAG, "PID should be in 2nd column in single row retrieved");
 				for (int rowNum = 1; rowNum < rows.length; rowNum++) {
 					final String row = rows[rowNum];
 					final String[] columns = row.split("\\s+");
 
-					if (DEBUG) {
+					if (AROLogger.logVerbose) {
 						for (int itemNum = 0; itemNum < columns.length; itemNum++) {
-							Log.d(TAG, "item " + itemNum + ": " + ">>>" + columns[itemNum] + "<<<");
+							AROLogger.v(TAG, "item " + itemNum + ": " + ">>>" + columns[itemNum] + "<<<");
 						}
 					}
 
@@ -119,19 +104,19 @@ public class AROCollectorTaskManagerProcessInfo {
 						break;
 					}
 				}
-				if (DEBUG) {
-					Log.d(TAG, "exiting if USER block with PID (without finding one): " + pid);
+				if (AROLogger.logDebug) {
+					AROLogger.d(TAG, "exiting if USER block with PID (without finding one): " + pid);
 				}
 			}
 			
 
-			if (DEBUG) {
-				Log.d(TAG, "isTcpDumpRunning: " + isAroTcpDumpRunning);
+			if (AROLogger.logDebug) {
+				AROLogger.d(TAG, "isTcpDumpRunning: " + isAroTcpDumpRunning);
 			}
 		} catch (IOException e) {
-			Log.e(TAG, e.getClass().getName() + " thrown by pstcpdump()");
+			AROLogger.e(TAG, e.getClass().getName() + " thrown by pstcpdump()");
 		} catch (InterruptedException e) {
-			Log.e(TAG, e.getClass().getName() + " thrown by pstcpdump()");
+			AROLogger.e(TAG, e.getClass().getName() + " thrown by pstcpdump()");
 		}
 		return isAroTcpDumpRunning;
 	}

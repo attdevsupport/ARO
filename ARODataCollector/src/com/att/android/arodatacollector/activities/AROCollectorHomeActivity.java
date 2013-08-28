@@ -18,23 +18,23 @@ package com.att.android.arodatacollector.activities;
 
 //import org.apache.http.client.ClientProtocolException;
 
-import com.att.android.arodatacollector.R;
-import com.att.android.arodatacollector.main.AROCollectorService;
-import com.att.android.arodatacollector.main.AROCollectorTraceService;
-import com.att.android.arodatacollector.main.ARODataCollector;
-
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.Chronometer;
 import android.widget.TextView;
+
+import com.att.android.arodatacollector.R;
+import com.att.android.arodatacollector.main.AROCollectorService;
+import com.att.android.arodatacollector.main.AROCollectorTraceService;
+import com.att.android.arodatacollector.main.ARODataCollector;
+import com.att.android.arodatacollector.utils.AROLogger;
 
 /**
  * Represents the Home screen of the ARO Data Collector, which contains butttons
@@ -48,17 +48,6 @@ public class AROCollectorHomeActivity extends Activity {
 
 	/** Android log TAG string for ARO-Data Collector Home Screen */
 	private static final String TAG = "ARO.HomeActivity";
-
-	/**
-	 * The boolean value to enable logs based on production build or debug build
-	 */
-	private static boolean mIsProduction = false;
-
-	/**
-	 * A boolean value that indicates whether or not to enable logging for this
-	 * class in a debug build of the ARO Data Collector.
-	 */
-	public static boolean DEBUG = !mIsProduction;
 
 	/** The Home screen button controls to hide and stop data collector */
 	private Button hideDataCollector, stopDataCollector;
@@ -87,6 +76,9 @@ public class AROCollectorHomeActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		
+		AROLogger.d(TAG, "inside onCreate");
+		
 		mApp = (ARODataCollector) getApplication();
 		//mAroUtils = new AROCollectorUtils();
 		setContentView(R.layout.arocollector_home_screen);
@@ -138,17 +130,13 @@ public class AROCollectorHomeActivity extends Activity {
 	 */
 	@Override
 	protected void onPause() {
-		if (DEBUG) {
-			Log.d(TAG, "onPause() called");
-		}
+		AROLogger.d(TAG, "onPause() called");
 		super.onPause();
 		if (mApp != null) {
 			mApp.hideProgressDialog();
 		}
 		
-		if (DEBUG){
-			Log.i(TAG, "calling unregisterUsbBroadcastReceiver inside onPause()");
-		}
+		AROLogger.d(TAG, "calling unregisterUsbBroadcastReceiver inside onPause()");
 		unregisterUsbBroadcastReceiver();
 		finish();
 	}
@@ -157,20 +145,16 @@ public class AROCollectorHomeActivity extends Activity {
 	 * method to unregister the receiver that listens to usb connect/disconnect events
 	 */
 	private void unregisterUsbBroadcastReceiver() {
-		if (DEBUG){
-			Log.i(TAG, "inside unregisterUsbBroadcastReceiver");
-		}
+		AROLogger.d(TAG, "inside unregisterUsbBroadcastReceiver");
 		try {
 			if (USBBroadcastReceiver != null) {
 				unregisterReceiver(USBBroadcastReceiver);
 				USBBroadcastReceiver = null;
 				
-				if (DEBUG){
-					Log.i(TAG, "successfully unregistered the USBBroadcastReceiver");
-				}
+				AROLogger.d(TAG, "successfully unregistered the USBBroadcastReceiver");
 			}
 		} catch (Exception e){
-			Log.i(TAG, "Ignoring exception in unregisterUsbBroadcastReceiver", e);
+			AROLogger.i(TAG, "Ignoring exception in unregisterUsbBroadcastReceiver", e);
 		}
 	}
 	
@@ -181,9 +165,7 @@ public class AROCollectorHomeActivity extends Activity {
 	protected void onDestroy() {
 		super.onDestroy();
 		
-		if (DEBUG){
-			Log.i(TAG, "calling unregisterUsbBroadcastReceiver inside onDestroy()");
-		}
+		AROLogger.d(TAG, "calling unregisterUsbBroadcastReceiver inside onDestroy()");
 		
 		unregisterUsbBroadcastReceiver();
 	}
@@ -215,7 +197,7 @@ public class AROCollectorHomeActivity extends Activity {
 		});
 		if(mApp.isCollectorLaunchfromAnalyzer()){
 			final boolean dataCollectorStopEnable = mApp.getDataCollectorStopEnable();
-			Log.i(TAG, "dataCollectorStopEnable: " + dataCollectorStopEnable);
+			AROLogger.d(TAG, "dataCollectorStopEnable: " + dataCollectorStopEnable);
 			stopDataCollector.setEnabled(dataCollectorStopEnable);
 		}
 	}
@@ -226,16 +208,12 @@ public class AROCollectorHomeActivity extends Activity {
 	 * shell
 	 */
 	private void stopARODataCollector() {
-		if (DEBUG) {
-			Log.i(TAG, "Inside stopARODataCollector....");
-		}
+		AROLogger.d(TAG, "Inside stopARODataCollector....");
 		stopDataCollector.setEnabled(false);
 		hideDataCollector.setEnabled(false);
 		mApp.setARODataCollectorStopFlag(true);
 		if (mApp != null) {
-			if (DEBUG){
-				Log.i(TAG, "calling unregisterUsbBroadcastReceiver inside stopARODataCollector");
-			}
+			AROLogger.d(TAG, "calling unregisterUsbBroadcastReceiver inside stopARODataCollector");
 			unregisterUsbBroadcastReceiver();
 			mApp.showProgressDialog(this);
 		}
@@ -246,7 +224,7 @@ public class AROCollectorHomeActivity extends Activity {
 			mApp.cancleAROAlertNotification();
 		}
 		else {
-			Log.e(TAG, "inside AROCollectorHomeActivity.stopARODataCollector, but AROCollectorService/AROCollectorTraceService is null. Timestamp: " + System.currentTimeMillis());
+			AROLogger.e(TAG, "inside AROCollectorHomeActivity.stopARODataCollector, but AROCollectorService/AROCollectorTraceService is null. Timestamp: " + System.currentTimeMillis());
 			//this typically happens when the service had been killed by Android and has not been restarted.
 			//This should no longer happen since we implemented these services as foreground service
 		}
@@ -261,9 +239,7 @@ public class AROCollectorHomeActivity extends Activity {
         @Override
         public void onReceive(Context context, Intent intent) {
         	boolean stopEnabled = intent.getBooleanExtra(AROCollectorTraceService.USB_ACTION_EXTRA_KEY, false);
-        	if(DEBUG){
-        	Log.i(TAG, "received usbBroadcast, collectorStopEnable: " + stopEnabled);
-        	}
+        	AROLogger.d(TAG, "received usbBroadcast, collectorStopEnable: " + stopEnabled);
 			stopDataCollector.setEnabled(stopEnabled);
         }
     };
@@ -278,11 +254,9 @@ public class AROCollectorHomeActivity extends Activity {
 		try {
 			
 			registerReceiver(USBBroadcastReceiver, new IntentFilter(AROCollectorTraceService.USB_BROADCAST_ACTION));
-			if (DEBUG){
-				Log.i(TAG, "registered USBBroadcastReceiver in onResume()");
-			}
+			AROLogger.d(TAG, "registered USBBroadcastReceiver in onResume()");
 		} catch (Exception e){
-			Log.w(TAG, "Exception caught in onResume.registerReceiver(). Will ignore", e);
+			AROLogger.i(TAG, "Exception caught in onResume.registerReceiver(). Will ignore", e);
 		}
 	}
  

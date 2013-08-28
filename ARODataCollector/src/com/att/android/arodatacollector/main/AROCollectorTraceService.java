@@ -65,10 +65,9 @@ import android.provider.Settings.SettingNotFoundException;
 import android.telephony.PhoneStateListener;
 import android.telephony.SignalStrength;
 import android.telephony.TelephonyManager;
-import android.util.Log;
 import com.att.android.arodatacollector.R;
-import com.att.android.arodatacollector.activities.AROCollectorHomeActivity;
 import com.att.android.arodatacollector.utils.AROCollectorUtils;
+import com.att.android.arodatacollector.utils.AROLogger;
 import com.flurry.android.FlurryAgent;
 
 /**
@@ -132,18 +131,6 @@ public class AROCollectorTraceService extends Service {
 	 * LandScape Screen orientation
 	 */
 	private static final String PORTRAIT_MODE = "portrait";
-
-	/**
-	 * The boolean value to enable logs depending on if production build or
-	 * debug build
-	 */
-	private static boolean mIsProduction = false;
-
-	/**
-	 * The boolean value to enable logs depending on if production build or
-	 * debug build
-	 */
-	private static boolean DEBUG = !mIsProduction;
 
 	/**
 	 * Camera/GPS/Screen trace timer repeat time value to capture camera events
@@ -350,8 +337,8 @@ public class AROCollectorTraceService extends Service {
 		super.onCreate();
 		mAroUtils = new AROCollectorUtils();
 		
-		if (DEBUG){
-			Log.i(TAG, "starting AROCollectorTraceService at timestamp=" + mAroUtils.getDataCollectorEventTimeStamp());
+		if (AROLogger.logDebug){
+			AROLogger.d(TAG, "starting AROCollectorTraceService at timestamp=" + mAroUtils.getDataCollectorEventTimeStamp());
 		}
 		
 		mDataCollectorTraceService = this;
@@ -372,8 +359,8 @@ public class AROCollectorTraceService extends Service {
 		mAROnotificationManager.notify(ARODataCollector.NOTIFICATION_ID, mAROnotification);
 		startForeground(ARODataCollector.NOTIFICATION_ID, mAROnotification);
 		
-		if (DEBUG){
-			Log.d(TAG, "AROCollectorTraceService started in foreground at timestamp:" + System.currentTimeMillis());
+		if (AROLogger.logDebug){
+			AROLogger.d(TAG, "AROCollectorTraceService started in foreground at timestamp:" + System.currentTimeMillis());
 		}
 		return (START_NOT_STICKY);
 
@@ -387,8 +374,8 @@ public class AROCollectorTraceService extends Service {
 	 */
 	@Override
 	public void onDestroy() {
-		if (DEBUG) {
-			Log.i(TAG, "onDestroy called for AROCollectorTraceService " + mAroUtils.getSystemTimeinSeconds());
+		if (AROLogger.logDebug) {
+			AROLogger.d(TAG, "onDestroy called for AROCollectorTraceService " + mAroUtils.getSystemTimeinSeconds());
 		}
 		super.onDestroy();
 		stopARODataTraceCollection();
@@ -414,8 +401,8 @@ public class AROCollectorTraceService extends Service {
 	 */
 	private void startARODataTraceCollection() {
 		try {
-			if (DEBUG){
-				Log.i(TAG, "starting ARO peripheral trace at timestamp=" + mAroUtils.getDataCollectorEventTimeStamp());
+			if (AROLogger.logDebug){
+				AROLogger.d(TAG, "starting ARO peripheral trace at timestamp=" + mAroUtils.getDataCollectorEventTimeStamp());
 			}
 			initAROTraceFile();
 			startAROCpuTrace();
@@ -432,7 +419,7 @@ public class AROCollectorTraceService extends Service {
 			startAROAirplaneModeMidTrace();
 			startAroScreenRotationMonitor();
 		} catch (FileNotFoundException e) {
-			Log.e(TAG, "exception in initAROTraceFile: Failed to start ARO-Data Collector Trace", e);
+			AROLogger.e(TAG, "exception in initAROTraceFile: Failed to start ARO-Data Collector Trace", e);
 		}
 	}
 	
@@ -522,7 +509,7 @@ public class AROCollectorTraceService extends Service {
 			}
 		}
 		else {
-			Log.d(TAG, "script already running under pid=" + cpuScriptPid);
+			AROLogger.d(TAG, "script already running under pid=" + cpuScriptPid);
 			writeTraceLineToAROTraceFile(mCpuDebugWriter, "script already running under pid=" + cpuScriptPid, true);
 		}
 	}
@@ -555,7 +542,7 @@ public class AROCollectorTraceService extends Service {
 	 */
 	private synchronized void processCpuDirectory() {
 		long start = System.currentTimeMillis();
-		Log.i(TAG, "processCpuDirectory() started at " + start);
+		AROLogger.v(TAG, "processCpuDirectory() started at " + start);
 		writeTraceLineToAROTraceFile(mCpuDebugWriter, "cpu file processing started", true);
 		try {
 			File cpuDir = new File(getCpuDirFullPath());
@@ -571,7 +558,10 @@ public class AROCollectorTraceService extends Service {
 		}
 		
 		long end = System.currentTimeMillis();
-		Log.i(TAG, "processCpuDirectory() ended at " + end + ". Duration: " + (end - start));
+
+		if (AROLogger.logVerbose){
+			AROLogger.v(TAG, "processCpuDirectory() ended at " + end + ". Duration: " + (end - start));
+		}
 	}
 
 	
@@ -725,7 +715,7 @@ public class AROCollectorTraceService extends Service {
 			columnIndicesSet = true;
 		}
 		else {
-			Log.w(TAG, "could not set processCpuColumnIndex/processNameColumnIndex for line=" + line);
+			AROLogger.w(TAG, "could not set processCpuColumnIndex/processNameColumnIndex for line=" + line);
 			writeTraceLineToAROTraceFile(mCpuDebugWriter, "could not set processCpuColumnIndex/processNameColumnIndex for line=" + line, false);
 		}
 	}
@@ -757,7 +747,7 @@ public class AROCollectorTraceService extends Service {
 				
 			}
 			else {
-				Log.w(TAG, "totalCpuLineMatcher doesn't return 8 capturing groups for line=" + line);
+				AROLogger.w(TAG, "totalCpuLineMatcher doesn't return 8 capturing groups for line=" + line);
 				writeTraceLineToAROTraceFile(mCpuDebugWriter, "totalCpuLineMatcher doesn't return 8 capturing groups for line= " + line, true);
 				isTotalCpuLine = false;
 			}
@@ -870,7 +860,7 @@ public class AROCollectorTraceService extends Service {
 				writeTraceLineToAROTraceFile(mDeviceInfoWriter, ipAddress, false);
 			}
 		} catch (SocketException e) {
-			Log.e(TAG, "exception in getLocalIpAddress", e);
+			AROLogger.e(TAG, "exception in getLocalIpAddress", e);
 		}
 		writeTraceLineToAROTraceFile(mDeviceDetailsWriter,
 				getApplicationContext().getPackageName(), false);
@@ -897,9 +887,7 @@ public class AROCollectorTraceService extends Service {
 	 * Stops the ARO-Data Collector peripherals trace collection
 	 */
 	private void stopARODataTraceCollection() {
-		if (DEBUG){
-			Log.i(TAG, "stopping aro trace collection");
-		}
+		AROLogger.d(TAG, "stopping aro trace collection");
 		stopAROScreenTraceMonitor();
 		stopAROGpsTraceMonitor();
 		stopAROBatteryLevelMonitor();
@@ -913,7 +901,7 @@ public class AROCollectorTraceService extends Service {
 		try {
 			closeAROTraceFile();
 		} catch (IOException e) {
-			Log.e(TAG, "exception in closeAROTraceFile", e);
+			AROLogger.e(TAG, "exception in closeAROTraceFile", e);
 		}
 		stopARODeviceSDCardSpaceMidTrace();
 		stopAROAirplaneModeMidTrace();
@@ -927,8 +915,8 @@ public class AROCollectorTraceService extends Service {
 	 * @return mCellNetworkType Current network type
 	 */
 	private int getDeviceNetworkType(NetworkInfo mCurrentNetworkType) {
-		if (DEBUG) {
-			Log.i(TAG, "getting device network type" + mCurrentNetworkType);
+		if (AROLogger.logDebug) {
+			AROLogger.d(TAG, "getting device network type" + mCurrentNetworkType);
 		}
 		final TelephonyManager mAROtelManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 		int networkType = mAROtelManager.getNetworkType();
@@ -954,8 +942,8 @@ public class AROCollectorTraceService extends Service {
 	private void initAROTraceFile() throws FileNotFoundException {
 
 		final String mAroTraceDatapath = mApp.getTcpDumpTraceFolderName();
-		if (DEBUG) {
-			Log.d(TAG, "mAroTraceDatapath=" + mAroTraceDatapath);
+		if (AROLogger.logDebug) {
+			AROLogger.d(TAG, "mAroTraceDatapath=" + mAroTraceDatapath);
 		}
 		mWifiTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outWifiFileName ,true);
 		mWifiTracewriter = new BufferedWriter(new OutputStreamWriter(mWifiTraceOutputFile));
@@ -1108,10 +1096,7 @@ public class AROCollectorTraceService extends Service {
 			// TODO: Need to display the exception error instead of Mid Trace
 			// mounted error
 			mApp.setMediaMountedMidAROTrace(mAroUtils.checkSDCardMounted());
-			if (DEBUG) {
-				Log.i(TAG, "Exception in writeTraceLineToAROTraceFile");
-				Log.e(TAG, "exception in writeTraceLineToAROTraceFile", e);
-			}
+			AROLogger.e(TAG, "exception in writeTraceLineToAROTraceFile", e);
 		}
 	}
 
@@ -1126,8 +1111,8 @@ public class AROCollectorTraceService extends Service {
 				if (mAroUtils.checkSDCardMemoryAvailable() < AROSDCARD_MIN_SPACEKBYTES) {
 					aroSDCardErrorUIUpdate();
 					checkSDCardSpace.cancel();
-					if (DEBUG) {
-						Log.i(TAG,
+					if (AROLogger.logDebug) {
+						AROLogger.d(TAG,
 								"startARODeviceSDCardSpaceMidTrace="
 										+ mAroUtils.checkSDCardMemoryAvailable());
 					}
@@ -1187,10 +1172,8 @@ public class AROCollectorTraceService extends Service {
 					//We should cancel the timer here as we detected Air plane mode was turned on during trace cyle.
 					aroAirplaneModeUIUpdate();
 					checkAirplaneModeEnabled.cancel();
-					if (DEBUG) {
-						Log.i(TAG,
+					AROLogger.d(TAG,
 								"startAROAirplaneMidMidTrace= Airplane Mode was turned on Mid Trace");
-					}
 					return;
 				}
 			}
@@ -1223,15 +1206,13 @@ public class AROCollectorTraceService extends Service {
 				if (checkCurrentProcessState("camera"))
 					mCameraOn = false;
 				if (mCameraOn && !mPrevCameraOn) {
-					if (DEBUG)
-						Log.i(TAG, "Camera Turned on");
+					AROLogger.d(TAG, "Camera Turned on");
 					writeTraceLineToAROTraceFile(mCameraTracewriter, "ON", true);
 					writeToFlurryAndMaintainStateAndLogEvent(cameraFlurryEvent, getString(R.string.flurry_param_status), "ON", true);
 					mCameraOn = true;
 					mPrevCameraOn = true;
 				} else if (!mCameraOn && mPrevCameraOn) {
-					if (DEBUG)
-						Log.i(TAG, "Camera Turned Off");
+					AROLogger.d(TAG, "Camera Turned Off");
 					writeTraceLineToAROTraceFile(mCameraTracewriter, AroTraceFileConstants.OFF, true);
 					writeToFlurryAndMaintainStateAndLogEvent(cameraFlurryEvent, getString(R.string.flurry_param_status), AroTraceFileConstants.OFF, true);
 					mCameraOn = false;
@@ -1280,9 +1261,9 @@ public class AROCollectorTraceService extends Service {
 				mPrevScreenTimeout = mScreenTimeout;
 			}
 
-			if (DEBUG) {
-				Log.d(TAG, "Screen brightness: " + mScreencurBrightness);
-				Log.d(TAG, "Screen Timeout: " + mScreenTimeout);
+			if (AROLogger.logDebug) {
+				AROLogger.d(TAG, "Screen brightness: " + mScreencurBrightness);
+				AROLogger.d(TAG, "Screen Timeout: " + mScreenTimeout);
 			}
 		}
 	};
@@ -1304,7 +1285,7 @@ public class AROCollectorTraceService extends Service {
 					Settings.System.SCREEN_OFF_TIMEOUT);
 			mScreenTimeout = mScreenTimeout / 1000; // In Seconds
 		} catch (SettingNotFoundException e) {
-			Log.e(TAG, "exception in getScreenBrigthnessTimeout", e);
+			AROLogger.e(TAG, "exception in getScreenBrigthnessTimeout", e);
 		}
 
 	}
@@ -1319,26 +1300,24 @@ public class AROCollectorTraceService extends Service {
 	 */
 	private void recordBearerAndNetworkChange(final NetworkInfo mAROActiveNetworkInfo, final boolean isNetworkConnected){
 		
-		if (DEBUG){
-			Log.d(TAG, "enter recordBearerAndNetworkChange()");
-		}
+		AROLogger.d(TAG, "enter recordBearerAndNetworkChange()");
 		if (mAROActiveNetworkInfo != null && isNetworkConnected 
 				&& getDeviceNetworkType(mAROActiveNetworkInfo) != TelephonyManager.NETWORK_TYPE_UNKNOWN){
 			
 			String currentBearer = getCurrentBearer();
 			final int currentNetworkType = getDeviceNetworkType(mAROActiveNetworkInfo);
-			if (DEBUG){
-				Log.i(TAG, "mAROActiveNetworkInfo.state=" + mAROActiveNetworkInfo.getState());
-				Log.i(TAG, "mAROPrevBearer=" + mAROPrevBearer + "; currentBearer=" + currentBearer);
-				Log.i(TAG, "mAROPrevNetworkType=" + mAROPrevNetworkType + "; currentNetworkType=" + currentNetworkType);
+			if (AROLogger.logDebug){
+				AROLogger.d(TAG, "mAROActiveNetworkInfo.state=" + mAROActiveNetworkInfo.getState());
+				AROLogger.d(TAG, "mAROPrevBearer=" + mAROPrevBearer + "; currentBearer=" + currentBearer);
+				AROLogger.d(TAG, "mAROPrevNetworkType=" + mAROPrevNetworkType + "; currentNetworkType=" + currentNetworkType);
 			}
 			if(!mAROPrevBearer.equals(currentBearer)) {
 				//bearer change, signaling a failover
 				mAROPrevBearer = currentBearer;
 				writeTraceLineToAROTraceFile(mNetworkTracewriter,Integer.toString(currentNetworkType), true);
 				
-				if (DEBUG){
-					Log.i(TAG, "failover, wrote networkType=" + currentNetworkType + " to networkdetails completed at timestamp: " + mAroUtils.getDataCollectorEventTimeStamp());
+				if (AROLogger.logDebug){
+					AROLogger.d(TAG, "failover, wrote networkType=" + currentNetworkType + " to networkdetails completed at timestamp: " + mAroUtils.getDataCollectorEventTimeStamp());
 				}
 				mAROPrevNetworkType = currentNetworkType;
 				//Flurry logs
@@ -1352,8 +1331,8 @@ public class AROCollectorTraceService extends Service {
 			//-1 - Wifi (We don't want to check for wifi network for 4G-3G-2G transition)
 			else if( currentNetworkType != -1 && mAROPrevNetworkType != currentNetworkType){
 				writeTraceLineToAROTraceFile(mNetworkTracewriter,Integer.toString(currentNetworkType), true);
-				if (DEBUG){
-					Log.i(TAG, "4g-3g-2g switch, wrote networkType=" + currentNetworkType + " to networkdetails completed at timestamp: " + mAroUtils.getDataCollectorEventTimeStamp());
+				if (AROLogger.logDebug){
+					AROLogger.d(TAG, "4g-3g-2g switch, wrote networkType=" + currentNetworkType + " to networkdetails completed at timestamp: " + mAroUtils.getDataCollectorEventTimeStamp());
 				}
 				//log the 4G-3G-2G network switch
 				final String tempNetworkFlurryState = mAROActiveNetworkInfo.getSubtypeName();
@@ -1368,9 +1347,7 @@ public class AROCollectorTraceService extends Service {
 			}
 		}
 		else {
-			if (DEBUG){
-				Log.i(TAG, "mAROActiveNetworkInfo is null, network is not CONNECTED, or networkType is unknown...exiting recordBearerAndNetworkChange()");
-			}
+			AROLogger.d(TAG, "mAROActiveNetworkInfo is null, network is not CONNECTED, or networkType is unknown...exiting recordBearerAndNetworkChange()");
 		}
 	}
 	
@@ -1381,9 +1358,7 @@ public class AROCollectorTraceService extends Service {
 	private BroadcastReceiver mAROBearerChangeReceiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
-			if (DEBUG) {
-				Log.d(TAG, "entered mAROBearerChangeReceiver ");
-			}
+			AROLogger.d(TAG, "entered mAROBearerChangeReceiver ");
 
 			final String action = intent.getAction();
 			if (action.equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
@@ -1408,13 +1383,10 @@ public class AROCollectorTraceService extends Service {
 		public void onReceive(Context context, Intent intent) {
 			final String action = intent.getAction();
 			if (action.equals(WifiManager.WIFI_STATE_CHANGED_ACTION)) {
-				if (DEBUG) {
-					Log.d(TAG, "entered WIFI_STATE_CHANGED_ACTION");
-				}
+				AROLogger.d(TAG, "entered WIFI_STATE_CHANGED_ACTION");
+				
 				if (mWifiManager.getWifiState() == WifiManager.WIFI_STATE_ENABLED) {
-					if (DEBUG) {
-						Log.d(TAG, "entered WIFI_STATE_CHANGED_ACTION--DISCONNECTED");
-					}
+					AROLogger.d(TAG, "entered WIFI_STATE_CHANGED_ACTION--DISCONNECTED");
 					writeTraceLineToAROTraceFile(mWifiTracewriter,
 							AroTraceFileConstants.DISCONNECTED_NETWORK, true);
 					
@@ -1422,9 +1394,7 @@ public class AROCollectorTraceService extends Service {
 							AroTraceFileConstants.DISCONNECTED_NETWORK, true);
 
 				} else if (mWifiManager.getWifiState() == WifiManager.WIFI_STATE_DISABLED) {
-					if (DEBUG) {
-						Log.d(TAG, "entered WIFI_STATE_CHANGED_ACTION--OFF");
-					}
+					AROLogger.d(TAG, "entered WIFI_STATE_CHANGED_ACTION--OFF");
 					writeTraceLineToAROTraceFile(mWifiTracewriter, AroTraceFileConstants.OFF, true);
 					
 					writeToFlurryAndMaintainStateAndLogEvent(wifiFlurryEvent, getString(R.string.flurry_param_status), 
@@ -1553,33 +1523,33 @@ public class AROCollectorTraceService extends Service {
 									.getSpecifiedFieldValues(SignalStrength.class, signalStrength,
 											"mLteSignalStrength"));
 						} catch (NumberFormatException nmb) {
-							Log.e(TAG, "mLteSignalStrength not found in LTE Signal Strength");
+							AROLogger.e(TAG, "mLteSignalStrength not found in LTE Signal Strength");
 						}
 
 						try {
 							mLteRsrp = Integer.parseInt(mAroUtils.getSpecifiedFieldValues(
 									SignalStrength.class, signalStrength, "mLteRsrp"));
 						} catch (NumberFormatException nmb) {
-							Log.e(TAG, "mLteRsrp not found in LTE Signal Strength");
+							AROLogger.e(TAG, "mLteRsrp not found in LTE Signal Strength");
 						}
 
 						try {
 							mLteRsrq = Integer.parseInt(mAroUtils.getSpecifiedFieldValues(
 									SignalStrength.class, signalStrength, "mLteRsrq"));
 						} catch (NumberFormatException nmb) {
-							Log.e(TAG, "mLteRsrq not found in LTE Signal Strength");
+							AROLogger.e(TAG, "mLteRsrq not found in LTE Signal Strength");
 						}
 						try {
 							mLteRssnr = Integer.parseInt(mAroUtils.getSpecifiedFieldValues(
 									SignalStrength.class, signalStrength, "mLteRssnr"));
 						} catch (NumberFormatException nmb) {
-							Log.e(TAG, "mLteRssnr not found in LTE Signal Strength");
+							AROLogger.e(TAG, "mLteRssnr not found in LTE Signal Strength");
 						}
 						try {
 							mLteCqi = Integer.parseInt(mAroUtils.getSpecifiedFieldValues(
 									SignalStrength.class, signalStrength, "mLteCqi"));
 						} catch (NumberFormatException nmb) {
-							Log.e(TAG, "mLteCqi not found in LTE Signal Strength");
+							AROLogger.e(TAG, "mLteCqi not found in LTE Signal Strength");
 						}
 
 					}
@@ -1619,8 +1589,8 @@ public class AROCollectorTraceService extends Service {
 					mRadioSignalStrength = String.valueOf(signalStrength.getEvdoDbm());
 				}
 
-				if (DEBUG) {
-					Log.i(TAG, "signal strength changed to " + mRadioSignalStrength);
+				if (AROLogger.logVerbose) {
+					AROLogger.v(TAG, "signal strength changed to " + mRadioSignalStrength);
 				}
 				writeTraceLineToAROTraceFile(mRadioTracewriter, mRadioSignalStrength, true);
 			}
@@ -1628,9 +1598,9 @@ public class AROCollectorTraceService extends Service {
 			//added to listen for 4g-3g-2g transitions
 			@Override
 			public void onDataConnectionStateChanged (int state, int networkType){
-				if (DEBUG) {
-					Log.d(TAG, "entered onDataConnectionStateChanged ");
-					Log.d(TAG, "state=" + state + "; networkType=" + networkType);
+				if (AROLogger.logDebug) {
+					AROLogger.d(TAG, "entered onDataConnectionStateChanged ");
+					AROLogger.d(TAG, "state=" + state + "; networkType=" + networkType);
 				}
 				
 				final ConnectivityManager mAROConnectivityMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -1719,18 +1689,14 @@ public class AROCollectorTraceService extends Service {
 	 */
 	private void writeGpsStateToTraceFile(final boolean currentGpsEnabledState) {
 		if (currentGpsEnabledState) {
-			if (DEBUG) {
-				Log.d(TAG, "gps enabled: ");
-			}
+			AROLogger.d(TAG, "gps enabled: ");
 			if (!mGPSActive) {
 				writeTraceLineToAROTraceFile(mGPSTracewriter, AroTraceFileConstants.STANDBY, true);
 				writeToFlurryAndMaintainStateAndLogEvent(gpsFlurryEvent, 
 						getString(R.string.flurry_param_status), AroTraceFileConstants.STANDBY, true);
 			}
 		} else {
-			if (DEBUG) {
-				Log.d(TAG, "gps Disabled: ");
-			}
+			AROLogger.d(TAG, "gps Disabled: ");
 			writeTraceLineToAROTraceFile(mGPSTracewriter, AroTraceFileConstants.OFF, true);
 			writeToFlurryAndMaintainStateAndLogEvent(gpsFlurryEvent, 
 					getString(R.string.flurry_param_status), AroTraceFileConstants.OFF, true);
@@ -1805,7 +1771,7 @@ public class AROCollectorTraceService extends Service {
 			checkScreenBrightness = null;
 			mAROIntentFilter = null;
 		} catch (IllegalArgumentException e) {
-			Log.e(TAG, "IllegalArgumentException at unregister mAROScreenTraceReceiver");
+			AROLogger.e(TAG, "IllegalArgumentException at unregister mAROScreenTraceReceiver");
 		}
 	}
 
@@ -1854,7 +1820,7 @@ public class AROCollectorTraceService extends Service {
 				mAROBluetoothIntentFilter = null;
 			}
 		} catch (IllegalArgumentException e) {
-			Log.e(TAG, "IllegalArgumentException at unregister mAROBluetoothTraceReceiver");
+			AROLogger.e(TAG, "IllegalArgumentException at unregister mAROBluetoothTraceReceiver");
 		}
 		
 	}
@@ -1872,14 +1838,10 @@ public class AROCollectorTraceService extends Service {
 			type = mConnectivityManager.getActiveNetworkInfo().getType();
 		}
 		if (type == ConnectivityManager.TYPE_MOBILE) {
-			if (DEBUG) {
-				Log.i(TAG, " Connection Type :  Mobile");
-			}
+			AROLogger.d(TAG, " Connection Type :  Mobile");
 			return false;
 		} else {
-			if (DEBUG) {
-				Log.i(TAG, " Connection Type :  Wifi");
-			}
+			AROLogger.d(TAG, " Connection Type :  Wifi");
 			return true;
 		}
 	}
@@ -1905,8 +1867,8 @@ public class AROCollectorTraceService extends Service {
 			mWifiNetworkSSID = mWifiManager.getConnectionInfo().getSSID();
 			mWifiRssi = mWifiManager.getConnectionInfo().getRssi();
 			
-			if (DEBUG){
-				Log.d(TAG, "mWifiMac=" + mWifiMacAddress + ", ssid=" + mWifiNetworkSSID + ", rssi:" + mWifiRssi);
+			if (AROLogger.logDebug){
+				AROLogger.d(TAG, "mWifiMac=" + mWifiMacAddress + ", ssid=" + mWifiNetworkSSID + ", rssi:" + mWifiRssi);
 			}
 		}
 	}
@@ -1931,7 +1893,7 @@ public class AROCollectorTraceService extends Service {
 				mAROBearerChangeReceiver = null;
 			}
 		} catch (IllegalArgumentException e) {
-			Log.e(TAG, "IllegalArgumentException at unregister mAROBearerChangeReceiver");
+			AROLogger.e(TAG, "IllegalArgumentException at unregister mAROBearerChangeReceiver");
 		}
 	}
 
@@ -1964,7 +1926,7 @@ public class AROCollectorTraceService extends Service {
 			}
 			mConnectivityManager = null;
 		} catch (IllegalArgumentException e) {
-			Log.e(TAG, "IllegalArgumentException at unregister mAROWifiTraceReceiver");
+			AROLogger.e(TAG, "IllegalArgumentException at unregister mAROWifiTraceReceiver");
 		}
 		
 	}
@@ -1983,8 +1945,11 @@ public class AROCollectorTraceService extends Service {
 		if (!mLastLaucnhedProcess.equalsIgnoreCase(rti.baseIntent.getComponent().getPackageName())
 				&& !rti.baseIntent.getComponent().getPackageName()
 						.equalsIgnoreCase("com.att.android.arodatacollector.main")) {
-			if (DEBUG)
-				Log.i(TAG, "New Task=" + rti.baseIntent.getComponent().getPackageName());
+			
+			if (AROLogger.logVerbose){
+				AROLogger.v(TAG, "New Task=" + rti.baseIntent.getComponent().getPackageName());
+			}
+			
 			mLastLaucnhedProcess = rti.baseIntent.getComponent().getPackageName();
 			return mLastLaucnhedProcess;
 		}
@@ -2122,7 +2087,7 @@ public class AROCollectorTraceService extends Service {
 				
 				case 0: //USB Unplugged
 					if(mApp.isCollectorLaunchfromAnalyzer()){
-						Log.i(TAG, "usb disconnected, set dataCollectorStopEnable to true");
+						AROLogger.d(TAG, "usb disconnected, set dataCollectorStopEnable to true");
 						mApp.setDataCollectorStopEnable(true);
 						broadcastUsbAction(true);
 					}
@@ -2141,10 +2106,10 @@ public class AROCollectorTraceService extends Service {
 				}
 			}
 		}
-		if (DEBUG) {
-			Log.d(TAG, "received battery level: " + mBatteryLevel);
-			Log.d(TAG, "received battery temp: " + mBatteryTemp / 10 + "C");
-			Log.d(TAG, "received power source " + mPowerSource);
+		if (AROLogger.logDebug) {
+			AROLogger.d(TAG, "received battery level: " + mBatteryLevel);
+			AROLogger.d(TAG, "received battery temp: " + mBatteryTemp / 10 + "C");
+			AROLogger.d(TAG, "received power source " + mPowerSource);
 		}
 		writeTraceLineToAROTraceFile(mBatteryTracewriter, mBatteryLevel + " " + mBatteryTemp / 10
 				+ " " + mPowerSource, true);
@@ -2162,8 +2127,8 @@ public class AROCollectorTraceService extends Service {
 	 * @param CollectorStopEnable
 	 */
 	private void broadcastUsbAction(boolean collectorStopEnable) {
-		if (DEBUG) {
-			Log.i(TAG, "broadcasting usbAction, collectorStopEnable:"
+		if (AROLogger.logDebug) {
+			AROLogger.d(TAG, "broadcasting usbAction, collectorStopEnable:"
 					+ collectorStopEnable);
 		}
 		usbBroadcastIntent.putExtra(USB_ACTION_EXTRA_KEY, collectorStopEnable);
@@ -2199,7 +2164,7 @@ public class AROCollectorTraceService extends Service {
 				mBatteryLevelReceiver = null;
 			}
 		} catch (IllegalArgumentException e) {
-			Log.e(TAG, "IllegalArgumentException at unregister mBatteryLevelReceiver");
+			AROLogger.e(TAG, "IllegalArgumentException at unregister mBatteryLevelReceiver");
 		}
 	}
 
@@ -2256,7 +2221,7 @@ public class AROCollectorTraceService extends Service {
 				mScreenRotationReceiver = null;
 			}
 		} catch (IllegalArgumentException e) {
-			Log.e(TAG, "IllegalArgumentException at unregister mScreenRotationReceiver");
+			AROLogger.e(TAG, "IllegalArgumentException at unregister mScreenRotationReceiver");
 		}
 	}
 
@@ -2276,8 +2241,8 @@ public class AROCollectorTraceService extends Service {
 				currentValue, fe.getEventName(), fe.getState(), currentValue );
 		if (!fe.getState().equals(currentValue)) {
 			fe.setState(currentValue);
-			if (DEBUG) {
-				Log.d(TAG, "writeToFlurryAndMaintainState()-flurry state updated to: " + fe.getState());
+			if (AROLogger.logDebug) {
+				AROLogger.d(TAG, "writeToFlurryAndMaintainState()-flurry state updated to: " + fe.getState());
 			}
 		}
 	}
@@ -2302,8 +2267,8 @@ public class AROCollectorTraceService extends Service {
 					currentValue, aFlurryEvent.getEventName(), aFlurryEvent.getState(), currentValue );
 			if (!aFlurryEvent.getState().equals(currentValue)) {
 				aFlurryEvent.setState(currentValue);
-				if (DEBUG) {
-					Log.d(TAG, "writeToFlurryAndMaintainStateAndLogEvent()-flurry state updated to: " + aFlurryEvent.getState() + 
+				if (AROLogger.logDebug) {
+					AROLogger.d(TAG, "writeToFlurryAndMaintainStateAndLogEvent()-flurry state updated to: " + aFlurryEvent.getState() + 
 							" and logged now");
 				}
 				FlurryAgent.logEvent(aFlurryEvent.getEventName(), aFlurryEvent.getMapToWrite());
@@ -2312,8 +2277,8 @@ public class AROCollectorTraceService extends Service {
 				aFlurryEvent.setMapToWrite(new HashMap<String, String>());
 			}
 		} else {//hashmap is empty-new map is ready-log will be empty 
-			if (DEBUG) {
-				Log.d(TAG, "writeToFlurryAndMaintainStateAndLogEvent()-did not log-map is null-Event: " + 
+			if (AROLogger.logDebug) {
+				AROLogger.d(TAG, "writeToFlurryAndMaintainStateAndLogEvent()-did not log-map is null-Event: " + 
 						aFlurryEvent.getEventName() + "-key: " + key + "-value: " + currentValue);
 			}
 		}
@@ -2332,8 +2297,8 @@ public class AROCollectorTraceService extends Service {
 			isConnected = mAROActiveNetworkInfo.isConnected();
 		}
 		
-		if (DEBUG){
-			Log.d(TAG, "recordInitialBearerInfo: isConnected=" + isConnected + "; currentBearerWifi=" + getifCurrentBearerWifi());
+		if (AROLogger.logDebug){
+			AROLogger.d(TAG, "recordInitialBearerInfo: isConnected=" + isConnected + "; currentBearerWifi=" + getifCurrentBearerWifi());
 		}
 		//call to record the initial bearer
 		recordBearerAndNetworkChange(mAROActiveNetworkInfo, isConnected);
@@ -2352,8 +2317,8 @@ public class AROCollectorTraceService extends Service {
 				AroTraceFileConstants.CONNECTED_NETWORK + " " + mWifiMacAddress + " "
 				+ mWifiRssi + " " + mWifiNetworkSSID, true);
 		
-		if (DEBUG){
-			Log.i(TAG, "connected to " + mWifiNetworkSSID + " write to mWifiTracewriter completed at timestamp: " + mAroUtils.getDataCollectorEventTimeStamp());
+		if (AROLogger.logDebug){
+			AROLogger.d(TAG, "connected to " + mWifiNetworkSSID + " write to mWifiTracewriter completed at timestamp: " + mAroUtils.getDataCollectorEventTimeStamp());
 		}
 		
 		writeToFlurryAndMaintainStateAndLogEvent(wifiFlurryEvent, getString(R.string.flurry_param_status), 

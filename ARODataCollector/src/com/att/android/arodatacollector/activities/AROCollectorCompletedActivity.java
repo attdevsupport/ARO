@@ -17,18 +17,22 @@ package com.att.android.arodatacollector.activities;
 
 import java.io.IOException;
 
-import com.att.android.arodatacollector.R;
-import com.att.android.arodatacollector.main.ARODataCollector;
-
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
+
+import com.att.android.arodatacollector.R;
+import com.att.android.arodatacollector.main.ARODataCollector;
+import com.att.android.arodatacollector.utils.AROCollectorUtils;
+import com.att.android.arodatacollector.utils.AROLogger;
 
 /**
  * Represents the Trace Completed screen of the ARO Data Collector, which
@@ -40,18 +44,6 @@ public class AROCollectorCompletedActivity extends Activity {
 
 	/** Android log TAG string for ARO-Data Collector trace summary Screen */
 	private static final String TAG = "ARO.CompletedActivity";
-
-	/**
-	 * The boolean value to enable logs depending on if production build or
-	 * debug build
-	 */
-	private static boolean mIsProduction = true;
-
-	/**
-	 * A boolean value that indicates whether or not to enable logging for this
-	 * class in a debug build of the ARO Data Collector.
-	 */
-	public static boolean DEBUG = !mIsProduction;
 
 	/** The final trace summary OK button control **/
 	private Button traceSummaryOKButton;
@@ -71,10 +63,30 @@ public class AROCollectorCompletedActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		
+		if (new AROCollectorUtils().isTcpDumpRunning()) {
+			//this is the case when the summary screen from a previous
+			//collector instance was destroyed by the system, so it
+			//was not cleaned up when the analyzer launches a new collector instance
+			exitSummaryScreen();
+			return;
+		}
+		
 		mApp = (ARODataCollector) getApplication();
 		setContentView(R.layout.arocollector_tracecompleted_screen);
 		initTraceSummaryControls();
 		initTraceSummaryControlListeners();
+		registerAnalyzerLaunchReceiver();
+	}
+	
+	/**
+	 * Closes the current activity
+	 */
+	private void exitSummaryScreen() {
+		// Close the current summary screen
+		AROLogger.d(TAG, "another instance of collector already running, will exit this summary screen");
+		
+		finish();
 	}
 
 	/**
@@ -107,7 +119,7 @@ public class AROCollectorCompletedActivity extends Activity {
 		} catch (IOException e) {
 			// TODO: Setting default value for application up time and notify
 			// user
-			Log.e(TAG, "exception in readPcapStartEndTime. Could not read trace start time", e);
+			AROLogger.e(TAG, "exception in readPcapStartEndTime. Could not read trace start time", e);
 		}
 		traceSummaryOKButton = (Button) findViewById(R.id.datasummaryok);
 		tracePath.setText(ARODataCollector.ARO_TRACE_ROOTDIR + mApp.getDumpTraceFolderName());
@@ -157,9 +169,7 @@ public class AROCollectorCompletedActivity extends Activity {
 	@Override
 	protected void onPause() {
 		super.onPause();
-		if (DEBUG) {
-			Log.d(TAG, "onPause() called");
-		}
+		AROLogger.d(TAG, "onPause() called");
 	}
 
 	/**
@@ -176,12 +186,57 @@ public class AROCollectorCompletedActivity extends Activity {
 		traceduration.setText((appUpHours < 10 ? "0" : "") + appUpHours + ":"
 				+ (appUpMinutes < 10 ? "0" : "") + appUpMinutes + ":"
 				+ (appUpSeconds < 10 ? "0" : "") + appUpSeconds);
-		if (DEBUG) {
-			Log.i(TAG, "DataCollector up time=" + (appUpHours < 10 ? "0" : "") + appUpHours + ":"
+		
+		if (AROLogger.logDebug){
+			AROLogger.d(TAG, "DataCollector up time=" + (appUpHours < 10 ? "0" : "") + appUpHours + ":"
 					+ (appUpMinutes < 10 ? "0" : "") + appUpMinutes + ":"
 					+ (appUpSeconds < 10 ? "0" : "") + appUpSeconds);
 		}
-
 	}
 
+	/**
+	 * receiver to listen to the analyzer launch cleanup broadcast sent from the splashActivity
+	 */
+	private BroadcastReceiver analyzerLaunchReceiver = new BroadcastReceiver(){
+
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			AROLogger.d(TAG, "received analyzerLaunchCleanupIntent at " + System.currentTimeMillis());
+	        finish();
+		}
+		
+	};
+	
+	/**
+	 * method to register the receiver that listens to analyzer launch intent
+	 */
+	private void registerAnalyzerLaunchReceiver() {
+		AROLogger.d(TAG, "registering analyzerTimeOutReceiver");
+		registerReceiver(analyzerLaunchReceiver, new IntentFilter(AROCollectorUtils.ANALYZER_LAUNCH_CLEANUP_INTENT));
+	}
+	
+	/**
+	 * method to unregister the receiver that listens to analyzer launch
+	 */
+	private void unregisterLaunchReceiver() {
+		AROLogger.d(TAG, "inside unregisterLaunchReceiver");
+		try {
+			if (analyzerLaunchReceiver != null) {
+				unregisterReceiver(analyzerLaunchReceiver);
+				analyzerLaunchReceiver = null;
+				
+				AROLogger.d(TAG, "successfully unregistered analyzerLaunchReceiver");
+			}
+		} catch (Exception e){
+			AROLogger.i(TAG, "Ignoring exception in unregisterLaunchReceiver", e);
+		}
+	}
+	
+	@Override
+	public void onDestroy(){
+		super.onDestroy();
+		unregisterLaunchReceiver();
+		
+		AROLogger.d(TAG, "inside onDestroy, unregistered analyzerLaunchReceiver");
+	}
 }

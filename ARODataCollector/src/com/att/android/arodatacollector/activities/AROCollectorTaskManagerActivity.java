@@ -20,13 +20,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.att.android.arodatacollector.main.AROCollectorTaskManagerDetailProcess;
-import com.att.android.arodatacollector.main.AROCollectorTaskManagerPackagesInfo;
-import com.att.android.arodatacollector.main.AROCollectorTaskManagerProcessInfo;
-import com.att.android.arodatacollector.main.ARODataCollector;
-import com.att.android.arodatacollector.main.AROCollectorTaskManagerListAdapters.ProcessListAdapter;
-import com.att.android.arodatacollector.R;
-
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
@@ -36,15 +29,22 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
-import android.view.Window;
 import android.view.View.OnClickListener;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+
+import com.att.android.arodatacollector.R;
+import com.att.android.arodatacollector.main.AROCollectorTaskManagerDetailProcess;
+import com.att.android.arodatacollector.main.AROCollectorTaskManagerListAdapters.ProcessListAdapter;
+import com.att.android.arodatacollector.main.AROCollectorTaskManagerPackagesInfo;
+import com.att.android.arodatacollector.main.AROCollectorTaskManagerProcessInfo;
+import com.att.android.arodatacollector.main.ARODataCollector;
+import com.att.android.arodatacollector.utils.AROLogger;
 
 /**
  * Represents the Task Killer screen of the ARO Data Collector, which lists all
@@ -63,12 +63,6 @@ public class AROCollectorTaskManagerActivity extends Activity {
 
 	/** Task Killer refresh string for reloading the active process package name */
 	private static final String ACTION_LOAD_FINISH = "ACTION_LOAD_FINISH";
-
-	/**
-	 * A boolean value that indicates whether or not to enable logging for this
-	 * class in a debug build of the ARO Data Collector.
-	 */
-	private static final boolean DEBUG = false;
 
 	/**
 	 * AROCollectorTaskManagerProcessInfo object to holds the Task Manager
@@ -315,9 +309,7 @@ public class AROCollectorTaskManagerActivity extends Activity {
 					if (!dp.getPackageName().equalsIgnoreCase("com.google.android.gsf")
 							&& !dp.getPackageName().equalsIgnoreCase("com.google.android.location")) {
 						detailProcessesList.add(dp);
-						if (DEBUG) {
-							Log.i(TAG, "Task Manager Tasks added:" + dp.getPackageName());
-						}
+						AROLogger.d(TAG, "Task Manager Tasks added:" + dp.getPackageName());
 					}
 				}
 			} else
