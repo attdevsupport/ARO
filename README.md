@@ -60,30 +60,35 @@ Contact Us:  http://developer.att.com/developer/contact_us.jsp
 
 
 **Version:**  
-ARO Data Collector 2.3  
-ARO Data Analyzer  2.3
+ARO Data Collector 2.4  
+ARO Data Analyzer  2.4
 
 
-**What’s new in Release 2.3?**  
+**What’s new in Release 2.4?**  
 
-+  **Improvements to the AT&T ARO Best Practices Results Tab** - The test results have been reorganized into two columns and four categories, expanded with six new tests (see below), and a new test type called "Warning" has been added.  
++  **Improvements to the AT&T ARO Best Practices Results Tab**  
+	+  Several ARO Best Practice tests now have results with expandable tables. This makes the initial listing of the information more compact while still providing an easy way to view all of the results.  
+	+  The “Multiple Simultaneous Connections” test now has an improved algorithm that provides an even more accurate picture of which connections in your app could be consolidated and optimized.  
 
 +  **Added new Best Practice tests:**
-	+  **"Resize Images for Mobile"** - Identifies images in your app which may not be sized properly for mobile devices and could slow down rendering.
-	+  **"Combine JavaScript and CSS Requests"** - Checks for multiple CSS file requests and multiple JavaScript file requests which can be combined together to cut out unneeded round trips to the server and help your app load pages faster.
-	+  **"Asynchronous Load of JavaScript in HTML"** - Identifies JavaScript files in your app which could be loaded asynchronously to speed up page rendering.
-	+  **"File Order"** - Reports potential problems with the order in which JavaScript and CSS files are loaded in your HTML documents. A simple file order change can improve rendering speed.
-	+  **"Use CSS Sprites for Images"** - Identifies groups of small images which could be converted into CSS sprites to reduce the number of server requests, save bandwidth, and speed the loading of pages in your app.
-	+  **"Minify CSS, JS, and HTML"** - Reports text files in your app that could be minified to speed up their loading time.
+	+  **"FLASH"** - Looks for references to the Flash player in your app, and makes you aware that Flash is no longer widely supported and that Flash content may be unreadable to many of your users.  
+	+  **"display:none in CSS"** - Checks for elements in your HTML files with the Display attribute set to "none." By eliminating these, you can avoid inefficiently downloading elements that are never displayed.  
+	+  **"Empty Source and Link Attributes"** - Identifies pages in your app that contain HTML tags with empty source and link attributes. By filling in the URLs in these attributes, your pages can render without unnecessary delays.  
+	+  **"3rd Party Scripts"** - Lists the pages in your app with at least two external scripts being called. Connecting to 3rd party content can create slowdowns in your app if the external files fail to load.  
+
++  **The Content view on the Diagnostics tab is now searchable:**  A new Search field in the Content view will automatically highlight all instances of your search string and allow you to “find next” through them.  
+  
++  **HTTPS statistics:**  The percentage of total data (and the number of bytes of data) that are transferred over HTTPS, are now displayed in the Test Statistics summary of the Best Practices tab.  
+ 
++  **Enhancements to the ARO Installation Package:**  Installing ARO has become even easier with an automatic check for WinPcap installation and a clearer experience for entering your user token.  
 
 
 
-**What are the known issues in Release 2.3:**  
+**What are the known issues in Release 2.4**  
  
 +  **ARO Analyzer Installation feature:**  The ARO Installer will allow you to install multiple versions of the application in different folders. However, we do not recommend this because of the confusion that can arise from using different versions of the ARO Analyzer application on the same computer.  
 
 +  **Video Sync/Video Correlation feature:**  This feature allows you to sync externally captured video to PCAP data by placing it in the trace folder. When using this feature in ARO 2.3, note the following:  
-
 	+  Please ensure that the video duration is at least as long as the trace duration.  
 	+  Avoid clicking in the Diagnostics Chart when the video is playing; the timing of response may be affected.  
 	+  Certain 64 bit Windows 7 computers may have unexpected/random video sync issues. If this occurs, Re-sync the trace to the video.  
@@ -94,6 +99,8 @@ ARO Data Analyzer  2.3
 +  **USB Video Feature:**  In some cases, the following notification may appear incorrectly when the trace is completed: "Unexpected error accessing device SD card. ADB Connection Error" When this occurs, the trace is intact and the error message can be disregarded.  
 
 +  **Recording video in a trace:**  Some devices may not record video during a trace due to hardware limitations. For these devices, use the USB Video feature to record a video for the trace.  
+
++  **Loading a trace:**  While loading a trace in the ARO Analyzer, an Out of Memory (OOM) notification (application heap size issue) error may occur, or the message: “ARO Analyzer has reached the maximum memory heap size. Please close the ARO Analyzer and try again.” may appear. This can also occur when the same trace is re-loaded.  
 
 
 ##Documentation:
@@ -131,7 +138,7 @@ The ARO Open Source code package contains the following:
 
 
 **ARO Compilation and Build Guide.pdf** - Describes how to compile and build the ARO components.  
-**ARODataCollector_OpenSource_v2.2.1.1.apk** - Compiled open source version of the ARO Data Collector.  
+**ARODataCollector_OpenSource_v2.4.1.3.apk** - Compiled open source version of the ARO Data Collector.  
 **Adding Custom Best Practices in Open Source ARO.pdf** - Describes how to add custom Best Practices to the ARO Data Analyzer.  
 **README.md** - This file.  
 
