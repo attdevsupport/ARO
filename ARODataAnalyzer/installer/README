@@ -1,6 +1,6 @@
 Requirements:
 - NSIS  (http://nsis.sourceforge.net/Main_Page)
-- Intec (http://nsis.sourceforge.net/Inetc_plug-in)
+- Inetc (http://nsis.sourceforge.net/Inetc_plug-in)
 - Launch4j (http://launch4j.sourceforge.net/)
 
 1)  Generate the wrapper with launch4j and the laun4j_aro.xml configuration file
