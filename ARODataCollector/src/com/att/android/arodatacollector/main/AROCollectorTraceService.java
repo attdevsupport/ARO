@@ -32,6 +32,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.regex.Matcher;
@@ -447,7 +448,7 @@ public class AROCollectorTraceService extends Service {
 	 * @return full path of the cpu dir
 	 */
 	private String getCpuDirFullPath(){
-		return mApp.getTcpDumpTraceFolderName() + CPU_DIR;
+		return ARODataCollector.getTcpDumpTraceFolderName(getApplicationContext()) + CPU_DIR;
 	}
 	
 
@@ -941,7 +942,7 @@ public class AROCollectorTraceService extends Service {
 	 */
 	private void initAROTraceFile() throws FileNotFoundException {
 
-		final String mAroTraceDatapath = mApp.getTcpDumpTraceFolderName();
+		final String mAroTraceDatapath = ARODataCollector.getTcpDumpTraceFolderName(getApplicationContext());
 		if (AROLogger.logDebug) {
 			AROLogger.d(TAG, "mAroTraceDatapath=" + mAroTraceDatapath);
 		}
@@ -2044,9 +2045,9 @@ public class AROCollectorTraceService extends Service {
 				.hasNext();) {
 			final RunningAppProcessInfo runningAppProcessInfo = (RunningAppProcessInfo) iterator
 					.next();
-			final String pSname = runningAppProcessInfo.processName.toLowerCase();
+			final String pSname = runningAppProcessInfo.processName.toLowerCase(Locale.getDefault());
 			final int pImportance = runningAppProcessInfo.importance;
-			if (pSname.contains(processname.toLowerCase())) {
+			if (pSname.contains(processname.toLowerCase(Locale.getDefault()))) {
 				switch (pImportance) {
 				case RunningAppProcessInfo.IMPORTANCE_FOREGROUND:
 					return true;

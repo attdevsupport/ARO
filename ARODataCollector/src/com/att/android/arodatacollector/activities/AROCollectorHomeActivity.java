@@ -207,11 +207,13 @@ public class AROCollectorHomeActivity extends Activity {
 	 * Stops the data collector trace by stopping Video Trace and tcpdump from
 	 * shell
 	 */
-	private void stopARODataCollector() {
+	private void stopARODataCollector() 
+	{
 		AROLogger.d(TAG, "Inside stopARODataCollector....");
 		stopDataCollector.setEnabled(false);
 		hideDataCollector.setEnabled(false);
-		mApp.setARODataCollectorStopFlag(true);
+		ARODataCollector.setARODataCollectorStopFlag(getApplicationContext(), true);
+		
 		if (mApp != null) {
 			AROLogger.d(TAG, "calling unregisterUsbBroadcastReceiver inside stopARODataCollector");
 			unregisterUsbBroadcastReceiver();

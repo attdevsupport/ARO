@@ -54,8 +54,11 @@ import com.att.android.arodatacollector.utils.AROLogger;
  * Collector trace, and opening the Task Killer.
  */
 
-public class AROCollectorMainActivity extends Activity {
+public class AROCollectorMainActivity extends Activity 
+{
 
+
+	
 	/** Log TAG string for ARO-Data Collector main landing Screen */
 	private static final String TAG = "ARO.MainActivity";
 
@@ -162,7 +165,8 @@ public class AROCollectorMainActivity extends Activity {
 	 * and it receives all the error dialogs ID for the respective error
 	 * messages to be shown during application life cycle.
 	 */
-	private void initializeMainScreenControls() {
+	private void initializeMainScreenControls() 
+	{
 
 		// The Connectivity manager object to get current connect network, this
 		// is used to check if we have active network before DC kicks off
@@ -177,7 +181,9 @@ public class AROCollectorMainActivity extends Activity {
 		mAroUtils = new AROCollectorUtils();
 		mAROConnectiviyMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 		mApp.setDataCollectorStopEnable(true);
-		if (mApp.getDumpTraceFolderName()!=null) {
+		
+		if (ARODataCollector.getDumpTraceFolderName(getApplicationContext()) !=null) 
+		{
 			mApp.setUSBVideoCaptureON(true);
 			startDataCollector.setText(R.string.continuecollector);
 		}else {
@@ -245,7 +251,7 @@ public class AROCollectorMainActivity extends Activity {
 					AROLogger.e(TAG, "exception in getting root permission", e);
 				}
 				mAROrootShell = null;
-				if(mApp.getDumpTraceFolderName()!=null) {
+				if(ARODataCollector.getDumpTraceFolderName(getApplicationContext()) !=null) {
 					mApp.setCollectorLaunchfromAnalyzer(true);
 					mApp.setDataCollectorStopEnable(false);
 					startARODataCollector();
@@ -257,6 +263,8 @@ public class AROCollectorMainActivity extends Activity {
 			}
 		});
 		handleARODataCollectorErrors(getIntent().getExtras().getInt(ARODataCollector.ERRODIALOGID));
+		
+		ARODataCollector.setTcpDumpTraceFolderName(getApplicationContext(),null);
 	}
 
 	/**
@@ -281,7 +289,8 @@ public class AROCollectorMainActivity extends Activity {
 	 * from SD card.
 	 * 
 	 */
-	private void startARODataCollector() {
+	private void startARODataCollector() 
+	{
 
 		// Timer object which start as soon user press the Start Data Collector
 		// to checks the tcpdump execution in the shell
@@ -293,28 +302,23 @@ public class AROCollectorMainActivity extends Activity {
 		// process
 		
 		final AROCollectorTaskManagerProcessInfo mAROTaskManagerProcessInfo = new AROCollectorTaskManagerProcessInfo();
-		mApp.setARODataCollectorStopFlag(false);
-		mApp.setDataCollectorInProgressFlag(true);
-		mApp.setRequestDataCollectorStop(false);
-		mApp.setVideoCaptureFailed(false);
-		startDataCollector.setEnabled(false);
-		createAROTraceDirectory();
+
 		
-		if (mApp.getDumpTraceFolderName() != null) {
+		startDataCollector.setEnabled(false);		
 		
-			//Takes a snap shoot of the time the system booted to be used for the timer on the home page.
-			mApp.setElapsedTimeStartTime(System.currentTimeMillis());
+		if (ARODataCollector.getDumpTraceFolderName(getApplicationContext()) != null) 
+		{
+		
+			//send START broadcast			
+			sendBroadcast( new Intent(StartStopReceiver.ACTION_START_ARO) );
 			
-			// Starting the ARO Data collector service before tcpdump to record
-			// >=t(0)
-			startService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
-			// Starting the tcpdump service and starts the video capture
-			startService(new Intent(getApplicationContext(), AROCollectorService.class));
 			collectScreenVideo.setEnabled(false);
-			if (collectScreenVideo.isChecked()) {
-				mApp.setCollectVideoOption(true);
-			} else {
-				mApp.setCollectVideoOption(false);
+			if (collectScreenVideo.isChecked())
+			{
+				ARODataCollector.setCollectVideoOption(getApplicationContext(),true);
+			} else
+			{
+				ARODataCollector.setCollectVideoOption(getApplicationContext(),false);
 			}
 			mApp.showProgressDialog(this);
 			// ARO Watch timer for failed start message of data collector after 15
@@ -324,12 +328,14 @@ public class AROCollectorMainActivity extends Activity {
 				public void run() {
 					if (!mApp.getTcpDumpStartFlag()) {
 						AROLogger.w(TAG, "Failed to start ARODataCollector in 15 sec");
-						stopService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
-						stopService(new Intent(getApplicationContext(), AROCollectorService.class));
+						
+						//send STOP broadcast
+						sendBroadcast( new Intent(StartStopReceiver.ACTION_STOP_ARO) );
+						
 						// As we collect peripherals trace i.e wifi,GPs
 						// service before tcpdump trace so we making sure we delete
 						// all of the traces if we don't have tcpdump running
-						mAroUtils.deleteTraceFolder(new File(mApp.getTcpDumpTraceFolderName()));
+						mAroUtils.deleteTraceFolder(new File(ARODataCollector.getTcpDumpTraceFolderName(getApplicationContext())));
 						mAROFailStartHandler.sendMessage(Message.obtain(mAROFailStartHandler,
 								NAVIGATE_HOME_SCREEN));
 					}
@@ -345,7 +351,7 @@ public class AROCollectorMainActivity extends Activity {
 					mApp.setTcpDumpStartFlag(mAROTaskManagerProcessInfo.pstcpdump());
 					if (mApp.getTcpDumpStartFlag()) {
 						mApp.hideProgressDialog();
-						mApp.setDataCollectorInProgressFlag(false);
+						ARODataCollector.setDataCollectorInProgressFlag(getApplicationContext(),false);
 						mApp.triggerAROAlertNotification();
 						mAROHomeScreenHandler.sendMessage(Message.obtain(mAROHomeScreenHandler, 0));
 						aroDCStartWatchTimer.cancel();
@@ -361,23 +367,23 @@ public class AROCollectorMainActivity extends Activity {
 	 * directory of ARO (\SDCARD\ARO)
 	 * 
 	 */
-	private void createAROTraceDirectory() {
-
-		final String mAroTraceDatapath = mApp.getTcpDumpTraceFolderName();
-		final File traceFolder = new File(mAroTraceDatapath);
-		final File traceRootFolder = new File(ARODataCollector.ARO_TRACE_ROOTDIR);
-
-		AROLogger.d(TAG, "mAroTraceDatapath=" + mAroTraceDatapath);
-
-		// Creates the trace root directory
-		if (!traceRootFolder.exists()) {
-			traceRootFolder.mkdir();
-		}
-		// Creates the trace directory inside /SDCARD/ARO
-		if (!traceFolder.exists()) {
-			traceFolder.mkdir();
-		}
-	}
+//	private void createAROTraceDirectory() {
+//
+//		final String mAroTraceDatapath = ARODataCollector.getTcpDumpTraceFolderName(getApplicationContext());
+//		final File traceFolder = new File(mAroTraceDatapath);
+//		final File traceRootFolder = new File(ARODataCollector.ARO_TRACE_ROOTDIR);
+//
+//		AROLogger.d(TAG, "mAroTraceDatapath=" + mAroTraceDatapath);
+//
+//		// Creates the trace root directory
+//		if (!traceRootFolder.exists()) {
+//			traceRootFolder.mkdir();
+//		}
+//		// Creates the trace directory inside /SDCARD/ARO
+//		if (!traceFolder.exists()) {
+//			traceFolder.mkdir();
+//		}
+//	}
 
 	/**
 	 * Displays the ARO error message dialog during the application lifetime
@@ -542,7 +548,7 @@ public class AROCollectorMainActivity extends Activity {
 				}
 				showARODataCollectorErrorDialog(Dialog_Type.DC_FAILED_START);
 				AROLogger.d(TAG, "Setting Data Collector stop flag");
-				mApp.setARODataCollectorStopFlag(true);
+				ARODataCollector.setARODataCollectorStopFlag(getApplicationContext(), true);				
 				collectScreenVideo.setEnabled(true);
 				startDataCollector.setEnabled(true);
 				AROLogger.d(TAG, "Setting Data Collector stop flag");

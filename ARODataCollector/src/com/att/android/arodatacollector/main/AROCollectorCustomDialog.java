@@ -353,11 +353,11 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		buttonCancel.setOnClickListener(new CancelListener());
 		// Setting the current timestamp as the default name of trace folder
 		final EditText mTraceFolderName = (EditText) findViewById(R.id.dialog_tracefoldername);
-		if (mApp.getErrorTraceFoldername() != null) {
-			mTraceFolderName.setText(mApp.getErrorTraceFoldername());
-			mApp.setErrorTraceFoldername(null);
+		if (ARODataCollector.getErrorTraceFoldername() != null) {
+			mTraceFolderName.setText(ARODataCollector.getErrorTraceFoldername());
+			ARODataCollector.setErrorTraceFoldername(null);
 		} else {
-			mTraceFolderName.setText(mAROUtils.getDefaultTraceFolderName());
+			mTraceFolderName.setText(AROCollectorUtils.getDefaultTraceFolderName());
 		}
 	}
 
@@ -536,22 +536,29 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 				case TRACE_FOLDERNAME: {
 					final EditText givenTraceFolderName = (EditText) findViewById(R.id.dialog_tracefoldername);
 					mTraceFolderName = givenTraceFolderName.getText().toString();
-					mApp.setTcpDumpTraceFolderName(mTraceFolderName);
-					traceFolderPath = new File(mApp.getTcpDumpTraceFolderName());
-					if (mAROUtils.isContainsSpecialCharacterorSpace(mTraceFolderName)) {
+					
+					ARODataCollector.setTcpDumpTraceFolderName(v.getContext(), mTraceFolderName);										
+					traceFolderPath = new File(ARODataCollector.getTcpDumpTraceFolderName(getContext()));
+					
+					if (mAROUtils.isContainsSpecialCharacterorSpace(mTraceFolderName))
+					{
 						errrocode = Dialog_CallBack_Error.CALLBACK_SPECIALCHARERROR;
 						AROCollectorCustomDialog.this.dismiss();
-						mApp.setErrorTraceFoldername(mTraceFolderName);
+						ARODataCollector.setErrorTraceFoldername(mTraceFolderName);
 						readyListener.ready(errrocode, false);
 						break;
-					} else if (mTraceFolderName != null && !traceFolderPath.isDirectory()) {
+					} 
+					else if (mTraceFolderName != null && !traceFolderPath.isDirectory()) 
+					{
 						// Setting the trace folder name at application context
-						mApp.setTcpDumpTraceFolderName(givenTraceFolderName.getText().toString());
+						ARODataCollector.setTcpDumpTraceFolderName(v.getContext(), givenTraceFolderName.getText().toString());
 						AROCollectorCustomDialog.this.dismiss();
 						readyListener.ready(Dialog_CallBack_Error.CALLBACK_DEFAULT, true);
 
-					} else {
-						mApp.setTcpDumpTraceFolderName(givenTraceFolderName.getText().toString());
+					}
+					else 
+					{
+						ARODataCollector.setTcpDumpTraceFolderName(v.getContext(), givenTraceFolderName.getText().toString());						
 						if (mTraceFolderName.equalsIgnoreCase("") || mTraceFolderName == null) {
 							errrocode = Dialog_CallBack_Error.CALLBACK_TRACEFOLDERERROR; // "Please enter valid trace folder name";
 							AROCollectorCustomDialog.this.dismiss();
@@ -565,12 +572,12 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 					break;
 
 				case TRACE_FOLDERNAME_EXISTS:
-					if (mApp.getTcpDumpTraceFolderName() != null) {
-						mAROUtils.deleteDirectory(new File(mApp.getTcpDumpTraceFolderName()));
+					if (ARODataCollector.getTcpDumpTraceFolderName(getContext()) != null) {
+						mAROUtils.deleteDirectory(new File(ARODataCollector.getTcpDumpTraceFolderName(getContext())));
 						if (AROLogger.logDebug) {
 							AROLogger.d(TAG,
 									"TRACE_FOLDERNAME_EXISTS deleting directory"
-											+ mApp.getTcpDumpTraceFolderName());
+											+ ARODataCollector.getTcpDumpTraceFolderName(getContext()));
 						}
 					}
 					readyListener.ready(Dialog_CallBack_Error.CALLBACK_DEFAULT, true);
