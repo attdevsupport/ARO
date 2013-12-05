@@ -366,11 +366,13 @@ public class AROCollectorSplashActivity extends Activity {
 		final Bundle apkCommandLineParameters  = getIntent().getExtras();
 		if (apkCommandLineParameters != null) {
 			//sendAnalyzerLaunchBroadcast();
-			mAROTraceFolderNamefromAnalyzer = apkCommandLineParameters.getString("TraceFolderName");
-			mApp.setTcpDumpTraceFolderName(mAROTraceFolderNamefromAnalyzer);
-		}else{
-			mApp.setTcpDumpTraceFolderName(null);
+			mAROTraceFolderNamefromAnalyzer = apkCommandLineParameters.getString("TraceFolderName");			
+			ARODataCollector.setTcpDumpTraceFolderName(getApplicationContext(), mAROTraceFolderNamefromAnalyzer);
 		}
+//		else
+//		{
+//			ARODataCollector.setTcpDumpTraceFolderName(getApplicationContext(), null);
+//		}
 		
 		final Intent splashScreenIntent = new Intent(getBaseContext(),
 				AROCollectorMainActivity.class);

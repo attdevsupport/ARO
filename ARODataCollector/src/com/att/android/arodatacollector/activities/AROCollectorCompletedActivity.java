@@ -114,7 +114,7 @@ public class AROCollectorCompletedActivity extends Activity {
 		final TextView videotrace = (TextView) findViewById(R.id.tracevideo);
 
 		try {
-			mApp.readPcapStartEndTime();
+			mApp.readPcapStartEndTime(getApplicationContext());
 			setApplicationUpTime();
 		} catch (IOException e) {
 			// TODO: Setting default value for application up time and notify
@@ -122,8 +122,8 @@ public class AROCollectorCompletedActivity extends Activity {
 			AROLogger.e(TAG, "exception in readPcapStartEndTime. Could not read trace start time", e);
 		}
 		traceSummaryOKButton = (Button) findViewById(R.id.datasummaryok);
-		tracePath.setText(ARODataCollector.ARO_TRACE_ROOTDIR + mApp.getDumpTraceFolderName());
-		if ((mApp.getCollectVideoOption() && !mApp.isVideoFileExisting() && !mApp.isUSBVideoCaptureON())
+		tracePath.setText(ARODataCollector.ARO_TRACE_ROOTDIR + ARODataCollector.getDumpTraceFolderName(getApplicationContext()));
+		if ((mApp.getCollectVideoOption() && !ARODataCollector.isVideoFileExisting(getApplicationContext()) && !mApp.isUSBVideoCaptureON())
 				|| mApp.getVideoCaptureFailed()) {
 			videotrace.setText(getResources().getText(R.string.aro_failedvideo));
 		} else if (mApp.getCollectVideoOption() || mApp.isUSBVideoCaptureON() ) {
@@ -131,7 +131,7 @@ public class AROCollectorCompletedActivity extends Activity {
 		} else {
 			videotrace.setText(getResources().getText(R.string.aro_notext));
 		}
-		mApp.setTcpDumpTraceFolderName(null);
+		//ARODataCollector.setTcpDumpTraceFolderName(getApplicationContext(), null);
 	}
 
 	/**

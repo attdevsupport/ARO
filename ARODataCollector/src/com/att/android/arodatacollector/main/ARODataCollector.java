@@ -157,7 +157,7 @@ public class ARODataCollector extends Application {
 	public Map<String, String> flurryError = new HashMap<String, String>();
 	
 	/** The ARO Data Collector trace folder name */
-	private String mTraceFolderName;
+	private static String mTraceFolderName = AROCollectorUtils.getDefaultTraceFolderName();
 
 	/**
 	 * The notification manager class to display ARO-Data Collector alert menu
@@ -169,7 +169,7 @@ public class ARODataCollector extends Application {
 	 * String to keep trace folder name to be edited which has spaces and
 	 * special characters in it
 	 */
-	private String traceFolderNamehasError;
+	private static String traceFolderNamehasError = AROCollectorUtils.getDefaultTraceFolderName();
 
 	/** Notification to be used for alert menu */
 	public Notification mAROnotification;
@@ -181,10 +181,10 @@ public class ARODataCollector extends Application {
 	private boolean mDCLaunchfromAnalyzer;
 	
 	/** OutputStaream for video_time file */
-	private OutputStream mTraceVideoTimeStampFile;
+	private static OutputStream mTraceVideoTimeStampFile;
 
 	/** BufferedWriter for video_time file */
-	private BufferedWriter mTraceVideoTimeStampWriter;
+	private static BufferedWriter mTraceVideoTimeStampWriter;
 
 	/** tcpdump start time which is read from TIME file */
 	private Double pcapStartTime;
@@ -213,7 +213,7 @@ public class ARODataCollector extends Application {
 	private Dialog aroProgressDialog;
 
 	/** ARO Data Collector is wifi lost flag */
-	private boolean requestDataCollectorStop = false;
+	private static boolean requestDataCollectorStop = false;
 		
 	/** Stores the value to find if launch of collector from Analyzer */
 	private boolean mDataCollectorStopDisable = false;
@@ -464,8 +464,8 @@ public class ARODataCollector extends Application {
 	 * 
 	 * @throws IOException
 	 */
-	public void writeTimetoFile(BufferedWriter outputfilewriter, String timestamp)
-			throws IOException {
+	public static void writeTimetoFile(BufferedWriter outputfilewriter, String timestamp) throws IOException 
+	{
 		final String eol = System.getProperty("line.separator");
 		outputfilewriter.write(timestamp + eol);
 	}
@@ -477,8 +477,9 @@ public class ARODataCollector extends Application {
 	 * @throws IOException
 	 */
 
-	public void readPcapStartEndTime() throws IOException {
-		final File file = new File(getTcpDumpTraceFolderName(), TIME_FILE);
+	public void readPcapStartEndTime(Context ctx) throws IOException 
+	{
+		final File file = new File(getTcpDumpTraceFolderName(ctx), TIME_FILE);
 		final BufferedReader br = new BufferedReader(new FileReader(file));
 		try {
 			String line;
@@ -511,7 +512,7 @@ public class ARODataCollector extends Application {
 	 * @throws IOException
 	 */
 
-	public void writeVideoTraceTime(String timestamp) throws IOException {
+	public static void writeVideoTraceTime(String timestamp) throws IOException {
 		writeTimetoFile(mTraceVideoTimeStampWriter, timestamp);
 	}
 
@@ -520,7 +521,7 @@ public class ARODataCollector extends Application {
 	 * 
 	 * @throws IOException
 	 */
-	public void closeVideoTraceTimeFile() throws IOException {
+	public static void closeVideoTraceTimeFile() throws IOException {
 		mTraceVideoTimeStampWriter.close();
 		mTraceVideoTimeStampFile.close();
 	}
@@ -533,8 +534,9 @@ public class ARODataCollector extends Application {
 	 * @throws FileNotFoundException
 	 */
 
-	public void initVideoTraceTime() throws FileNotFoundException {
-		mTraceVideoTimeStampFile = new FileOutputStream(getTcpDumpTraceFolderName()
+	public static void initVideoTraceTime(Context ctx) throws FileNotFoundException 
+	{
+		mTraceVideoTimeStampFile = new FileOutputStream(getTcpDumpTraceFolderName(ctx)
 				+ outVideoTimeFileName);
 		mTraceVideoTimeStampWriter = new BufferedWriter(new OutputStreamWriter(
 				mTraceVideoTimeStampFile));
@@ -644,10 +646,14 @@ public class ARODataCollector extends Application {
 	/**
 	 * Gets the path name of the ARO Data Collector tcpdump trace folder.
 	 * 
+	 * @param ctx
+	 * 			  A handle to the Context , this will be used to store the flag
+	 * 
 	 * @return A string that is the trace folder path name.
 	 */
-	public String getTcpDumpTraceFolderName() {
-		return (ARO_TRACE_ROOTDIR + getDumpTraceFolderName() + "/");
+	public static String getTcpDumpTraceFolderName(Context ctx)
+	{
+		return (ARO_TRACE_ROOTDIR + getDumpTraceFolderName(ctx) + "/");
 	}
 
 	/**
@@ -655,9 +661,11 @@ public class ARODataCollector extends Application {
 	 * string.
 	 * 
 	 * @param traceFolderName A string value that is the trace folder name.
+	 * @param ctx 			  A handle to the Context , this will be used to store the flag
 	 */
-	public void setTcpDumpTraceFolderName(String traceFolderName) {
-		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+	public static void setTcpDumpTraceFolderName(Context ctx, String traceFolderName) 
+	{
+		final SharedPreferences prefs = ctx.getSharedPreferences(PREFS, 0);
 		SharedPreferences.Editor editor = prefs.edit();
 		editor.putString("TraceFolderName", traceFolderName);
 		editor.commit();
@@ -666,11 +674,22 @@ public class ARODataCollector extends Application {
 	/**
 	 * Gets the ARO Data Collector trace folder name.
 	 * 
-	 * @return A string that is the ARO Data Collector trace folder name.
+	 * @param ctx
+	 * 			  A handle to the Context , this will be used to store the flag
+	 *  
+	 * @return A string that is the ARO Data Collector trace folder name.	 
 	 */
-	public String getDumpTraceFolderName() {
-		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+	public static String getDumpTraceFolderName(Context ctx)
+	{
+		final SharedPreferences prefs = ctx.getSharedPreferences(PREFS, 0);
 		mTraceFolderName = prefs.getString("TraceFolderName", null);
+		
+		if (mTraceFolderName == null)
+		{
+			mTraceFolderName = AROCollectorUtils.getDefaultTraceFolderName();
+		}
+		setTcpDumpTraceFolderName(ctx, mTraceFolderName);
+		
 		return (mTraceFolderName);
 	}
 
@@ -678,12 +697,16 @@ public class ARODataCollector extends Application {
 	 * Sets a value that enables the Video Recording collection option for an
 	 * ARO Data Collector trace.
 	 * 
+	 * @param ctx
+	 * 			  A handle to the Context , this will be used to store the flag
+	 * 
 	 * @param videoRecording
 	 *            A boolean value that is "true" to enable video recording for a
 	 *            trace, and "false" otherwise.
 	 */
-	public void setCollectVideoOption(boolean videoRecording) {
-		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+	public static void setCollectVideoOption(Context ctx, boolean videoRecording) 
+	{
+		final SharedPreferences prefs = ctx.getSharedPreferences(PREFS, 0);
 		SharedPreferences.Editor editor = prefs.edit();
 		editor.putBoolean("VideoRecordFlag", videoRecording);
 		editor.commit();
@@ -739,7 +762,8 @@ public class ARODataCollector extends Application {
 	 * @param tracefoldername
 	 *            A string that is the error trace folder name.
 	 */
-	public void setErrorTraceFoldername(String tracefoldername) {
+	public static void setErrorTraceFoldername(String tracefoldername) 
+	{
 		traceFolderNamehasError = tracefoldername;
 	}
 
@@ -748,7 +772,8 @@ public class ARODataCollector extends Application {
 	 * 
 	 * @return A string that is the trace folder name that contains errors.
 	 */
-	public String getErrorTraceFoldername() {
+	public static String getErrorTraceFoldername() 
+	{
 		return traceFolderNamehasError;
 	}
 
@@ -772,9 +797,11 @@ public class ARODataCollector extends Application {
 	 * @param flag
 	 *            A boolean value that is true if the ARO Data Collector is in
 	 *            progress, and false if it is not.
+	 * @param ctx
+	 * 			  A handle to the Context , this will be used to store the flag
 	 */
-	public void setDataCollectorInProgressFlag(boolean flag) {
-		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+	public static void setDataCollectorInProgressFlag(Context ctx, boolean flag) {
+		final SharedPreferences prefs = ctx.getSharedPreferences(PREFS, 0);
 		SharedPreferences.Editor editor = prefs.edit();
 		editor.putBoolean("isDataCollectorStartInProgress", flag);
 		editor.commit();
@@ -873,9 +900,11 @@ public class ARODataCollector extends Application {
 	 * @param flag
 	 *            A boolean value that is "true" if video capture is running
 	 *            during the trace, and "false" if it is not.
+	 * @param ctx
+	 * 			  A handle to the Context , this will be used to store the flag
 	 */
-	public void setARODataCollectorStopFlag(boolean flag) {
-		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+	public static void setARODataCollectorStopFlag(Context ctx, boolean flag) {
+		final SharedPreferences prefs = ctx.getSharedPreferences(PREFS, 0);
 		SharedPreferences.Editor editor = prefs.edit();
 		editor.putBoolean("isARODataCollectorStopped", flag);
 		editor.commit();
@@ -898,7 +927,8 @@ public class ARODataCollector extends Application {
 	 * 
 	 * @return A long integer that represents when the trace started for the home page timer.
 	 */
-	public long getElapsedTimeStartTime() {
+	public long getElapsedTimeStartTime() 
+	{
 		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
 		final long elapsedTimeStartTime = prefs.getLong("elapsedTimeStartTime", 0);
 		return elapsedTimeStartTime;
@@ -910,8 +940,9 @@ public class ARODataCollector extends Application {
 	 * @param paramElapsedTimeStartTime
 	 *            A long integer that represents when the trace started for the home page timer.
 	 */
-	public void setElapsedTimeStartTime(long paramElapsedTimeStartTime) {
-		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+	public static void setElapsedTimeStartTime(Context ctx, long paramElapsedTimeStartTime) 
+	{
+		final SharedPreferences prefs = ctx.getSharedPreferences(PREFS, 0);
 		SharedPreferences.Editor editor = prefs.edit();
 		editor.putLong("elapsedTimeStartTime", paramElapsedTimeStartTime);
 		editor.commit();
@@ -1021,9 +1052,12 @@ public class ARODataCollector extends Application {
 	 * @param flag
 	 *            boolean value that is "true" if the video capture has failed,
 	 *            and "false" if it has not.
+ 	 * @param ctx
+	 * 			  A handle to the Context , this will be used to store the flag
 	 */
-	public void setVideoCaptureFailed(boolean flag) {
-		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+	public static void setVideoCaptureFailed(Context ctx, boolean flag) 
+	{
+		final SharedPreferences prefs = ctx.getSharedPreferences(PREFS, 0);
 		SharedPreferences.Editor editor = prefs.edit();
 		editor.putBoolean("isVideoCaptureFailed", flag);
 		editor.commit();
@@ -1132,9 +1166,9 @@ public class ARODataCollector extends Application {
 	 * @return A boolean value that is true if the video.mp4 file exists in the 
 	 * 		   current trace folder and is larger than 0 bytes. Otherwise, the value is false.
 	 */
-	public boolean isVideoFileExisting() {
+	public static boolean isVideoFileExisting(Context ctx) {
 		final String videoAbsolutePath = ARODataCollector.ARO_TRACE_ROOTDIR
-				+ this.getDumpTraceFolderName() + "/" + videoMp4;
+				+ ARODataCollector.getTcpDumpTraceFolderName(ctx) + "/" + videoMp4;
 
 		if (AROLogger.logDebug) {
 			AROLogger.d(TAG, "isVideoFileExisting()--videoPath: " + videoAbsolutePath);
@@ -1162,8 +1196,9 @@ public class ARODataCollector extends Application {
 	 *           A boolean value that is true if a request 
 	 *           to stop data collection has been made, and is false otherwise.
 	 */
-	public void setRequestDataCollectorStop(boolean requestDataCollectorStop) {
-		this.requestDataCollectorStop = requestDataCollectorStop;
+	public static void setRequestDataCollectorStop(boolean flag) 
+	{
+		ARODataCollector.requestDataCollectorStop = flag;		
 	}
 
 	/**
@@ -1172,7 +1207,8 @@ public class ARODataCollector extends Application {
 	 * @return A boolean value that is true if a request to stop data collection 
 	 * 		   has been made, and is false otherwise.
 	 */
-	public boolean isRequestDataCollectorStop() {
+	public static boolean isRequestDataCollectorStop() 
+	{
 		return requestDataCollectorStop;
 	}
 		

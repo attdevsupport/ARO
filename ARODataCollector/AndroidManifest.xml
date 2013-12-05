@@ -77,6 +77,12 @@
             android:name=".activities.AROCollectorLegalTermsActivity"
             android:configChanges="keyboardHidden|orientation"
             android:screenOrientation="portrait" />
+        <receiver android:name=".activities.StartStopReceiver">
+            <intent-filter>
+                <action android:name="com.att.android.arodatacollector.STARTARO"/>
+                <action android:name="com.att.android.arodatacollector.STOPARO"/>
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

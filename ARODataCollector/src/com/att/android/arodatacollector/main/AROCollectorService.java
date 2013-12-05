@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -106,10 +107,10 @@ public class AROCollectorService extends Service {
 	private AROCollectorUtils mAroUtils;
 
 	/** ARO Data Collector full trace folder path */
-	private String TRACE_FOLDERNAME;
+	private static String TRACE_FOLDERNAME;
 
 	/** To holds value ARO Data Collector video recording trace ON/OFF */
-	private boolean mVideoRecording;
+	private static boolean mVideoRecording;
 
 	/** Intent to launch ARO Data Collector Completed screen */
 	private Intent tcpdumpStoppedIntent;
@@ -179,9 +180,9 @@ public class AROCollectorService extends Service {
 			AROLogger.d(TAG, "flurry-TelephonyManager deviceId: " + mAROtelManager.getDeviceId());
 		}
 		disableScreenTimeout();
-		TRACE_FOLDERNAME = mApp.getDumpTraceFolderName();
+		TRACE_FOLDERNAME = ARODataCollector.getDumpTraceFolderName(getApplicationContext());
 		mVideoRecording = mApp.getCollectVideoOption();
-		startDataCollectorVideoCapture();
+		startDataCollectorVideoCapture(getApplicationContext());
 		statDataCollectortcpdumpCapture();
 	}
 
@@ -240,8 +241,8 @@ public class AROCollectorService extends Service {
 	 * @return device manufacturer and model in lower case
 	 */
 	private String getDeviceName() {
-		String manufacturer = Build.MANUFACTURER.toLowerCase();
-		String model = Build.MODEL.toLowerCase();
+		String manufacturer = Build.MANUFACTURER.toLowerCase(Locale.getDefault());
+		String model = Build.MODEL.toLowerCase(Locale.getDefault());
 		if (model.startsWith(manufacturer)) {
 			return model;
 		} else {
@@ -306,7 +307,8 @@ public class AROCollectorService extends Service {
 	 * Initializes the video capture flag and starts the video capture on
 	 * separate thread
 	 */
-	private void startDataCollectorVideoCapture() {
+	private static void startDataCollectorVideoCapture(final Context ctx) 
+	{
 		// Wait for the tcpdump to start
 		if (mVideoRecording) {
 			new Thread(new Runnable() {
@@ -314,8 +316,8 @@ public class AROCollectorService extends Service {
 				public void run() {
 					mApp.setAROVideoCaptureRunningFlag(true);
 					try {
-						mApp.initVideoTraceTime();
-						startScreenVideoCapture();
+						ARODataCollector.initVideoTraceTime(ctx);
+						startScreenVideoCapture(ctx);
 					} catch (FileNotFoundException e) {
 						AROLogger.e(TAG, "exception in initVideoTraceTime. Failed to start Video", e);
 					}
@@ -387,7 +389,7 @@ public class AROCollectorService extends Service {
 			
 			//We will continue and block the thread untill we see valid instance of tcpdump running in shell
 			//waitFor() does not seems to be working on ICS firmware 
-			while (mAROTaskManagerProcessInfo.pstcpdump()) {
+			while (mAROTaskManagerProcessInfo.pstcpdump() == false) {
 				continue;
 			}
 			if (AROLogger.logInfo) {
@@ -499,7 +501,7 @@ public class AROCollectorService extends Service {
 					AROCollectorTraceService.backgroundAppsFlurryEvent.getMapToWrite());
 		}
 		//trace video y/n
-		if ((mApp.getCollectVideoOption() && !mApp.isVideoFileExisting())
+		if ((mApp.getCollectVideoOption() && !ARODataCollector.isVideoFileExisting(getApplicationContext()))
 				|| mApp.getVideoCaptureFailed()) {		
 			mApp.writeToFlurryAndLogEvent(mApp.flurryVideoTaken, getResources().getText(R.string.flurry_param_traceVideoTaken).toString(), 
 					getResources().getText(R.string.aro_failedvideo).toString(), 
@@ -696,7 +698,7 @@ public class AROCollectorService extends Service {
 	 * Starts the video capture of the device desktop by reading frame buffer
 	 * using ffmpeg command
 	 */
-	private void startScreenVideoCapture() {
+	private static void startScreenVideoCapture(Context ctx) {
 		Process sh = null;
 		DataOutputStream os = null;
 		try {
@@ -731,13 +733,14 @@ public class AROCollectorService extends Service {
 			}
 			try {
 				// Recording start time of video
-				mApp.writeVideoTraceTime(Double.toString(mApp.getAROVideoCaptureStartTime()));
-				mApp.closeVideoTraceTimeFile();
+				ARODataCollector.writeVideoTraceTime(Double.toString(mApp.getAROVideoCaptureStartTime()));
+				ARODataCollector.closeVideoTraceTimeFile();
 			} catch (IOException e) {
 				AROLogger.e(TAG, "IOException in writing video start time", e);
 			}
-			if (mApp.getTcpDumpStartFlag() && !mApp.getARODataCollectorStopFlag()) {
-				mApp.setVideoCaptureFailed(true);
+			if (mApp.getTcpDumpStartFlag() && !mApp.getARODataCollectorStopFlag()) 
+			{
+				ARODataCollector.setVideoCaptureFailed(ctx, false);
 			}
 			try {
 				mApp.setAROVideoCaptureRunningFlag(false);
@@ -895,9 +898,9 @@ public class AROCollectorService extends Service {
 		BufferedReader appNamesFileReader = null;
 		BufferedWriter appNmesFileWriter = null;
 		try {
-			final String strTraceFolderName = mApp.getTcpDumpTraceFolderName();
+			final String strTraceFolderName = ARODataCollector.getTcpDumpTraceFolderName(getApplicationContext());
 			AROLogger.i(TAG, "Trace folder name is: " + strTraceFolderName);
-			final File appNameFile = new File(mApp.getTcpDumpTraceFolderName() + APP_NAME_FILE);
+			final File appNameFile = new File(ARODataCollector.getTcpDumpTraceFolderName(getApplicationContext()) + APP_NAME_FILE);
 			appNamesFileReader = new BufferedReader(new InputStreamReader(new FileInputStream(
 					appNameFile)));
 			String processName = null;
@@ -963,7 +966,7 @@ public class AROCollectorService extends Service {
 					if (AROCollectorTraceService.getServiceObj() != null) {
 						AROLogger.d(TAG, "Inside Ping Connection....hideProgressDialog");
 						AROLogger.d(TAG, "Setting Data Collector stop flag");
-						mApp.setARODataCollectorStopFlag(true);
+						ARODataCollector.setARODataCollectorStopFlag(getApplicationContext(), true);						
 						try {
 							// Going to ping google to break out of tcpdump
 							// while loop to come out of native shell and stop

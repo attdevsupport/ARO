@@ -444,13 +444,15 @@ public class AROCollectorUtils {
 	 * 
 	 * @return The default ARO trace folder name.
 	 */
-	public String getDefaultTraceFolderName() {
+	public static String getDefaultTraceFolderName() 
+	{
 		final Date systemDate = new Date();
 		final Calendar now = Calendar.getInstance();
 		final int currenthours = systemDate.getHours();
 		final int currentminutes = systemDate.getMinutes();
 		final int currentseconds = systemDate.getSeconds();
 		final int currentdate = now.get(Calendar.DATE); // java calendar
+		
 		int currentmonth = now.get(Calendar.MONTH); // As Jan is defined as 0 in
 		currentmonth = currentmonth + 1;
 		if (currentmonth >= 13) // As Jan is defined as 0 in java calendar
@@ -690,11 +692,14 @@ public class AROCollectorUtils {
 		}
 	}
 	
-	public boolean isTcpDumpRunning(){
+	public boolean isTcpDumpRunning()
+	{
 		boolean isRunning = false;
-		try {
+		try 
+		{
 			isRunning = getProcessID(TCPDUMP_PROCESS_NAME) != 0;
-		} catch (Exception e) {
+		} catch (Exception e) 
+		{
 			AROLogger.e(TAG, "ignoring exception in isTcpDumpRunning()", e);
 		}
 		
