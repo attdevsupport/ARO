@@ -25,8 +25,6 @@ import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
 import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,14 +34,13 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.SwingConstants;
-
 import com.att.aro.bp.BestPracticeButtonPanel;
+import com.att.aro.bp.DataTableResultPanel;
 import com.att.aro.commonui.DataTable;
 import com.att.aro.main.ApplicationResourceOptimizer;
 import com.att.aro.util.Util;
 
-public class Http4xx5xxStatusResponseCodesResultPanel extends JPanel{
+public class Http4xx5xxStatusResponseCodesResultPanel extends JPanel implements DataTableResultPanel {
 	
 	private static final long serialVersionUID = 1L;
 	
@@ -54,7 +51,6 @@ public class Http4xx5xxStatusResponseCodesResultPanel extends JPanel{
 	private static final int NO_OF_ROWS = 6;
 	private static final int SCROLL_PANE_HEIGHT = Http4xx5xxStatusResponseCodesResultPanel.NO_OF_ROWS * Http4xx5xxStatusResponseCodesResultPanel.ROW_HEIGHT;
 	private static final int SCROLL_PANE_LENGHT = 300;
-	private boolean isExpanded = false;
 	private int noOfRecords = 0;
 	
 	private JLabel title;
@@ -227,6 +223,14 @@ public void setNumberOfRecords(int noOfRecords) {
 			viewBtn.doClick();
 			this.scrollPane.revalidate();
 		}
+	}
+
+	/**
+	 * Clears data from the result table.
+	 */
+	public void clearTable() {
+		LOGGER.log(Level.FINE, "clear http 4 data");
+		this.tableModel.removeAllRows();
 	}
 
 }

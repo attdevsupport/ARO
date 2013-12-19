@@ -16,6 +16,7 @@
 
 package com.att.aro.diagnostics;
 
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -40,6 +41,7 @@ import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -64,6 +66,7 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileFilter;
 
+import org.jfree.chart.annotations.XYPointerAnnotation;
 import org.jfree.chart.ChartMouseEvent;
 import org.jfree.chart.ChartMouseListener;
 import org.jfree.chart.ChartPanel;
@@ -99,6 +102,10 @@ import org.jfree.ui.RectangleEdge;
 
 import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.images.Images;
+import com.att.aro.model.AlarmInfo;
+import com.att.aro.model.AlarmInfo.AlarmType;
+import com.att.aro.model.ScheduledAlarmInfo;
+import java.util.ListIterator;
 import com.att.aro.main.ChartPlotOptions;
 import com.att.aro.main.GraphPanelCrossHairHandle;
 import com.att.aro.main.GraphPanelListener;
@@ -106,6 +113,8 @@ import com.att.aro.main.GraphPanelPlotLabels;
 import com.att.aro.main.PacketPlots;
 import com.att.aro.main.ResourceBundleManager;
 import com.att.aro.model.BatteryInfo;
+import com.att.aro.model.WakelockInfo;
+import com.att.aro.model.WakelockInfo.WakelockState;
 import com.att.aro.model.BluetoothInfo;
 import com.att.aro.model.BluetoothInfo.BluetoothState;
 import com.att.aro.model.Burst;
@@ -394,7 +403,9 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		plotOrder.add(ChartPlotOptions.CAMERA);
 		plotOrder.add(ChartPlotOptions.SCREEN);
 		plotOrder.add(ChartPlotOptions.BATTERY);
+		plotOrder.add(ChartPlotOptions.WAKELOCK);
 		plotOrder.add(ChartPlotOptions.WIFI);
+		plotOrder.add(ChartPlotOptions.ALARM);
 		plotOrder.add(ChartPlotOptions.NETWORK_TYPE);
 		plotOrder.add(ChartPlotOptions.THROUGHPUT);
 		plotOrder.add(ChartPlotOptions.UL_PACKETS);
@@ -434,6 +445,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 	private double zoomFactor = 2;
 
 	private Set<GraphPanelListener> listeners = new HashSet<GraphPanelListener>();
+	private static List<XYPointerAnnotation> pointerAnnotation = new ArrayList<XYPointerAnnotation>();
 
 	/**
 	 * Initializes a new instance of the GraphPanel class.
@@ -446,7 +458,9 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		subplotMap.put(ChartPlotOptions.CAMERA, new GraphPanelPlotLabels(rb.getString("chart.camera"), createBarPlot(Color.gray), 1));
 		subplotMap.put(ChartPlotOptions.SCREEN, new GraphPanelPlotLabels(rb.getString("chart.screen"), createBarPlot(new Color(34, 177, 76)), 1));
 		subplotMap.put(ChartPlotOptions.BATTERY, new GraphPanelPlotLabels(rb.getString("chart.battery"), createBatteryPlot(), 2));
+		subplotMap.put(ChartPlotOptions.WAKELOCK, new GraphPanelPlotLabels(rb.getString("chart.wakelock"), createWakelockStatePlot(), 1));
 		subplotMap.put(ChartPlotOptions.WIFI, new GraphPanelPlotLabels(rb.getString("chart.wifi"), createBarPlot(Color.gray), 1));
+		subplotMap.put(ChartPlotOptions.ALARM, new GraphPanelPlotLabels(rb.getString("chart.alarm"), createAlarmPlot(), 2));
 		subplotMap.put(ChartPlotOptions.NETWORK_TYPE, new GraphPanelPlotLabels(rb.getString("chart.networkType"), createBarPlot(Color.gray), 1));
 		subplotMap.put(ChartPlotOptions.THROUGHPUT,	new GraphPanelPlotLabels(rb.getString("chart.throughput"), createThroughputPlot(), 2));
 		subplotMap.put(ChartPlotOptions.BURSTS,	new GraphPanelPlotLabels(rb.getString("chart.bursts"), createBurstPlot(), 1));
@@ -548,14 +562,23 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		// Setting the initial value on the time axis to -0.01 as the first
 		// packet time stamp in pcap analysis is always zero and hence the tool
 		// tip does not get displayed.
-		this.axis.setRange(new Range(-0.01, analysis != null ? analysis.getTraceData()
+		if (analysis != null && analysis.getFilter().getTimeRange() != null){
+			this.axis.setRange(new Range(-0.01, analysis != null ? analysis.getFilter().getTimeRange().getEndTime() : DEFAULT_TIMELINE));
+		}else{
+			this.axis.setRange(new Range(-0.01, analysis != null ? analysis.getTraceData()
 				.getTraceDuration() : DEFAULT_TIMELINE));
-
+		}
 		setGraphView(0);
 		for (Map.Entry<ChartPlotOptions, GraphPanelPlotLabels> entry : subplotMap.entrySet()) {
 			switch (entry.getKey()) {
+			case ALARM:
+				populateAlarmPlot(entry.getValue().getPlot(), analysis);
+				break;
 			case BATTERY:
 				populateBatteryPlot(entry.getValue().getPlot(), analysis);
+				break;
+			case WAKELOCK:
+				populateWakelockStatePlot(entry.getValue().getPlot(), analysis);
 				break;
 			case BLUETOOTH:
 				populateBluetoothPlot(entry.getValue().getPlot(), analysis);
@@ -1606,6 +1629,306 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 
 		return batteryPlot;
 
+	}
+	
+	/**
+	 * Creating Wakelock state for graph plot
+	 */
+	private static void populateWakelockStatePlot(XYPlot plot,
+			TraceData.Analysis analysis) {
+
+		final XYIntervalSeriesCollection wakelockData = new XYIntervalSeriesCollection();
+		if (analysis != null) {
+
+			XYIntervalSeries series = new XYIntervalSeries(
+					WakelockState.WAKELOCK_ACQUIRED);
+			wakelockData.addSeries(series);
+
+			// Populate the data set
+			final Map<Double, WakelockInfo> dataMap = new HashMap<Double, WakelockInfo>();
+			Iterator<WakelockInfo> iter = analysis.getWakelockInfos().iterator();
+			if (iter.hasNext()) {
+				WakelockInfo lastEvent = iter.next();
+				logger.fine("Wakelock Plotting");
+				// Check whether WAKELOCK was acquired before logging begins.
+				if (lastEvent.getWakelockState() == WakelockState.WAKELOCK_RELEASED) {
+					series.add(0,0,lastEvent.getBeginTimeStamp(), 0.5, 0, 1);
+					dataMap.put(lastEvent.getBeginTimeStamp(), lastEvent);
+				}
+				while (iter.hasNext()) {
+					WakelockInfo currEvent = iter.next();
+					if (lastEvent.getWakelockState() == WakelockState.WAKELOCK_ACQUIRED) {
+						logger.fine("Wakelock acquired curr " + currEvent.getBeginTimeStamp());
+						logger.fine("Wakelock acquired last " + lastEvent.getBeginTimeStamp());
+						series.add(lastEvent.getBeginTimeStamp(),
+								lastEvent.getBeginTimeStamp(),
+								currEvent.getBeginTimeStamp(), 0.5, 0, 1);
+						dataMap.put(lastEvent.getBeginTimeStamp(), lastEvent);
+					}
+					lastEvent = currEvent;
+				}
+				if (lastEvent.getWakelockState() == WakelockState.WAKELOCK_ACQUIRED) {
+					series.add(lastEvent.getBeginTimeStamp(), lastEvent
+							.getBeginTimeStamp(), analysis.getTraceData()
+							.getTraceDuration(), 0.5, 0, 1);
+					dataMap.put(lastEvent.getBeginTimeStamp(), lastEvent);
+				}
+			}
+
+			// Assign ToolTip to renderer
+			XYItemRenderer renderer = plot.getRenderer();
+			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
+
+				@Override
+				public String generateToolTip(XYDataset dataset, int series,
+						int item) {
+
+					WakelockInfo wi = dataMap.get(dataset.getXValue(series,
+							item));
+					if (wi != null) {
+
+						StringBuffer displayInfo = new StringBuffer(rb
+								.getString("wakelock.tooltip.prefix"));
+						displayInfo.append(MessageFormat.format(
+								rb.getString("wakelock.tooltip.content"),
+								ResourceBundleManager.getEnumString(wi
+										.getWakelockState()), wi.getBeginTimeStamp()
+								));
+						displayInfo.append(rb
+								.getString("wakelock.tooltip.suffix"));
+						return displayInfo.toString();
+					}
+					return null;
+				}
+			});
+		}
+
+		plot.setDataset(wakelockData);
+	}
+
+	/**
+	 * Returns a XYPlot for Wakelock state
+	 * 
+	 * @return XYPlot.
+	 */
+	private static XYPlot createWakelockStatePlot() {
+
+		// Create renderer
+		XYBarRenderer wakelockStateRenderer = new XYBarRenderer();
+		wakelockStateRenderer.setDrawBarOutline(false);
+		wakelockStateRenderer.setUseYInterval(true);
+		wakelockStateRenderer.setBasePaint(Color.yellow);
+		wakelockStateRenderer.setAutoPopulateSeriesPaint(false);
+		wakelockStateRenderer.setShadowVisible(false);
+		wakelockStateRenderer.setGradientPaintTransformer(null);
+		wakelockStateRenderer.setBarPainter(new StandardXYBarPainter());
+
+		// Create result plot
+		XYPlot wakelockStatePlot = new XYPlot(null, null, new NumberAxis(),
+				wakelockStateRenderer);
+		wakelockStatePlot.getRangeAxis().setVisible(false);
+		return wakelockStatePlot;
+	}
+	
+	private static List<ScheduledAlarmInfo> getHasFiredAlarms(Map<String, List<ScheduledAlarmInfo>> pendingAlarms) {
+		List<ScheduledAlarmInfo> result = new ArrayList<ScheduledAlarmInfo>();
+		for (Map.Entry<String, List<ScheduledAlarmInfo>> entry : pendingAlarms.entrySet()) {
+			List<ScheduledAlarmInfo> alarms = entry.getValue();
+			ListIterator itrAlarms = alarms.listIterator();
+			while(itrAlarms.hasNext()) {
+				ScheduledAlarmInfo alarm = (ScheduledAlarmInfo) itrAlarms.next();
+				if(alarm.getHasFired() > 0) {
+					result.add(alarm);
+				}
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Creating Alarm triggered data for graph plot
+	 */
+	private static void populateAlarmPlot(XYPlot plot,
+			TraceData.Analysis analysis) {
+
+		final XYIntervalSeriesCollection alarmDataCollection = new XYIntervalSeriesCollection();
+		if (analysis != null) {
+
+			// Remove old annotation from previous plots
+			Iterator<XYPointerAnnotation> pointers = pointerAnnotation.iterator();
+			while (pointers.hasNext()) {
+				plot.removeAnnotation(pointers.next());
+			}
+			pointerAnnotation.clear();
+
+			final Map<AlarmType, XYIntervalSeries> seriesMap = new EnumMap<AlarmType, XYIntervalSeries>(
+					AlarmType.class);
+			for (AlarmType eventType : AlarmType.values()) {
+				XYIntervalSeries series = new XYIntervalSeries(eventType);
+				seriesMap.put(eventType, series);
+				alarmDataCollection.addSeries(series);
+			}
+			final List<AlarmInfo> alarmInfos = analysis.getAlarmInfos();
+			final Map<Double, AlarmInfo> eventMap = new HashMap<Double, AlarmInfo>();
+			final Map<Double, ScheduledAlarmInfo> eventMapPending = new HashMap<Double, ScheduledAlarmInfo>();
+			List<ScheduledAlarmInfo> pendingAlarms = getHasFiredAlarms(analysis.getScheduledAlarms());			
+			Iterator<ScheduledAlarmInfo> iterPendingAlarms = pendingAlarms.iterator();
+			double firedTime = 0;
+			while (iterPendingAlarms.hasNext()) {
+				ScheduledAlarmInfo scheduledEvent = iterPendingAlarms.next();
+				AlarmType pendingAlarmType = scheduledEvent.getAlarmType();
+				if (pendingAlarmType != null) {
+					firedTime = (scheduledEvent.getTimeStamp() - scheduledEvent.getRepeatInterval())/1000;
+					seriesMap.get(pendingAlarmType).add(firedTime,
+							firedTime,
+							firedTime,
+						       	1, 0.8, 1);
+					eventMapPending.put(firedTime, scheduledEvent);
+					logger.fine("populateAlarmScheduledPlot type:\n" + pendingAlarmType 
+							+ "\ntime " + scheduledEvent.getTimeStamp() 
+							+ "\nrepeating " + firedTime);
+				}
+			}
+
+			Iterator<AlarmInfo> iter = alarmInfos.iterator();
+			while (iter.hasNext()) {
+				AlarmInfo currEvent = iter.next();
+				if (currEvent != null) {
+					AlarmType alarmType = currEvent.getAlarmType();
+					if (alarmType != null) {
+						firedTime = currEvent.getTimeStamp()/1000;
+						
+						/*
+						 * Catching any alarms align to quanta as being
+						 * inexactRepeating alarms
+						 */
+						if((currEvent.getTimestampElapsed()/1000) % 900 < 1) {
+							seriesMap.get(alarmType).add(firedTime,
+								firedTime,
+								firedTime, 1, 0, 0.7);
+
+							// Adding an arrow to mark these inexactRepeating alarms
+							XYPointerAnnotation xypointerannotation = new XYPointerAnnotation(alarmType.name(), firedTime, 0.6, 3.92699082D );
+							xypointerannotation.setBaseRadius(20D);
+							xypointerannotation.setTipRadius(1D);
+							pointerAnnotation.add(xypointerannotation);
+							plot.addAnnotation(xypointerannotation);
+
+							logger.info("SetInexactRepeating alarm type: " 
+									+ alarmType 
+									+ " time " + firedTime
+									+ " epoch " + currEvent.getTimestampEpoch()
+									+ " elapsed:\n" + currEvent.getTimestampElapsed()/1000);
+						} else {
+							seriesMap.get(alarmType).add(firedTime,
+								firedTime,
+								firedTime, 1, 0, 0.5);
+						}
+						eventMap.put(firedTime, currEvent);
+					}
+				}
+			}
+			XYItemRenderer renderer = plot.getRenderer();
+			renderer.setSeriesPaint(
+					alarmDataCollection.indexOf(AlarmType.RTC_WAKEUP), 
+					Color.red);
+
+			renderer.setSeriesPaint(
+					alarmDataCollection.indexOf(AlarmType.RTC),
+					Color.pink);
+
+			renderer.setSeriesPaint(
+					alarmDataCollection.indexOf(AlarmType.ELAPSED_REALTIME_WAKEUP),
+					Color.blue);
+
+			renderer.setSeriesPaint(
+					alarmDataCollection.indexOf(AlarmType.ELAPSED_REALTIME),
+					Color.cyan);
+
+			renderer.setSeriesPaint(
+					alarmDataCollection.indexOf(AlarmType.UNKNOWN),
+					Color.black);
+
+			// Assign ToolTip to renderer
+			renderer.setBaseToolTipGenerator(new XYToolTipGenerator() {
+				@Override
+				public String generateToolTip(XYDataset dataset, int series,
+						int item) {
+					AlarmInfo info = eventMap.get(dataset.getX(series, item));
+					Date epochTime = new Date();
+					if (info != null) {
+
+						epochTime.setTime((long) info.getTimestampEpoch());
+
+						StringBuffer displayInfo = new StringBuffer(rb
+								.getString("alarm.tooltip.prefix"));
+						displayInfo.append(MessageFormat.format(
+								rb.getString("alarm.tooltip.content"),
+								info.getAlarmType(),
+								info.getTimeStamp()/1000,
+								epochTime.toString()));
+						if((info.getTimestampElapsed()/1000) % 900 < 1) {
+							displayInfo.append(rb
+								.getString("alarm.tooltip.setInexactRepeating"));
+						}
+						displayInfo.append(rb
+								.getString("alarm.tooltip.suffix"));
+						return displayInfo.toString();
+					}
+					ScheduledAlarmInfo infoPending = eventMapPending.get(dataset.getX(series, item));
+					if (infoPending != null) {
+
+						epochTime.setTime((long) (infoPending.getTimestampEpoch()-infoPending.getRepeatInterval()));
+
+						StringBuffer displayInfo = new StringBuffer(rb
+								.getString("alarm.tooltip.prefix"));
+						displayInfo.append(MessageFormat.format(
+								rb.getString("alarm.tooltip.contentWithName"),
+								infoPending.getAlarmType(),
+							       	(infoPending.getTimeStamp()-infoPending.getRepeatInterval())/1000,
+								epochTime.toString(),
+								infoPending.getApplication(),
+								infoPending.getRepeatInterval()/1000));
+						displayInfo.append(rb
+								.getString("alarm.tooltip.suffix"));
+						return displayInfo.toString();
+					}
+					return null;
+				}
+			});
+
+		}
+
+		plot.setDataset(alarmDataCollection);
+	}
+
+ 	/**
+	 * Returns a XYPlot for Alarm triggering info
+	 * 
+	 * @return XYPlot.
+	 */
+	private static XYPlot createAlarmPlot() {
+
+		// Create renderer
+		XYBarRenderer alarmRenderer = new XYBarRenderer();
+		alarmRenderer.setDrawBarOutline(false);
+		alarmRenderer.setUseYInterval(true);
+		alarmRenderer.setBasePaint(Color.gray);
+		alarmRenderer.setAutoPopulateSeriesPaint(false);
+		alarmRenderer.setShadowVisible(false);
+		alarmRenderer.setGradientPaintTransformer(null);
+		alarmRenderer.setBarPainter(new StandardXYBarPainter());
+
+		// Normalize the throughput axis so that it represents max value
+		NumberAxis axis = new NumberAxis();
+		axis.setVisible(false);
+		axis.setAutoRange(false);
+		axis.setRange(0, 1);
+
+		// Create result plot
+		XYPlot alarmPlot = new XYPlot(null, null, axis, alarmRenderer);
+		alarmPlot.getRangeAxis().setVisible(false);
+		return alarmPlot;
 	}
 
 	private static void populateUserEventPlot(XYPlot plot, TraceData.Analysis analysis) {

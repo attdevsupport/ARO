@@ -25,6 +25,7 @@ public class Packet implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	private static final short IP = 0x0800;
+	private static final short IPv6 = (short)0x86DD;
 
 	private static final int DLT_EN10MB = 1;
 	private static final int DLT_RAW = 12;
@@ -152,7 +153,21 @@ public class Packet implements Serializable {
 
 		// Minimum IP header length is 20 bytes
 		ByteBuffer bytes = ByteBuffer.wrap(data);
-		if (network == IP && data.length >= datalinkHdrLen + 20) {
+		if ((network == IPv6)  && (data.length >= datalinkHdrLen + 40)) {
+			// Determine IPv6 protocol
+			byte protocol = bytes.get(datalinkHdrLen + 6);
+			switch (protocol) {
+			case 6: // TCP
+				return new TCPPacket(seconds, microSeconds, len,
+						datalinkHdrLen, data);
+			case 17: // UDP
+				return new UDPPacket(seconds, microSeconds, len,
+						datalinkHdrLen, data);
+			default:
+				return new IPPacket(seconds, microSeconds, len, datalinkHdrLen,
+						data);
+			}
+		} else if ((network == IP) && (data.length >= datalinkHdrLen + 20)) {
 
 			byte iphlen = (byte) ((bytes.get(datalinkHdrLen) & 0x0f) << 2);
 			if (data.length < datalinkHdrLen + iphlen) {

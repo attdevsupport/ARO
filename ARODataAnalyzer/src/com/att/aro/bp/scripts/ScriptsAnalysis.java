@@ -89,7 +89,7 @@ public class ScriptsAnalysis {
 			}
 
 		} catch (ContentException e) {
-			ScriptsAnalysis.LOGGER.log(Level.WARNING, "Empty URL Analysis - Unexpected Exception {0}", e.getMessage());
+			ScriptsAnalysis.LOGGER.log(Level.FINE, "Empty URL Analysis - Unexpected Exception {0}", e.getMessage());
 		} catch (IOException e) {
 			ScriptsAnalysis.LOGGER.log(Level.WARNING, "Empty URL Analysis - Unexpected Exception {0}", e.getMessage());
 		}

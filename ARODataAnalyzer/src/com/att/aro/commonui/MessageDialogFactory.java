@@ -16,11 +16,15 @@
 package com.att.aro.commonui;
 
 import java.awt.Component;
+import java.awt.Font;
 import java.awt.Window;
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
 
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 
 import com.att.aro.main.ResourceBundleManager;
 
@@ -157,6 +161,42 @@ public class MessageDialogFactory extends JOptionPane {
 		return JOptionPane.showOptionDialog(parentComponent, rb.getString("table.export.success"),
 				rb.getString("confirm.title"), JOptionPane.YES_OPTION,
 				JOptionPane.OK_CANCEL_OPTION, null, options, options[1]);
+	}
+	/**
+	 * Display input dialog for user to enter password
+	 * @param parent parent component
+	 * @param title what to show on the dialog box title
+	 * @param message what to show to user.
+	 * @return
+	 */
+	public static String showInputPassword(Component parent, String title, String message){
+		return showInputPassword(parent,title,message,14);
+	}
+	/**
+	 * Display input dialog for user to enter password
+	 * @param parent parent component
+	 * @param title what to show on the dialog box title
+	 * @param message what to show to user.
+	 * @param fontsize how big should the font be
+	 * @return
+	 */
+	public static String showInputPassword(Component parent, String title, String message, int fontsize){
+		JPanel panel = new JPanel();
+		JLabel label = new JLabel(rb.getString("Message.entersudopassword")+"\r\n");
+		label.setFont(new Font(label.getFont().getName(), Font.PLAIN, fontsize));
+		JPasswordField pass = new JPasswordField(10);
+		panel.add(label);
+		panel.add(pass);
+		String[] options = new String[]{"OK", "Cancel"};
+		
+		MessageDialogFactory.showOptionDialog(parent, panel, "Admin Right Required",
+                JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE,
+                null, options, options[0]);
+		char[] passarr = pass.getPassword();
+		if(passarr == null){
+			return "";
+		}
+		return new String(passarr);
 	}
 
 }

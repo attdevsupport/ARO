@@ -28,6 +28,7 @@ public class SpriteImageAnalysis {
 				
 				double lastTimeStamp = 0.0;
 				HttpRequestResponseInfo lastReqRessInfo = null;
+				HttpRequestResponseInfo secondReqRessInfo = null;
 				boolean thirdOccurrenceTriggered = false;
 				
 				// loop through HTTP requests and responses
@@ -41,18 +42,30 @@ public class SpriteImageAnalysis {
 										lastTimeStamp = pktInfo.getTimeStamp();
 										lastReqRessInfo = reqRessInfo;
 										continue;
-									} else {
+									} else{ 
 										if ((pktInfo.getTimeStamp() - lastTimeStamp) <= 5.0) {
 											if (!thirdOccurrenceTriggered) {
+												secondReqRessInfo = reqRessInfo;
 												thirdOccurrenceTriggered = true;
 												continue;
 											} else {
+												/* -At this stage 3 images found to be downloaded in 5 secs. store them.
+												 * -fix for defect DE26829*/
 												analyzeContent(lastReqRessInfo);
-												break;
+												analyzeContent(secondReqRessInfo);
+												analyzeContent(reqRessInfo);
+												/* -reset the variables to search more such images in this session
+												 * -fix for defect DE26829 */
+												
+												lastTimeStamp = 0.0;
+												lastReqRessInfo = null;
+												secondReqRessInfo = null;
+												thirdOccurrenceTriggered = false;
 											}
 										}
 										lastTimeStamp = pktInfo.getTimeStamp();
 										lastReqRessInfo = reqRessInfo;
+										secondReqRessInfo = null;
 										thirdOccurrenceTriggered = false;
 									}
 								} 

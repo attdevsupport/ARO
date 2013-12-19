@@ -88,7 +88,7 @@ public class DuplicateBestPractice implements BestPracticeDisplay {
 			return MessageFormat.format(
 					rb.getString("caching.duplicateContent.results"),
 					nf.format(bp.getDuplicateContentBytesRatio() * 100.0),
-					bp.getDuplicateContentsize(),
+					bp.getDuplicateContentSizeOfUniqueItems(),
 					nf2.format(((double) bp.getDuplicateContentBytes())
 							/ DUPLICATE_CONTENT_DENOMINATOR),
 					nf2.format(((double) bp.getTotalContentBytes())

@@ -34,6 +34,10 @@ public enum ChartPlotOptions {
 	 */
 	CPU,
 	/**
+	 * The ALARM chart plot option.
+	 */
+	ALARM,
+	/**
 	 * The Burst Colors chart plot option.
 	 */
 	BURST_COLORS,
@@ -41,6 +45,10 @@ public enum ChartPlotOptions {
 	 * The Battery States chart plot option.
 	 */
 	BATTERY,
+	/**
+	 * The Wakelock States chart plot option.
+	 */
+	WAKELOCK,
 	/**
 	 * The Screen State chart plot option.
 	 */

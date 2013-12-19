@@ -35,9 +35,9 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.SwingConstants;
 
 import com.att.aro.bp.BestPracticeButtonPanel;
+import com.att.aro.bp.DataTableResultPanel;
 import com.att.aro.commonui.DataTable;
 import com.att.aro.main.ApplicationResourceOptimizer;
 //import com.att.aro.model.TextFileCompressionEntry;
@@ -47,7 +47,7 @@ import com.att.aro.util.Util;
  * Represents the panel that has the information about the files which failed
  * File Order tests
  */
-public class FileOrderResultPanel extends JPanel {
+public class FileOrderResultPanel extends JPanel implements DataTableResultPanel {
 
 	private static final long serialVersionUID = 1L;
 
@@ -59,7 +59,6 @@ public class FileOrderResultPanel extends JPanel {
 	private static final int SCROLL_PANE_HEIGHT = FileOrderResultPanel.NO_OF_ROWS
 			* FileOrderResultPanel.ROW_HEIGHT;
 	private static final int SCROLL_PANE_LENGHT = 300;
-	private boolean isExpanded = false;
 	private int noOfRecords = 0;
 
 	private JLabel title;
@@ -237,6 +236,14 @@ public class FileOrderResultPanel extends JPanel {
 			viewBtn.doClick();
 			this.scrollPane.revalidate();
 		}
+	}
+
+	/**
+	 * Clears data from the result table.
+	 */
+	public void clearTable() {
+		LOGGER.log(Level.FINE, "clear file order data");
+		this.tableModel.removeAllRows();
 	}
 
 }

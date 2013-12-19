@@ -126,12 +126,30 @@ public class BestPracticeDisplayFactory {
 		return fileDownloadSection;
 	}
 	
+	/** 
+	 * Clears all BP results.
+	 * 
+	 */
+	static public void clearsBPResultsTables() {
+		
+		getMinification().clearTable();
+		getDupicate().clearTable();
+		getDisplayNoneInCSSResultPanel().clearTable();
+		getFileOrderResultPanel().clearTable();
+		getHttp4xx5xxResults().clearTable();
+		getHttpRspCdResults().clearTable();
+		getImageSize().clearTable();
+		getSpriteImageResults().clearTable();
+		getAsyncCheckResults().clearTable();
+		getTextFileCompression().clearTable();
+	}
+	
 	/**
 	 * Returns a results panel for duplicate content.
 	 * 
 	 * @return result panel
 	 */	
-	public DuplicateResultPanel getDupicate() {
+	public static DuplicateResultPanel getDupicate() {
 		return (DuplicateResultPanel) DUPLICATE_CONTENT.getTestResults();
 	}
 	
@@ -140,7 +158,7 @@ public class BestPracticeDisplayFactory {
 	 * 
 	 * @return text file compression test result panel
 	 */
-	public TextFileCompressionResultPanel getTextFileCompression() {
+	public static TextFileCompressionResultPanel getTextFileCompression() {
 		return (TextFileCompressionResultPanel) FILE_COMPRESSION.getTestResults();
 	}
 	
@@ -149,7 +167,7 @@ public class BestPracticeDisplayFactory {
 	 * 
 	 * @return result panel
 	 */
-	public ImageSizeResultPanel getImageSize() {
+	public static ImageSizeResultPanel getImageSize() {
 		return (ImageSizeResultPanel) IMAGE_SIZE.getTestResults();
 	}
 
@@ -158,7 +176,7 @@ public class BestPracticeDisplayFactory {
 	 * 
 	 * @return result panel
 	 */
-	public MinificationResultPanel getMinification() {
+	 public static MinificationResultPanel getMinification() {
 		return (MinificationResultPanel) MINIFICATION.getTestResults();
 	}
 	
@@ -167,16 +185,16 @@ public class BestPracticeDisplayFactory {
 	 * 
 	 * @return result panel
 	 */
-	public SpriteImageResultPanel getSpriteImageResults() {
+	public static SpriteImageResultPanel getSpriteImageResults() {
 		return (SpriteImageResultPanel) SPRITEIMAGE.getTestResults();
 	}
 	
-//	/**
+	//	/**
 //	 * Returns a result panel for Small Request test.
 //	 * 
 //	 * @return result panel
 //	 */
-//	public SmallRequestResultPanel getSmallRequestResults() {
+//	public static SmallRequestResultPanel getSmallRequestResults() {
 //		return (SmallRequestResultPanel) SMALLREQUEST.getTestResults();
 //	}
 	
@@ -185,7 +203,7 @@ public class BestPracticeDisplayFactory {
 	 * 
 	 * @return result panel
 	 */
-	public HttpCode3XXResultPanel getHttpRspCdResults() {
+	public static HttpCode3XXResultPanel getHttpRspCdResults() {
 		 return (HttpCode3XXResultPanel) HTTP_3XX_CODE.getTestResults();
 	}
 	
@@ -194,7 +212,7 @@ public class BestPracticeDisplayFactory {
 	 * 
 	 * @return result panel
 	 */
-	public Http4xx5xxStatusResponseCodesResultPanel getHttp4xx5xxResults() {
+	public static Http4xx5xxStatusResponseCodesResultPanel getHttp4xx5xxResults() {
 		 return (Http4xx5xxStatusResponseCodesResultPanel) HTTP_4XX_5XX.getTestResults();
 	}
 	/**
@@ -202,7 +220,7 @@ public class BestPracticeDisplayFactory {
 	 * 
 	 * @return result panel
 	 */
-	public AsyncCheckResultPanel getAsyncCheckResults(){
+	public static AsyncCheckResultPanel getAsyncCheckResults(){
 		return (AsyncCheckResultPanel)ASYNC_CHECK.getTestResults();
 	}
 	
@@ -211,7 +229,7 @@ public class BestPracticeDisplayFactory {
 	 * 
 	 * @return result panel
 	 */
-	public FileOrderResultPanel getFileOrderResultPanel(){
+	public static FileOrderResultPanel getFileOrderResultPanel(){
 		return (FileOrderResultPanel)FILE_ORDER.getTestResults();
 	}
 	
@@ -220,7 +238,7 @@ public class BestPracticeDisplayFactory {
 	 * 
 	 * @return result panel
 	 */
-	public DisplayNoneInCSSResultPanel getDisplayNoneInCSSResultPanel(){
+	public static DisplayNoneInCSSResultPanel getDisplayNoneInCSSResultPanel(){
 		return (DisplayNoneInCSSResultPanel)DISPLAY_NONE_IN_CSS.getTestResults();
 	}
 	
@@ -276,7 +294,7 @@ public class BestPracticeDisplayFactory {
 	/**
 	 * Pre-defined duplicate content best practice
 	 */
-	protected static final BestPracticeDisplay DUPLICATE_CONTENT = new DuplicateBestPractice() ;
+	protected static BestPracticeDisplay DUPLICATE_CONTENT = new DuplicateBestPractice() ;
 	
 	/**
 	 * Pre-defined cache control best practice
@@ -656,7 +674,7 @@ public class BestPracticeDisplayFactory {
 			} else {
 				BurstCollectionAnalysis bursts = analysisData.getBcAnalysis();
 				int burstSet = bursts.getTightlyCoupledBurstCount();
-				return MessageFormat.format(rb.getString("connections.unnecssaryConn.result"),
+				return MessageFormat.format(rb.getString("connections.unnecssaryConn.results"),
 								burstSet);
 			}
 		}
@@ -1213,5 +1231,5 @@ public class BestPracticeDisplayFactory {
 		parent.setExternalChartPlotSelection(ChartPlotOptions.BURSTS, true);
 		parent.displayDiagnosticTab();
 	}
-
+	
 }

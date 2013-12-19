@@ -18,8 +18,10 @@ package com.att.aro.model;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -72,10 +74,10 @@ public class BestPractices {
 	private int http1_0HeaderCount = 0;
 	private TCPSession http10Session = null;
 
-	private SortedMap<Integer, Integer> httpErrorCounts = new TreeMap<Integer, Integer>();
-	private Map<Integer, HttpRequestResponseInfo> firstErrorRespMap = new HashMap<Integer, HttpRequestResponseInfo>();
-	private SortedMap<Integer, Integer> httpRedirectCounts = new TreeMap<Integer, Integer>();
-	private Map<Integer, HttpRequestResponseInfo> firstRedirectRespMap = new HashMap<Integer, HttpRequestResponseInfo>();
+	private SortedMap<Integer, Integer> httpErrorCounts_4XX = new TreeMap<Integer, Integer>();
+	private Map<Integer, HttpRequestResponseInfo> firstErrorRespMap_4XX = new HashMap<Integer, HttpRequestResponseInfo>();
+	private SortedMap<Integer, Integer> httpRedirectCounts_3XX = new TreeMap<Integer, Integer>();
+	private Map<Integer, HttpRequestResponseInfo> firstRedirectRespMap_3XX = new HashMap<Integer, HttpRequestResponseInfo>();
 	private List<HttpCode3XXEntry> httpRspCd = new ArrayList<HttpCode3XXEntry>();
 	private List<Http4xx5xxStatusResponseCodesEntry> results = new ArrayList<Http4xx5xxStatusResponseCodesEntry>();
 	private HttpCode3XXResultPanel http_code_3XX_panel = null;
@@ -105,6 +107,7 @@ public class BestPractices {
 
 	private double duplicateContentBytesRatio = 0;
 	private int duplicateContentsize = 0;
+	private int duplicateContentSizeOfUniqueItems = 0;
 	private long duplicateContentBytes = 0;
 	private long totalContentBytes = 0;
 	private double gpsActiveStateRatio = 0;
@@ -131,7 +134,7 @@ public class BestPractices {
 	 * @param analysisData
 	 *            An Analysis object containing the set of trace analysis data.
 	 */
-	public BestPractices(TraceData.Analysis analysisData) {
+	public BestPractices(TraceData.Analysis analysisData, boolean datadump) {
 		this.analysisData = analysisData;
 		this.traceData = analysisData.getTraceData();
 
@@ -229,17 +232,17 @@ public class BestPractices {
 				if (reqRessInfo.getDirection() == Direction.RESPONSE
 						&& HttpRequestResponseInfo.HTTP_SCHEME
 								.equals(reqRessInfo.getScheme())
-						&& reqRessInfo.getStatusCode() >= 400) {
+						&& reqRessInfo.getStatusCode() >= 400 && reqRessInfo.getStatusCode() < 600) {
 					Integer status = Integer.valueOf(reqRessInfo
 							.getStatusCode());
-					Integer count = httpErrorCounts.get(status);
+					Integer count = httpErrorCounts_4XX.get(status);
 					if (count != null) {
-						httpErrorCounts.put(status, count + 1);
+						httpErrorCounts_4XX.put(status, count + 1);
 					} else {
-						httpErrorCounts.put(status, 1);
+						httpErrorCounts_4XX.put(status, 1);
 					}
-					if (firstErrorRespMap.get(status) == null) {
-						firstErrorRespMap.put(status, reqRessInfo);
+					if (firstErrorRespMap_4XX.get(status) == null) {
+						firstErrorRespMap_4XX.put(status, reqRessInfo);
 					}
 					results.add(new Http4xx5xxStatusResponseCodesEntry(
 							reqRessInfo));
@@ -247,22 +250,20 @@ public class BestPractices {
 
 				if (reqRessInfo.getDirection() == Direction.RESPONSE
 						&& HttpRequestResponseInfo.HTTP_SCHEME
-								.equals(reqRessInfo.getScheme())) {
-					int code = reqRessInfo.getStatusCode();
-					if ((code == 301) || (code == 302)) {
-						Integer status = Integer.valueOf(reqRessInfo
-								.getStatusCode());
-						Integer count = httpRedirectCounts.get(status);
-						if (count != null) {
-							httpRedirectCounts.put(status, count + 1);
-						} else {
-							httpRedirectCounts.put(status, 1);
-						}
-						if (firstRedirectRespMap.get(status) == null) {
-							firstRedirectRespMap.put(status, reqRessInfo);
-						}
-						this.httpRspCd.add(new HttpCode3XXEntry(reqRessInfo));
+								.equals(reqRessInfo.getScheme())
+						&&	(reqRessInfo.getStatusCode() == 301 || reqRessInfo.getStatusCode() == 302)) {
+					Integer status = Integer.valueOf(reqRessInfo
+							.getStatusCode());
+					Integer count = httpRedirectCounts_3XX.get(status);
+					if (count != null) {
+						httpRedirectCounts_3XX.put(status, count + 1);
+					} else {
+						httpRedirectCounts_3XX.put(status, 1);
 					}
+					if (firstRedirectRespMap_3XX.get(status) == null) {
+						firstRedirectRespMap_3XX.put(status, reqRessInfo);
+					}
+					this.httpRspCd.add(new HttpCode3XXEntry(reqRessInfo));					
 				}
 
 				/* Calculate number of inefficient Css and Js requests. */
@@ -409,18 +410,19 @@ public class BestPractices {
 		this.duplicateContentsize = cacheAnalysis.getDuplicateContent().size();
 		this.duplicateContent = duplicateContentsize <= 3;
 
-		setResultsOfTextFileCompressionTest(analysisData);
-		setResultsOfImageSizeTest(analysisData);
-		setResultsOfMinificationTest(analysisData);
-		setResultsOfSpriteImageTest(analysisData);
-		//setResultsOfSmallRequestTest(analysisData);
-		setResultsOfHTTPRspCodeTest(analysisData);
-		setResultsOfAsyncCheckTest(analysisData);
-		setResultsOfFileOrderTest(analysisData);
-		setResultsOfDisplayNoneInCSS(analysisData);
-		setResultsOfHttp4xx5xxStatusResponseCodes(analysisData);
-		setResultsOfCacheTest(analysisData);
-
+		if(!datadump) {
+			setResultsOfTextFileCompressionTest(analysisData);
+			setResultsOfImageSizeTest(analysisData);
+			setResultsOfMinificationTest(analysisData);
+			setResultsOfSpriteImageTest(analysisData);
+			//setResultsOfSmallRequestTest(analysisData);
+			setResultsOfHTTPRspCodeTest(analysisData);
+			setResultsOfAsyncCheckTest(analysisData);
+			setResultsOfFileOrderTest(analysisData);
+			setResultsOfDisplayNoneInCSS(analysisData);
+			setResultsOfHttp4xx5xxStatusResponseCodes(analysisData);
+			setResultsOfCacheTest(analysisData);
+		}
 	}
 
 	/**
@@ -432,19 +434,40 @@ public class BestPractices {
 	private void setResultsOfCacheTest(TraceData.Analysis analysisData) {
 		// obtain the results of Text File Compression Analysis
 		CacheAnalysis ca = analysisData.getCacheAnalysis();
-		List<CacheEntry> caResult = ca.getDuplicateContent();
+		List<CacheEntry> caUResult = createUniqueItemList(ca.getDuplicateContent());
+		this.duplicateContentSizeOfUniqueItems = caUResult.size();
 		duplicateResultPanel = BestPracticeDisplayFactory.getInstance()
 				.getDupicate();
 
 		if (duplicateResultPanel != null) {
-			duplicateResultPanel.setNoOfRecords(caResult.size());
-			if (caResult.size() > 0) {
-				duplicateResultPanel.setData(caResult);
+			duplicateResultPanel.setNoOfRecords(caUResult.size());
+			if (caUResult.size() > 0) {
+				duplicateResultPanel.setData(caUResult);
 				duplicateResultPanel.setVisible(true);
 			} else {
 				duplicateResultPanel.setVisible(false);
 			}
 		}
+	}
+	
+	/**
+	 * 
+	 * Createa unique item list.
+	 * 
+	 * @param caResult
+	 */
+	private List<CacheEntry> createUniqueItemList(List<CacheEntry> caResult) {
+		List<CacheEntry> caUResult = new ArrayList<CacheEntry>();
+		Set<String> set = new HashSet<String>();
+		for(int i=0; i<caResult.size(); i++) {
+			CacheEntry ce = caResult.get(i);
+			String key  = Integer.toString(ce.getCacheHitCount()) + ce.getHostName() + ce.getHttpObjectName();
+			if(set.contains(key) == false) {
+				caUResult.add(ce);
+			}
+			set.add(key);
+		}
+		return caUResult;
 	}
 
 	public DuplicateResultPanel getDuplicatePanel() {
@@ -938,6 +961,10 @@ public class BestPractices {
 	public int getDuplicateContentsize() {
 		return duplicateContentsize;
 	}
+	
+	public int getDuplicateContentSizeOfUniqueItems() {
+		return duplicateContentSizeOfUniqueItems;
+	}
 
 	/**
 	 * Returns the amount of duplicate content in bytes.
@@ -1267,7 +1294,7 @@ public class BestPractices {
 	 *         number of occurrences of the status code
 	 */
 	public SortedMap<Integer, Integer> getHttpErrorCounts() {
-		return Collections.unmodifiableSortedMap(httpErrorCounts);
+		return Collections.unmodifiableSortedMap(httpErrorCounts_4XX);
 	}
 
 	/**
@@ -1279,7 +1306,7 @@ public class BestPractices {
 	 *         associated HTTP response
 	 */
 	public Map<Integer, HttpRequestResponseInfo> getFirstErrorRespMap() {
-		return Collections.unmodifiableMap(firstErrorRespMap);
+		return Collections.unmodifiableMap(firstErrorRespMap_4XX);
 	}
 
 	/**
@@ -1291,7 +1318,7 @@ public class BestPractices {
 	 *         number of occurrences of the status code
 	 */
 	public SortedMap<Integer, Integer> getHttpRedirectCounts() {
-		return Collections.unmodifiableSortedMap(httpRedirectCounts);
+		return Collections.unmodifiableSortedMap(httpRedirectCounts_3XX);
 	}
 
 	/**
@@ -1303,7 +1330,7 @@ public class BestPractices {
 	 *         associated HTTP response
 	 */
 	public Map<Integer, HttpRequestResponseInfo> getFirstRedirectRespMap() {
-		return Collections.unmodifiableMap(firstRedirectRespMap);
+		return Collections.unmodifiableMap(firstRedirectRespMap_3XX);
 	}
 
 	/**

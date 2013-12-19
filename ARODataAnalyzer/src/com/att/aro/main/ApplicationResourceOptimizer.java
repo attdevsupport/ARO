@@ -83,7 +83,6 @@ import com.att.aro.bp.http4xx5xxrespcodes.Http4xx5xxStatusResponseCodesResultPan
 import com.att.aro.bp.httprspcd.HttpCode3XXResultPanel;
 import com.att.aro.bp.imageSize.ImageSizeResultPanel;
 import com.att.aro.bp.minification.MinificationResultPanel;
-//import com.att.aro.bp.smallrequest.SmallRequestResultPanel;
 import com.att.aro.bp.spriteimage.SpriteImageResultPanel;
 import com.att.aro.commonui.AROProgressDialog;
 import com.att.aro.commonui.MessageDialogFactory;
@@ -94,20 +93,26 @@ import com.att.aro.main.menu.view.ChartPlotOptionsDialog;
 import com.att.aro.main.menu.view.ExcludeTimeRangeAnalysisDialog;
 import com.att.aro.main.menu.view.FilterApplicationsAndIpDialog;
 import com.att.aro.main.menu.view.FilterProcessesDialog;
+import com.att.aro.model.AdbService;
 import com.att.aro.model.AnalysisFilter;
 import com.att.aro.model.BestPractices;
+import com.att.aro.model.MobileDevice;
+import com.att.aro.model.MobileDeviceType;
 import com.att.aro.model.NetworkType;
 import com.att.aro.model.Profile;
 import com.att.aro.model.Profile3G;
 import com.att.aro.model.ProfileException;
 import com.att.aro.model.ProfileLTE;
 import com.att.aro.model.ProfileType;
+import com.att.aro.interfaces.Settings;
+import com.att.aro.model.SettingsImpl;
 import com.att.aro.model.TimeRange;
 import com.att.aro.model.TraceData;
 import com.att.aro.model.UserPreferences;
 import com.att.aro.pcap.PCapAdapter;
 import com.att.aro.plugin.AnalyzerPlugin;
 import com.att.aro.plugin.MenuPlugin;
+import com.att.aro.plugin.ResultExportPlugin;
 import com.att.aro.util.Util;
 import com.att.aro.video.AROVideoPlayer;
 
@@ -115,6 +120,7 @@ import com.att.aro.video.AROVideoPlayer;
  * Represents the main window of the ARO application.
  */
 public class ApplicationResourceOptimizer extends JFrame {
+	
 	private static final long serialVersionUID = 1L;
 
 	private static final Logger LOGGER = Logger.getLogger(ApplicationResourceOptimizer.class.getName());
@@ -136,6 +142,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private JMenuItem jBrowsePcapItem = null;
 	private JMenuItem jExitMenuItem = null;
 	private JMenuItem jPrintMenuItem = null;
+	private JMenuItem jAdbpath = null;
 
 	// Profile menu
 	private JMenu jProfileMenu;
@@ -191,7 +198,9 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private JMenuItem startDataCollectorMenuItem = null;
 	private JMenuItem stopDataCollectorMenuItem = null;
 
-	private DatacollectorBridge aroDataCollectorBridge;
+	private DatacollectorBridge aroDataCollectorBridge; //for rooted-android device both windows and mac
+	private DatacollectorBridgeNoRoot aroDataCollectorBridgeNoRoot; //for non-rooted android on windows and mac
+	private DataCollectorMacOS aroDataCollectorMacOS; //for Mac OS, of course iphone only
 
 	private Profile profile;
 	
@@ -367,19 +376,24 @@ public class ApplicationResourceOptimizer extends JFrame {
 			}
 
 			try {
-				if (traceData.getMissingFiles().size() > 0) {
+				int size = traceData.getMissingFiles().size();
+				if (size > 0) {
 					StringBuffer missingFiles = new StringBuffer();
 					for (String file : traceData.getMissingFiles()) {
-						missingFiles.append(file + "\n");
+						missingFiles.append(file);
+						if(--size != 0) {
+							if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+								missingFiles.append("\n");
+							} else {
+								missingFiles.append(", ");
+							}
+						}						
 					}
 
 					if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
 						MessageDialogFactory.showMessageDialog(mAROAnalyzer, MessageFormat.format(RB.getString("file.missingAlert"), missingFiles));
 					} else {
-						CommandLineHandler.getInstance().UpdateTraceInfoFile("WARNING", MessageFormat.format(RB.getString("file.missingAlert"), missingFiles));
-						
-						//Reset command line variable for user for UI usage.
-						CommandLineHandler.getInstance().SetCommandLineEvent(false);
+						CommandLineHandler.getInstance().UpdateTraceInfoFile("WARNING", MessageFormat.format(RB.getString("file.missingAlertCmd"), missingFiles));						
 					}						
 				}
 			} catch (Exception e) {
@@ -519,11 +533,12 @@ public class ApplicationResourceOptimizer extends JFrame {
 		TraceData.totalNoPackets = 0;
 		TraceData.remainingPackets = 0;
 
+		clearTrace();
+		
 		// Calling the parsethread to start analyzing the packets
 		Thread parseTraceThread = new Thread(new ParseTrace(), "ParseThread");
 		parseTraceThread.start();// Actual packet parsing happens here
 		timer.start();// Calling the timer to start the determinate progress bar
-
 		pb.pack();
 		pb.setVisible(true);
 	}
@@ -535,12 +550,28 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	public synchronized void clearTrace() throws IOException {
 
+		BestPracticeDisplayFactory.clearsBPResultsTables();
+
 		if (this.traceData != null) {
 
 			this.traceData = null;
 			this.setTitle(MessageFormat.format(RB.getString("aro.title"), ""));
 
-			clearAnalysis();
+			clearAnalysisNewTrace();
+		}
+	}
+
+	/**
+	 * Clears the analysis data.
+	 * 
+	 * @throws IOException
+	 */
+	private synchronized void clearAnalysis() throws IOException {
+
+		if (this.analysisData != null) {
+			getAroVideoPlayer().clear();
+			this.analysisData.clear();
+			displayAnalysis(null, this.profile, null, null);
 		}
 	}
 
@@ -549,18 +580,12 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * 
 	 * @throws IOException
 	 */
-	private synchronized void clearAnalysis() throws IOException {
+	private synchronized void clearAnalysisNewTrace() throws IOException {
 
 		if (this.analysisData != null) {
-			if (getAroVideoPlayer() != null) {
-				getAroVideoPlayer().clear();
-			}
-			this.analysisData.clear();
+			getAroVideoPlayer().clear();
+			this.analysisData.clearNewTrace();
 			displayAnalysis(null, this.profile, null, null);
-
-			// Free memory from previous trace
-			System.gc();
-
 		}
 	}
 
@@ -602,6 +627,13 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 			protected void done() {
 				try {
+					if(getTraceData().getAllPackets().size() == 0) {
+						progress.dispose();
+						MessageDialogFactory.showMessageDialog(null, RB.getString("Error.unrecognizedpacket"), RB.getString("Error.title"), 
+								JOptionPane.ERROR_MESSAGE);
+						return;
+					}
+					
 					refresh(profile, null, null);
 				} catch (IOException e) {
 					LOGGER.log(Level.SEVERE, "IOException while analysing the traces");
@@ -1022,14 +1054,93 @@ public class ApplicationResourceOptimizer extends JFrame {
 			startDataCollectorMenuItem.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
-					if (aroDataCollectorBridge == null) {
-						aroDataCollectorBridge = new DatacollectorBridge(ApplicationResourceOptimizer.this);
+					
+					if(CommandLineHandler.getInstance().IsCommandLineEvent() == false) {
+						startCollector();
+					} else {
+						if (aroDataCollectorBridge == null) {
+							aroDataCollectorBridge = new DatacollectorBridge(ApplicationResourceOptimizer.this);
+						}
+						aroDataCollectorBridge.startARODataCollectorCmd(CommandLineHandler.getInstance().getTraceDirectoryName(), true);
 					}
-					aroDataCollectorBridge.startARODataCollector();
 				}
 			});
 		}
 		return startDataCollectorMenuItem;
+	}
+	private void startCollector(){
+		if (aroDataCollectorBridge == null) {
+			aroDataCollectorBridge = new DatacollectorBridge(ApplicationResourceOptimizer.this);
+		}
+		aroDataCollectorBridge.startARODataCollector();
+		
+		/* disabled until bugs fixed
+		boolean isMac = Util.IsMacOS();
+		boolean isIOS = false;
+		
+		
+		MobileDevice device = new MobileDevice();
+		MobileDeviceType type = MobileDeviceType.NO_DEVICE_CONNECTED;
+		
+		try {
+			type = device.getDeviceType();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+			
+		}
+		if(type == MobileDeviceType.NO_DEVICE_CONNECTED){
+			AdbService adbservice = new AdbService();
+			boolean hasAdbPath = adbservice.hasADBpath();
+			
+			if(!isMac){
+				if(hasAdbPath){
+					MessageDialogFactory.showErrorDialog(null, RB.getString("Error.noandroiddevicefound"));
+				}else{
+					MessageDialogFactory.showErrorDialog(null, RB.getString("Message.setadbpathandtryagain"));
+				}
+			}else{
+				if(hasAdbPath){
+					MessageDialogFactory.showErrorDialog(null, RB.getString("Error.nodevicefoundtryagain"));
+				}else{
+					MessageDialogFactory.showErrorDialog(null, RB.getString("Error.nodevicesetadbpath"));
+				}
+			}
+			return;
+		}
+		
+		
+		if(type == MobileDeviceType.IOS){
+			isIOS = true;
+		}
+		
+		
+		if(isMac && isIOS){
+			if(aroDataCollectorMacOS == null){
+				aroDataCollectorMacOS = new DataCollectorMacOS(ApplicationResourceOptimizer.this);
+			}
+			aroDataCollectorMacOS.startCollector();
+		}else{
+			boolean isrootedAndroid = false;
+			try {
+				isrootedAndroid = device.isRootedAndroid();
+				LOGGER.info("Returned result of rooting: "+isrootedAndroid);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+			if(isrootedAndroid){
+				if (aroDataCollectorBridge == null) {
+					aroDataCollectorBridge = new DatacollectorBridge(ApplicationResourceOptimizer.this);
+				}
+				aroDataCollectorBridge.startARODataCollector();
+			}else{
+				if(aroDataCollectorBridgeNoRoot == null){
+					aroDataCollectorBridgeNoRoot = new DatacollectorBridgeNoRoot(ApplicationResourceOptimizer.this);
+				}
+				aroDataCollectorBridgeNoRoot.startCollector();
+			}
+		}
+		*/
 	}
 
 	/**
@@ -1045,6 +1156,16 @@ public class ApplicationResourceOptimizer extends JFrame {
 				public void actionPerformed(ActionEvent arg0) {
 					if (aroDataCollectorBridge != null) {
 						aroDataCollectorBridge.stopARODataCollector();
+					}
+					if(aroDataCollectorMacOS != null){
+						aroDataCollectorMacOS.stopCollector();
+					}
+					if(aroDataCollectorBridgeNoRoot != null){
+						try {
+							aroDataCollectorBridgeNoRoot.stopCollector();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 			});
@@ -1069,6 +1190,9 @@ public class ApplicationResourceOptimizer extends JFrame {
 			});
 		}
 		return screenShotsMenu;
+	}
+	public boolean isShowingVideo(){
+		return screenShotsMenu.isSelected();
 	}
 
 	/**
@@ -1212,21 +1336,27 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 		String menuClassList = RB.getString("plugin.menus.class.list");
 		StringTokenizer menuClassListTokenizer = new StringTokenizer(menuClassList, ",");
-		String menuClassName = null;
-		MenuPlugin pluginMenu;
+		//if tokens exist, add menu
+		if (menuClassListTokenizer.hasMoreTokens()) {
+			String menuClassName = null;
+			MenuPlugin pluginMenu;
 
-		while (menuClassListTokenizer.hasMoreTokens()) {
-			menuClassName = menuClassListTokenizer.nextToken();
+			JMenu exportMenu = new JMenu(RB.getString("menu.defecttracking"));
+			menuBar.add(exportMenu);
 
-			try {
-				pluginMenu = (MenuPlugin) Class.forName(menuClassName).newInstance();
-				menuBar.add(pluginMenu.getJMenu(aroFrame));
-			} catch (InstantiationException e) {
-				LOGGER.log(Level.SEVERE, "Cannot load plugin menu class: {0}", e.toString());
-			} catch (IllegalAccessException e) {
-				LOGGER.log(Level.SEVERE, "Cannot load plugin menu class: {0}", e.toString());
-			} catch (ClassNotFoundException e) {
-				LOGGER.log(Level.SEVERE, "Cannot load plugin menu class: {0}", e.toString());
+			while (menuClassListTokenizer.hasMoreTokens()) {
+				menuClassName = menuClassListTokenizer.nextToken();
+
+				try {
+					pluginMenu = (MenuPlugin) Class.forName(menuClassName).newInstance();
+					exportMenu.add(pluginMenu.getJMenu(aroFrame));
+				} catch (InstantiationException e) {
+					LOGGER.log(Level.SEVERE, "Cannot load plugin menu class: {0}", e.toString());
+				} catch (IllegalAccessException e) {
+					LOGGER.log(Level.SEVERE, "Cannot load plugin menu class: {0}", e.toString());
+				} catch (ClassNotFoundException e) {
+					LOGGER.log(Level.SEVERE, "Cannot load plugin menu class: {0}", e.toString());
+				}
 			}
 		}
 	}
@@ -1380,6 +1510,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 			jFileMenu.add(getJBrowseTraceMenuItem());
 			jFileMenu.add(getjBrowsePcapItem());
 			jFileMenu.addSeparator();
+			jFileMenu.add(getJAdbpath());
+			jFileMenu.addSeparator();
 			jFileMenu.add(getJPrintMenuItem());
 			jFileMenu.addSeparator();
 			jFileMenu.add(getJExitMenuItem());
@@ -1424,6 +1556,30 @@ public class ApplicationResourceOptimizer extends JFrame {
 			});
 		}
 		return jBrowseTraceMenuItem;
+	}
+	/**
+	 * open folder where there is pcap, video file etc. to be used by Mac and Win Collector when user click "stop"
+	 * @param folder
+	 */
+	public void openTraceFolder(File folder){
+		try {
+			if (new File(folder, Util.TRAFFIC_FILE).exists()) {
+				openTrace(folder);
+				// auto generated datadump
+				new DataDump(folder, getProfile(), true, false);
+			} else {
+				MessageDialogFactory.showErrorDialog(ApplicationResourceOptimizer.this, RB.getString("Error.openTraceFolder.notValidTraceFolder"));
+			}
+		} catch (IOException e1) {
+			LOGGER.log(Level.SEVERE, "Failed loading trace", e1);
+			MessageDialogFactory.showInvalidTraceDialog(folder.getPath(), ApplicationResourceOptimizer.this, e1);
+		} catch (UnsatisfiedLinkError er) {
+			LOGGER.log(Level.SEVERE, "Failed loading trace", er);
+			MessageDialogFactory.showErrorDialog(ApplicationResourceOptimizer.this, RB.getString("Error.noNetmon"));
+		} catch (IllegalArgumentException e1) {
+			LOGGER.log(Level.SEVERE, "Failed loading trace", e1);
+			MessageDialogFactory.showInvalidDirectoryDialog(folder.getPath(), ApplicationResourceOptimizer.this, e1);
+		}
 	}
 
 	/**
@@ -1610,6 +1766,38 @@ public class ApplicationResourceOptimizer extends JFrame {
 			});
 		}
 		return jExitMenuItem;
+	}
+	/**
+	 * Initializes and returns the ADB Path menu item under the File menu.
+	 */
+	private JMenuItem getJAdbpath(){
+		if(jAdbpath == null){
+			jAdbpath = new JMenuItem(RB.getString("menu.file.adb"));
+			jAdbpath.addActionListener(new ActionListener(){
+
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					Settings settings = new SettingsImpl();
+					ADBPathDialog adbDialog = new ADBPathDialog(settings);
+					adbDialog.setVisible(true);
+					String adbpath = adbDialog.getADBPath();
+					if(adbpath.length() > 1){
+						
+						settings.addNewOrUpdate("adb", adbpath);
+						try {
+							settings.save();
+							MessageDialogFactory.showMessageDialog(null, RB.getString("Message.saveadb"));
+						} catch (IOException e) {
+							e.printStackTrace();
+							MessageDialogFactory.showErrorDialog(null, RB.getString("Error.saveconfig")+e.getMessage());
+						}
+						
+					}
+				}
+				
+			});
+		}
+		return jAdbpath;
 	}
 
 	/**
@@ -1869,7 +2057,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 				@Override
 				protected TraceData.Analysis doInBackground() throws IOException {
-					TraceData.Analysis analysis = traceData.runAnalysis(profile, filter);
+					boolean datadump = false;
+					TraceData.Analysis analysis = traceData.runAnalysis(profile, filter, datadump);
 					return isCancelled() ? null : analysis;
 				}
 
@@ -1898,6 +2087,18 @@ public class ApplicationResourceOptimizer extends JFrame {
 					} finally {
 						dialog.removeWindowListener(wl);
 						dialog.dispose();
+						if(CommandLineHandler.getInstance().IsCommandLineEvent() == true) {
+							//Reset command line variable for user for UI usage.
+							CommandLineHandler.getInstance().SetCommandLineEvent(false);
+							
+							Object[] options = { RB.getString("cmdline.yes"), RB.getString("cmdline.no") };
+							AROCmdExportTraceData cmdTraceInfoPanel = new AROCmdExportTraceData();
+							if (JOptionPane.showOptionDialog(null, cmdTraceInfoPanel,
+									RB.getString("confirm.title"), JOptionPane.YES_NO_OPTION,
+									JOptionPane.INFORMATION_MESSAGE, null, options, options[0]) == JOptionPane.YES_OPTION) {
+								loadResultExportPlugin();
+							}				
+						}
 					}
 
 				}
@@ -1905,6 +2106,43 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 		} else {
 			displayAnalysis(null, profile, filter, msg);
+		}
+	}
+	
+	/**
+	 * Load the ResultExportPlugin to Analyzer.
+	 * Target class must be defined in the 'cmdline.plugin.export.class.list' resource bundle
+	 * property. The class must implement the ResultExportPlugin interface.
+	 */
+	private void loadResultExportPlugin() {
+
+		String classList = RB.getString("cmdline.plugin.export.class.list");
+		StringTokenizer classListTokenizer = new StringTokenizer(classList, ",");
+		if (classListTokenizer.hasMoreTokens()) {
+			String className = null;
+			ResultExportPlugin pluginExport;
+
+			while (classListTokenizer.hasMoreTokens()) {
+				className = classListTokenizer.nextToken();
+				try {
+					pluginExport = (ResultExportPlugin) Class.forName(className).newInstance();
+					if (pluginExport == null) {
+						LOGGER.log(Level.SEVERE, "Cannot load ResultExportPlugin");
+						MessageDialogFactory.showErrorDialog(null, RB.getString("cmdline.plugin.export.error"));
+						return;
+					}
+					pluginExport.exportTestResultToRTC(aroFrame);
+				} catch (InstantiationException e) {
+					LOGGER.log(Level.SEVERE, "Cannot load ResultExportPlugin: {0}", e.toString());
+					MessageDialogFactory.showErrorDialog(null, RB.getString("cmdline.plugin.export.error"));
+				} catch (IllegalAccessException e) {
+					LOGGER.log(Level.SEVERE, "Cannot load ResultExportPlugin: {0}", e.toString());
+					MessageDialogFactory.showErrorDialog(null, RB.getString("cmdline.plugin.export.error"));
+				} catch (ClassNotFoundException e) {
+					LOGGER.log(Level.SEVERE, "Cannot load ResultExportPlugin: {0}", e.toString());
+					MessageDialogFactory.showErrorDialog(null, RB.getString("cmdline.plugin.export.error"));
+				}
+			}
 		}
 	}
 
@@ -2137,15 +2375,6 @@ public class ApplicationResourceOptimizer extends JFrame {
 	}
 
 	/**
-	 * Get userToken property and set locally
-	 */
-	private void setToken() {
-		if (token == null) {
-			token = System.getProperty("userToken");
-		}
-	}
-	
-	/**
 	 * Touch usage for analytics
 	 */
 	private Boolean updateUsage() {
@@ -2154,7 +2383,6 @@ public class ApplicationResourceOptimizer extends JFrame {
 			ResourceBundle buildBundle = ResourceBundleManager.getBuildBundle();
 			boolean useOpenUrl = Boolean.parseBoolean(RB.getString("aro.open"));
 			if (useOpenUrl) {
-				setToken();
 				String urlBase = RB.getString("aro.open.urlbase");
 				String majorVersion = buildBundle
 						.getString("build.majorversion");
@@ -2164,7 +2392,6 @@ public class ApplicationResourceOptimizer extends JFrame {
 				String osName = System.getProperty("os.name");
 				fullUrl.append("&o=").append(osName.replace(' ', '_'));
 				fullUrl.append("&a=").append(System.getProperty("os.arch"));
-				fullUrl.append("&t=").append((token != null) ? token : "unknown");
 				Util.fetchFile(new URL(fullUrl.toString()));
 				
 				result = Boolean.TRUE;

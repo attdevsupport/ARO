@@ -167,7 +167,7 @@ public abstract class HttpRspCdBestPractice implements BestPracticeDisplay {
 	@Override
 	public List<BestPracticeExport> getExportData(Analysis analysisData) {
 		Map<Integer, Integer> map = analysisData.getBestPractice()
-				.getHttpRedirectCounts();
+				.getHttpErrorCounts();
 		List<BestPracticeExport> result = new ArrayList<BestPracticeExport>(
 				map.size());
 		for (Map.Entry<Integer, Integer> entry : map.entrySet()) {

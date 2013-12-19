@@ -370,7 +370,7 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 						List<PacketInfo> currentList = session.packets;
 						int index = currentList.indexOf(packetInfo);
 						if (!bTerminated) {
-							logger.warning("28 - Session termination not found");
+							logger.fine("28 - Session termination not found");
 						}
 
 						// Correct packet list in original session
@@ -450,8 +450,9 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 					seq += 0xFFFFFFFF;
 				}
 
-				if (reassembledSession.seq == -1)
+				if (reassembledSession.seq == -1) {
 					reassembledSession.seq = seq;
+				}
 
 				if (seq == reassembledSession.seq) {
 					if (packet.getPayloadLen() > 0) {
@@ -468,8 +469,9 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 							session.lastSslHandshakePacket = packetInfo;
 						}
 					}
-					if (packet.isSYN() || packet.isFIN())
+					if (packet.isSYN() || packet.isFIN()) {
 						++reassembledSession.seq;
+					}
 
 					while (true) {
 						boolean bOODone = true;
@@ -499,8 +501,9 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 										session.lastSslHandshakePacket = pi1;
 									}
 								}
-								if (p1.isSYN() || p1.isFIN())
+								if (p1.isSYN() || p1.isFIN()) {
 									++reassembledSession.seq;
+								}
 								fixed.add(pi1);
 								bOODone = false;
 							} else if (p1.getPayloadLen() == 0
@@ -511,8 +514,9 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 							}
 						}
 						reassembledSession.ooid.removeAll(fixed);
-						if (bOODone)
+						if (bOODone) {
 							break;
+						}
 					}
 
 				} else { // out of order packet, i.e., seq != *XLseq
@@ -625,26 +629,27 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 		Reassembler dl = new Reassembler();
 
 		/*Remove all the dns packets part of TCP connections*/
-		for (TCPSession sess : sessions){
+		for (TCPSession sess : sessions) {
 			iter = udpPackets.listIterator();
 			while (iter.hasNext()) {
 				PacketInfo p = iter.next();
 				UDPPacket udp = ((UDPPacket) p.getPacket());
-				if(udp.isDNSPacket()){
+				if(udp.isDNSPacket()) {
 					dns = udp.getDns();
-					if(!dns.isResponse()){
-						if(sess.dnsRequestPacket != null){
+					if(!dns.isResponse()) {
+						if(sess.dnsRequestPacket != null) {
 							String domainName = ((UDPPacket)sess.dnsRequestPacket.getPacket()).getDns().getDomainName();
-							if(domainName.equals(dns.getDomainName()))
+							if(domainName.equals(dns.getDomainName())) {
 									iter.remove();
-									
+							}									
 						}
-					}else{
-						if(sess.dnsResponsePacket != null){
+					} else {
+						if(sess.dnsResponsePacket != null) {
 							String domainName = ((UDPPacket)sess.dnsResponsePacket.getPacket()).getDns().getDomainName();
 							if(domainName.equals(dns.getDomainName())
-								&& (dns.getIpAddresses().contains(sess.remoteIP)))
+								&& (dns.getIpAddresses().contains(sess.remoteIP))) {
 								iter.remove();
+							}
 						}
 					}
 				}
@@ -774,6 +779,27 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 				Double.valueOf(o.getSessionStartTime()));
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof TCPSession) {
+			TCPSession oTcp = (TCPSession)obj;
+			return Double.valueOf(getSessionStartTime()) == oTcp.getSessionStartTime();
+		} else {
+			return false;
+		}
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		return (int)Double.doubleToLongBits(getSessionStartTime());
+	}
+	
 	/**
 	 * Returns the set of application names contained in the TCP session. 
 	 * 
@@ -1024,8 +1050,9 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 		for (PacketInfo pi : packets) {
 			TCPPacket p = (TCPPacket) pi.getPacket();
 
-			if (!p.isACK())
+			if (!p.isACK()) {
 				continue;
+			}
 
 			long ackNum = p.getAckNumber();
 			int win = p.getWindow();
@@ -1192,10 +1219,12 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 			// UL: TCP_DATA with seq = 1 <==== This is NOT a DATA_RECOVER
 			if (pType == TcpInfo.TCP_ACK || pType == TcpInfo.TCP_ACK_DUP
 					|| pType == TcpInfo.TCP_ACK_RECOVER) {
-				if (dir == PacketInfo.Direction.UPLINK)
+				if (dir == PacketInfo.Direction.UPLINK) {
 					dupAckDl.remove(p.getSequenceNumber());
-				if (dir == PacketInfo.Direction.DOWNLINK)
+				}
+				if (dir == PacketInfo.Direction.DOWNLINK) {
 					dupAckUl.remove(p.getSequenceNumber());
+				}
 			}
 
 			// DL: TCP_DATA_DUP with seq = 1, len = 2
@@ -1206,10 +1235,12 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 			// Duplicated data means duplicated ack as well
 			// But vise versa is not true
 			if (pType == TcpInfo.TCP_DATA || pType == TcpInfo.TCP_DATA_RECOVER) {
-				if (dir == PacketInfo.Direction.UPLINK)
+				if (dir == PacketInfo.Direction.UPLINK) {
 					dupAckUl.remove(p.getAckNumber());
-				if (dir == PacketInfo.Direction.DOWNLINK)
+				}
+				if (dir == PacketInfo.Direction.DOWNLINK) {
 					dupAckDl.remove(p.getAckNumber());
+				}
 			}
 		}
 	}

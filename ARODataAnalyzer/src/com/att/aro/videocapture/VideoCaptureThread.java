@@ -18,13 +18,18 @@ package com.att.aro.videocapture;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.SwingUtilities;
+
 import com.android.ddmlib.IDevice;
 import com.android.ddmlib.RawImage;
+import com.att.aro.interfaces.ImageSubscriber;
 import com.att.aro.main.ResourceBundleManager;
 import com.att.aro.model.TraceData;
 
@@ -46,6 +51,8 @@ public class VideoCaptureThread extends Thread {
 	private Date videoStartTime;
 	private TraceData traceData;
 	public boolean usbDisconnected = false;
+	
+	private List<ImageSubscriber> subscribers;
 
 	public boolean isUsbDisconnected() {
 		return usbDisconnected;
@@ -72,6 +79,15 @@ public class VideoCaptureThread extends Thread {
 				QuickTimeOutputStream.VideoFormat.JPG);
 		qos.setVideoCompressionQuality(1f);
 		qos.setTimeScale(10);
+		
+		subscribers = new ArrayList<ImageSubscriber>();
+	}
+	/**
+	 * add client who wants to get video frame
+	 * @param sub
+	 */
+	public void addSubscriber(ImageSubscriber sub){
+		subscribers.add(sub);
 	}
 
 	/**
@@ -108,6 +124,7 @@ public class VideoCaptureThread extends Thread {
 						convertImage(rawImage, image);
 						qos.writeFrame(image, duration);
 						lastFrameTime = timestamp;
+						callSubscriber(image);
 					}
 				}
 				try{
@@ -124,6 +141,7 @@ public class VideoCaptureThread extends Thread {
 					
 				}catch(InterruptedException e){
 					e.printStackTrace();
+					logger.info("Error: "+e.getMessage());
 				}
 			} catch (IOException e) {
 				iExceptionCount++;
@@ -153,6 +171,20 @@ public class VideoCaptureThread extends Thread {
 			
 		}
 	}
+	/**
+	 * passing image to subscribers
+	 * @param image
+	 */
+	private void callSubscriber(final BufferedImage image){
+		SwingUtilities.invokeLater(new Runnable(){
+
+			@Override
+			public void run() {
+				for(ImageSubscriber sub: subscribers){
+					sub.receiveImage(image);
+				}
+			}});
+	}
 
 	/**
 	 * Finalizes the VideoCaptureThread object. This method overrides the java.lang.Object.Finalize method.
@@ -161,7 +193,7 @@ public class VideoCaptureThread extends Thread {
 	@Override
 	protected void finalize() throws Throwable {
 		super.finalize();
-		qos.close();
+		//qos.close();
 	}
 
 	/**
@@ -169,6 +201,12 @@ public class VideoCaptureThread extends Thread {
 	 */
 	public void stopRecording() {
 		this.allDone = true;
+        try{
+            qos.close();
+        }catch(IOException ex){
+            logger.log(Level.WARNING, "Exception closing video output stream",
+                    ex);
+        }
 	}
 
 	/**

@@ -44,7 +44,7 @@
 ///**
 // * Represents the panel that has Duplicate content Results
 // */
-//public class SmallRequestResultPanel extends JPanel{
+//public class SmallRequestResultPanel extends JPanel implements DataTableResultPanel {
 //	private static final long serialVersionUID = 1L;
 //
 //	@SuppressWarnings("unused")

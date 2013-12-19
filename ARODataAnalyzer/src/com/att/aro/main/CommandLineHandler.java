@@ -23,7 +23,6 @@ public class CommandLineHandler {
 	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 	private static final CommandLineHandler instance = new CommandLineHandler();
 	private static String traceDirectoryName = null;
-	private static double traceDurationInMillisecs = 0.0;
 	private static ApplicationResourceOptimizer appParent = null;
 	private static boolean isCommandLineEvent = false;
 	private static Properties traceInfoProp = null;
@@ -55,20 +54,6 @@ public class CommandLineHandler {
 	 */	
 	public String getTraceDirectoryName() {
 		return traceDirectoryName;
-	}
-	
-	/**
-	 * Sets the trace duration (double).
-	 */	
-	public void setTraceDuration(double argTraceDurationInMins) {
-		traceDurationInMillisecs = argTraceDurationInMins * 60 * 1000;
-	}
-	
-	/**
-	 * Returns the trace duration.
-	 */	
-	public double getTraceDuration() {
-		return traceDurationInMillisecs;
 	}
 	
 	/**
@@ -119,15 +104,17 @@ public class CommandLineHandler {
 	 */	
 	public void UpdateTraceInfoFile(String key, String value) {
 		try {
-    		//set the properties value and save properties to project root folder.
-    		traceInfoProp.setProperty(key, value);
-    		traceInfoProp.store(new FileOutputStream(Util.TEMP_DIR + rb.getString("cmdline.logFile")), null);
-    		
-    		//Get current date time with Date()
-    		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH-mm-ss");
-    		Date date = new Date();
-    		traceInfoProp.setProperty(rb.getString("cmdline.lastUpdatedDateTime"), dateFormat.format(date));
-    		traceInfoProp.store(new FileOutputStream(Util.TEMP_DIR + rb.getString("cmdline.logFile")), null);
+			if (traceInfoProp != null) {
+	    		//set the properties value and save properties to project root folder.
+	    		traceInfoProp.setProperty(key, value);
+	    		traceInfoProp.store(new FileOutputStream(Util.TEMP_DIR + rb.getString("cmdline.logFile")), null);
+	    		
+	    		//Get current date time with Date()
+	    		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH-mm-ss");
+	    		Date date = new Date();
+	    		traceInfoProp.setProperty(rb.getString("cmdline.lastUpdatedDateTime"), dateFormat.format(date));
+	    		traceInfoProp.store(new FileOutputStream(Util.TEMP_DIR + rb.getString("cmdline.logFile")), null);
+			}
     	} catch (Exception ex) {
     		ex.printStackTrace();
         }

@@ -72,6 +72,8 @@ import com.att.aro.util.Util;
  */
 public class AROVideoPlayer extends JFrame implements ActionListener {
 	private static final long serialVersionUID = 1L;
+	private static final Logger LOGGER = Logger.getLogger(AROVideoPlayer.class.getName());
+
 
 	private static final float PLAYBACK_RATE = 1.0f; // 5.0f
 	private static final ResourceBundle rb = ResourceBundleManager
@@ -644,6 +646,8 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 	 */
 	public synchronized void clear() {
 
+		LOGGER.log(Level.FINE, "clearing video player");
+		
 		// Make sure to remove the components before closing the video player
 		if (visualComponent != null) {
 			aroVideoPanel.remove(visualComponent);
@@ -665,7 +669,7 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 			videoOffset= 0.0;
 		}
 		syncVideoClicked = false;
-		
+
 	}
 
 	/**

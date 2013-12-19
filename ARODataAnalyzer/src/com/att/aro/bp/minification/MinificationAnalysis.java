@@ -15,9 +15,13 @@
  */
 package com.att.aro.bp.minification;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -57,6 +61,7 @@ public class MinificationAnalysis {
 
 	private static final boolean IS_JAVA_SCRIPT = true;
 	private static final boolean IS_CSS = false;
+	private static final boolean IS_JSON = true;
 
 	private File tmpOriginalFile;
 	private File tmpMinifiedFile;
@@ -165,7 +170,7 @@ public class MinificationAnalysis {
 						analyzeContent(rr, contentType);
 					} catch (Exception e) {
 						LOGGER.log(
-								Level.WARNING,
+								Level.FINE,
 								"MinificationAnalysis - Unexpected Exception {0}",
 								e.getMessage());
 					}
@@ -185,7 +190,15 @@ public class MinificationAnalysis {
 
 		} else if (HttpRequestResponseInfo.isHtml(contentType)) {
 			analyzeHtml(rr);
+		}else if ( HttpRequestResponseInfo.isJSON(contentType)){
+			analyzeJSON(rr);
 		}
+	}
+
+	private void analyzeJSON(HttpRequestResponseInfo rr) throws IOException {
+		savePayloadToTmpFile(rr);
+		runJsonMinify();
+		evaluateMinificationSavings(rr, getMinificationFileSizeSaving(),tmpOriginalFile.length()-tmpMinifiedFile.length());
 	}
 
 	private void analyzeJavaScript(HttpRequestResponseInfo rr) throws Exception {
@@ -209,6 +222,18 @@ public class MinificationAnalysis {
 			throws IOException {
 		rr.saveContentToFile(tmpOriginalFile);
 	}
+	private void runJsonMinify() throws IOException{
+		FileInputStream fstream = new FileInputStream(tmpOriginalFile);
+		// Get the object of DataInputStream
+		DataInputStream in = new DataInputStream(fstream);
+		BufferedReader br = new BufferedReader(new InputStreamReader(in));
+		JsonCompressor jsonCompressor = new JsonCompressor(br);
+		BufferedWriter out = new BufferedWriter(new FileWriter(tmpMinifiedFile));
+		jsonCompressor.compress(out);
+		
+		
+		
+	}
 
 	private void runJavaScriptMinify(boolean isJavaScript) throws IOException {
 		Reader in = null;
@@ -230,11 +255,11 @@ public class MinificationAnalysis {
 				compressor.compress(out, o.lineBreakPos);
 			}
 		} catch (IOException e) {
-			LOGGER.log(Level.WARNING,
+			LOGGER.log(Level.FINE,
 					"Error from JavaScript minifiaction: {0}", e.getMessage());
 			throw (e);
 		} catch (EvaluatorException e) {
-			LOGGER.log(Level.WARNING,
+			LOGGER.log(Level.FINE,
 					"Error from JavaScript minifiaction: {0}", e.getMessage());
 			throw (e);
 		} finally {
@@ -247,7 +272,7 @@ public class MinificationAnalysis {
 					out.close();
 				}
 			} catch (IOException e) {
-				LOGGER.log(Level.WARNING,
+				LOGGER.log(Level.FINE,
 						"Error from JavaScript minifiaction: {0}",
 						e.getMessage());
 				throw (e);
@@ -268,11 +293,11 @@ public class MinificationAnalysis {
 				result.minifiedSize = compressedHtml.length();
 			}
 		} catch (ContentException e) {
-			LOGGER.log(Level.WARNING, "Error from runHtmlMinify: {0}",
+			LOGGER.log(Level.FINE, "Error from runHtmlMinify: {0}",
 					e.getMessage());
 			throw (e);
 		} catch (IOException e) {
-			LOGGER.log(Level.WARNING, "Error from runHtmlMinify: {0}",
+			LOGGER.log(Level.FINE, "Error from runHtmlMinify: {0}",
 					e.getMessage());
 			throw (e);
 		}

@@ -201,7 +201,7 @@ public class DataCollectorStartDialog extends JDialog {
 							return;
 						} else {
 							DataCollectorStartDialog.this.dispose();
-							mARODataCollectorBridge.startARODataCollector(jTraceFolderName
+							mARODataCollectorBridge.startARODataCollectorGUI(jTraceFolderName
 									.getText(), getJRecordVideoCheckBox().isSelected());
 						}
 					}

@@ -22,12 +22,11 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.Collection;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.JButton;
@@ -38,21 +37,20 @@ import javax.swing.JTable;
 import javax.swing.SwingConstants;
 
 import com.att.aro.bp.BestPracticeButtonPanel;
+import com.att.aro.bp.DataTableResultPanel;
 import com.att.aro.commonui.DataTable;
 import com.att.aro.main.ApplicationResourceOptimizer;
 import com.att.aro.util.Util;
 
-public class HttpCode3XXResultPanel extends JPanel{
+public class HttpCode3XXResultPanel extends JPanel implements DataTableResultPanel {
 	private static final long serialVersionUID = 1L;
 
-	@SuppressWarnings("unused")
 	private static final Logger LOGGER = Logger.getLogger(HttpCode3XXResultPanel.class.getName());
 
 	private static final int ROW_HEIGHT = 20;
 	private static final int NO_OF_ROWS = 6;
 	private static final int SCROLL_PANE_HEIGHT = HttpCode3XXResultPanel.NO_OF_ROWS * HttpCode3XXResultPanel.ROW_HEIGHT;
 	private static final int SCROLL_PANE_LENGTH = 300;
-	private boolean isExpanded = false;
 	private int noOfRecords = 0;
 	
 	private JLabel title;
@@ -258,4 +256,13 @@ public class HttpCode3XXResultPanel extends JPanel{
 			this.scrollPane.revalidate();
 		}
 	}
+	
+	/**
+	 * Clears data from the result table.
+	 */
+	public void clearTable() {
+		LOGGER.log(Level.FINE, "clear http 3 data");
+		this.tableModel.removeAllRows();
+	}
+
 }

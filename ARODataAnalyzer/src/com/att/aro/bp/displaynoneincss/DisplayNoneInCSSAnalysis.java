@@ -67,7 +67,7 @@ public class DisplayNoneInCSSAnalysis {
 		try {
 			htmlContent = rr.getContentString();
 		}catch (ContentException e) {
-			logger.log(Level.SEVERE, "HTML content is not available.");
+			logger.log(Level.FINE, "HTML content is not available.");
 		} catch (IOException e) {
 			logger.log(Level.SEVERE, "HTML content is not available.");
 		}

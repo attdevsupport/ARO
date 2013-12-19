@@ -34,9 +34,9 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.SwingConstants;
 
 import com.att.aro.bp.BestPracticeButtonPanel;
+import com.att.aro.bp.DataTableResultPanel;
 import com.att.aro.bp.displaynoneincss.DisplayNoneInCSSEntry;
 import com.att.aro.bp.displaynoneincss.DisplayNoneInCSSTableModel;
 import com.att.aro.commonui.DataTable;
@@ -47,7 +47,7 @@ import com.att.aro.util.Util;
  * Represents the panel that has the information about the html/css files which
  * contains display:none CSS rule.
  */
-public class DisplayNoneInCSSResultPanel extends JPanel {
+public class DisplayNoneInCSSResultPanel extends JPanel implements DataTableResultPanel {
 	private static final long serialVersionUID = 1L;
 
 	private static final Logger LOGGER = Logger
@@ -58,7 +58,6 @@ public class DisplayNoneInCSSResultPanel extends JPanel {
 	private static final int SCROLL_PANE_HEIGHT = DisplayNoneInCSSResultPanel.NO_OF_ROWS
 			* DisplayNoneInCSSResultPanel.ROW_HEIGHT;
 	private static final int SCROLL_PANE_LENGHT = 300;
-	private boolean isExpanded = false;
 	private int noOfRecords = 0;
 
 	private JLabel title;
@@ -236,5 +235,14 @@ public class DisplayNoneInCSSResultPanel extends JPanel {
 			this.scrollPane.revalidate();
 		}
 	}
+	
+	/**
+	 * Clears data from the result table.
+	 */
+	public void clearTable() {
+		LOGGER.log(Level.FINE, "clear none in css data");
+		this.tableModel.removeAllRows();
+	}
+	
 
 }

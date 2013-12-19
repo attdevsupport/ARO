@@ -14,10 +14,12 @@
 # limitations under the License.
 
 
-cd `dirname $0`
+#cd `dirname $0`
 if [ -z "$JAVACMD" ] ; then
+  echo "Creating var JAVACMD"
   if [ -n "$JAVA_HOME"  ] ; then
     JAVACMD="$JAVA_HOME/bin/java"
+    echo "Set JAVACMD to: $JAVACMD"
   fi
 fi
 
@@ -32,6 +34,13 @@ if [ ! -x "$JAVACMD" ] ; then
   echo "Cannot execute Java runtime: $JAVACMD"
   exit 1
 fi
+echo "java path: $JAVACMD"
 
-$JAVACMD -cp "../lib/*" -Dapple.awt.graphics.UseQuartz=true -Xms100m -Xmx1024m com.att.aro.main.Launch
+if [ ! -f ./libimobiledevice/libimobiledevice.4.dylib ]
+then
+	echo "Unziping libimobiledevice.zip"
+	unzip -n libimobiledevice.zip
+fi
+
+$JAVACMD -Djava.library.path=./:libimobiledevice/ -cp "../lib/*" -Dapple.awt.graphics.UseQuartz=true -Xms100m -Xmx1024m com.att.aro.main.Launch
 

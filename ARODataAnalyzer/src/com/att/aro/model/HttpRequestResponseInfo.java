@@ -41,12 +41,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
-import javax.swing.ImageIcon;
-
 import org.jsoup.Jsoup;
 
 import com.att.aro.bp.fileorder.FileOrderAnalysis;
-import com.att.aro.bp.imageSize.HtmlImage;
 import com.att.aro.bp.asynccheck.AsyncCheckAnalysis;
 import com.att.aro.pcap.TCPPacket;
 import com.att.aro.util.Util;
@@ -134,7 +131,7 @@ public class HttpRequestResponseInfo implements
 	private TextFileCompression textFileCompression;
 	
 	// Map of the content offset/
-	private SortedMap<Integer, Integer> contentOffsetLength;
+	private SortedMap<Integer,Integer> contentOffsetLength;
 
 	// packets
 	private PacketInfo firstDataPacket;
@@ -449,18 +446,20 @@ public class HttpRequestResponseInfo implements
 
 				if (line.length() == 0) {
 					if (rrInfo.contentLength > 0) {
-						rrInfo.contentOffsetLength = new TreeMap<Integer, Integer>();
+						//rrInfo.contentOffsetLength = new TreeMap<Integer, Integer>();
+						rrInfo.contentOffsetLength = new TreeMap<Integer,Integer>();
 						rrInfo.contentOffsetLength.put(counter,
 								rrInfo.contentLength);
 
 						// Skip content
 						counter = Math.min(input.length, counter
 								+ rrInfo.contentLength);
+						
 						if (counter < 0) {
 							counter = input.length;
 						}
 					} else if (rrInfo.chunked) {
-						rrInfo.contentOffsetLength = new TreeMap<Integer, Integer>();
+						rrInfo.contentOffsetLength = new TreeMap<Integer,Integer>();
 						while (true) {
 
 							// Read each chunk
@@ -511,8 +510,11 @@ public class HttpRequestResponseInfo implements
 							int port = Integer.valueOf(rrInfo.port).equals(wellKnownPorts.get(rrInfo.scheme)) ? -1 : rrInfo.port;
 							rrInfo.objUri = new URI(rrInfo.scheme.toLowerCase(), null, rrInfo.hostName, port, rrInfo.objUri.getPath(), rrInfo.objUri.getQuery(), rrInfo.objUri.getFragment());
 						} catch (URISyntaxException e) {
-							// Just log warning
-							logger.log(Level.WARNING, "Unexpected exception creating URI for request", e);
+							// Just log fine message
+							logger.log(Level.FINE, "Unexpected exception creating URI for request: " + e.getMessage()+
+									". Scheme=" + rrInfo.scheme.toLowerCase() +",Host name="+ rrInfo.hostName
+									+",Path=" + rrInfo.objUri.getPath() + ",Fragment="+ rrInfo.objUri.getFragment());
+							
 						}
 					}
 					
@@ -766,8 +768,16 @@ public class HttpRequestResponseInfo implements
 			// Get request content length
 			matcher = strReResponseContentLength.matcher(headerLine);
 			if (matcher.lookingAt() && rrInfo.contentLength == 0) {
-				rrInfo.contentLength = Integer.parseInt(headerLine.substring(
-						matcher.end()).trim());
+				try{
+					rrInfo.contentLength = Integer.parseInt(headerLine.substring(matcher.end()).trim());
+				}catch(NumberFormatException e) {
+					/* The value exceeds the Interger.MAX_VALUE i.e 2^31-1=2147483647*/
+					logger.log(Level.FINE, "Cannot parse the string to int for contentLength,because"
+							+ " The value to parse is :" 
+							+ (headerLine.substring(matcher.end()).trim()) 
+							+ " which is greater than the Integer.MAX_VALUE (2^31-1=2147483647).");
+				}
+				
 				return;
 			}
 
@@ -925,7 +935,17 @@ public class HttpRequestResponseInfo implements
 				if (matcher.lookingAt()) {
 					rrInfo.rangeResponse = true;
 					rrInfo.rangeFirst = Integer.parseInt(matcher.group(1));
-					rrInfo.rangeLast = Integer.parseInt(matcher.group(2));
+					try{
+						rrInfo.rangeLast = Integer.parseInt(matcher.group(2));
+					}catch(NumberFormatException e) {
+					/* The value exceeds the Interger.MAX_VALUE i.e 2^31-1=2147483647.
+					 * Continue.*/
+					logger.log(Level.FINE, "Cannot parse the string to int for rangeLast,because"
+							+ " The value to parse is :" 
+							+ matcher.group(2)
+							+ " which is greater than the Integer.MAX_VALUE (2^31-1=2147483647).");
+					
+					}
 					rrInfo.rangeFull = Long.parseLong(matcher.group(3));
 
 					if (rrInfo.contentLength == 0) {
@@ -943,7 +963,7 @@ public class HttpRequestResponseInfo implements
 					try {
 						rrInfo.referrer = new URI(matcher.group(1).trim());
 					} catch (URISyntaxException e) {
-						logger.warning("Invalid referrer URI: "
+						logger.fine("Invalid referrer URI: "
 								+ matcher.group(1));
 					}
 					return;
@@ -1025,7 +1045,7 @@ public class HttpRequestResponseInfo implements
 				return BEGINNING_OF_TIME;
 			}
 			
-			logger.warning("Unable to parse HTTP date: " + value);
+			logger.fine("Unable to parse HTTP date: " + value);
 			return null;
 		}
 
@@ -1058,6 +1078,7 @@ public class HttpRequestResponseInfo implements
 		this.packetDirection = direction;
 		// Initialize session remote host
 		this.hostName = session.getRemoteHostName();
+		
 	}
 
 	/**
@@ -1069,6 +1090,29 @@ public class HttpRequestResponseInfo implements
 	public int compareTo(HttpRequestResponseInfo o) {
 		return Double.valueOf(getTimeStamp()).compareTo(
 				Double.valueOf(o.getTimeStamp()));
+	}
+
+	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof HttpRequestResponseInfo) {
+			HttpRequestResponseInfo oHttp = (HttpRequestResponseInfo)obj;
+			return Double.valueOf(getTimeStamp()) == oHttp.getTimeStamp();
+		} else {
+			return false;
+		}
+	}
+
+	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		return (int)Double.doubleToLongBits(getTimeStamp());
 	}
 
 	/**
@@ -1530,7 +1574,7 @@ public class HttpRequestResponseInfo implements
 				int start = entry.getKey();
 				int size = entry.getValue();
 				if (buffer.length < start + size) {
-					throw new ContentException("Content not available");
+					throw new ContentException("The content may be corrupted.");
 				}
 				for (int i = start; i < start + size; ++i) {
 					output.write(buffer[i]);
@@ -1538,14 +1582,33 @@ public class HttpRequestResponseInfo implements
 			}
 			if (CONTENT_ENCODING_GZIP.equals(contentEncoding)) {
 
-				// Uncompress gzipped content
-				GZIPInputStream gzip = new GZIPInputStream(
-						new ByteArrayInputStream(output.toByteArray()));
-				output.reset();
-				buffer = new byte[2048];
-				int len;
-				while ((len = gzip.read(buffer)) >= 0) {
-					output.write(buffer, 0, len);
+				// Decompress gzipped content
+				GZIPInputStream gzip=null;
+				try{
+					gzip = new GZIPInputStream(
+							new ByteArrayInputStream(output.toByteArray()));
+					output.reset();
+					buffer = new byte[2048];
+					int len;
+					while ((len = gzip.read(buffer)) >= 0) {
+						output.write(buffer, 0, len);
+					}
+				}catch(IOException ioe){
+					if (gzip != null) {
+						try{
+							gzip.close();
+						}catch (IOException ex){
+							throw ex;
+						}
+					}
+					if (output != null) {
+						try{
+							output.close();
+						}catch (IOException ex){
+							throw ex;
+						}
+					}
+					logger.log(Level.FINE, " IOException !!.The file may be corrupt." + ioe.getMessage());
 				}
 			}
 			return output.toByteArray();
@@ -1874,9 +1937,15 @@ public class HttpRequestResponseInfo implements
 			} else {
 				// the content should be compressed but is not
 				textFileCompression = TextFileCompression.NONE;
-				textFileCompressionAnalysis.incrementNoOfUncompressedFiles();
-				textFileCompressionAnalysis.addToTotalSize(contentLength);
-				rsp = true;
+				
+				if(contentLength > 850) {
+					textFileCompressionAnalysis.incrementNoOfUncompressedFiles();
+					textFileCompressionAnalysis.addToTotalSize(contentLength);
+					rsp = true;
+				} else {
+					textFileCompressionAnalysis.incrementNoOfCompressedFiles();
+				}
+				
 			}
 
 		} else {
@@ -1913,10 +1982,11 @@ public class HttpRequestResponseInfo implements
 	 * @return Returns true if the content type is text/html otherwise return false;
 	 */
 	boolean isContentTypeTextHtml(String contentType){
-		if (contentType.equalsIgnoreCase("text/html"))
+		if (contentType.equalsIgnoreCase("text/html")) {
 			return true;
-		else 
+		} else {
 			return false;
+		}
 	}
 	
 	public org.jsoup.nodes.Document parseHtml(FileOrderAnalysis fileOrderAnalysis){
@@ -1924,28 +1994,32 @@ public class HttpRequestResponseInfo implements
 		org.jsoup.nodes.Document doc = null;
 		String packetContent = null;
 		try {
-			if (this.getContentString() != null){
-			if ((contentLength != 0)&&(contentType != null)
-					&&(isContentTypeTextHtml(contentType))){
-				try {
-					packetContent = this.getContentString();
-				} catch (ContentException e) {
-					logger.log(Level.FINE,"ContentException in parseHtml()");
-				} catch (IOException e) {
-					logger.log(Level.FINE,"IOExecption in parseHtml()");
+			if (this.getContentString() != null) {
+				if ((contentLength != 0) && (contentType != null)
+						&& (isContentTypeTextHtml(contentType))) {
+					try {
+						packetContent = this.getContentString();
+					} catch (ContentException e) {
+						logger.log(Level.FINE,
+								"ContentException in parseHtml()");
+					} catch (IOException e) {
+						logger.log(Level.FINE, "IOExecption in parseHtml()");
+					}
+					if (packetContent != null) {
+						doc = Jsoup.parse(packetContent);
+					}
 				}
-				if (packetContent != null)
-				doc = Jsoup.parse(packetContent);
-			}
 			}
 		} catch (ContentException e) {
 			logger.log(Level.FINE,"ContentException in parseHtml()");
 		} catch (IOException e) {
 			logger.log(Level.FINE,"IOExecption in parseHtml()");
 		}
-			if (doc != null)
+			if (doc != null) {
 				return doc;
-			else return null;
+			} else {
+				return null;
+			}
 	}
 	
 	/**
@@ -2031,6 +2105,10 @@ public class HttpRequestResponseInfo implements
 	 */
 	public static boolean isHtml(String contentType) {
 		return contentType.equals("text/html") ? true : false;
+	}
+
+	public static boolean isJSON(String contentType) {
+		return contentType.equals("application/json")  ? true : false;
 	}
 }
 	

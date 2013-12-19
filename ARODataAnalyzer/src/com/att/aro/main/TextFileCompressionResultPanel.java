@@ -35,7 +35,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.SwingConstants;
 
 import com.att.aro.bp.BestPracticeButtonPanel;
 import com.att.aro.commonui.DataTable;
@@ -58,7 +57,6 @@ public class TextFileCompressionResultPanel extends JPanel {
 	private static final int SCROLL_PANE_HEIGHT = TextFileCompressionResultPanel.NO_OF_ROWS
 			* TextFileCompressionResultPanel.ROW_HEIGHT;
 	private static final int SCROLL_PANE_LENGHT = 300;
-	private boolean isExpanded = false;
 	private int noOfRecords = 0;
 
 	private JLabel title;
@@ -231,6 +229,14 @@ public class TextFileCompressionResultPanel extends JPanel {
 			viewBtn.doClick();
 			this.scrollPane.revalidate();
 		}
+	}
+
+	/**
+	 * Clears data from the result table.
+	 */
+	public void clearTable() {
+		LOGGER.log(Level.FINE, "clear txt file compression data");
+		this.tableModel.removeAllRows();
 	}
 
 }

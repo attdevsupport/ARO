@@ -16,6 +16,7 @@
 package com.att.aro.util;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -40,6 +41,34 @@ public final class Util {
 	public static final String FILE_SEPARATOR = System.getProperty("file.separator"); 
 	//platform independent directory to store temporary files
 	public static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
+	
+	public static boolean IsMacOS(){
+		return Util.OS_NAME.contains("Mac OS");
+	}
+	/**
+	 * location to save trace data such as pcap, video etc. used by non-rooted IOS
+	 * @return
+	 */
+	public static String getAROTraceDirIOS(){
+		return System.getProperty("user.home") + FILE_SEPARATOR + "AROTraceIOS";
+	}
+	/**
+	 * location to save trace data such as pcap, video etc. used by non-rooted Android
+	 * @return
+	 */
+	public static String getAROTraceDirAndroid(){
+		return System.getProperty("user.home") + FILE_SEPARATOR + "AROTraceAndroid";
+	}
+	/**
+	 * will return the full path of dir where ARO.jar is running from.
+	 * @return full path of directory
+	 */
+	public static String getCurrentRunningDir(){
+		String dir = "";
+		File filepath = new File(Util.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+		dir = filepath.getParent();
+		return dir;
+	}
 	
 	/**
 	 * Returns a string representing Unknown App if appName is empty, blank, or null.

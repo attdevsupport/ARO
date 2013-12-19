@@ -132,6 +132,8 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 		switch (columnIndex) {
 		case TIME_COL:
 			return Double.class;
+		case PACKETCOUNT_COL:
+			return Integer.class;
 		default:
 			return super.getColumnClass(columnIndex);
 		}

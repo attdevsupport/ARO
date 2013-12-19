@@ -28,6 +28,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -286,9 +287,12 @@ public class AROBpOverallResulsPanel extends JPanel {
 					RB.getString("bestPractices.percentageHTTPSValue"),
 					pctFmt.format((double)analysisData.getTotalHTTPSBytes()/analysisData.getTotalBytes()), 
 					analysisData.getTotalHTTPSBytes()/1024));
+			
+			DecimalFormat df = new DecimalFormat("#.##");
+			String duration = df.format(analysisData.getTraceData().getTraceDuration() / 60);
 			durationValueLabel.setText(MessageFormat.format(
-					RB.getString("bestPractices.durationValue"),
-					nf.format(analysisData.getTraceData().getTraceDuration() / 60)));
+					RB.getString("bestPractices.durationValue"), duration));
+			
 			energyConsumedValueLabel.setText(MessageFormat.format(
 					RB.getString("bestPractices.energyConsumedValue"),
 					nf.format(analysisData.getEnergyModel().getTotalEnergyConsumed())));

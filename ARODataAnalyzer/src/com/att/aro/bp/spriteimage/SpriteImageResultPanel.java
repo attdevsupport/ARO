@@ -37,6 +37,7 @@ import javax.swing.JTable;
 import javax.swing.SwingConstants;
 
 import com.att.aro.bp.BestPracticeButtonPanel;
+import com.att.aro.bp.DataTableResultPanel;
 import com.att.aro.commonui.DataTable;
 import com.att.aro.main.ApplicationResourceOptimizer;
 import com.att.aro.util.Util;
@@ -44,10 +45,9 @@ import com.att.aro.util.Util;
 /**
  * Represents the panel that hasSprite Image test results.
  */
-public class SpriteImageResultPanel extends JPanel {
+public class SpriteImageResultPanel extends JPanel implements DataTableResultPanel {
 	private static final long serialVersionUID = 1L;
 
-	@SuppressWarnings("unused")
 	private static final Logger LOGGER = Logger.getLogger(SpriteImageResultPanel.class.getName());
 
 	private static final int ROW_HEIGHT = 20;
@@ -55,7 +55,6 @@ public class SpriteImageResultPanel extends JPanel {
 	private static final int SCROLL_PANE_HEIGHT = SpriteImageResultPanel.NO_OF_ROWS
 			* SpriteImageResultPanel.ROW_HEIGHT;
 	private static final int SCROLL_PANE_LENGHT = 300;
-	private boolean isExpanded = false;
 	private int noOfRecords = 0;
 
 	private JLabel title;
@@ -236,4 +235,12 @@ public class SpriteImageResultPanel extends JPanel {
 		}
 	}
 
+	/**
+	 * Clears data from the result table.
+	 */
+	public void clearTable() {
+		LOGGER.log(Level.FINE, "clear sprite image data");
+		this.tableModel.removeAllRows();
+	}
+	
 }

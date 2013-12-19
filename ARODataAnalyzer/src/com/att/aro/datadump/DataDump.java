@@ -305,7 +305,8 @@ public class DataDump {
 				TraceData.Analysis analysis;
 				try {
 					TraceData traceData = new TraceData(traceDirectory);
-					analysis = traceData.runAnalysis(currentProfile, null);
+					boolean datadump = true;
+					analysis = traceData.runAnalysis(currentProfile, null, datadump);
 					addAnalysisContent(writer, analysis);
 				} catch (Exception e) {
 					LOGGER.log(Level.WARNING, "Unable to run analysis on folder: " + traceDirectory, e);

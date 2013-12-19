@@ -37,6 +37,7 @@ import javax.swing.JTable;
 import javax.swing.SwingConstants;
 
 import com.att.aro.bp.BestPracticeButtonPanel;
+import com.att.aro.bp.DataTableResultPanel;
 import com.att.aro.commonui.DataTable;
 import com.att.aro.main.ApplicationResourceOptimizer;
 import com.att.aro.util.Util;
@@ -44,11 +45,10 @@ import com.att.aro.util.Util;
 /**
  * Represents Minification test result panel.
  */
-public class MinificationResultPanel extends JPanel {
+public class MinificationResultPanel extends JPanel implements DataTableResultPanel {
 
 	private static final long serialVersionUID = 1L;
 
-	@SuppressWarnings("unused")
 	private static final Logger LOGGER = Logger
 			.getLogger(MinificationResultPanel.class.getName());
 
@@ -57,7 +57,6 @@ public class MinificationResultPanel extends JPanel {
 	private static final int SCROLL_PANE_HEIGHT = MinificationResultPanel.NO_OF_ROWS
 			* MinificationResultPanel.ROW_HEIGHT;
 	private static final int SCROLL_PANE_LENGHT = 300;
-	private boolean isExpanded = false;
 	private int noOfRecords = 0;
 
 	private JLabel title;
@@ -242,6 +241,14 @@ public class MinificationResultPanel extends JPanel {
 			viewBtn.doClick();
 			this.scrollPane.revalidate();
 		}
+	}
+	
+	/**
+	 * Clears data from the result table.
+	 */
+	public void clearTable() {
+		LOGGER.log(Level.FINE, "clear minification data");
+		this.tableModel.removeAllRows();
 	}
 
 }

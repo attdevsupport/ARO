@@ -2,6 +2,8 @@ package com.att.aro.bp.flash;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -14,6 +16,8 @@ import com.att.aro.model.HttpRequestResponseInfo.Direction;
 import com.att.aro.model.TCPSession;
 
 public class FlashAnalysis {
+	
+	private static final Logger LOGGER = Logger.getLogger(FlashAnalysis.class.getName());
 	
 	private HttpRequestResponseInfo firstFlash = null;
 	private int numberOfFlash = 0;
@@ -64,9 +68,9 @@ public class FlashAnalysis {
 		try {
 			flashDownloaded = reqRessInfo.getContentString();
 		} catch (ContentException e) {
-			e.printStackTrace();
+			LOGGER.log(Level.FINE, "Failed getting content", e.getMessage());
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOGGER.log(Level.WARNING, "Failed getting content", e.getMessage());
 		}
 		
 		if (flashDownloaded != null) {

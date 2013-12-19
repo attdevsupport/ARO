@@ -244,7 +244,7 @@ public class RequestResponseDetailsPanel extends JPanel {
 	 * @throws IOException
 	 */
 	private void viewContent(HttpRequestResponseInfo rrInfo) throws IOException {
-		if (!rrInfo.getContentType().contains("video")) {
+		if ((rrInfo.getContentType()!=null)&& (!rrInfo.getContentType().contains("video"))) {
 			if (rrInfo.getActualByteCount() < 5242880) {
 				ContentViewer.getInstance().viewContent(rrInfo);
 			} else {

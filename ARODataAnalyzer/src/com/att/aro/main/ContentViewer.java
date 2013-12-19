@@ -29,6 +29,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -38,6 +40,7 @@ import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.model.ContentException;
 import com.att.aro.model.ExtensionFileFilter;
 import com.att.aro.model.HttpRequestResponseInfo;
+import com.att.aro.util.Util;
 
 /**
  * Contains methods for managing the viewing and saving of downloaded content.
@@ -333,9 +336,9 @@ public class ContentViewer {
 							httpReqResInfo.saveContentToFile(contentFile);
 							bSavedOrCancelled = true;
 						} catch (IOException e) {
-							MessageDialogFactory.showMessageDialog(parent, rb
-									.getString("fileChooser.errorWritingToFile"
-											+ contentFile.toString()));
+							
+							MessageDialogFactory.showMessageDialog(parent, MessageFormat.format(Util.RB.getString("fileChooser.errorWritingToFile"),contentFile.toString()));
+		
 						}
 					}
 				}

@@ -73,6 +73,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox jCameraStateCheckBox;
 	private JCheckBox jScreenStateCheckBox;
 	private JCheckBox jBatteryStateCheckBox;
+	private JCheckBox jWakelockStateCheckBox;
 	private JCheckBox jWifiStateCheckBox;
 	private JCheckBox jNetworkTypeCheckBox;
 	private JCheckBox jThroughputCheckBox;
@@ -81,6 +82,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JCheckBox jBurstsCheckBox;
 	private JCheckBox jUserInputCheckBox;
 	private JCheckBox jRRCStateCheckBox;
+	private JCheckBox jAlarmTriggeredCheckBox;
 	private JCheckBox jDefaultsCheckBox;
 
 	private List<ChartPlotOptions> currentCheckedOptionList;
@@ -139,6 +141,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 		jCameraStateCheckBox.setEnabled(enabled);
 		jScreenStateCheckBox.setEnabled(enabled);
 		jBatteryStateCheckBox.setEnabled(enabled);
+		jWakelockStateCheckBox.setEnabled(enabled);
 		jWifiStateCheckBox.setEnabled(enabled);
 		jNetworkTypeCheckBox.setEnabled(enabled);
 		jThroughputCheckBox.setEnabled(enabled);
@@ -147,6 +150,7 @@ public class ChartPlotOptionsDialog extends JDialog {
 		jBurstsCheckBox.setEnabled(enabled);
 		jUserInputCheckBox.setEnabled(enabled);
 		jRRCStateCheckBox.setEnabled(enabled);
+		jAlarmTriggeredCheckBox.setEnabled(enabled);
 	}
 
 	/**
@@ -294,6 +298,16 @@ public class ChartPlotOptionsDialog extends JDialog {
 	private JPanel getJAdvancedOptionsPanel() {
 		if (jAdvancedOptionsPanel == null) {
 
+			GridBagConstraints gridBagConstraints17 = new GridBagConstraints();
+			gridBagConstraints17.gridx = 0;
+			gridBagConstraints17.anchor = GridBagConstraints.WEST;
+			gridBagConstraints17.gridy = 16;
+			
+			GridBagConstraints gridBagConstraints16 = new GridBagConstraints();
+			gridBagConstraints16.gridx = 0;
+			gridBagConstraints16.anchor = GridBagConstraints.WEST;
+			gridBagConstraints16.gridy = 15;
+			
 			GridBagConstraints gridBagConstraints15 = new GridBagConstraints();
 			gridBagConstraints15.gridx = 0;
 			gridBagConstraints15.anchor = GridBagConstraints.WEST;
@@ -392,7 +406,9 @@ public class ChartPlotOptionsDialog extends JDialog {
 			jAdvancedOptionsPanel.add(getJUserInputCheckBox(), gridBagConstraints12);
 			jAdvancedOptionsPanel.add(getJRRCStateCheckBox(), gridBagConstraints13);
 			jAdvancedOptionsPanel.add(getJNetworkTypeCheckBox(), gridBagConstraints14);
-			jAdvancedOptionsPanel.add(getJCPUStateCheckBox(), gridBagConstraints15);
+			jAdvancedOptionsPanel.add(getJWakelockCheckBox(), gridBagConstraints15);
+			jAdvancedOptionsPanel.add(getJCPUStateCheckBox(), gridBagConstraints16);
+			jAdvancedOptionsPanel.add(getJAlarmTriggeredCheckBox(),	gridBagConstraints17);
 
 		}
 		return jAdvancedOptionsPanel;
@@ -415,6 +431,40 @@ public class ChartPlotOptionsDialog extends JDialog {
 		return this.selectedOptions.contains(option);
 	}
 
+	/**
+	 * Initializes jWakelockStateCheckBox
+	 * 
+	 * @return javax.swing.JCheckBox
+	 */
+	private JCheckBox getJWakelockCheckBox() {
+		if (jWakelockStateCheckBox == null) {
+			jWakelockStateCheckBox = new JCheckBox();
+			jWakelockStateCheckBox.setText(RB
+					.getString("chart.options.dialog.wakelock"));
+			jWakelockStateCheckBox
+					.setSelected(isUserPrefsSelected(ChartPlotOptions.WAKELOCK));
+			checkBoxPlots.put(jWakelockStateCheckBox, ChartPlotOptions.WAKELOCK);
+		}
+		return jWakelockStateCheckBox;
+	}
+
+	/**
+	 * Initializes jAlarmTriggeredCheckBox
+	 * 
+	 * @return javax.swing.JCheckBox
+	 */
+	private JCheckBox getJAlarmTriggeredCheckBox() {
+		if (jAlarmTriggeredCheckBox == null) {
+			jAlarmTriggeredCheckBox = new JCheckBox();
+			jAlarmTriggeredCheckBox.setText(RB
+					.getString("chart.options.dialog.alarm"));
+			jAlarmTriggeredCheckBox
+					.setSelected(isUserPrefsSelected(ChartPlotOptions.ALARM));
+			checkBoxPlots.put(jAlarmTriggeredCheckBox, ChartPlotOptions.ALARM);
+		}
+		return jAlarmTriggeredCheckBox;
+	}
+	
 	/**
 	 * Initializes jCPUStateCheckBox
 	 * 

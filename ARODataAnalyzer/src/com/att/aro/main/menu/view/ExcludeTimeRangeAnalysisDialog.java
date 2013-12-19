@@ -50,6 +50,7 @@ public class ExcludeTimeRangeAnalysisDialog extends JDialog {
 
 	private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.00");
 	private static ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
+	private static double endTimeResetValue = 0.0;
 
 	private JPanel timeRangeSelectionPanel;
 	private JPanel jDialogPanel;
@@ -85,7 +86,10 @@ public class ExcludeTimeRangeAnalysisDialog extends JDialog {
 			TraceData.Analysis analysisData) {
 		super(owner);
 		this.aro = owner;
-		this.traceEndTime = analysisData.getTraceData().getTraceDuration();
+		if(endTimeResetValue == 0.0){
+			endTimeResetValue = analysisData.getTraceData().getTraceDuration();
+		}
+		this.traceEndTime = endTimeResetValue;
 		TimeRange timeRange = analysisData.getFilter().getTimeRange();
 		if(timeRange != null){
 			this.timeRangeStartTime = timeRange.getBeginTime();
@@ -269,8 +273,9 @@ public class ExcludeTimeRangeAnalysisDialog extends JDialog {
 
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
-                 startTimeTextField.setText(DECIMAL_FORMAT.format(0.0));
-                 endTimeTextField.setText(DECIMAL_FORMAT.format(traceEndTime));
+					traceEndTime = endTimeResetValue;
+					startTimeTextField.setText(DECIMAL_FORMAT.format(0.0));
+					endTimeTextField.setText(DECIMAL_FORMAT.format(endTimeResetValue));
 				}
 
 			});

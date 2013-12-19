@@ -117,7 +117,7 @@ public class DomainNameSystem implements Serializable {
 			short qtype = bytes.getShort();
 			short qclass = bytes.getShort();
 			if ((qtype != TYPE_A && qtype != TYPE_AAAA) || qclass != 1) {
-				logger.warning("Unrecognized DNS query:  qtype=" + qtype + ", qclass=" + qclass);
+				//logger.warning("Unrecognized DNS query:  qtype=" + qtype + ", qclass=" + qclass);
 				return;
 			}
 

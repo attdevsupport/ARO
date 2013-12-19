@@ -19,13 +19,20 @@ import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.logging.Logger;
+
+import com.att.aro.model.TraceData;
 
 /**
  * A bean class that provides access to IP Packet data.
  */
 public class IPPacket extends Packet implements Serializable {
 	private static final long serialVersionUID = 1L;
-
+	/**
+	 * Logger
+	 */
+	private static Logger logger = Logger.getLogger(TraceData.class.getName());
+	
 	private byte ipVersion;
 	private byte priority;
 	private int packetLength;
@@ -51,36 +58,64 @@ public class IPPacket extends Packet implements Serializable {
 		ByteBuffer bytes = ByteBuffer.wrap(data);
 		int headerOffset = super.getDataOffset();
 
+		// check for IPv4 or IPv6
 		ipVersion = (byte) ((bytes.get(headerOffset) & 0xf0) >> 4);
-		int hlen = ((bytes.get(headerOffset) & 0x0f) << 2);
-		dataOffset = headerOffset + hlen;
-		packetLength = bytes.getShort(headerOffset + 2);
-		if (packetLength == 0) {
+		int hlen = -1;
+		if (ipVersion == 6) {
+			hlen = 40;
+			payloadLen = bytes.getShort(headerOffset + 4);
+			packetLength = len;
+		} else {
+			hlen = ((bytes.get(headerOffset) & 0x0f) << 2);
+			packetLength = bytes.getShort(headerOffset + 2);
+			if (packetLength == 0) {
+				// Assume TCP segmentation offload (TSO) so calculate our own
+				// packet length
+				packetLength = len - headerOffset;
+			}
+
+			payloadLen = packetLength - hlen;
 			
-			// Assume TCP segmentation offload (TSO) so calculate our own packet length
-			packetLength = len - headerOffset;
+			short i = bytes.getShort(headerOffset + 6);
+			rsvFrag = (i & 0x8000) != 0;
+			dontFrag = (i & 0x4000) != 0;
+			moreFrag = (i & 0x2000) != 0;
+			fragmentOffset = (short) (i & 0x1fff);
 		}
-		payloadLen = packetLength - hlen;
 
-		short i = bytes.getShort(headerOffset + 6);
-		rsvFrag = (i & 0x8000) != 0;
-		dontFrag = (i & 0x4000) != 0;
-		moreFrag = (i & 0x2000) != 0;
-		fragmentOffset = (short) (i & 0x1fff);
+		dataOffset = headerOffset + hlen;
 
-		i = bytes.getShort(headerOffset + 8);
-		timeToLive = (short) ((i & 0xff00) >> 8);
+		short i = bytes.getShort(headerOffset + 8);
+		if (ipVersion == 4) {
+			timeToLive = (short) ((i & 0xff00) >> 8);
+		}
+		
 		protocol = (short) (i & 0xff);
 
-		byte[] b = new byte[4];
+		byte[] b = null;
+		int addrLgth = -1;
+		int addrOffset = -1;
+		if (ipVersion == 6) {
+			addrLgth = 16;
+			addrOffset = 8;
+		} else {
+			addrLgth = 4;
+			addrOffset = 12;
+		}
+
+		b = new byte[addrLgth];
+		bytes.position(headerOffset + addrOffset);
+		bytes.get(b, 0, addrLgth);
 		try {
-			bytes.position(headerOffset + 12);
-			bytes.get(b, 0, 4);
 			sourceIPAddress = InetAddress.getByAddress(b);
-			bytes.get(b, 0, 4);
+		} catch (UnknownHostException e) {
+			logger.warning("Unable to determine source IP - " + e.getMessage());
+		}
+		try {
+			bytes.get(b, 0, addrLgth);
 			destinationIPAddress = InetAddress.getByAddress(b);
 		} catch (UnknownHostException e) {
-			e.printStackTrace();
+			logger.warning("Unable to determine destination IP - " + e.getMessage());
 		}
 	}
 

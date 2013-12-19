@@ -99,7 +99,7 @@ public class EmptyUrlAnalysis {
 			}
 
 		} catch (ContentException e) {
-			LOGGER.log(Level.WARNING, "Empty URL Analysis - Unexpected Exception {0}", e.getMessage());
+			LOGGER.log(Level.FINE, "Empty URL Analysis - Unexpected Exception {0}", e.getMessage());
 		} catch (IOException e) {
 			LOGGER.log(Level.WARNING, "Empty URL Analysis - Unexpected Exception {0}", e.getMessage());
 		}

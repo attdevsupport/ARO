@@ -37,6 +37,7 @@ import javax.swing.JTable;
 import javax.swing.SwingConstants;
 
 import com.att.aro.bp.BestPracticeButtonPanel;
+import com.att.aro.bp.DataTableResultPanel;
 import com.att.aro.commonui.DataTable;
 import com.att.aro.main.ApplicationResourceOptimizer;
 import com.att.aro.model.CacheEntry;
@@ -45,11 +46,10 @@ import com.att.aro.util.Util;
 /**
  * Represents the panel that has Duplicate content Results
  */
-public class DuplicateResultPanel extends JPanel {
+public class DuplicateResultPanel extends JPanel implements DataTableResultPanel {
 
 	private static final long serialVersionUID = 1L;
 
-	@SuppressWarnings("unused")
 	private static final Logger LOGGER = Logger
 			.getLogger(DuplicateResultPanel.class.getName());
 
@@ -58,7 +58,6 @@ public class DuplicateResultPanel extends JPanel {
 	private static final int SCROLL_PANE_HEIGHT = DuplicateResultPanel.NO_OF_ROWS
 			* DuplicateResultPanel.ROW_HEIGHT;
 	private static final int SCROLL_PANE_LENGHT = 300;
-	private boolean isExpanded = false;
 	private int noOfRecords = 0;
 
 	private JLabel title;
@@ -249,6 +248,14 @@ public class DuplicateResultPanel extends JPanel {
 			viewBtn.doClick();
 			this.scrollPane.revalidate();
 		}
+	}
+
+	/**
+	 * Clears data from the result table.
+	 */
+	public void clearTable() {
+		LOGGER.log(Level.FINE, "clear duplicate data");
+		this.tableModel.removeAllRows();
 	}
 
 }

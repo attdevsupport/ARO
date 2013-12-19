@@ -26,6 +26,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.Collection;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.JButton;
@@ -36,15 +37,15 @@ import javax.swing.JTable;
 import javax.swing.SwingConstants;
 
 import com.att.aro.bp.BestPracticeButtonPanel;
+import com.att.aro.bp.DataTableResultPanel;
 import com.att.aro.commonui.DataTable;
 import com.att.aro.main.ApplicationResourceOptimizer;
 import com.att.aro.util.Util;
 
-public class ImageSizeResultPanel extends JPanel {
+public class ImageSizeResultPanel extends JPanel implements DataTableResultPanel {
 
 	private static final long serialVersionUID = 1L;
 
-	@SuppressWarnings("unused")
 	private static final Logger LOGGER = Logger.getLogger(ImageSizeResultPanel.class.getName());
 
 	private static final int ROW_HEIGHT = 20;
@@ -52,7 +53,6 @@ public class ImageSizeResultPanel extends JPanel {
 	private static final int SCROLL_PANE_HEIGHT = ImageSizeResultPanel.NO_OF_ROWS
 			* ImageSizeResultPanel.ROW_HEIGHT;
 	private static final int SCROLL_PANE_LENGHT = 300;
-	private boolean isExpanded = false;
 	private int noOfRecords = 0;
 
 	private JLabel title;
@@ -233,5 +233,14 @@ public class ImageSizeResultPanel extends JPanel {
 			this.scrollPane.revalidate();
 		}
 	}
+	
+	/**
+	 * Clears data from the result table.
+	 */
+	public void clearTable() {
+		LOGGER.log(Level.FINE, "clear image size data");
+		this.tableModel.removeAllRows();
+	}
+
 
 }

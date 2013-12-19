@@ -24,7 +24,11 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,6 +39,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -50,15 +55,16 @@ import com.att.aro.bp.flash.FlashAnalysis;
 import com.att.aro.bp.imageSize.ImageSizeAnalysis;
 import com.att.aro.bp.minification.MinificationAnalysis;
 import com.att.aro.bp.scripts.ScriptsAnalysis;
-//import com.att.aro.bp.smallrequest.SmallRequestAnalysis;
 import com.att.aro.bp.spriteimage.SpriteImageAnalysis;
 import com.att.aro.main.ResourceBundleManager;
+import com.att.aro.model.AlarmInfo.AlarmType;
 import com.att.aro.model.BluetoothInfo.BluetoothState;
 import com.att.aro.model.CameraInfo.CameraState;
 import com.att.aro.model.GpsInfo.GpsState;
 import com.att.aro.model.PacketInfo.Direction;
 import com.att.aro.model.ScreenStateInfo.ScreenState;
 import com.att.aro.model.UserEvent.UserEventType;
+import com.att.aro.model.WakelockInfo.WakelockState;
 import com.att.aro.model.WifiInfo.WifiState;
 import com.att.aro.model.cpu.CpuActivity;
 import com.att.aro.model.cpu.CpuActivityList;
@@ -170,8 +176,9 @@ public class TraceData implements Serializable {
 		private double wifiActiveDuration;
 		private double bluetoothActiveDuration;
 		private double cameraActiveDuration;
-
+		
 		private static final int MAX_LIMIT_FILETYPES = 8;
+		private static final int INIT_PACKET_SIZE = 50;
 
 		/**
 		 * Constructor
@@ -183,7 +190,7 @@ public class TraceData implements Serializable {
 		 * @param selectionType
 		 *            The selection type i.e. Application or IP address.
 		 */
-		private Analysis(Profile profile, AnalysisFilter filter) throws IOException {
+		private Analysis(Profile profile, AnalysisFilter filter, boolean datadump) throws IOException {
 
 			this.profile = profile != null ? profile : new Profile3G();
 
@@ -204,6 +211,7 @@ public class TraceData implements Serializable {
 				this.screenStateInfos = getScreenInfosForTheTimeRange(TraceData.this.screenStateInfos, beginTime, endTime);
 				this.userEvents = getUserEventsForTheTimeRange(TraceData.this.userEvents, beginTime, endTime);
 				this.networkTypeInfos = getNetworkInfosForTheTimeRange(TraceData.this.networkTypeInfos, beginTime, endTime);
+				traceDuration = endTime -beginTime;
 
 			} else {
 				this.cpuActivityList = TraceData.this.cpuActivityList;
@@ -254,7 +262,7 @@ public class TraceData implements Serializable {
 
 			this.applicationFilter = filter != null ? new AnalysisFilter(filter) : new AnalysisFilter(TraceData.this);
 
-			runAnalysis();
+			runAnalysis(datadump);
 		}
 
 		/**
@@ -518,6 +526,42 @@ public class TraceData implements Serializable {
 		}
 
 		/**
+		 * Returns the list of Alarm info.
+		 * 
+		 * @return The alarmInfos
+		 */
+		public List<AlarmInfo> getAlarmInfos() {
+			return Collections.unmodifiableList(alarmInfos);
+		}
+		
+		/**
+		 * Returns the list of Alarm Statistics info.
+		 * 
+		 * @return The alarmStatisticsInfos
+		 */
+		public List<AlarmAnalysisInfo> getAlarmAnalysisInfo() {
+			return Collections.unmodifiableList(alarmStatisticsInfos);
+		}
+	
+		/**
+		 * Returns the list of Pending Alarms at end of capture.
+		 * 
+		 * @return The scheduledAlarms
+		 */
+		public Map<String, List<ScheduledAlarmInfo>> getScheduledAlarms() {
+			return scheduledAlarms;
+		}
+		
+		/**
+		 * Returns the list of wakelock info.
+		 * 
+		 * @return The wakelockInfos
+		 */
+		public List<WakelockInfo> getWakelockInfos() {
+			return Collections.unmodifiableList(wakelockInfos);
+		}
+		
+		/**
 		 * Returns the GPS information.
 		 * 
 		 * @return A List of GPSInfo objects containing the information.
@@ -624,7 +668,30 @@ public class TraceData implements Serializable {
 				p.setSession(null);
 				p.setStateMachine(null);
 				p.setTcpInfo(null);
+				//p.clearAnalysis();
+				
 			}
+			//allPackets.clear();
+
+		}
+
+		/**
+		 * Clears packets when a new trace is opened.
+		 *
+		 */
+		public void clearNewTrace() {
+			logger.log(Level.FINE, "removing {0} packets", allPackets.size());
+			
+			for (PacketInfo p : allPackets) {
+				p.setBurst(null);
+				p.setRequestResponseInfo(null);
+				p.setSession(null);
+				p.setStateMachine(null);
+				p.setTcpInfo(null);
+				p = null;
+			}
+
+			allPackets = new ArrayList<PacketInfo>(INIT_PACKET_SIZE);
 		}
 
 		/**
@@ -810,7 +877,7 @@ public class TraceData implements Serializable {
 		public EnergyModel getEnergyModel() {
 			return energyModel;
 		}
-
+		
 		/**
 		 * Returns the list of burst infos found in the trace data analysis.
 		 * 
@@ -881,7 +948,7 @@ public class TraceData implements Serializable {
 		 * 
 		 * @throws IOException
 		 */
-		private synchronized void runAnalysis() throws IOException {
+		private synchronized void runAnalysis(boolean datadump) throws IOException {
 
 			// Collect basic statistics
 			if (packets.size() > 0) {
@@ -1018,7 +1085,7 @@ public class TraceData implements Serializable {
 
 			// Creates BestPractices object
 			logger.fine("Initializing BestPractices");
-			this.bestPractice = new BestPractices(this);
+			this.bestPractice = new BestPractices(this, datadump);
 
 			// Calculate score
 			logger.fine("Initializing ApplicationScore");
@@ -1445,8 +1512,9 @@ public class TraceData implements Serializable {
 	/**
 	 * Logger
 	 */
-	private static Logger logger = Logger.getLogger(TraceData.class.getName());
-
+	
+	private static final Logger logger = Logger.getLogger(TraceData.class.getName());
+	
 	/**
 	 * The name of the active_process file
 	 */
@@ -1531,6 +1599,22 @@ public class TraceData implements Serializable {
 	public static final String BATTERY_FILE = "battery_events";
 
 	/**
+	 * The name of the Wakelock file
+	 */
+	public static final String BATTERYINFO_FILE = "batteryinfo_dump";
+
+	/**
+	 * The name of the Kernel log file
+	 */
+	public static final String KERNEL_LOG_FILE = "dmesg";
+
+	/**
+	 * The name of the Alarm dumpsys file
+	 */
+	public static final String ALARM_START_FILE = "alarm_info_start";
+	public static final String ALARM_END_FILE = "alarm_info_end";
+	
+	/**
 	 * The name of the WiFi file
 	 */
 	public static final String WIFI_FILE = "wifi_events";
@@ -1604,6 +1688,10 @@ public class TraceData implements Serializable {
 	private static final String WIFI_CONNECTING = "CONNECTING";
 	private static final String WIFI_DISCONNECTING = "DISCONNECTING";
 	private static final String WIFI_SUSPENDED = "SUSPENDED";
+	
+	// Wakelock State keywords
+	private static final String WAKELOCK_RELEASED = "-wake_lock";
+	private static final String WAKELOCK_ACQUIRED = "+wake_lock";
 
 	// Bluetooth State keywords
 	private static final String BLUETOOTH_OFF = "OFF";
@@ -1692,11 +1780,18 @@ public class TraceData implements Serializable {
 	}
 
 	private double videoStartTime;
-
+	
 	private File traceDir;
 
 	private Set<InetAddress> localIPAddresses = new HashSet<InetAddress>(1);
 
+	// Alarm Info
+	private double dumpsysEpochTimestamp; /* Epoch time in milliseconds when dumping alarm end */
+	private double dumpsysElapsedTimestamp; /* Elapsed time in milliseconds when dumping alarm end */
+	private List<AlarmInfo> alarmInfos = new ArrayList<AlarmInfo>();
+	private List<AlarmAnalysisInfo> alarmStatisticsInfos = new ArrayList<AlarmAnalysisInfo>();
+	private Map<String, List<ScheduledAlarmInfo>> scheduledAlarms = new HashMap<String, List<ScheduledAlarmInfo>>();
+	
 	// App Info
 	private List<String> appInfos = new ArrayList<String>();
 
@@ -1714,6 +1809,9 @@ public class TraceData implements Serializable {
 
 	// Wifi Info
 	private List<WifiInfo> wifiInfos = new ArrayList<WifiInfo>();
+	
+	// Wakelock Info
+	private List<WakelockInfo> wakelockInfos = new ArrayList<WakelockInfo>();
 
 	// Battery Info
 	private List<BatteryInfo> batteryInfos = new ArrayList<BatteryInfo>();
@@ -1760,7 +1858,7 @@ public class TraceData implements Serializable {
 
 	// All packets included in the trace (not filtered)
 	private File pcapFile;
-	private List<PacketInfo> allPackets = new ArrayList<PacketInfo>(1000);
+	private List<PacketInfo> allPackets = new ArrayList<PacketInfo>(TraceData.Analysis.INIT_PACKET_SIZE);
 	private Map<InetAddress, Integer> ipCountMap = new HashMap<InetAddress, Integer>();
 	// private WhatIf whatIf = new WhatIf(WhatIf.WhatIfType.WHATIF_NO) ;
 	private Set<String> allAppNames = new HashSet<String>();
@@ -1781,12 +1879,9 @@ public class TraceData implements Serializable {
 		public void packetArrived(String appName, Packet packet) {
 			if (packet instanceof IPPacket) { // Replaces GetPacketInfo(...)
 				IPPacket ip = (IPPacket) packet;
-				if (ip.getIPVersion() != 4) {
-					logger.warning("225 - Non IPv4 packet received.  Version: " + ip.getIPVersion());
-				}
 
 				// no IP fragmentation
-				if (ip.getFragmentOffset() != 0) {
+				if ((ip.getIPVersion() == 4) && (ip.getFragmentOffset() != 0)) {
 					logger.warning("226 - no IP fragmentation");
 				}
 
@@ -1837,13 +1932,22 @@ public class TraceData implements Serializable {
 			// Read PCAP file only
 			readPcapTrace(traceDir, null, null, null);
 		}
-
+		
 	}
 
 	/**
 	 * Non-argument constructor.
 	 */
-	public TraceData() { }
+	public TraceData() {}
+
+	/**
+	 * Returns list of all packets.
+	 * 
+	 * @return List<PacketInfo>.
+	 */
+	public List<PacketInfo> getAllPackets() {
+		return allPackets;
+	}
 
 	/**
 	 * Returns the trace directory.
@@ -2040,7 +2144,7 @@ public class TraceData implements Serializable {
 	public int getDeviceScreenSizeY() {
 		return deviceScreenSizeY;
 	}
-
+	
 	/**
 	 * Runs analysis on the trace data for the specified collection filter,
 	 * using the specified device profile.
@@ -2054,9 +2158,9 @@ public class TraceData implements Serializable {
 	 * 
 	 * @return An Analysis object containing the trace analysis.
 	 */
-	public synchronized Analysis runAnalysis(Profile profile, AnalysisFilter filter)
+	public synchronized Analysis runAnalysis(Profile profile, AnalysisFilter filter, boolean datadump)
 			throws IOException {
-		return new Analysis(profile, filter);
+		return new Analysis(profile, filter, datadump);
 	}
 
 	/**
@@ -2542,14 +2646,14 @@ public class TraceData implements Serializable {
 					{
 						appName = appInfos.get(appIdIdx);
 					} else {
-						logger.log(Level.WARNING, "Invalid app ID {0} for packet {1}", new Object[] {appIdIdx, packetIdx});
+						logger.log(Level.INFO, "Invalid app ID {0} for packet {1}", new Object[] {appIdIdx, packetIdx});
 					}
 				} else if (appIdIdx != VALID_UNKNOWN_APP_ID) {
-					logger.log(Level.WARNING, "Invalid app ID {0} for packet {1}", new Object[] {appIdIdx, packetIdx});
+					logger.log(Level.INFO, "Invalid app ID {0} for packet {1}", new Object[] {appIdIdx, packetIdx});
 				}
 				
 			} else {
-				logger.log(Level.WARNING, "No app ID for packet {0}", packetIdx);
+				logger.log(Level.INFO, "No app ID for packet {0}", packetIdx);
 			}
 		}
 
@@ -2629,6 +2733,7 @@ public class TraceData implements Serializable {
 						actionType = UserEventType.KEY_RED;
 					}
 				} else {
+					
 					logger.warning("Invalid user event type in trace: " + lineBuf);
 					continue;
 				}
@@ -2642,6 +2747,7 @@ public class TraceData implements Serializable {
 				} else {
 					logger.warning("211 - Key event does not have press/release indication: "
 							+ lineBuf);
+				
 					continue;
 				}
 
@@ -2652,6 +2758,7 @@ public class TraceData implements Serializable {
 					if (lastTime != null) {
 						userEvents.add(new UserEvent(actionType, lastTime, dTimeStamp));
 					} else {
+						logger.setUseParentHandlers(false); /* fix for Defect DE28681*/
 						logger.warning("Found key release event with no associated press event: "
 								+ lineBuf);
 						continue;
@@ -2660,7 +2767,8 @@ public class TraceData implements Serializable {
 			}
 
 			for (Map.Entry<UserEventType, Double> entry : lastEvent.entrySet()) {
-				logger.warning("Unmatched user press/release input event: " + entry.getKey());
+				//logger.setUseParentHandlers(false);
+				logger.info("Unmatched user press/release input event: " + entry.getKey());
 			}
 		} finally {
 			br.close();
@@ -2795,12 +2903,34 @@ public class TraceData implements Serializable {
 		}
 
 		try {
+			readAlarmDumpsysTimestamp();
+		} catch (IOException e) {
+			logger.info("*** Warning: no alarm dumpsys information found to set time reference ***");
+		}
+		try {
+ 			readAlarmAnalysisInfo();
+		} catch (IOException e) {
+			logger.info("*** Warning: no alarm dumpsys information found ***");
+		}
+		try {
+			readKernelLog();
+		} catch (IOException e) {
+			logger.info("*** Warning: no kernel log information found ***");
+		}
+			
+		try {
 			// Reads the battery information
 			readBattery();
 		} catch (IOException e) {
 			logger.info("*** Warning: no battery information found ***");
 		}
 
+		try {
+			readBatteryinfo();
+		} catch (IOException e) {
+			logger.info("*** Warning: no readBatteryinfo found ***");
+		}
+		
 		try {
 			readRadioEvents();
 		} catch (IOException e) {
@@ -3439,6 +3569,569 @@ public class TraceData implements Serializable {
 	}
 
 	/**
+	 * Method to read the alarm event from the trace file and store it in the
+	 * alarmInfos list.
+	 */
+	private void readKernelLog() throws IOException {
+		File file = new File(traceDir, KERNEL_LOG_FILE);
+		if (!file.exists()) {
+			this.missingFiles.add(KERNEL_LOG_FILE);
+		}
+		BufferedReader br = new BufferedReader(new FileReader(file));
+		try {
+			double timestamp;
+			double timestampElapsed;
+			double timestampEpoch;
+			double timeDeltaEpochElapsed = dumpsysEpochTimestamp - dumpsysElapsedTimestamp;
+			AlarmType alarmType;
+			for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br
+					.readLine()) {
+				if(strLineBuf.indexOf("alarm_timer_triggered") > 0) {
+					String strFields[] = strLineBuf.split(" ");
+					if (strFields.length > 1) {
+						try {
+							timestamp = 0;
+							switch (Integer.parseInt(strFields[strFields.length - 3])) {
+								case 0: 
+									alarmType = AlarmType.RTC_WAKEUP;
+									break;
+								case 1: 
+									alarmType = AlarmType.RTC;
+									break;
+								case 2: 
+									alarmType = AlarmType.ELAPSED_REALTIME_WAKEUP;
+									timestamp = timeDeltaEpochElapsed;
+									break;
+								case 3: 
+									alarmType = AlarmType.ELAPSED_REALTIME;
+									timestamp = timeDeltaEpochElapsed;
+									break;
+								default:
+
+									// should not arrive here
+									logger.log(Level.WARNING, "cannot resolve alarm type: " 
+											+ timestamp + " type " 
+											+ Integer.parseInt(strFields[strFields.length - 3]));
+									alarmType = AlarmType.UNKNOWN;
+									break;
+							}
+
+							// convert ns to milliseconds
+							timestamp += Double.parseDouble(strFields[strFields.length - 1]) / 1000000;
+							timestampEpoch = timestamp;
+							timestamp = epochToTrace(timestamp);
+							timestampElapsed = timestampEpoch 
+										- dumpsysEpochTimestamp 
+										+ dumpsysElapsedTimestamp;
+							alarmInfos.add(new AlarmInfo(timestamp, 
+										timestampEpoch, 
+										timestampElapsed, 
+										alarmType));
+							logger.log(Level.FINE, "Time: " + timestamp + "Alarm type: " + alarmType 
+									+ "\nEpoch: " + timestampEpoch
+									+ "\nElapsed: " + timestampElapsed);
+						} catch (Exception e) {
+							logger.log(Level.WARNING,
+									"Unexpected error parsing alarm event: "
+											+ strLineBuf, e);
+						}
+					}
+				}
+			}
+		} finally {
+			br.close();
+		}
+	}
+
+	/** 
+	 * Method to set a reference time
+	 * Use ALARM_END_FILE elapsed realtime as dumpsys batteryinfo time reference.
+	 * 
+	 * set: dumpsysEpochTimestamp
+	 * 	dumpsysElapsedTimestamp
+	 *
+	 */
+	private void readAlarmDumpsysTimestamp() throws IOException {
+		File file = new File(traceDir, ALARM_END_FILE);
+		if (!file.exists()) {
+			this.missingFiles.add(ALARM_END_FILE);
+
+			// alarm_info_end does not exist, try alarm_info_start
+			file = new File(traceDir, ALARM_START_FILE);
+			if (!file.exists()) {
+
+				/**
+				 * Neither of the alarm dumpsys files exist
+				 * fall back to use file "time" written when trace start
+				 */
+				this.missingFiles.add(ALARM_START_FILE);
+				dumpsysEpochTimestamp = getTraceDateTime().getTime() + getTraceDuration()*1000;
+				dumpsysElapsedTimestamp = eventTime0 + getTraceDuration()*1000;
+			}
+	}
+		BufferedReader br = new BufferedReader(new FileReader(file));
+		try {
+			dumpsysEpochTimestamp = 0;
+			for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br.readLine()) {
+				if(dumpsysEpochTimestamp <= 0 &&  strLineBuf.indexOf("Realtime wakeup") > 0 ) {
+					String realTime[] = strLineBuf.split("=");
+					if (getOsVersion() != null && getOsVersion().compareTo("2.3") < 0) {
+						dumpsysEpochTimestamp = Double.parseDouble(
+										realTime[1].trim().substring(0, 
+											realTime[1].length()-2));
+					} else {
+						DateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+						try {
+							dumpsysEpochTimestamp = format.parse(
+											realTime[1].trim().substring(0, 
+												realTime[1].length()-2)).getTime();
+						} catch (ParseException e) {
+							logger.log(Level.WARNING, "ParseException " + e);
+						}
+					}
+				}
+				if(strLineBuf.indexOf("Elapsed realtime wakeup") > 0 ) {
+					String strFields[] = strLineBuf.split("=");
+					
+					// pre-gingerbread devices does not has a "+" sign before the elapsed timestamp(ms)
+					if (getOsVersion() != null && getOsVersion().compareTo("2.3") < 0) {
+						dumpsysElapsedTimestamp =  Double.parseDouble(
+										strFields[1].trim().substring(0, 
+											strFields[1].length()-2));
+					} else {
+						dumpsysElapsedTimestamp = convertTime(
+										strFields[1].trim().substring(1, 
+											strFields[1].length()-2));
+					}
+					break;
+				}
+			}
+			if (file.getName().equals(ALARM_START_FILE)) {
+				dumpsysEpochTimestamp += getTraceDuration()*1000;
+				dumpsysElapsedTimestamp += getTraceDuration()*1000;
+			}
+		} finally {
+			br.close();
+		}
+		
+		if (getOsVersion() != null) {
+			logger.log(Level.FINE, "Elapsed realtime : " + dumpsysElapsedTimestamp 
+					+ "\n\tEPOCH: " + dumpsysEpochTimestamp + "\n\tOS: " + getOsVersion());
+		}
+	}
+
+	/**
+	 * Create List<AlarmStatisticsInfos> of alarms triggered during the trace. 
+	 */
+	private void readAlarmAnalysisInfo() throws IOException {
+
+		// Collect triggered alarms summary at end of capture
+		File fileEnd = new File(traceDir, ALARM_END_FILE);
+		if (!fileEnd.exists()) {
+			this.missingFiles.add(ALARM_END_FILE);
+		}
+		List<AlarmAnalysisInfo> alarmStatisticsInfosEnd = new ArrayList<AlarmAnalysisInfo>();
+		alarmStatisticsInfosEnd = alarmAnalysisInfoParser(fileEnd);
+	
+		// Collect triggered alarms summary at start of capture
+		File fileStart = new File(traceDir, ALARM_START_FILE);
+		if (!fileStart.exists()) {
+			this.missingFiles.add(ALARM_START_FILE);
+		}
+		List<AlarmAnalysisInfo> alarmStatisticsInfosStart = new ArrayList<AlarmAnalysisInfo>();
+		alarmStatisticsInfosStart = alarmAnalysisInfoParser(fileStart);
+
+		// Differentiate the triggered alarms between start/end of catpure.
+		alarmStatisticsInfos = compareAlarmAnalysis(alarmStatisticsInfosEnd, alarmStatisticsInfosStart);
+	}
+
+	/**
+	 * Parsing alarm dumpsys file to collect all the triggered alarms in the summary.
+	 *
+	 * @return List<AlarmAnalysisInfo>
+	 */
+	private List<AlarmAnalysisInfo> alarmAnalysisInfoParser(File file) throws IOException {
+		BufferedReader br = new BufferedReader(new FileReader(file));
+		List<AlarmAnalysisInfo> statistics = new ArrayList<AlarmAnalysisInfo>();
+		try {
+			boolean alarmStats = false;
+			Pattern patternAlarms = Pattern.compile("\\s+(\\d+)\\salarms:.+");
+			Pattern patternRunning = Pattern.compile("\\s+(\\d+)ms.+,\\s(\\d+)\\swakeups");
+			Pattern patternAlarmRepeat = Pattern.compile("\\s+type=(\\d+)\\swhen=\\+?(\\w+)\\srepeatInterval=(\\d+)\\scount=(\\d+)\\s*");
+			String applicationName = "";
+			int totalScheduledAlarms = 0;
+			for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br
+					.readLine()) {
+
+				// Parsing Scheduled Alarm
+				if(file.getName().equals(ALARM_END_FILE) && !alarmStats) {
+					String scheduledAlarmLine[] = strLineBuf.trim().split(" ");
+					AlarmType alarmType = null;
+					if(scheduledAlarmLine[0].equals("RTC_WAKEUP")) {
+						alarmType = AlarmType.RTC_WAKEUP;
+					} else if (scheduledAlarmLine[0].equals("RTC")) {
+						alarmType = AlarmType.RTC;
+					} else if (scheduledAlarmLine[0].equals("ELAPSED_WAKEUP")) {
+						alarmType = AlarmType.ELAPSED_REALTIME_WAKEUP;
+					} else if (scheduledAlarmLine[0].equals("ELAPSED")) {
+						alarmType = AlarmType.ELAPSED_REALTIME;
+					}
+					if (alarmType != null) {
+						totalScheduledAlarms++;
+						String temp = scheduledAlarmLine[scheduledAlarmLine.length-1];
+						String appName = temp.substring(0,temp.length()-1);
+						String nextLine = br.readLine();
+						Matcher alarmMatcher = patternAlarmRepeat.matcher(nextLine);
+						if(alarmMatcher.matches()) {
+
+							/* timestamp in milliseconds */
+							double whenNextEpoch = 0;
+							double whenNextTrace = 0;
+							double whenNextElapsed = 0;
+
+							/**
+							 * pre-gingerbread devices use epoch timestamp / elapsed timestamp
+							 * instead of a readable format.
+							 */
+							if (getOsVersion() != null && getOsVersion().compareTo("2.3") < 0) {
+								if (alarmType == AlarmType.RTC_WAKEUP 
+										|| alarmType == AlarmType.RTC) {
+									whenNextEpoch = Double.parseDouble(alarmMatcher.group(2));
+									whenNextElapsed = whenNextEpoch 
+											- dumpsysEpochTimestamp 
+											+ dumpsysElapsedTimestamp;
+								} else {
+									whenNextElapsed = Double.parseDouble(alarmMatcher.group(2));
+									whenNextEpoch = whenNextElapsed 
+											- dumpsysElapsedTimestamp 
+											+ dumpsysEpochTimestamp;
+								}
+							} else {
+								double remainingTimeForNextAlarm = convertTime(alarmMatcher.group(2));
+								whenNextEpoch = remainingTimeForNextAlarm  + dumpsysEpochTimestamp;
+								whenNextElapsed = remainingTimeForNextAlarm + dumpsysElapsedTimestamp;
+							}
+							whenNextTrace = epochToTrace(whenNextEpoch);
+
+							// round to 3 decimal places.
+							whenNextElapsed = (double)Math.round(whenNextElapsed * 1000) / 1000;
+							int repeatInterval = Integer.parseInt(alarmMatcher.group(3));
+							int count = Integer.parseInt(alarmMatcher.group(4));
+							List<ScheduledAlarmInfo> adding;
+							if(scheduledAlarms.containsKey(appName)) {
+								adding = scheduledAlarms.get(appName);
+							} else {
+								adding = new ArrayList<ScheduledAlarmInfo>();
+							}
+							adding.add(new ScheduledAlarmInfo(appName, 
+										whenNextTrace, whenNextEpoch, 
+										whenNextElapsed, alarmType, 
+										repeatInterval, count));
+							scheduledAlarms.put(appName, adding);
+							logger.log(Level.FINE, "alarmAnalysisInfoParser \n" + appName 
+									+ "\nElapsed: " + whenNextElapsed 
+									+ "\nEpoch: " + whenNextEpoch 
+									+ "\nFrom trace start: " + whenNextTrace);
+						} else {
+							logger.log(Level.FINE, "Application Name Not Found: " + appName);
+						}
+						br.readLine();
+					}
+				}
+
+				// Locate expired alarms
+				if(alarmStats) {
+					String running = "";
+					if (applicationName != "") {
+						running = strLineBuf;
+					} else {
+						applicationName = strLineBuf;
+						running = br.readLine();
+					}
+					Matcher run = patternRunning.matcher(running);
+					int runningTime = 0;
+					int wakeups = 0;
+					if(run.matches()) {
+						logger.log(Level.FINE, "RUNNING: " +  run.group(1) 
+								+ " wakeups: " + run.group(2));
+						runningTime = Integer.parseInt(run.group(1));
+						wakeups = Integer.parseInt(run.group(2));
+					}
+					logger.log(Level.FINE, "APPLICATION: " + applicationName 
+							+ " running "+ running + "ms");
+
+					// Gathering alarm intents of an application
+					List<String> intents = new ArrayList<String>();
+					int totalAlarmFiredofThatApplication = 0;
+
+					// Alarm may not have any fired intent
+					String alarms = br.readLine();
+					if (alarms != null) {
+						Matcher alarmsFired = patternAlarms.matcher(alarms);
+						while (alarms != null && alarmsFired.matches()) {
+							totalAlarmFiredofThatApplication += Integer.parseInt(alarmsFired.group(1));
+							intents.add(alarms.trim());
+							alarms = br.readLine();
+							if (alarms != null) {
+								alarmsFired = patternAlarms.matcher(alarms);
+							}
+						}
+					}
+				
+					// Adding AlarmAnalysisInfo to the return list
+					statistics.add(new AlarmAnalysisInfo(applicationName, 
+								runningTime, wakeups, 
+								totalAlarmFiredofThatApplication, 
+								intents));
+				
+					// Cache the name of next application which has been read
+					if (alarms != null) {
+						applicationName = alarms;
+					}
+				}
+				if(!alarmStats && strLineBuf.indexOf("Alarm Stats:") > 0) {
+					logger.log(Level.FINE, "Alarm Stats Found" + strLineBuf);
+					alarmStats = true;
+				}
+			}
+			logger.log(Level.FINE, "Number of scheduled alarm = " + totalScheduledAlarms 
+					+ "\n Number of apps has scheduled alarms: " + scheduledAlarms.size());
+		} finally {
+			br.close();
+		}
+		return statistics;
+	}
+
+	/**
+	 * Comparing Alarm Stats before/after capture
+	 *
+	 * @param end
+	 *		List<AlarmAnalysisInfo> of alarms triggered summary at end of capture. 
+	 * @param start
+	 *		List<AlarmAnalysisInfo> of alarms triggered summary at start of capture. 
+	 *
+	 * Return the difference
+	 */
+	private List<AlarmAnalysisInfo> compareAlarmAnalysis(List<AlarmAnalysisInfo> end, 
+			List<AlarmAnalysisInfo> start) {
+		Iterator<AlarmAnalysisInfo> itrAlarmAnalysisInfoS;
+		ListIterator<AlarmAnalysisInfo> itrAlarmAnalysisInfoE;
+		Pattern patternAlarms = Pattern.compile("(\\d+)\\salarms:\\s(.+)");
+		itrAlarmAnalysisInfoE = end.listIterator();
+
+		/**
+		 * Go through alarms history in END_FILE and loop through START_FILE 
+		 * to find the matching application
+		 */
+		while (itrAlarmAnalysisInfoE.hasNext()) {
+			AlarmAnalysisInfo alarmInfoE = (AlarmAnalysisInfo) itrAlarmAnalysisInfoE.next();
+		
+			/**
+			 * Start iterator from beginning for every new applications
+			 * as the lists are not in any order
+			 */
+			int totalFired = 0;
+			itrAlarmAnalysisInfoS = start.iterator();
+			AlarmAnalysisInfo alarmInfoS = (AlarmAnalysisInfo) itrAlarmAnalysisInfoS.next();
+
+			// Application look up in START_FILE
+			while(!alarmInfoS.getApplication().equals(alarmInfoE.getApplication()) 
+					&& itrAlarmAnalysisInfoS.hasNext()) {
+				alarmInfoS = (AlarmAnalysisInfo) itrAlarmAnalysisInfoS.next();
+			}
+
+			// If no matching application, skip to next
+			if(!alarmInfoS.getApplication().equals(alarmInfoE.getApplication())) {
+				logger.log(Level.FINE, "no matching application - " 
+						+ alarmInfoE.getApplication() );
+				continue;
+			}
+
+			/**
+			 * Found matching application
+			 * Note down the difference in Alarm Stats
+			 */
+			int wakeup = alarmInfoE.getWakeup() - alarmInfoS.getWakeup();
+			int running = alarmInfoE.getRunning() - alarmInfoS.getRunning();
+
+			/**
+			 * Discard those applications didn't fire any alarms
+			 * using running time as reference.
+			 */
+			if (running > 0) {
+				List<String> intentS = alarmInfoS.getIntent();;
+				List<String> intentE = alarmInfoE.getIntent();
+				Iterator<String> itStringStart;
+				ListIterator<String> itStringEnd = intentE.listIterator();
+
+				String stringStart;
+				String stringEnd;
+
+				/**
+				 * Iterate through all alarms under the found application.
+				 * to compare the applications' intents
+				 */
+				while(itStringEnd.hasNext()) {
+					itStringStart = intentS.iterator();
+					if(itStringStart.hasNext()) {
+						stringStart = itStringStart.next();
+						stringEnd = itStringEnd.next();
+						Matcher s = patternAlarms.matcher(stringStart);
+						Matcher e = patternAlarms.matcher(stringEnd);
+
+						// Search for matching alarms intent from matching application
+						while(s.matches() && e.matches() && !s.group(2).equals(e.group(2))) {
+							if(itStringStart.hasNext()) {
+								stringStart = (String) itStringStart.next();
+								s = patternAlarms.matcher(stringStart);
+							} else {
+								break;
+							}
+						}
+
+						// Found matching fired intent, update the statistics here
+						if (s.group(2).equals(e.group(2))) {
+							int alarms = Integer.parseInt(e.group(1)) - Integer.parseInt(s.group(1));
+							if (alarms > 0) {
+								totalFired += alarms;
+								itStringEnd.set(alarms + " alarms: " + e.group(2));
+							} else {
+								itStringEnd.remove();
+								logger.log(Level.FINE, 
+										"compareAlarmAnalysis: alarm intent discarded - " 
+										+  e.group(2));
+							}
+						} else {
+							totalFired += Integer.parseInt(e.group(1));
+							logger.log(Level.FINE, 
+									"No matching alarm intent found \n Total fired = " 
+									+ e.group(1) + " " + stringEnd );
+						}
+					} else {
+						break;
+					}
+				}
+
+				// Replacing updated AlarmAnalysisInfo
+				AlarmAnalysisInfo replacing = new AlarmAnalysisInfo(alarmInfoE.getApplication(),
+					       						running, wakeup, totalFired, 
+											alarmInfoE.getIntent());
+				itrAlarmAnalysisInfoE.set(replacing);
+			} else {
+				itrAlarmAnalysisInfoE.remove();
+				logger.log(Level.FINE, "compareAlarmAnalysis: history discarded - " 
+						+ alarmInfoE.getApplication());
+			}
+		}
+		return end;
+	}
+
+	/* 
+	 * Method to read the Wakelock data from the batteryinfo file and store it in the
+	 * wakelockInfos list.
+	 *
+	 * pre: call readAlarmDumpsysTimestamp(), it requires a timestamp for alignment.
+	 *
+	 * */
+	private void readBatteryinfo() throws IOException {
+		if (getOsVersion() != null && getOsVersion().compareTo("2.3") < 0) {
+			logger.log(Level.WARNING,
+					"OS 2.2(Froyo) or earlier does not has the wakelock timeline");
+		}
+		File file = new File(traceDir, BATTERYINFO_FILE);
+		if (!file.exists()) {
+			this.missingFiles.add(BATTERYINFO_FILE);
+		}
+		BufferedReader br = new BufferedReader(new FileReader(file));
+		try {
+			WakelockState wakelockState;
+			for (String strLineBuf = br.readLine(); strLineBuf != null; strLineBuf = br
+					.readLine()) {
+
+				// Look for +/-wake_lock
+				int index = strLineBuf.indexOf(WAKELOCK_ACQUIRED);
+				if (index < 0) {
+					index = strLineBuf.indexOf(WAKELOCK_RELEASED);
+				}
+
+				// If either +/-wake_lock found
+				if (index > 0) {
+					String wakelock_state = strLineBuf.substring(index, index+10);
+					String strFields[] = strLineBuf.trim().split(" ");
+					try {
+					
+						// Get timestamp of wakelock event
+						double bTimeStamp = dumpsysEpochTimestamp - convertTime(strFields[0]);
+						if (bTimeStamp > getTraceDateTime().getTime()) {
+							bTimeStamp = epochToTrace(bTimeStamp)/1000;
+							if (WAKELOCK_RELEASED.equals(wakelock_state)) {
+								wakelockState = WakelockState.WAKELOCK_RELEASED;
+							} else {
+								wakelockState = WakelockState.WAKELOCK_ACQUIRED;
+							}
+							wakelockInfos.add(new WakelockInfo(bTimeStamp, wakelockState));
+							logger.log(Level.FINE, "Trace Start: " 
+									+ getTraceDateTime().getTime() 
+									+ "\nWakelock Time: " + bTimeStamp 
+									+ " Wakelock state: " + wakelock_state 
+									+ " strFields " + Arrays.toString(strFields));
+						}
+					} catch (Exception e) {
+						logger.log(Level.WARNING,
+								"Unexpected error parsing wakelock event: "
+										+ Arrays.toString(strFields) 
+										+ " found wakelock in " + index, e);
+					}
+				}
+			}
+		} finally {
+			br.close();
+		}
+	}
+
+	/** 
+	 * Convert remaining time (-0h00m00s000ms) to milliseconds
+	 *
+	 * @return result in milliseconds
+	 */
+	private double convertTime(String time) {
+    	double result = 0;
+		int start = 0;
+    	int end = 0;
+
+    	// Change to positive number
+    	if (time.indexOf("-") == 0 || time.indexOf("+") == 0) {
+			time = time.substring(1);
+    	}
+		end = time.indexOf("d");
+    	if (end > 0) {
+			result += Integer.parseInt(time.substring(0, end)) * 24 * 60 * 60 * 1000;
+			start = end+1;
+    	}
+    	end = time.indexOf("h");
+		if (end > start) {
+			result += Integer.parseInt(time.substring(start, end)) * 60 * 60 * 1000;
+    		start = end+1;
+		}
+    	end = time.indexOf("m");
+		if (end > start && end != time.indexOf("ms")) {
+			result += Integer.parseInt(time.substring(start, end)) * 60 * 1000;
+    		start = end+1;
+		}
+    	end = time.indexOf("s");
+		if (end > start && end != (time.indexOf("ms") + 1)) {
+			result += Integer.parseInt(time.substring(start, end)) * 1000;
+    		start = end+1;
+		}
+    	end = time.indexOf("ms");
+		if (end > start) {
+			result += Integer.parseInt(time.substring(start, end));
+    	}
+    	logger.log(Level.FINE, "convertTime time " + time + " result " + result);
+		return result;
+	}
+	
+	/**
 	 * Reads the Radio data from the file and stores it in the RadioInfo.
 	 */
 	private void readRadioEvents() throws IOException {
@@ -3498,7 +4191,18 @@ public class TraceData implements Serializable {
 		} finally {
 			br.close();
 		}
-
+	}
+	
+	/**
+	 * Convert Epoch time to Trace start time
+	 *
+	 * @param time
+	 *            epoch time in milliseconds
+	 * @return time
+	 *            trace start time in milliseconds
+	 */
+	private double epochToTrace(double time) {
+		return time - getTraceDateTime().getTime();
 	}
 
 	/**

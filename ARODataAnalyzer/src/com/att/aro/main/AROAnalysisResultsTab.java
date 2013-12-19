@@ -412,6 +412,16 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 								rb.getString("exportall.errorFileOpen") + ex.getMessage());
 					}
 				}
+				
+				@Override
+	            public void mouseEntered(MouseEvent e) {
+					exportBtn.setForeground(Color.GRAY );
+					
+				}
+				@Override
+	            public void mouseExited(MouseEvent e) {
+					exportBtn.setForeground(Color.WHITE);
+	            }    
 			});
 		}
 		return exportBtn;

@@ -39,7 +39,6 @@ import com.att.aro.model.HttpRequestResponseInfo.Direction;
  */
 public class ImageSizeAnalysis {
 
-	@SuppressWarnings("unused")
 	private static final Logger LOGGER = Logger.getLogger(ImageSizeAnalysis.class.getName());
 
 	// results of the analysis
@@ -55,8 +54,8 @@ public class ImageSizeAnalysis {
 	 *            - TCP sessions to be analyzed.
 	 */
 	public ImageSizeAnalysis(List<TCPSession> tcpSessions, int deviceScreenSizeX, int deviceScreenSizeY) {
-		deviceScreenSizeRangeX = (deviceScreenSizeX * 150) / 100;
-		deviceScreenSizeRangeY = (deviceScreenSizeY * 150) / 100;
+		deviceScreenSizeRangeX = (deviceScreenSizeX * 110) / 100;
+		deviceScreenSizeRangeY = (deviceScreenSizeY * 110) / 100;
 
 		if (null != tcpSessions) {
 			// loop through TCP session
@@ -113,9 +112,11 @@ public class ImageSizeAnalysis {
 						try {
 							imageDownloaded = rr.getContentString();
 						} catch (ContentException e) {
-						e.printStackTrace();
+							// The content may be corrupted, nothing to do.
+							LOGGER.log(Level.FINE, "The content may be corrupted.");
 						} catch (IOException e) {
-							e.printStackTrace();
+							// IOException, something is wrong.
+							LOGGER.log(Level.WARNING, "IOException, something is wrong.");
 						}
 						if (imageToSearchFor != null && imageDownloaded != null) {
 							if (imageDownloaded.toLowerCase().contains(imageToSearchFor.toLowerCase())) {
@@ -170,7 +171,7 @@ public class ImageSizeAnalysis {
 	/**
 	 * This method compares the downloaded image size with standard image size (present in HTML/CSS or device screen size)
 	 * 
-	 * @return true if the height or width of downloaded image >= 150% of Standard Image Size else false
+	 * @return true if the height or width of downloaded image >= 110% of Standard Image Size else false
 	 */
 	private boolean compareDownloadedImgSizeWithStdImageSize(HttpRequestResponseInfo reqRessInfo, HtmlImage htmlImage) {
 		try {
@@ -178,8 +179,8 @@ public class ImageSizeAnalysis {
 				int widthRange = deviceScreenSizeRangeX;
 				int heightRange = deviceScreenSizeRangeY;
 				if (htmlImage != null) {
-					widthRange = (htmlImage.getWidth() * 150) / 100;
-					heightRange = (htmlImage.getHeight() * 150) / 100;			
+					widthRange = (htmlImage.getWidth() * 110) / 100;
+					heightRange = (htmlImage.getHeight() * 110) / 100;			
 				}
 				
 				ImageIcon downloadedImg = new ImageIcon(reqRessInfo.getContent());
@@ -190,9 +191,11 @@ public class ImageSizeAnalysis {
 				}
 			}
 		} catch (ContentException e) {
-			e.printStackTrace();
+			// The content may be corrupted, nothing to do.
+			LOGGER.log(Level.FINE, "The content may be corrupted.");
 		} catch (IOException e) {
-			e.printStackTrace();
+			// IOException, something is wrong.
+			LOGGER.log(Level.WARNING, "IOException, something is wrong.");
 		}
 		return false;
 	}
