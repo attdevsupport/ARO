@@ -153,9 +153,13 @@ public class AROCollectorCompletedActivity extends Activity {
 		traceSummaryOKButton.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				startAROMainActivity();
-				// Will close current activity
-				finish();
+				if (mApp.isRQMCollectorLaunchfromAnalyzer() || mApp.isCollectorLaunchfromAnalyzer()) {
+					finish();
+				} else {
+					startAROMainActivity();
+					// Will close current activity
+					finish();
+				}
 			}
 		});
 

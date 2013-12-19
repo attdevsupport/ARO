@@ -125,7 +125,6 @@ public class AROCollectorMainActivity extends Activity {
 		setContentView(R.layout.arocollector_main_screen);
 		validateAROAnalyzerConnectedLaunch();
 		initializeMainScreenControls();
-		
 		registerAnalyzerTimeoutReceiver();
 		registerAnalyzerLaunchReceiver();
 	}
@@ -136,7 +135,6 @@ public class AROCollectorMainActivity extends Activity {
 	private void exitMainActivity() {
 		// Close the current summary screen
 		AROLogger.d(TAG, "another instance of collector already running, will exit MainActivity");
-		
 		finish();
 	}
 
@@ -164,9 +162,6 @@ public class AROCollectorMainActivity extends Activity {
 	 */
 	private void initializeMainScreenControls() {
 
-		// The Connectivity manager object to get current connect network, this
-		// is used to check if we have active network before DC kicks off
-		final ConnectivityManager mAROConnectiviyMgr;
 		final Button taskKiller;
 		// Controls initialization
 		mApp = (ARODataCollector) getApplication();
@@ -175,7 +170,6 @@ public class AROCollectorMainActivity extends Activity {
 		collectScreenVideo = (CheckBox) findViewById(R.id.ckbx_screenshot);
 		startDataCollector.setEnabled(true);
 		mAroUtils = new AROCollectorUtils();
-		mAROConnectiviyMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 		mApp.setDataCollectorStopEnable(true);
 		if (mApp.getDumpTraceFolderName()!=null) {
 			mApp.setUSBVideoCaptureON(true);
@@ -196,6 +190,14 @@ public class AROCollectorMainActivity extends Activity {
 			}
 		});
 		
+		if (mApp.isRQMCollectorLaunchfromAnalyzer() && getIntent().getExtras().getInt(ARODataCollector.ERRODIALOGID) ==100) {
+			if (getInitalCollectorvalidationCheck()) {
+				ARODataCollector.setAnalyzerLaunchInProgress(false);
+				mApp.setDataCollectorStopEnable(false);
+				startARODataCollector();
+			}
+			return;
+		}
 		// Start Data Collector button listener
 		startDataCollector.setOnClickListener(new OnClickListener() {
 			@Override
@@ -207,58 +209,77 @@ public class AROCollectorMainActivity extends Activity {
 					AROLogger.d(TAG, "collector starting, setAnalyzerLaunchInProgress(false)");
 					ARODataCollector.setAnalyzerLaunchInProgress(false);
 				}
-				
-				final String state = Environment.getExternalStorageState();
-				NetworkInfo.State wifiState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState();
-				NetworkInfo.State mobileState = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState();
-				AROLogger.d(TAG, "wifiState=" + wifiState + "; mobileState=" + mobileState);
-				
-				// Check to validate is SD card is available for writing trace
-				// data
-				if (!state.equals(Environment.MEDIA_MOUNTED)) {
-					showSDCardMountedError(false);
-					return;
-				} else if (mAroUtils.isAirplaneModeOn(getApplicationContext())
-						&& (wifiState == NetworkInfo.State.UNKNOWN || wifiState == NetworkInfo.State.DISCONNECTED)) {
-					// Check if Airplane mode is on AND Wifi network is disconnected
-					showAirplaneModeEnabledError(false);
-					return;
-				} else if ((wifiState == NetworkInfo.State.DISCONNECTED || wifiState == NetworkInfo.State.UNKNOWN)
-						&& (mobileState == NetworkInfo.State.DISCONNECTED || mobileState == NetworkInfo.State.UNKNOWN)) {
-					// do not allow DC to start with both Mobile and Wifi off
-					showARODataCollectorErrorDialog(Dialog_Type.WIFI_MOBILE_BOTH_OFF);
-					return;
-				} 
-				
-				if(mAroUtils.isTcpDumpRunning()){
-					showARORunningError();
-					return;
+				if (getInitalCollectorvalidationCheck()) {
+					if (mApp.getDumpTraceFolderName() != null) {
+						mApp.setCollectorLaunchfromAnalyzer(true);
+						mApp.setDataCollectorStopEnable(false);
+						startARODataCollector();
+						return;
+					}
+					mApp.setCollectorLaunchfromAnalyzer(false);
+					showARODataCollectorErrorDialog(Dialog_Type.TRACE_FOLDERNAME);
 				}
-				
-				// Making sure root permission is set to ARO application before
-				// starting trace cycle
-				Process mAROrootShell = null;
-				try {
-					mAROrootShell = Runtime.getRuntime().exec("su");
-					mAROrootShell.getOutputStream();
-				} catch (IOException e) {
-					AROLogger.e(TAG, "exception in getting root permission", e);
-				}
-				mAROrootShell = null;
-				if(mApp.getDumpTraceFolderName()!=null) {
-					mApp.setCollectorLaunchfromAnalyzer(true);
-					mApp.setDataCollectorStopEnable(false);
-					startARODataCollector();
-					return;
-				}
-				mApp.setCollectorLaunchfromAnalyzer(false);
-				showARODataCollectorErrorDialog(Dialog_Type.TRACE_FOLDERNAME);
-
 			}
 		});
 		handleARODataCollectorErrors(getIntent().getExtras().getInt(ARODataCollector.ERRODIALOGID));
 	}
 
+	private boolean getInitalCollectorvalidationCheck() {
+		
+		// The Connectivity manager object to get current connect network, this
+		// is used to check if we have active network before DC kicks off
+		final ConnectivityManager mAROConnectiviyMgr;
+		mAROConnectiviyMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+		final String state = Environment.getExternalStorageState();
+		
+		final NetworkInfo wifiNetworkInfo = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+		final NetworkInfo mobileNetworkInfo = mAROConnectiviyMgr.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
+		
+		NetworkInfo.State wifiState = NetworkInfo.State.UNKNOWN, mobileState = NetworkInfo.State.UNKNOWN;
+		
+		if (wifiNetworkInfo != null){
+			wifiState = wifiNetworkInfo.getState();
+		}
+		if (mobileNetworkInfo != null){
+			mobileState = mobileNetworkInfo.getState();
+		}
+		
+		AROLogger.d(TAG, "wifiState=" + wifiState + "; mobileState=" + mobileState);
+		
+		// Check to validate is SD card is available for writing trace
+		// data
+		if (!state.equals(Environment.MEDIA_MOUNTED)) {
+			showSDCardMountedError(false);
+			return false;
+		} else if (mAroUtils.isAirplaneModeOn(getApplicationContext())
+				&& (wifiState == NetworkInfo.State.UNKNOWN || wifiState == NetworkInfo.State.DISCONNECTED)) {
+			// Check if Airplane mode is on AND Wifi network is disconnected
+			showAirplaneModeEnabledError(false);
+			return false;
+		} else if ((wifiState == NetworkInfo.State.DISCONNECTED || wifiState == NetworkInfo.State.UNKNOWN)
+				&& (mobileState == NetworkInfo.State.DISCONNECTED || mobileState == NetworkInfo.State.UNKNOWN)) {
+			// do not allow DC to start with both Mobile and Wifi off
+			showARODataCollectorErrorDialog(Dialog_Type.WIFI_MOBILE_BOTH_OFF);
+			return false;
+		} 
+		
+		if(mAroUtils.isTcpDumpRunning()){
+			showARORunningError();
+			return false;
+		}
+		
+		// Making sure root permission is set to ARO application before
+		// starting trace cycle
+		Process mAROrootShell = null;
+		try {
+			mAROrootShell = Runtime.getRuntime().exec("su");
+			mAROrootShell.getOutputStream();
+		} catch (IOException e) {
+			AROLogger.e(TAG, "exception in getting root permission", e);
+		}
+		mAROrootShell = null;
+		return true;
+	}
 	/**
 	 * Checks if ARO Data Collector has been kicked from Analyzer connected via USB
 	 * 

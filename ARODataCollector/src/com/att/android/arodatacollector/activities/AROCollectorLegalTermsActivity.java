@@ -32,8 +32,10 @@ import android.webkit.WebView;
 import android.widget.Button;
 
 import com.att.android.arodatacollector.R;
+import com.att.android.arodatacollector.main.ARODataCollector;
 import com.att.android.arodatacollector.utils.AROCollectorUtils;
 import com.att.android.arodatacollector.utils.AROLogger;
+import android.provider.Settings;
 
 /**
  * Represents the Legal Terms screen of the ARO Data Collector. A user must
@@ -51,6 +53,8 @@ public class AROCollectorLegalTermsActivity extends Activity {
 	/** Identifies that the ARO Data Collector legal terms have been rejected. */
 	public static int TERMS_REJECTED = 2;
 
+	/** Identifies that the Android keep activities settings is ON or OFF. */
+	private int mKeepActivities;
 	/**
 	 * Initializes data members with a saved instance of an AROCollectorLegalTermsActivity object. 
 	 * Overrides the android.app.Activity#onCreate method. 
@@ -71,9 +75,9 @@ public class AROCollectorLegalTermsActivity extends Activity {
 		
 		setContentView(R.layout.aro_legal_terms);
 		initializeLegalPageControls();
-		
 		registerAnalyzerTimeoutReceiver();
 		registerAnalyzerLaunchReceiver();
+		mKeepActivities = Settings.System.getInt(getContentResolver(), Settings.System.ALWAYS_FINISH_ACTIVITIES, 0);
 	}
 	
 	/**
@@ -132,7 +136,11 @@ public class AROCollectorLegalTermsActivity extends Activity {
 		acceptButton.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
 				setResult(TERMS_ACCEPTED);
-				finish();
+				if (mKeepActivities != 1)
+					finish();
+				else {
+					startMainActivity();
+				}
 			}
 		});
 		cancelButton.setOnClickListener(new View.OnClickListener() {
@@ -221,6 +229,21 @@ public class AROCollectorLegalTermsActivity extends Activity {
 		} catch (Exception e){
 			AROLogger.d(TAG, "Ignoring exception in unregisterLaunchReceiver", e);
 		}
+	}
+	
+	
+	/**
+	 * Start the data collector main screen after splash screens timesout
+	 */
+	private void startMainActivity() {
+		final Intent splashScreenIntent = new Intent(getBaseContext(),
+				AROCollectorMainActivity.class);
+		// Generic Error ID number 100 passed as an argument to navigate to Main
+		// Screen without any dialog
+		splashScreenIntent.putExtra(ARODataCollector.ERRODIALOGID, 100);
+		splashScreenIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+		getApplication().startActivity(splashScreenIntent);
+		finish();
 	}
 	
 }

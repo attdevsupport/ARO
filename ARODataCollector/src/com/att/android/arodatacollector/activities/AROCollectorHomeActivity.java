@@ -34,6 +34,7 @@ import com.att.android.arodatacollector.R;
 import com.att.android.arodatacollector.main.AROCollectorService;
 import com.att.android.arodatacollector.main.AROCollectorTraceService;
 import com.att.android.arodatacollector.main.ARODataCollector;
+import com.att.android.arodatacollector.utils.AROCollectorUtils;
 import com.att.android.arodatacollector.utils.AROLogger;
 
 /**
@@ -120,6 +121,8 @@ public class AROCollectorHomeActivity extends Activity {
 				stopARODataCollector();
 			}
 		}
+		
+		registerAnalyzerCloseCmdReceiver();
 	}
 
 	/**
@@ -168,6 +171,7 @@ public class AROCollectorHomeActivity extends Activity {
 		AROLogger.d(TAG, "calling unregisterUsbBroadcastReceiver inside onDestroy()");
 		
 		unregisterUsbBroadcastReceiver();
+		unregisterAnalyzerCloseCmdReceiver();
 	}
 
 
@@ -195,7 +199,7 @@ public class AROCollectorHomeActivity extends Activity {
 				stopARODataCollector();
 			}
 		});
-		if(mApp.isCollectorLaunchfromAnalyzer()){
+		if(mApp.isCollectorLaunchfromAnalyzer() || mApp.isRQMCollectorLaunchfromAnalyzer()){
 			final boolean dataCollectorStopEnable = mApp.getDataCollectorStopEnable();
 			AROLogger.d(TAG, "dataCollectorStopEnable: " + dataCollectorStopEnable);
 			stopDataCollector.setEnabled(dataCollectorStopEnable);
@@ -259,5 +263,35 @@ public class AROCollectorHomeActivity extends Activity {
 			AROLogger.i(TAG, "Exception caught in onResume.registerReceiver(). Will ignore", e);
 		}
 	}
+    
+    /**
+	 * method to register the receiver that listens to analyzer timeout
+	 */
+	private void registerAnalyzerCloseCmdReceiver() {
+		AROLogger.d(TAG, "registering analyzerTimeOutReceiver");
+		registerReceiver(analyzerCloseCmdReceiver, new IntentFilter(AROCollectorUtils.ANALYZER_CLOSE_CMD_INTENT));
+	}
+	
+	private void unregisterAnalyzerCloseCmdReceiver() {
+		AROLogger.d(TAG, "inside unregisterTimeoutReceiver");
+		try {
+			if (analyzerCloseCmdReceiver != null) {
+				unregisterReceiver(analyzerCloseCmdReceiver);
+				analyzerCloseCmdReceiver = null;
+
+				AROLogger.d(TAG, "successfully unregistered analyzerCloseCmdReceiver");
+			}
+		} catch (Exception e) {
+			AROLogger.d(TAG, "Ignoring exception in analyzerCloseCmdReceiver", e);
+		}
+	}
+	
+	private BroadcastReceiver analyzerCloseCmdReceiver = new BroadcastReceiver() {
+	    @Override
+	    public void onReceive(Context ctx, Intent intent) {
+	    	AROLogger.d(TAG, "received analyzer close cmd intent at " + System.currentTimeMillis());
+	        finish();
+	    }
+	};
  
 }

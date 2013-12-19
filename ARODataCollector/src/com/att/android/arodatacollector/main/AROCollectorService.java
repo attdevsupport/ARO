@@ -51,13 +51,13 @@ import android.os.IBinder;
 import android.provider.Settings;
 import android.provider.Settings.SettingNotFoundException;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 import java.util.Properties;
 
 import com.att.android.arodatacollector.R;
 import com.att.android.arodatacollector.activities.AROCollectorCompletedActivity;
 import com.att.android.arodatacollector.activities.AROCollectorMainActivity;
 import com.att.android.arodatacollector.utils.AROCollectorUtils;
-import com.att.android.arodatacollector.utils.AROLogger;
 import com.flurry.android.FlurryAgent;
 
 /**
@@ -83,6 +83,18 @@ public class AROCollectorService extends Service {
 	 * The Application name file in the trace folder.
 	 */
 	private static final String APP_NAME_FILE = "appname";
+
+	/**
+	 * The boolean value to enable logs depending on if production build or
+	 * debug build
+	 */
+	private static boolean mIsProduction = false;
+
+	/**
+	 * A boolean value that indicates whether or not to enable logging for this
+	 * class in a debug build of the ARO Data Collector.
+	 */
+	public static boolean DEBUG = !mIsProduction;
 
 	/**
 	 * A boolean value that indicates whether flurry events will be logged to flurry.  False means
@@ -134,6 +146,21 @@ public class AROCollectorService extends Service {
 	/** Watch dog timer to set STOP timeout for Data Collector */
 	private Timer aroDCStopWatchTimer = new Timer();
 	
+	/** alarmInfo file name */
+	private static final String outAlarmInfoStartFileName = "alarm_info_start";
+	private static final String outAlarmInfoEndFileName = "alarm_info_end";
+
+	/** kernel message log file name */
+	private static final String outKernelMessageLogFileName = "dmesg";
+
+	/** The kernel debug masks for Wakelock & alarm modules **/
+	private int mWakelockDebugMask = 0;
+	private int mAlarmDebugMask = 0;
+
+	/** batteryinfo event trace file name */
+	private static final String outBatteryInfoFileName = "batteryinfo_dump";
+	
+	private double dumpsysTimestamp = 0.0;
 	/**
 	 * Gets the valid instance of AROCollectorService.
 	 * 
@@ -142,6 +169,9 @@ public class AROCollectorService extends Service {
 	public static AROCollectorService getServiceObj() {
 		return mDataCollectorService;
 	}
+	
+	
+	
 	
 	
 	/**
@@ -167,22 +197,23 @@ public class AROCollectorService extends Service {
 		FlurryAgent.setContinueSessionMillis(5000);  // Set session timeout to 5 seconds (minimum specified by flurry)
  
 		FlurryAgent.onStartSession(this, mApp.app_flurry_api_key); //don't use mAroCollectorService as context
-		if (AROLogger.logDebug) {
-			AROLogger.d(TAG, "onCreate called: " + mAroUtils.getSystemTimeinSeconds());
-			AROLogger.d(TAG, "flurry-called onStartSession");
+		if (DEBUG) {
+			Log.d(TAG, "onCreate called: " + mAroUtils.getSystemTimeinSeconds());
+			Log.d(TAG, "flurry-called onStartSession");
 		}
 		
 		//set device id as flurry's userid within a session
 		final TelephonyManager mAROtelManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 		FlurryAgent.setUserId( mAROtelManager.getDeviceId());
-		if (AROLogger.logDebug) {
-			AROLogger.d(TAG, "flurry-TelephonyManager deviceId: " + mAROtelManager.getDeviceId());
+		if (DEBUG) {
+			Log.d(TAG, "flurry-TelephonyManager deviceId: " + mAROtelManager.getDeviceId());
 		}
 		disableScreenTimeout();
 		TRACE_FOLDERNAME = mApp.getDumpTraceFolderName();
 		mVideoRecording = mApp.getCollectVideoOption();
 		startDataCollectorVideoCapture();
 		statDataCollectortcpdumpCapture();
+		startDataCollectorDmesgCapture();
 	}
 
 	@Override
@@ -193,8 +224,8 @@ public class AROCollectorService extends Service {
 		mAROnotificationManager.notify(ARODataCollector.NOTIFICATION_ID, mAROnotification);
 		startForeground(ARODataCollector.NOTIFICATION_ID, mAROnotification);
 		
-		if (AROLogger.logDebug){
-			AROLogger.d(TAG, "AROCollectorService started in foreground at timestamp:" + System.currentTimeMillis());
+		if (DEBUG){
+			Log.d(TAG, "AROCollectorService started in foreground at timestamp:" + System.currentTimeMillis());
 		}
 		
 		return (START_NOT_STICKY);
@@ -212,26 +243,24 @@ public class AROCollectorService extends Service {
 		try {
 			int mScreenTimeout = getScreenTimeOut();
 			mApp.setUserInitialScreenTimeout(mScreenTimeout);
-			String deviceName = getDeviceName();
 
-			if (AROLogger.logDebug){
-				AROLogger.d(TAG, "in onCreate(), saving user's mScreenTimeout(ms): " + mScreenTimeout
-						+ " at timestamp: " + System.currentTimeMillis());
-				// Disable screen timeout
-				
-				AROLogger.d(TAG, "disabling screen timeout at timestamp: " + System.currentTimeMillis());
-				
-				AROLogger.d(TAG, "deviceName: " + deviceName);
-			}
+			Log.i(TAG, "in onCreate(), saving user's mScreenTimeout(ms): " + mScreenTimeout
+					+ " at timestamp: " + System.currentTimeMillis());
+			// Disable screen timeout
+
+			Log.i(TAG, "disabling screen timeout at timestamp: " + System.currentTimeMillis());
+			
+			String deviceName = getDeviceName();
+			Log.i(TAG, "deviceName: " + deviceName);
 			
 			//some devices don't support -1 value, but allow it to be set without giving error, then
 			//produce unexpected behavior. We can't tell which devices don't support -1 value, so 
 			//we'll just set the timeout value to 10 min
 			setScreenTimeOut(TEN_MIN_IN_MILLIS);
-			AROLogger.d(TAG, "screen timeout set to 10 min for " + deviceName);
+			Log.i(TAG, "screen timeout set to 10 min for " + deviceName);
 
 		} catch (Exception e) {
-			AROLogger.e(TAG, "exception in getting device settings. Failed to get/set screen timeout", e);
+			Log.e(TAG, "exception in getting device settings. Failed to get/set screen timeout", e);
 		}
 	}
 
@@ -259,24 +288,18 @@ public class AROCollectorService extends Service {
 	public void onDestroy() {
 		//flurry end session
 		FlurryAgent.onEndSession(this);
-		if (AROLogger.logDebug) {
-			AROLogger.d(TAG, "onDestroy called for AROCollectorService: " + mAroUtils.getSystemTimeinSeconds());
-			AROLogger.d(TAG, "flurry-called onEndSession");
+		if (DEBUG) {
+			Log.i(TAG, "onDestroy called for AROCollectorService: " + mAroUtils.getSystemTimeinSeconds());
+			Log.i(TAG, "flurry-called onEndSession");
 		}
 		
 		super.onDestroy();
 		// Sets the screen timeout to previous value
 		int screenTimeout = mApp.getUserInitialScreenTimeout();
-		if (AROLogger.logDebug){
-			AROLogger.d(TAG, "restoring screen timeout value to screenTimeout(ms)=" + screenTimeout + " at timestamp: " + System.currentTimeMillis());
-		}
-		
+		Log.i(TAG, "restoring screen timeout value to screenTimeout(ms)=" + screenTimeout + " at timestamp: " + System.currentTimeMillis());
 		setScreenTimeOut(screenTimeout);
 		
-		if (AROLogger.logDebug){
-			AROLogger.d(TAG, "screen timeout restored successfully at timestamp: " + System.currentTimeMillis());
-		}
-		
+		Log.i(TAG, "screen timeout restored successfully at timestamp: " + System.currentTimeMillis());
 		mDataCollectorService = null;
 		mApp.cancleAROAlertNotification();
 	}
@@ -293,15 +316,31 @@ public class AROCollectorService extends Service {
 				try {
 					startTcpDump();
 					writAppVersions();
+					changeDebugMask();
+					getAlarmInfo(outAlarmInfoStartFileName);
 				} catch (IOException e) {
-					AROLogger.e(TAG, "IOException in startTcpDump ", e);
+					Log.e(TAG, "IOException in startTcpDump ", e);
 				} catch (InterruptedException e) {
-					AROLogger.e(TAG, "InterruptedException in startTcpDump ", e);
+					Log.e(TAG, "InterruptedException in startTcpDump ", e);
 				}
 			}
 		}).start();
 	}
 
+	/**
+	 * Starts the dedicated thread for kernel message log capture in the
+	 * native shell
+	 */
+	private void startDataCollectorDmesgCapture() {
+		// Starting the kernel message log capture on separate thread
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				startDmesg(outKernelMessageLogFileName);
+			}
+		}).start();
+	}
+	
 	/**
 	 * Initializes the video capture flag and starts the video capture on
 	 * separate thread
@@ -317,7 +356,7 @@ public class AROCollectorService extends Service {
 						mApp.initVideoTraceTime();
 						startScreenVideoCapture();
 					} catch (FileNotFoundException e) {
-						AROLogger.e(TAG, "exception in initVideoTraceTime. Failed to start Video", e);
+						Log.e(TAG, "exception in initVideoTraceTime. Failed to start Video", e);
 					}
 				}
 			}).start();
@@ -334,10 +373,7 @@ public class AROCollectorService extends Service {
 	 */
 
 	private void startTcpDump() throws IOException, InterruptedException {
-		if (AROLogger.logDebug){
-			AROLogger.d(TAG, "inside startTcpDump at timestamp " + System.currentTimeMillis());
-		}
-		
+		Log.d(TAG, "inside startTcpDump at timestamp " + System.currentTimeMillis());
 		Process sh = null;
 		DataOutputStream os = null;
 		int shExitValue = 0;
@@ -349,7 +385,7 @@ public class AROCollectorService extends Service {
 				//only start tcpdump if it's not already running, to handle the case where the background
 				//service was stopped and now restarting
 				
-				AROLogger.d(TAG, "tcpdump is not running. Starting tcpdump in the shell now");
+				Log.i(TAG, "tcpdump is not running. Starting tcpdump in the shell now");
 				
 				sh = Runtime.getRuntime().exec("su");
 				os = new DataOutputStream(sh.getOutputStream());
@@ -369,20 +405,18 @@ public class AROCollectorService extends Service {
 				os.writeBytes(Command);
 				os.flush();
 				
-				StreamClearer stdoutClearer = new StreamClearer(sh.getInputStream(), "stdout", false);
+				StreamClearer stdoutClearer = new StreamClearer(sh.getInputStream(), "stdout", true);
 				new Thread(stdoutClearer).start();
 				StreamClearer stderrClearer = new StreamClearer(sh.getErrorStream(), "stderr", true);
 				new Thread(stderrClearer).start();
 				
 				shExitValue = sh.waitFor();
-				if (AROLogger.logInfo) {
-					AROLogger.i(TAG, "tcpdump waitFor returns exit value: " + shExitValue + " at " + System.currentTimeMillis());
+				if (DEBUG) {
+					Log.i(TAG, "tcpdump waitFor returns exit value: " + shExitValue + " at " + System.currentTimeMillis());
 				}
 			}
 			else {
-				if (AROLogger.logInfo){
-					AROLogger.i(TAG, "timestamp " + System.currentTimeMillis() + ": tcpdump is already running");
-				}
+				Log.i(TAG, "timestamp " + System.currentTimeMillis() + ": tcpdump is already running");
 			}
 			
 			//We will continue and block the thread untill we see valid instance of tcpdump running in shell
@@ -390,9 +424,9 @@ public class AROCollectorService extends Service {
 			while (mAROTaskManagerProcessInfo.pstcpdump()) {
 				continue;
 			}
-			if (AROLogger.logInfo) {
-				AROLogger.i(TAG, "tcpdump process exit value: " + shExitValue);
-				AROLogger.i(TAG, "Coming out of startTcpDump at " + System.currentTimeMillis());
+			if (DEBUG) {
+				Log.d(TAG, "tcpdump process exit value: " + shExitValue);
+				Log.i(TAG, "Coming out of startTcpDump at " + System.currentTimeMillis());
 				logTcpdumpPid();
 			}
 			// Stopping the Video capture right after tcpdump coming out of
@@ -402,6 +436,7 @@ public class AROCollectorService extends Service {
 				public void run() {
 					if (mVideoRecording && mApp.getAROVideoCaptureRunningFlag()) {
 						stopScreenVideoCapture();
+						stopDmesg();
 					}
 				}
 			}).start();
@@ -423,7 +458,7 @@ public class AROCollectorService extends Service {
 					sh.destroy();
 				}
 			} catch (Exception e) {
-				AROLogger.e(TAG, "exception in startTcpDump DataOutputStream close", e);
+				Log.e(TAG, "exception in startTcpDump DataOutputStream close", e);
 			}
 		}
 	}
@@ -441,53 +476,52 @@ public class AROCollectorService extends Service {
      * ATT Developer Program.
 	 */
 	private void setFlurryApiKey() {
-		AROLogger.d(TAG, "entered setFlurryApiKey");
-		final String flurryFileName = ARODataCollector.ARO_TRACE_ROOTDIR
-				+ ARODataCollector.FLURRY_API_KEY_REL_PATH;
-
-		InputStream flurryFileReaderStream = null;
-		try {
-			final ClassLoader loader = ClassLoader.getSystemClassLoader();
-
-			flurryFileReaderStream = loader.getResourceAsStream(flurryFileName);
-
-			Properties prop = new Properties();
-			try {
-				if (flurryFileReaderStream != null) {
-					prop.load(flurryFileReaderStream);
-					mApp.app_flurry_api_key = prop
-							.containsKey(ARODataCollector.FLURRY_API_KEY_NAME)
-							&& !prop.getProperty(ARODataCollector.FLURRY_API_KEY_NAME).equals(
-									AROCollectorUtils.EMPTY_STRING) ? prop.getProperty(
-							ARODataCollector.FLURRY_API_KEY_NAME).trim() : mApp.app_flurry_api_key;
-							
-					if (AROLogger.logDebug) {
-						AROLogger.d(TAG, "flurry Property String: " + prop.toString());
-						AROLogger.d(TAG, "flurry app_flurry_api_key: " + mApp.app_flurry_api_key);
-					}
-				} else {
-					if (AROLogger.logDebug) {
-						AROLogger.d(TAG, "flurryFileReader stream is null.  Using default: "
-								+ mApp.app_flurry_api_key);
-					}
-				}
-			} catch (IOException e) {
-				AROLogger.e(TAG, e.getClass().getName() + " thrown trying to load file ");
-			}
-		} finally {
-			try {
-				if (flurryFileReaderStream != null) {
-					flurryFileReaderStream.close();
-				}
-			} catch (IOException e) {
-				// log and exit method-nothing else to do.
-				AROLogger.d(TAG,
-							"setFlurryApiKey method reached catch in finally method, trying to close flurryFileReader");
-			}
-			AROLogger.d(TAG, "exiting setFlurryApiKey");
+		if (DEBUG) {
+			Log.d(TAG, "entered setFlurryApiKey");
 		}
+			final String flurryFileName = ARODataCollector.ARO_TRACE_ROOTDIR + ARODataCollector.FLURRY_API_KEY_REL_PATH;
+
+			InputStream flurryFileReaderStream = null;
+			try {
+				final ClassLoader loader = ClassLoader.getSystemClassLoader ();
+
+				flurryFileReaderStream = loader.getResourceAsStream(flurryFileName);
+
+				Properties prop = new Properties();
+				try {
+					if (flurryFileReaderStream != null) {
+						prop.load(flurryFileReaderStream);
+						mApp.app_flurry_api_key = prop.containsKey(ARODataCollector.FLURRY_API_KEY_NAME) && 
+								!prop.getProperty(ARODataCollector.FLURRY_API_KEY_NAME).equals(AROCollectorUtils.EMPTY_STRING) ? 
+								prop.getProperty(ARODataCollector.FLURRY_API_KEY_NAME).trim() : 
+									mApp.app_flurry_api_key;
+						if (DEBUG) {
+							Log.d(TAG, "flurry Property String: " + prop.toString());
+							Log.d(TAG, "flurry app_flurry_api_key: " + mApp.app_flurry_api_key);
+						}
+					} else {
+						if (DEBUG) {
+							Log.d(TAG, "flurryFileReader stream is null.  Using default: " + mApp.app_flurry_api_key);
+						}
+					}
+				} 
+				catch (IOException e) {
+					Log.d(TAG, e.getClass().getName() + " thrown trying to load file ");
+				}
+			} finally {
+				try {
+					if (flurryFileReaderStream != null) {
+						flurryFileReaderStream.close();
+					}
+				} catch (IOException e) {
+					//log and exit method-nothing else to do.
+					if (DEBUG) {
+						Log.d(TAG, "setFlurryApiKey method reached catch in finally method, trying to close flurryFileReader"  );
+					}
+				}
+				Log.d(TAG, "exiting setFlurryApiKey");
+			}
 	}
-	
 	private void logFlurryEvents() {
 		
 		if (AROCollectorTraceService.makeModelEvent != null) {
@@ -514,13 +548,15 @@ public class AROCollectorService extends Service {
 					getResources().getText(R.string.flurry_param_traceVideoTaken).toString(), false);
 		}
 		
-		AROLogger.d(TAG, "exiting logFlurryEvents");
+		if (DEBUG) {
+			Log.d(TAG, "exiting logFlurryEvents");
+		}
 	}
 
 	private String getUpTime(Calendar endCalTime) {
-		if (AROLogger.logDebug) {
-			AROLogger.d("calculate duration-flurry start time: ", AROCollectorUtils.EMPTY_STRING + startCalTime.getTime());
-			AROLogger.d("calculate duration-flurry end time: ", AROCollectorUtils.EMPTY_STRING + endCalTime.getTime());
+		if (DEBUG) {
+			Log.d("calculate duration-flurry start time: ", AROCollectorUtils.EMPTY_STRING + startCalTime.getTime());
+			Log.d("calculate duration-flurry end time: ", AROCollectorUtils.EMPTY_STRING + endCalTime.getTime());
 		}
 		final long appUpTime = (endCalTime.getTimeInMillis() - startCalTime.getTimeInMillis()) / 1000;
 		long appTimeR, appUpHours, appUpMinutes, appUpSeconds;
@@ -533,7 +569,9 @@ public class AROCollectorService extends Service {
 				+ (appUpMinutes < 10 ? "0" : AROCollectorUtils.EMPTY_STRING) + appUpMinutes + ":"
 				+ (appUpSeconds < 10 ? "0" : AROCollectorUtils.EMPTY_STRING) + appUpSeconds;
 
-		AROLogger.d("flurry Trace Duration: ", upTime);
+		if (DEBUG) {
+			Log.d("flurry Trace Duration: ", upTime);
+		}
 		
 		return upTime;
 	}
@@ -547,10 +585,11 @@ public class AROCollectorService extends Service {
 	public void requestDataCollectorStop() {
 		dataCollectorStopWatchTimer();
 		try {
-			if (AROLogger.logDebug) {
-				AROLogger.d(TAG, "enter requestDataCollectorStop at " + System.currentTimeMillis());
-				logTcpdumpPid();
+			if (DEBUG) {
+				Log.i(TAG, "enter requestDataCollectorStop at " + System.currentTimeMillis());
 			}
+			
+			logTcpdumpPid();
 			
 			final Socket tcpdumpsocket = new Socket(InetAddress.getByName("localhost"), 50999);
 			final OutputStream out = tcpdumpsocket.getOutputStream();
@@ -558,25 +597,26 @@ public class AROCollectorService extends Service {
 			out.flush();
 			out.close();
 			tcpdumpsocket.close();
-			if (AROLogger.logDebug) {
-				AROLogger.d(TAG, "exit requestDataCollectorStop at " + System.currentTimeMillis());
+			getBatteryInfo();
+			getAlarmInfo(outAlarmInfoEndFileName);
+			restoreDebugMaskDefault();
+			if (DEBUG) {
+				Log.i(TAG, "exit requestDataCollectorStop at " + System.currentTimeMillis());
 			}
 		} catch (Exception e) {
-			AROLogger.e(TAG, "exception in stopTcpDump", e);
+			Log.e(TAG, "exception in stopTcpDump", e);
 			
 			//for debugging, check if tcpdump is still running
-			if (AROLogger.logDebug){
-				logTcpdumpPid();
-			}
+			logTcpdumpPid();
 		}
 	}
 
 	private void logTcpdumpPid() {
 		try {
 			int tcpdumpPid = mAroUtils.getProcessID("tcpdump");
-			AROLogger.i(TAG, "tcpdump is running with pid=" + tcpdumpPid);
+			Log.i(TAG, "tcpdump is running with pid=" + tcpdumpPid);
 		} catch (Exception e1){
-			AROLogger.e(TAG, "Exception in requestDataCollectorStop() while checking for tcpdump pid.", e1);
+			Log.i(TAG, "Exception in requestDataCollectorStop() while checking for tcpdump pid.", e1);
 		}
 	}
 
@@ -601,18 +641,16 @@ public class AROCollectorService extends Service {
 			aroDCStopWatchTimer = null;
 		}
 		
-		if (AROLogger.logDebug) {
-			AROLogger.d(TAG, "enter DataCollectorTraceStop at " + System.currentTimeMillis());
-			AROLogger.d(TAG, "mApp.getDataCollectorBearerChange()=" + mApp.getDataCollectorBearerChange());
-			AROLogger.d(TAG, "mApp.getDataCollectorInProgressFlag()=" + mApp.getDataCollectorInProgressFlag());
-			AROLogger.d(TAG, "mApp.getARODataCollectorStopFlag()=" + mApp.getARODataCollectorStopFlag());
+		if (DEBUG) {
+			Log.i(TAG, "enter DataCollectorTraceStop at " + System.currentTimeMillis());
+			Log.i(TAG, "mApp.getDataCollectorBearerChange()=" + mApp.getDataCollectorBearerChange());
+			Log.i(TAG, "mApp.getDataCollectorInProgressFlag()=" + mApp.getDataCollectorInProgressFlag());
+			Log.i(TAG, "mApp.getARODataCollectorStopFlag()=" + mApp.getARODataCollectorStopFlag());
 		}
 		if (!mApp.getDataCollectorInProgressFlag()) {
 			mApp.cancleAROAlertNotification();
 			if (!mApp.getARODataCollectorStopFlag()) {
-				if (AROLogger.logDebug){
-					AROLogger.d(TAG, "tcpdump exit without user stopping at " + System.currentTimeMillis());
-				}
+				Log.i(TAG, "tcpdump exit without user stopping at " + System.currentTimeMillis());
 				
 				// Stopping the peripherals collection trace service
 				stopService(new Intent(getApplicationContext(), AROCollectorTraceService.class));
@@ -626,12 +664,12 @@ public class AROCollectorService extends Service {
 						Thread.sleep(16000);
 					}
 				} catch (InterruptedException e) {
-					AROLogger.e(TAG, "InterruptedException while sleep SD card mount" + e);
+					Log.e(TAG, "InterruptedException while sleep SD card mount" + e);
 				}
 				mApp.setTcpDumpStartFlag(false);
 				tcpdumpStoppedIntent = new Intent(getBaseContext(), AROCollectorMainActivity.class);
-				if (AROLogger.logDebug) {
-					AROLogger.d(TAG, "SD card space left =" + mAroUtils.checkSDCardMemoryAvailable());
+				if (DEBUG) {
+					Log.i(TAG, "SD card space left =" + mAroUtils.checkSDCardMemoryAvailable());
 				}
 				if (mAroUtils.checkSDCardMemoryAvailable() == 0.0) {
 					tcpdumpStoppedIntent.putExtra(ARODataCollector.ERRODIALOGID,
@@ -650,8 +688,8 @@ public class AROCollectorService extends Service {
 				tcpdumpStoppedIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 				getApplication().startActivity(tcpdumpStoppedIntent);
 			} else if (mApp.getARODataCollectorStopFlag()) {
-				if (AROLogger.logDebug) {
-					AROLogger.d(TAG, "Trace Summary Screen to Start at " + System.currentTimeMillis());
+				if (DEBUG) {
+					Log.i(TAG, "Trace Summary Screen to Start at " + System.currentTimeMillis());
 				}
 				traceCompletedIntent = new Intent(getBaseContext(),
 				AROCollectorCompletedActivity.class);
@@ -677,7 +715,7 @@ public class AROCollectorService extends Service {
 			Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, val);
 		}
 		catch (Throwable t){
-			AROLogger.e(TAG, "caught throwable in setScreenTimeOut", t);
+			Log.i(TAG, "caught throwable in setScreenTimeOut", t);
 		}
 	}
 
@@ -700,7 +738,9 @@ public class AROCollectorService extends Service {
 		Process sh = null;
 		DataOutputStream os = null;
 		try {
-			AROLogger.d(TAG, "Starting Video Capture");
+			if (DEBUG) {
+				Log.e(TAG, "Starting Video Capture");
+			}
 			sh = Runtime.getRuntime().exec("su");
 			os = new DataOutputStream(sh.getOutputStream());
 			String Command = "cd " + ARODataCollector.INTERNAL_DATA_PATH + " \n";
@@ -715,26 +755,28 @@ public class AROCollectorService extends Service {
 			os.flush();		
 			sh.waitFor();
 		} catch (IOException e) {
-			AROLogger.e(TAG, "exception in startScreenVideoCapture", e);
+			Log.e(TAG, "exception in startScreenVideoCapture", e);
 		} catch (InterruptedException e) {
-			AROLogger.e(TAG, "exception in startScreenVideoCapture", e);
+			Log.e(TAG, "exception in startScreenVideoCapture", e);
 		} finally {
 			try {
-				AROLogger.d(TAG, "Stopped Video Capture in startScreenVideoCapture");
+				if (DEBUG) {
+					Log.e(TAG, "Stopped Video Capture in startScreenVideoCapture");
+				}
 				os.close();
 				// Reading start time of Video from ffmpegout file
 				mApp.readffmpegStartTimefromFile();
 			} catch (IOException e) {
-				AROLogger.e(TAG, "IOException in reading video start time", e);
+				Log.e(TAG, "IOException in reading video start time", e);
 			} catch (NumberFormatException e) {
-				AROLogger.e(TAG, "NumberFormatException in reading video start time", e);
+				Log.e(TAG, "NumberFormatException in reading video start time", e);
 			}
 			try {
 				// Recording start time of video
 				mApp.writeVideoTraceTime(Double.toString(mApp.getAROVideoCaptureStartTime()));
 				mApp.closeVideoTraceTimeFile();
 			} catch (IOException e) {
-				AROLogger.e(TAG, "IOException in writing video start time", e);
+				Log.e(TAG, "IOException in writing video start time", e);
 			}
 			if (mApp.getTcpDumpStartFlag() && !mApp.getARODataCollectorStopFlag()) {
 				mApp.setVideoCaptureFailed(true);
@@ -743,7 +785,7 @@ public class AROCollectorService extends Service {
 				mApp.setAROVideoCaptureRunningFlag(false);
 				sh.destroy();
 			} catch (Exception e) {
-				AROLogger.e(TAG, "Failed to destroy shell during Video Capture termination");
+				Log.e(TAG, "Failed to destroy shell during Video Capture termination");
 			}
 		}
 	}
@@ -752,9 +794,7 @@ public class AROCollectorService extends Service {
 	 * Stops the Screen video capture
 	 */
 	private void stopScreenVideoCapture() {
-		if (AROLogger.logDebug){
-			AROLogger.d(TAG, "enter stopScreenVideoCapture at " + System.currentTimeMillis());
-		}
+		Log.i(TAG, "enter stopScreenVideoCapture at " + System.currentTimeMillis());
 		
 		Process sh = null;
 		DataOutputStream os = null;
@@ -762,12 +802,12 @@ public class AROCollectorService extends Service {
 		try {
 			pid = mAroUtils.getProcessID("ffmpeg");
 		} catch (IOException e1) {
-			AROLogger.e(TAG, "IOException in stopScreenVideoCapture", e1);
+			Log.e(TAG, "IOException in stopScreenVideoCapture", e1);
 		} catch (InterruptedException e1) {
-			AROLogger.e(TAG, "exception in stopScreenVideoCapture", e1);
+			Log.e(TAG, "exception in stopScreenVideoCapture", e1);
 		}
-		if (AROLogger.logDebug) {
-			AROLogger.d(TAG, "stopScreenVideoCapture=" + pid);
+		if (DEBUG) {
+			Log.i(TAG, "stopScreenVideoCapture=" + pid);
 		}
 		if (pid != 0) {
 			try {
@@ -792,13 +832,13 @@ public class AROCollectorService extends Service {
 					mVideoRecording = false;
 				}
 				
-				if (AROLogger.logDebug){
-					AROLogger.d(TAG, "successfully returned from kill -15; exitValue= " + exitValue);
+				if (DEBUG){
+					Log.i(TAG, "successfully returned from kill -15; exitValue= " + exitValue);
 				}
 			} catch (IOException e) {
-				AROLogger.e(TAG, "exception in stopScreenVideoCapture", e);
+				Log.e(TAG, "exception in stopScreenVideoCapture", e);
 			} catch (InterruptedException e) {
-				AROLogger.e(TAG, "exception in stopScreenVideoCapture", e);
+				Log.e(TAG, "exception in stopScreenVideoCapture", e);
 			} finally {
 				try {
 					kill9Ffmpeg();
@@ -810,13 +850,17 @@ public class AROCollectorService extends Service {
 						sh.destroy();
 					}
 				} catch (Exception e) {
-					AROLogger.e(TAG, "exception in stopScreenVideoCapture finally block", e);
+					Log.e(TAG, "exception in stopScreenVideoCapture finally block", e);
 				}
-				AROLogger.d(TAG, "Stopped Video Capture in stopScreenVideoCapture()");
+				if (DEBUG) {
+					Log.i(TAG, "Stopped Video Capture in stopScreenVideoCapture()");
+				}
 			}
 		}
 		
-		AROLogger.d(TAG, "exit stopScreenVideoCapture");
+		if (DEBUG){
+			Log.i(TAG, "exit stopScreenVideoCapture");
+		}
 	}
 	
 	/**
@@ -835,8 +879,8 @@ public class AROCollectorService extends Service {
 		
 			if (pid != 0){
 				//ffmpeg still running
-				if (AROLogger.logDebug){
-					AROLogger.d(TAG, "ffmpeg still running after kill -15. Will issue kill -9 " + pid);
+				if (DEBUG){
+					Log.i(TAG, "ffmpeg still running after kill -15. Will issue kill -9 " + pid);
 				}
 	
 				sh = Runtime.getRuntime().exec("su");
@@ -860,16 +904,18 @@ public class AROCollectorService extends Service {
 					mVideoRecording = false;
 				}
 				else {
-					AROLogger.e(TAG, "could not kill ffmpeg in kill9Ffmpeg, exitValue=" + exitValue);
+					Log.e(TAG, "could not kill ffmpeg in kill9Ffmpeg, exitValue=" + exitValue);
 				}
 
 			} 
 			else {
 				mVideoRecording = false;
-				AROLogger.d(TAG, "ffmpeg had been ended successfully by kill -15");
+				if (DEBUG){
+					Log.i(TAG, "ffmpeg had been ended successfully by kill -15");
+				}
 			}
 		} catch (Exception e1) {
-			AROLogger.e(TAG, "exception in kill9Ffmpeg", e1);
+			Log.e(TAG, "exception in kill9Ffmpeg", e1);
 		} finally {
 			try {
 				if (os != null){
@@ -880,7 +926,7 @@ public class AROCollectorService extends Service {
 					sh.destroy();
 				}
 			} catch (Exception e) {
-				AROLogger.e(TAG, "exception in kill9Ffmpeg DataOutputStream close", e);
+				Log.e(TAG, "exception in kill9Ffmpeg DataOutputStream close", e);
 			}
 		}
 	}
@@ -896,7 +942,7 @@ public class AROCollectorService extends Service {
 		BufferedWriter appNmesFileWriter = null;
 		try {
 			final String strTraceFolderName = mApp.getTcpDumpTraceFolderName();
-			AROLogger.i(TAG, "Trace folder name is: " + strTraceFolderName);
+			Log.i(TAG, "Trace folder name is: " + strTraceFolderName);
 			final File appNameFile = new File(mApp.getTcpDumpTraceFolderName() + APP_NAME_FILE);
 			appNamesFileReader = new BufferedReader(new InputStreamReader(new FileInputStream(
 					appNameFile)));
@@ -910,9 +956,9 @@ public class AROCollectorService extends Service {
 					appNamesWithVersions.add(processName + " " + versionNum);
 				} catch (NameNotFoundException e) {
 					appNamesWithVersions.add(processName);
-					AROLogger.e(TAG, "Package name can not be found; unable to get version number.");
+					Log.e(TAG, "Package name can not be found; unable to get version number.");
 				} catch (Exception e) {
-					AROLogger.e(TAG, "Unable to get version number ");
+					Log.e(TAG, "Unable to get version number ");
 				}
 			}
 			appNmesFileWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
@@ -923,7 +969,7 @@ public class AROCollectorService extends Service {
 
 			}
 		} catch (IOException e) {
-			AROLogger.e(TAG, "Error occured while writing the version number for the applications");
+			Log.e(TAG, "Error occured while writing the version number for the applications");
 		} finally {
 			if (appNamesFileReader != null) {
 				appNamesFileReader.close();
@@ -933,13 +979,211 @@ public class AROCollectorService extends Service {
 			}
 		}
 	}
+	
+	/*
+	 * Log the current system time to the battery_info file, followed by the
+	 * output of "dumpsys batteryinfo", which includes historical wakelock event
+	 * info. System time is required because wakelock history is relative, not
+	 * absolute.
+	 * 
+	 * Note: wakelock history is not included in "dumpsys batteryinfo" output on
+	 * Froyo & older Android versions.
+	 * 
+	 * Requires root permission.
+	 */
+		private void getBatteryInfo() {
+			Process sh = null;
+			DataOutputStream os = null;
+			try {
+				sh = Runtime.getRuntime().exec("su");
+				os = new DataOutputStream(sh.getOutputStream());
+				dumpsysTimestamp = System.currentTimeMillis();
+				String Command = "dumpsys batteryinfo > " + mApp.getTcpDumpTraceFolderName()
+					+ outBatteryInfoFileName +"\n";
+				os.writeBytes(Command);
+				os.flush();
+				Log.d(TAG, "getBatteryInfo timestamp " + dumpsysTimestamp);
+				Runtime.getRuntime().exec("cat " + dumpsysTimestamp + " >> " + mApp.getTcpDumpTraceFolderName()
+					+ outBatteryInfoFileName +"\n");
+			} catch (IOException e) {
+				Log.e(TAG, "exception in getBatteryInfo ", e);
+			} finally {
+				try {
+					os.close();
+				} catch (IOException e) {
+					Log.e(TAG, "exception in getBatteryInfo closing output stream ", e);
+				}
+			}
+		}
+	
+
+	/**
+	 * Logs the output "dumpsys alarm" to the provided filename.
+	 *
+	 * Output contains list of scheduled alarms & historical alarm statistics since
+	 * device bootup.
+	 *
+	 * Note: On Froyo & older Android OS versions dumpsys output consists of absolute
+	 * times (in ms), but on later versions is relative in the format 1h1m20s32ms.
+	 *
+	 * Requires root permission.
+	 *
+	 * @param file Alarm log output filename
+	 */
+	private void getAlarmInfo(String file) {
+		Process sh = null;
+		DataOutputStream os = null;
+		try {
+			sh = Runtime.getRuntime().exec("su");
+			os = new DataOutputStream(sh.getOutputStream());
+			String Command = "dumpsys alarm > " + mApp.getTcpDumpTraceFolderName() +
+				 file +"\n";
+			os.writeBytes(Command);
+			os.flush();
+		} catch (IOException e) {
+			Log.e(TAG, "exception in getAlarmInfo ", e);
+		} finally {
+			try {
+				os.close();
+			} catch (IOException e) {
+				Log.e(TAG, "exception in getAlarmInfo closing output stream ", e);
+			}
+		}
+	}
+
+	/**
+	 * Starts collecting kernel log
+	 *
+	 * Requires root permission.
+	 *
+	 * @param file kernel log output filename
+	 */
+	private void startDmesg(String file) {
+		Process sh = null;
+		DataOutputStream os = null;
+		try {
+			sh = Runtime.getRuntime().exec("su");
+			os = new DataOutputStream(sh.getOutputStream());
+			// Appending
+			String Command = "cat /proc/kmsg >> " + mApp.getTcpDumpTraceFolderName() +
+				 file + "\n";
+			os.writeBytes(Command);
+			os.flush();
+		} catch (IOException e) {
+			Log.e(TAG, "exception in startDmesg ", e);
+		} finally {
+			try {
+				os.close();
+			} catch (IOException e) {
+				Log.e(TAG, "exception in startDmesg closing output stream ", e);
+			}
+		}
+	}
+
+	/**
+	 * Stops collecting kernel log
+	 *
+	 * Requires root permission.
+	 *
+	 * pre: there is only one "cat" process running
+	 */
+	private void stopDmesg() {
+		Process sh = null;
+		DataOutputStream os = null;
+		int pid = 0;
+		try {
+			pid = mAroUtils.getProcessID("cat");
+		} catch (IOException e1) {
+			Log.e(TAG, "IOException in stopDmesg", e1);
+		} catch (IndexOutOfBoundsException e1) {
+			Log.e(TAG, "IndexOutOfBoundsException in stopDmesg", e1);
+		} catch (InterruptedException e1) {
+			Log.e(TAG, "exception in stopDmesg", e1);
+		}
+		if (DEBUG) {
+			Log.d(TAG, "stopDmesg=" + pid);
+		}
+		if (pid != 0) {
+			try {
+				sh = Runtime.getRuntime().exec("su");
+				os = new DataOutputStream(sh.getOutputStream());
+				final String Command = "kill -15 " + pid + "\n";
+				os.writeBytes(Command);
+				os.flush();
+				sh.waitFor();
+			} catch (IOException e) {
+				Log.e(TAG, "exception in stopDmesg", e);
+			} catch (InterruptedException e) {
+				Log.e(TAG, "exception in stopDmesg", e);
+			} finally {
+				try {
+					os.close();
+				} catch (IOException e) {
+					Log.e(TAG,
+						"exception in stopDmesg DataOutputStream close",
+						e);
+				}
+				if (DEBUG) {
+					Log.d(TAG, "Stopped stopDmesg");
+				}
+				sh.destroy();
+			}
+		}
+	}
+
+	/**
+	 * Set Kernel debug masks for wakelock & alarm modules
+	 *
+	 * Requires root permission.
+	 */
+	private void changeDebugMask() {
+		Process sh = null;
+		DataOutputStream os = null;
+		try {
+			if (DEBUG) {
+				Log.d(TAG, "changeDebugMask");
+			}
+			// TODO: save existing debug_mask's to mWakelockDebugMask & mAlarmDebugMask
+			String[] Command = {"su","-c", 
+				"echo 31 > /sys/module/wakelock/parameters/debug_mask" + 
+				"\n echo 127 > /sys/module/alarm/parameters/debug_mask" +
+				"\n"};
+			sh = Runtime.getRuntime().exec(Command);
+		} catch (IOException e) {
+			Log.e(TAG, "exception in changeDebugMask ", e);
+		}	
+	}
+
+	/**
+	 * Restores Kernel debug masks for wakelock & alarm modules
+	 *
+	 * Requires root permission.
+	 */
+	private void restoreDebugMaskDefault() {
+		Process sh = null;
+		DataOutputStream os = null;
+		try {
+			if (DEBUG) {
+				Log.d(TAG, "restoreDebugMaskDefault");
+			}
+			// TODO: restore previous debug_mask's from mWakelockDebugMask & mAlarmDebugMask
+			// TODO: if either = 0, use 7 & 31 as defaults instead.
+			String[] Command = {"su","-c", 
+				"echo 7 > /sys/module/wakelock/parameters/debug_mask" + 
+				"\n echo 31 > /sys/module/alarm/parameters/debug_mask" + 
+				"\n"};
+			sh = Runtime.getRuntime().exec(Command);
+		} catch (IOException e) {
+			Log.e(TAG, "exception in restoreDebugMaskDefault ", e);
+		}	
+	}
 
 	/**
 	 * Watch Dog to check abnormal termination of Data Collector
 	 */
 	private void dataCollectorStopWatchTimer() {
-		if (AROLogger.logDebug) {
-			AROLogger.d(TAG, "Inside dataCollectorStopWatchTimer at " + System.currentTimeMillis());
+		if (DEBUG) {
+			Log.i(TAG, "Inside dataCollectorStopWatchTimer at " + System.currentTimeMillis());
 		}
 		
 		if (aroDCStopWatchTimer == null){
@@ -948,8 +1192,8 @@ public class AROCollectorService extends Service {
 		aroDCStopWatchTimer.schedule(new TimerTask() {
 			@Override
 			public void run() {
-				if (AROLogger.logDebug) {
-					AROLogger.d(TAG,
+				if (DEBUG) {
+					Log.i(TAG,
 							"Inside dataCollectorStopWatchTimer....mApp.getTcpDumpStartFlag"
 									+ mApp.getTcpDumpStartFlag()
 									+ "mApp.getARODataCollectorStopFlag(true);"
@@ -961,8 +1205,12 @@ public class AROCollectorService extends Service {
 					aroDCStopWatchTimer = null;
 					
 					if (AROCollectorTraceService.getServiceObj() != null) {
-						AROLogger.d(TAG, "Inside Ping Connection....hideProgressDialog");
-						AROLogger.d(TAG, "Setting Data Collector stop flag");
+						if (DEBUG) {
+							Log.i(TAG, "Inside Ping Connection....hideProgressDialog");
+						}
+						if (DEBUG) {
+							Log.i(TAG, "Setting Data Collector stop flag");
+						}
 						mApp.setARODataCollectorStopFlag(true);
 						try {
 							// Going to ping google to break out of tcpdump
@@ -971,11 +1219,11 @@ public class AROCollectorService extends Service {
 							// for htc hardware
 							mAroUtils.OpenHttpConnection();
 						} catch (ClientProtocolException e) {
-							AROLogger.e(TAG, "exception in OpenHttpConnection ", e);
+							Log.e(TAG, "exception in OpenHttpConnection ", e);
 						} catch (IOException e) {
 							// TODO : To display error message for failed stop
 							// of data collector
-							AROLogger.e(TAG, "exception in OpenHttpConnection ", e);
+							Log.e(TAG, "exception in OpenHttpConnection ", e);
 						}
 					}
 				}
@@ -999,24 +1247,23 @@ public class AROCollectorService extends Service {
 			
 			final BufferedReader reader = new BufferedReader(new InputStreamReader(streamToClear));
 			String buf = null;
-			
-			if (AROLogger.logDebug || logStream){
-				AROLogger.d(TAG, "StreamClearer start processing logging content from shell's " + name);
+			if (DEBUG && logStream){
+				Log.i(TAG, "StreamClearer logging content from shell's " + name);
 			}
 			
 			try {
 				while ((buf = reader.readLine()) != null) {
 					buf = buf.trim();
 					if (logStream && buf.length() > 0){
-						AROLogger.e(TAG, name + ">" + buf + "\n");
+						Log.e(TAG, name + ">" + buf + "\n");
 					}
 				}
 			} catch (IOException e) {
-				AROLogger.e(TAG, "StreamClearer IOException in StreamClearer", e);
+				Log.e(TAG, "StreamClearer IOException in StreamClearer", e);
 			}
 			
-			if (AROLogger.logDebug || logStream){
-				AROLogger.d(TAG, "StreamClearer done processing logging content from shell's " + name);
+			if (DEBUG && logStream){
+				Log.i(TAG, "StreamClearer done logging content from shell's " + name);
 			}
 		}
 	}

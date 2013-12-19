@@ -15,10 +15,15 @@
  */
 package com.att.android.arodatacollector.activities;
 
+import java.io.File;
+import java.util.Timer;
+import java.util.TimerTask;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.view.Window;
@@ -33,6 +38,7 @@ import com.att.android.arodatacollector.main.AROCollectorCustomDialog.Dialog_Cal
 import com.att.android.arodatacollector.main.AROCollectorCustomDialog.Dialog_Type;
 import com.att.android.arodatacollector.main.AROCollectorCustomDialog.ReadyListener;
 import com.att.android.arodatacollector.main.AROCollectorService;
+import com.att.android.arodatacollector.main.AROCollectorTraceService;
 import com.att.android.arodatacollector.main.ARODataCollector;
 import com.att.android.arodatacollector.utils.AROCollectorUtils;
 import com.att.android.arodatacollector.utils.AROLogger;
@@ -92,9 +98,10 @@ public class AROCollectorSplashActivity extends Activity {
 
 	/** Boolean to check if the activity instance is in current memory **/
 	private boolean mActivityFinished = false;
-	
-	private String mAROTraceFolderNamefromAnalyzer;
 
+	private static final int ARO_LEGAL_AUTO_ACCEPT_TIME = 25000;
+	
+	private Timer aroDCStartWatchTimer = null;
 	/**
 	 * Overrides the onTouchEvent method to handle the ACTION DOWN event.
 	 * 
@@ -319,6 +326,38 @@ public class AROCollectorSplashActivity extends Activity {
 	private void acceptLegalTerms() {
 		startActivityForResult(new Intent(AROCollectorSplashActivity.this,
 				AROCollectorLegalTermsActivity.class), TERMS_ACTIVITY);
+		// TODO:Adding code to launch Data Collector from Analyzer
+		final Bundle apkCommandLineParameters = getIntent().getExtras();
+		if (apkCommandLineParameters != null) {
+			// sendAnalyzerLaunchBroadcast();
+			final String mAROTraceFolderNamefromAnalyzer = apkCommandLineParameters
+					.getString("TraceFolderName");
+			String mAROTraceStopDuration = apkCommandLineParameters
+					.getString("TraceStopDuration");
+			if (mAROTraceStopDuration == null) {
+				mAROTraceStopDuration = "0";
+			}
+			mApp.setTcpDumpTraceFolderName(mAROTraceFolderNamefromAnalyzer);
+			mApp.setTraceStopDuration(Integer.parseInt(mAROTraceStopDuration));
+		} else {
+			mApp.setTcpDumpTraceFolderName(null);
+			mApp.setTraceStopDuration(0);
+		}
+		if (mApp.getTraceStopDuration() > 0
+				&& mApp.getTcpDumpTraceFolderName() != null) {
+			mApp.setRQMCollectorLaunchfromAnalyzer(true);
+			aroDCStartWatchTimer = new Timer();
+			aroDCStartWatchTimer.schedule(new TimerTask() {
+				@Override
+				public void run() {
+					startMainActivity();
+					// Cancel the timers
+					aroDCStartWatchTimer.cancel();
+				}
+			}, ARO_LEGAL_AUTO_ACCEPT_TIME);
+		} else {
+			mApp.setRQMCollectorLaunchfromAnalyzer(false);
+		}
 	}
 
 	/**
@@ -341,6 +380,7 @@ public class AROCollectorSplashActivity extends Activity {
 			if (resultCode == AROCollectorLegalTermsActivity.TERMS_ACCEPTED) {
 				AROLogger.d(TAG, "inside onActivityResult, starting main activity");
 				startMainActivity();
+				
 			} else {
 				AROLogger.d(TAG, "inside onActivityResult, term not accepted, closing activity");
 				
@@ -348,6 +388,10 @@ public class AROCollectorSplashActivity extends Activity {
 					resetAnalyzerLaunchWaitingIndicator();
 				}*/
 				finish();
+			}
+			if (aroDCStartWatchTimer != null
+					&& mApp.isRQMCollectorLaunchfromAnalyzer()) {
+				aroDCStartWatchTimer.cancel();
 			}
 		}
 		super.onActivityResult(requestCode, resultCode, data);
@@ -361,17 +405,6 @@ public class AROCollectorSplashActivity extends Activity {
 	 * Start the data collector main screen after splash screens timesout
 	 */
 	private void startMainActivity() {
-		
-		//TODO:Adding code to launch Data Collector from Analyzer
-		final Bundle apkCommandLineParameters  = getIntent().getExtras();
-		if (apkCommandLineParameters != null) {
-			//sendAnalyzerLaunchBroadcast();
-			mAROTraceFolderNamefromAnalyzer = apkCommandLineParameters.getString("TraceFolderName");
-			mApp.setTcpDumpTraceFolderName(mAROTraceFolderNamefromAnalyzer);
-		}else{
-			mApp.setTcpDumpTraceFolderName(null);
-		}
-		
 		final Intent splashScreenIntent = new Intent(getBaseContext(),
 				AROCollectorMainActivity.class);
 		// Generic Error ID number 100 passed as an argument to navigate to Main

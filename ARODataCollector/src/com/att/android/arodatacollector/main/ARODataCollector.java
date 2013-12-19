@@ -177,8 +177,13 @@ public class ARODataCollector extends Application {
 	/** Stores the value Video recording selected option */
 	private boolean mVideoRecroding;
 
+	private int TraceStopDuration;
+	
 	/** Stores the value ARO Collector launch status from Analyzer */
 	private boolean mDCLaunchfromAnalyzer;
+	
+	/** Stores the value ARO RQM Collector launch status from Analyzer */
+	private boolean mDCRQMLaunchfromAnalyzer;
 	
 	/** OutputStaream for video_time file */
 	private OutputStream mTraceVideoTimeStampFile;
@@ -675,6 +680,27 @@ public class ARODataCollector extends Application {
 	}
 
 	/**
+	 * setTraceStopDuration
+	 * @param duration
+	 */
+	public void setTraceStopDuration(int duration) {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putInt("TraceDuration", duration);
+		editor.commit();
+	}
+	
+	/**
+	 * getTraceStopDuration
+	 * @return
+	 */
+	public int getTraceStopDuration() {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		TraceStopDuration = prefs.getInt("TraceDuration", 0);
+		return TraceStopDuration;
+	}
+	
+	/**
 	 * Sets a value that enables the Video Recording collection option for an
 	 * ARO Data Collector trace.
 	 * 
@@ -723,6 +749,30 @@ public class ARODataCollector extends Application {
 		mDCLaunchfromAnalyzer = prefs.getBoolean("DCfromAnalyzer", false);
 		return (mDCLaunchfromAnalyzer);
 	}
+	
+	
+	/**
+	 * Sets the flag is ARO Data Collector was launch from ARO Analyzer.
+	 *  
+	 */
+	public void setRQMCollectorLaunchfromAnalyzer(boolean dcRQMfromAnalyzer) {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		SharedPreferences.Editor editor = prefs.edit();
+		editor.putBoolean("DCRQMfromAnalyzer", dcRQMfromAnalyzer);
+		editor.commit();
+	}
+	
+	/**
+	 * Gets the status if ARO Data Collector was started from ARO Analyzer. 
+	 * 
+	 * @return A boolean that is status if collector was launched from analyzer.
+	 */
+	public boolean isRQMCollectorLaunchfromAnalyzer() {
+		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
+		mDCRQMLaunchfromAnalyzer = prefs.getBoolean("DCRQMfromAnalyzer", false);
+		return (mDCRQMLaunchfromAnalyzer);
+	}
+	
 	/**
 	 * Gets the duration of the ARO Data Collector trace.
 	 * 
@@ -1048,7 +1098,7 @@ public class ARODataCollector extends Application {
 	public boolean isUSBVideoCaptureON(){
 		final SharedPreferences prefs = getSharedPreferences(PREFS, 0);
 		isUSBVideoCaptureON = prefs.getBoolean("isUSBVideoCaptureON", false);
-		return isVideoCaptureFailed; 
+		return isUSBVideoCaptureON; 
 	}
 	
 	/**

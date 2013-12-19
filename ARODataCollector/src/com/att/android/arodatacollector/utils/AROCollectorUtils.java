@@ -62,6 +62,8 @@ public class AROCollectorUtils {
 	/** used for exiting the activity when the analyzer timeout happens */
 	public static final String ANALYZER_TIMEOUT_SHUTDOWN_INTENT = "arodatacollector.timeout.SHUTDOWN";
 	
+	public static final String ANALYZER_CLOSE_CMD_INTENT = "arodatacollector.home.activity.close";
+	
 	/** used to close the old instance when a new one is launched from the analyzer*/
 	public static final String ANALYZER_LAUNCH_CLEANUP_INTENT = "arodatacollector.launch.cleanup";
 
