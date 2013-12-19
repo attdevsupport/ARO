@@ -55,7 +55,7 @@ This Open Source Code Package contains all of the code needed to build both of t
 Application Resource Optimizer (ARO):  http://developer.att.com/ARO  
 Forum:  http://developerboards.att.lithium.com/t5/AT-T-Application-Resource/bd-p/ARO  
 Blog:  http://developerboards.att.lithium.com/t5/AT-T-Developer-Program-Blogs/bg-p/Blogs  
-FAQ:  http://developer.att.com/developer/forward.jsp?passedItemId=10100053  
+FAQ:  http://developer.att.com/ARO/FAQ  
 Contact Us:  http://developer.att.com/developer/contact_us.jsp
 
 
@@ -136,15 +136,13 @@ The ARO Open Source code package contains the following:
 To launch the pre-built version of ARO Analyzer that is included in this open source download, do the following:
 
 **On Mac:**  
-  
 1. Download the zip file for this repository, and un-zip the files to the desired location. (e.g: Desktop)  
 2. Confirm that there is one main folder in the unzipped files: ARO, and two sub-folders inside ARO: bin and lib.  
 3. Open terminal and change directory to the bin folder in the ARO location. (e.g: cd Desktop/ARO/bin)  
 4. Inside the bin directory, type: ./aro  
   
 
-**On windows:**  
- 
+**On Windows:** 
 1. Download the zip file for this repository, and un-zip the files to the desired location. (e.g: Desktop)  
 2. Confirm that there is one main folder in the unzipped files: ARO, and two sub-folders inside ARO: bin and lib.  
 3. Open a command prompt (cmd) and change directory to the bin folder in the ARO location. (e.g: cd Desktop/ARO/bin)
