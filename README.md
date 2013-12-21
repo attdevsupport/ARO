@@ -72,6 +72,9 @@ ARO Data Analyzer  3.0
 
 **What are the known issues in Release 3.0**  
  
+
++  **ARO Device Support:**  At the moment, the ARO Data Collector does not support devices running Android version 4.3 or 4.4.  
+  
 +  **ARO Data Collector feature:**  Running the My Radar app while collecting a trace with the ARO Data Collector, causes the error "AT&T ARO Data Collector trace Collection stopped" to be thrown.  
   
 +  **Video Sync/Video Correlation feature:**  This feature allows you to sync externally captured video to PCAP data by placing it in the trace folder. When using this feature in ARO 2.3, note the following:  
