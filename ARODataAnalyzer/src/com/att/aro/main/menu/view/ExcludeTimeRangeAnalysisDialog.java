@@ -22,8 +22,11 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
+import java.text.ParseException;
 import java.util.ResourceBundle;
 
 import javax.swing.BorderFactory;
@@ -215,8 +218,7 @@ public class ExcludeTimeRangeAnalysisDialog extends JDialog {
 
 						// Rounding traceEndTime as getEndTimeTextField() to
 						// handle time comparison
-						Double traceEndTimeRounded = Double
-								.valueOf(DECIMAL_FORMAT.format(traceEndTime));
+                        Double traceEndTimeRounded = new BigDecimal(traceEndTime).setScale(2, RoundingMode.HALF_UP).doubleValue();
 						if (startTime < endTime) {
 							if (((startTime >= 0.0) && (startTime <= traceEndTimeRounded))
 									&& ((endTime >= 0.0) && (endTime <= traceEndTimeRounded))) {
@@ -318,7 +320,13 @@ public class ExcludeTimeRangeAnalysisDialog extends JDialog {
 	 * Returns the start time from the start time field
 	 */
 	private Double getTimeValue(JTextField field) throws NumberFormatException {
-		return Double.parseDouble(field.getText());
+        Number value= null;
+        try {
+            value = DECIMAL_FORMAT.parse(field.getText());
+        } catch (ParseException e) {
+            throw new NumberFormatException();
+        }
+        return value.doubleValue();
 	}
 
 	/**
