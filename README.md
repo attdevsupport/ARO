@@ -53,6 +53,7 @@ This Open Source Code Package contains all of the code needed to build both of t
 
 **ARO Web Resources:**  
 Application Resource Optimizer (ARO):  http://developer.att.com/ARO  
+ARO Support:  http://developer.att.com/ARO/support  
 Forum:  http://developerboards.att.lithium.com/t5/AT-T-Application-Resource/bd-p/ARO  
 Blog:  http://developerboards.att.lithium.com/t5/AT-T-Developer-Program-Blogs/bg-p/Blogs  
 FAQ:  http://developer.att.com/ARO/FAQ  
