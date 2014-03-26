@@ -68,8 +68,8 @@ ARO Data Analyzer  3.1
 **What’s new in Release 3.1?**  
 
 +  **AT&T ARO Data Collector supports IOS**  
-	+  AT&T ARO can now collect trace data directly from an iOS device. Connect an iPhone to a Mac computer running OS X Mountain Lion 10.8 or OS X Mavericks 10.9 with the AT&T ARO Analyzer and XCode installed. Open the ARO Analyzer on the Mac and use the Start Collector option on the Data Collector menu to begin collecting packet data, device information, and (if selected) a video of the trace from the device. Note: This data collection method has been tested on the following devices: iPhone 4s running iOS 6 through 7, and iPhone 5, 5c, or 5s (running iOS 7).  
-
+AT&T ARO can now collect trace data directly from an iOS device. Connect an iPhone to a Mac computer running OS X Mountain Lion 10.8 or OS X Mavericks 10.9 with the AT&T ARO Analyzer and XCode installed. Open the ARO Analyzer on the Mac and use the Start Collector option on the Data Collector menu to begin collecting packet data, device information, and (if selected) a video of the trace from the device. Note: This data collection method has been tested on the following devices: iPhone 4s running iOS 6 through 7, and iPhone 5, 5c, or 5s (running iOS 7).  
+  
 +  **AT&T ARO Data Collector compatibility with Android versions 4.3 and 4.4**  
 The AT&T ARO Data Collector .apk is now supported on devices running Android version 4.3 and has been validated on the Android Nexus running version 4.4. Please note that you must have root level access to your device before running the AT&T ARO Data Collector and collecting application traces.  
  
