@@ -591,12 +591,15 @@ void getInterfaces()
 {
 __android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "getInterfaces");
 #ifdef HAVE_PCAP_FINDALLDEVS
+	printf("inside getInterfaces()");
 	pcap_if_t *devpointer;
 	char ebuf[PCAP_ERRBUF_SIZE];
 	int devnum;
 	int i;
-	if (pcap_findalldevs(&devpointer, ebuf) < 0)
+	if (pcap_findalldevs(&devpointer, ebuf) < 0){
+		printf("pcap_findalldevs returning error");
 		error("%s", ebuf);
+	}
 	else {
 		for (i = 0; devpointer != 0; i++) {
 			printf("%d.%s", i+1, devpointer->name);
@@ -675,6 +678,7 @@ int tcpdumpstartcapture(int isBearerChange)
 	//snaplen = MAXIMUM_SNAPLEN;
 	snaplen = 2048;
 	//-w : move to later
+	static char pcapFileDir[256];
 	
 	/************************ CODE CHANGED **************************/
 	
@@ -739,6 +743,10 @@ int tcpdumpstartcapture(int isBearerChange)
 			device = optarg;
 			break;
 		case 'w':
+			memset(pcapFileDir, '\0', sizeof(pcapFileDir));
+			printf("captureDir: %s\n", optarg);
+			sprintf(pcapFileDir,"%s",optarg);
+			//SetCaptureDir(pcapFileDir);
 			break;
 
 		default:
@@ -752,16 +760,19 @@ int tcpdumpstartcapture(int isBearerChange)
 	pthread_t thread_user_input;
 	pthread_t thread_socket_server;
 	pthread_t thread_cpu;
-	static char pcapFileDir[256];
+	/*static char pcapFileDir[256];
 	memset(pcapFileDir, '\0', sizeof(pcapFileDir));
-	sprintf(pcapFileDir,"%s",Gargv[2]);
+	sprintf(pcapFileDir,"%s",Gargv[2]);*/
 	SetCaptureDir(pcapFileDir);
 	
 	if(isBearerChange ==0)
 	pthread_create(&thread_user_input, NULL, CaptureUserInput, NULL);
 
 	static char pcapFilename[256];
-	sprintf(pcapFilename,"%s",Gargv[2]);
+	
+	//sprintf(pcapFilename,"%s",Gargv[2]);
+	sprintf(pcapFilename,"%s",pcapFileDir);
+	
 	StartCapture(pcapFilename);
 	WFileName = pcapFilename;
 	
@@ -846,9 +857,13 @@ int tcpdumpstartcapture(int isBearerChange)
 			error("-f and -r options are incompatible");
 	} else {
 		if (device == NULL) {
+			printf("device to listen is null, calling pcap_lookupdev\n");
 			device = pcap_lookupdev(ebuf);
-			if (device == NULL)
+			printf("returns from pcap_lookupdev\n");
+			if (device == NULL){
+				printf("pcap_lookupdev returns null\n");
 				error("%s", ebuf);
+			}
 		}
 
 #ifdef WIN32
@@ -864,7 +879,9 @@ int tcpdumpstartcapture(int isBearerChange)
 		fflush(stderr);	
 #endif /* WIN32 */
 #ifdef HAVE_PCAP_CREATE
+		fprintf(stderr, "before calling pcap_create(device, ebuf), device=%s\n", device);
 		pd = pcap_create(device, ebuf);
+		fprintf(stderr, "returns from calling pcap_create(device, ebuf)\n");
 		
 		if (pd == NULL)
 			error("%s", ebuf);
@@ -986,18 +1003,27 @@ int tcpdumpstartcapture(int isBearerChange)
 	}
 
 
-	if(Gargc > 3 ) 
+	/*if(Gargc > 3 ) 
 	{
 	   optind = 3;
+	}*/
+	
+	if(Gargc > 5 ) 
+	{
+	   optind = 5;
 	}
 
 	if (infile) {
 		cmdbuf = read_infile(infile);
 	} else {
 		cmdbuf = copy_argv(&Gargv[optind]);
+		fprintf(stderr, "cmdbuf: %s\n", cmdbuf);
 	}
-	if (pcap_compile(pd, &fcode, cmdbuf, Oflag, netmask) < 0)
+	if (pcap_compile(pd, &fcode, cmdbuf, Oflag, netmask) < 0){
 		error("%s", pcap_geterr(pd));
+		fprintf(stderr, "error in pcap_compile\n");
+	}
+	
 	free(cmdbuf);
 	if (dflag) {
 		bpf_dump(&fcode, dflag);
@@ -1141,6 +1167,7 @@ int tcpdumpstartcapture(int isBearerChange)
 	/************************ CODE CHANGED ****************************************************************/
 	status = pcap_loop(pd, cnt, callback, pcap_userdata);
 	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "TcpDump Capture Stopped=%d and In",exitFlag);
+	printf("tcpdump capture stopped, exitFlag=%d\n", exitFlag);
 	if(exitFlag ==4 || exitFlag==3) 
 	{
 		pthread_join(thread_user_input, NULL);
@@ -1187,12 +1214,19 @@ int tcpdumpstartcapture(int isBearerChange)
 	{
 			//Bearer Change
 			++bearerChangedvalue;
+			fprintf(stderr, "bearer changed, bearerChangedValue=%d\n", bearerChangedvalue);
 			sleep(sleeptimeforbearerchange);
+			
 			//Closing the PCAP dump file
 			pcap_dump_close(p);
+			fprintf(stderr, "pcap file closed\n");
+			
 			//Closing the previous capture interface
-			pcap_close(pd);		
+			pcap_close(pd);
+			fprintf(stderr, "previous capture interface closed\n");
+					
 			//Restartng the tcpdump capture as bearer changes
+			fprintf(stderr, "restarting capture on new interface");
 			tcpdumpstartcapture(1);
 	}
 }

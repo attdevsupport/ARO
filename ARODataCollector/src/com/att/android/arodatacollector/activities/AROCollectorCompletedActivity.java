@@ -64,7 +64,7 @@ public class AROCollectorCompletedActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
-		if (new AROCollectorUtils().isTcpDumpRunning()) {
+		if (AROCollectorUtils.isTcpDumpRunning()) {
 			//this is the case when the summary screen from a previous
 			//collector instance was destroyed by the system, so it
 			//was not cleaned up when the analyzer launches a new collector instance
@@ -123,6 +123,8 @@ public class AROCollectorCompletedActivity extends Activity {
 		}
 		traceSummaryOKButton = (Button) findViewById(R.id.datasummaryok);
 		tracePath.setText(ARODataCollector.ARO_TRACE_ROOTDIR + mApp.getDumpTraceFolderName());
+		AROLogger.i(TAG, "trace folder is: " +  mApp.getDumpTraceFolderName());
+		
 		if ((mApp.getCollectVideoOption() && !mApp.isVideoFileExisting() && !mApp.isUSBVideoCaptureON())
 				|| mApp.getVideoCaptureFailed()) {
 			videotrace.setText(getResources().getText(R.string.aro_failedvideo));
@@ -131,13 +133,14 @@ public class AROCollectorCompletedActivity extends Activity {
 		} else {
 			videotrace.setText(getResources().getText(R.string.aro_notext));
 		}
-		mApp.setTcpDumpTraceFolderName(null);
+		//mApp.setTcpDumpTraceFolderName(null);
 	}
 
 	/**
 	 * Starts the Data Collector Main Activity page
 	 */
 	private void startAROMainActivity() {
+		mApp.setTcpDumpTraceFolderName(null);
 		final Intent splashScreenIntent = new Intent(getBaseContext(), AROCollectorMainActivity.class);
 		// Generic Error ID number 100 passed as an argument to navigate to Main
 		// Screen without any dialog

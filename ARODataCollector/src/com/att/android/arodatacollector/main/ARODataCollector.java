@@ -392,8 +392,11 @@ public class ARODataCollector extends Application {
 		try {
 			myInput = this.getResources().openRawResource(R.raw.key + resourceId);
 			final File file = new File(INTERNAL_DATA_PATH + exetuableName);
-			if (file.exists())
-				return;
+			if (file.exists()){
+				//this is needed to fix the issue of the new tcpdump is not picked up 
+				//when the new aro version is installed on top of the old one.
+				file.delete();
+			}
 			file.createNewFile();
 			final String outFileName = INTERNAL_DATA_PATH + exetuableName;
 			myOutput = new FileOutputStream(outFileName);

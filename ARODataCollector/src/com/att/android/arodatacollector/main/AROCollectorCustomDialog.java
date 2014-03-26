@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnKeyListener;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
@@ -505,10 +506,12 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 			try {
 				switch (m_current_dialog) {
 				case TRACE_FOLDERNAME: {
+					mApp.setTcpDumpTraceFolderName(null);
 					AROCollectorCustomDialog.this.dismiss();
 				}
 					break;
 				case TRACE_FOLDERNAME_EXISTS: {
+					mApp.setTcpDumpTraceFolderName(null);
 					AROCollectorCustomDialog.this.dismiss();
 					readyListener.ready(Dialog_CallBack_Error.CALLBACK_SHOWTRACENAMEERROR, false);
 				}
@@ -536,15 +539,17 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 				case TRACE_FOLDERNAME: {
 					final EditText givenTraceFolderName = (EditText) findViewById(R.id.dialog_tracefoldername);
 					mTraceFolderName = givenTraceFolderName.getText().toString();
+					Log.i("TESTD","mTraceFolderName="+mTraceFolderName);
 					mApp.setTcpDumpTraceFolderName(mTraceFolderName);
 					traceFolderPath = new File(mApp.getTcpDumpTraceFolderName());
 					if (mAROUtils.isContainsSpecialCharacterorSpace(mTraceFolderName)) {
 						errrocode = Dialog_CallBack_Error.CALLBACK_SPECIALCHARERROR;
 						AROCollectorCustomDialog.this.dismiss();
 						mApp.setErrorTraceFoldername(mTraceFolderName);
+						mApp.setTcpDumpTraceFolderName(null);
 						readyListener.ready(errrocode, false);
 						break;
-					} else if (mTraceFolderName != null && !traceFolderPath.isDirectory()) {
+					} else if (mTraceFolderName != null && !traceFolderPath.isDirectory() && !mTraceFolderName.equalsIgnoreCase("")) {
 						// Setting the trace folder name at application context
 						mApp.setTcpDumpTraceFolderName(givenTraceFolderName.getText().toString());
 						AROCollectorCustomDialog.this.dismiss();
@@ -552,12 +557,15 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 
 					} else {
 						mApp.setTcpDumpTraceFolderName(givenTraceFolderName.getText().toString());
+						
 						if (mTraceFolderName.equalsIgnoreCase("") || mTraceFolderName == null) {
 							errrocode = Dialog_CallBack_Error.CALLBACK_TRACEFOLDERERROR; // "Please enter valid trace folder name";
 							AROCollectorCustomDialog.this.dismiss();
+							mApp.setTcpDumpTraceFolderName(null);
 						} else if (traceFolderPath.isDirectory()) {
 							errrocode = Dialog_CallBack_Error.CALLBACK_TRACEEXISTSERROR; // "Trace folder already exists";
 							AROCollectorCustomDialog.this.dismiss();
+							mApp.setTcpDumpTraceFolderName(null);
 						}
 						readyListener.ready(errrocode, false);
 					}

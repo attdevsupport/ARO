@@ -42,7 +42,6 @@ import com.att.android.arodatacollector.main.AROCollectorCustomDialog;
 import com.att.android.arodatacollector.main.AROCollectorCustomDialog.Dialog_CallBack_Error;
 import com.att.android.arodatacollector.main.AROCollectorCustomDialog.Dialog_Type;
 import com.att.android.arodatacollector.main.AROCollectorService;
-import com.att.android.arodatacollector.main.AROCollectorTaskManagerProcessInfo;
 import com.att.android.arodatacollector.main.AROCollectorTraceService;
 import com.att.android.arodatacollector.main.ARODataCollector;
 import com.att.android.arodatacollector.utils.AROCollectorUtils;
@@ -114,10 +113,11 @@ public class AROCollectorMainActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
-		if (new AROCollectorUtils().isTcpDumpRunning()) {
+		if (AROCollectorUtils.isTcpDumpRunning()) {
 			//this is the case when the main screen from a previous
 			//collector instance was destroyed by the system, so it
 			//was not cleaned up when the analyzer launches a new collector instance
+			AROLogger.i(TAG, "tcpdump is already running");
 			exitMainActivity();
 			return;
 		}
@@ -263,7 +263,7 @@ public class AROCollectorMainActivity extends Activity {
 			return false;
 		} 
 		
-		if(mAroUtils.isTcpDumpRunning()){
+		if(AROCollectorUtils.isTcpDumpRunning()){
 			showARORunningError();
 			return false;
 		}
@@ -313,7 +313,6 @@ public class AROCollectorMainActivity extends Activity {
 		// Task Killer process info class to manage and store all running
 		// process
 		
-		final AROCollectorTaskManagerProcessInfo mAROTaskManagerProcessInfo = new AROCollectorTaskManagerProcessInfo();
 		mApp.setARODataCollectorStopFlag(false);
 		mApp.setDataCollectorInProgressFlag(true);
 		mApp.setRequestDataCollectorStop(false);
@@ -359,11 +358,11 @@ public class AROCollectorMainActivity extends Activity {
 					aroDCStartTimer.cancel();
 				}
 			}, ARO_START_WATCH_TIME);
-			// Timer to check start data collector kick-off within 15 seconds
+			// Timer to check start data collector kick-off within 15 secs
 			aroDCStartTimer.scheduleAtFixedRate(new TimerTask() {
 				@Override
 				public void run() {
-					mApp.setTcpDumpStartFlag(mAROTaskManagerProcessInfo.pstcpdump());
+					mApp.setTcpDumpStartFlag(AROCollectorUtils.isTcpDumpRunning());
 					if (mApp.getTcpDumpStartFlag()) {
 						mApp.hideProgressDialog();
 						mApp.setDataCollectorInProgressFlag(false);

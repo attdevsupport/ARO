@@ -16,12 +16,6 @@
 
 package com.att.android.arodatacollector.utils;
 
-import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.content.pm.PackageManager.NameNotFoundException;
-import android.os.Environment;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -36,8 +30,6 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import android.os.StatFs;
-import android.provider.Settings;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -48,13 +40,25 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 
+import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
+import android.os.Environment;
+import android.os.StatFs;
+import android.provider.Settings;
+
 /**
  * Contains utility methods that are used by the ARO Data Collector.
  * 
  */
 public class AROCollectorUtils {
 
-	private static final String TCPDUMP_PROCESS_NAME = "tcpdump";
+	private static final String COLLECTOR = "collector";
+
+	private static final String USER = "USER";
+
+	private static final String TCPDUMP = "tcpdump";
 
 	/** Logging string for the ARO Collector Utils class. */
 	public static final String TAG = "AROCollectorUtils";
@@ -284,7 +288,14 @@ public class AROCollectorUtils {
 		return sRet;
 	}
 
-	public String executePS(String processName) throws IOException, InterruptedException {
+	/**
+	 * find the process info
+	 * @param processName
+	 * @return
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public static String executePS(String processName) throws IOException, InterruptedException {
 		AROLogger.d(TAG, "entered ps...");
 
 		final Process process = Runtime.getRuntime().exec("ps " + processName);
@@ -341,7 +352,7 @@ public class AROCollectorUtils {
 				AROLogger.v(TAG, "values row " + rowNum + ": " + ">>>" + rows[rowNum] + "<<<");
 			}
 		}
-		if (rows[0].startsWith("USER")) {
+		if (rows[0].startsWith(USER)) {
 			AROLogger.v(TAG, "PID should be in 2nd column in single row retrieved");
 			for (int rowNum = 1; rowNum < rows.length; rowNum++) {
 				final String row = rows[rowNum];
@@ -692,14 +703,63 @@ public class AROCollectorUtils {
 		}
 	}
 	
-	public boolean isTcpDumpRunning(){
-		boolean isRunning = false;
+	/**
+	 * Returns a value indicating whether tcpdump is running on the
+	 * native shell.
+	 * 
+	 * @return A boolean value that is "true" if tcpdump is running on the
+	 *         native shell, and is "false" otherwise.
+	 */
+	public static boolean isTcpDumpRunning(){
+		boolean isAroTcpDumpRunning = false;
 		try {
-			isRunning = getProcessID(TCPDUMP_PROCESS_NAME) != 0;
-		} catch (Exception e) {
-			AROLogger.e(TAG, "ignoring exception in isTcpDumpRunning()", e);
+			
+			String line = null;
+			int pid = 0; // default
+			line = executePS(TCPDUMP);
+			
+			String[] rows = line.split("\\n");
+			if (AROLogger.logVerbose) {
+				for (int rowNum = 0; rowNum < rows.length; rowNum++) {
+					AROLogger.v(TAG, "values row " + rowNum + ": " + ">>>" + rows[rowNum] + "<<<");
+				}
+			}
+			if (rows[0].startsWith(USER)) {
+				AROLogger.v(TAG, "PID should be in 2nd column in single row retrieved");
+				for (int rowNum = 1; rowNum < rows.length; rowNum++) {
+					final String row = rows[rowNum];
+					final String[] columns = row.split("\\s+");
+					
+					if (AROLogger.logVerbose) {
+						for (int itemNum = 0; itemNum < columns.length; itemNum++) {
+							AROLogger.v(TAG, "item " + itemNum + ": " + ">>>" + columns[itemNum] + "<<<");
+						}
+					}
+					
+					int pNameIndex = columns.length - 1; //process name is the last column
+					String pName = columns[pNameIndex];
+					
+					if (pName != null && pName.contains(COLLECTOR)) {
+						isAroTcpDumpRunning = true;
+						break;
+					}
+				}
+				if (AROLogger.logDebug) {
+					AROLogger.d(TAG, "exiting if USER block with PID (without finding one): " + pid);
+				}
+			}
+			
+			
+			if (AROLogger.logDebug) {
+				AROLogger.d(TAG, "isTcpDumpRunning: " + isAroTcpDumpRunning);
+			}
+		} catch (IOException e) {
+			AROLogger.e(TAG, e.getClass().getName() + " thrown by pstcpdump()");
+		} catch (InterruptedException e) {
+			AROLogger.e(TAG, e.getClass().getName() + " thrown by pstcpdump()");
 		}
+		return isAroTcpDumpRunning;
 		
-		return isRunning;
 	}
+	
 }

@@ -8,6 +8,7 @@
 #define MAX_CONNS 512
 #define MAX_PROCS 512
 #define MAX_APP   512
+#define CONNID_ARR_SIZE 65536
 
 #define PROT_TCP 6
 #define PROT_UDP 17
@@ -89,13 +90,13 @@ BYTE iNode2connid[INOBUCKS][MAX_CONNS];
 
 //mapping from local port to CONN_INFO, used by tcpdump
 //possible values: -1: entry not used, -2: multiple entries - need to lookup 'conns' talbe, 0-MAX_CONNS-1:conn id
-short port2connid[65536];
-int nPort2connidSet;
+short port2connid[CONNID_ARR_SIZE];
+int nPort2connidSet = 0;
 int port2connidSetList[MAX_CONNS];
 
 //mapping from remoteIP (hashed) to CONN_INFO, used by tcpdump
-short ip2connid[65536];
-int nIP2connidSet;
+short ip2connid[CONNID_ARR_SIZE];
+int nIP2connidSet = 0;
 int ip2connidSetList[MAX_CONNS];
 
 char filebuf[65536];
@@ -372,7 +373,7 @@ void UpdatePort2Connid() {
 	int i;
 	
 	if (nPort2connidSet != 0) {
-		fprintf(stderr, "nPort2connidSet is not zero\n");	
+		fprintf(stderr, "nPort2connidSet is not zero, nPort2connidSet=%d, nConns=%d\n", nPort2connidSet, nConns);	
 		exit(0);	
 	}
 	
@@ -382,10 +383,14 @@ void UpdatePort2Connid() {
 				exit(0);
 			}
 				
-			int localPort = conns[i].localPort;			
+			int localPort = conns[i].localPort;
+			if (localPort >= CONNID_ARR_SIZE){
+				fprintf(stderr, "invalid localPort=%d\n", localPort);
+			}			
 			if (port2connid[localPort] == -1) {
 				port2connid[localPort] = i;
 				port2connidSetList[nPort2connidSet++] = localPort;
+				//fprintf(stderr, "nPort2connidSet=%d\n", nPort2connidSet);
 			} else {				
 				port2connid[localPort] = -2;
 			}		
@@ -396,7 +401,7 @@ void UpdateIP2Connid() {
 	int i;
 	
 	if (nIP2connidSet != 0) {
-		fprintf(stderr, "nIP2connidSet is not zero\n");
+		fprintf(stderr, "nIP2connidSet is not zero, nIP2connidSet=%d, nConns=%d\n", nIP2connidSet, nConns);
 		exit(0);
 	}
 	
@@ -407,6 +412,9 @@ void UpdateIP2Connid() {
 		}
 			
 		int hRemoteIP = IPHASH(conns[i].remoteIP);
+		if (hRemoteIP >= CONNID_ARR_SIZE){
+			fprintf(stderr, "invalid hRemoteIp=%d\n", hRemoteIP);
+		}
 		if (ip2connid[hRemoteIP] == -1) {
 			ip2connid[hRemoteIP] = i;
 			ip2connidSetList[nIP2connidSet++] = hRemoteIP;
@@ -414,6 +422,7 @@ void UpdateIP2Connid() {
 			ip2connid[hRemoteIP] = -2;
 		}
 	}
+	
 }
 
 int GetAppID(const char * procName) {
@@ -487,20 +496,21 @@ void CleanConnectionInfo(time_t curSec) {
 	}
 	
 	int nConns2 = 0;
-	for (i=0; i<nConns; i++) if (conns[i].appid != -1) {
-		if (i != nConns2) {
-			memcpy(conns + nConns2, conns + i, sizeof(CONN_INFO));
+	for (i=0; i<nConns; i++){
+		if (conns[i].appid != -1) {
+			if (i != nConns2) {
+				memcpy(conns + nConns2, conns + i, sizeof(CONN_INFO));
+			}
+			nConns2++;
 		}
-		nConns2++;
 	}
 	
 	nConns = nConns2;
 	
-	//printf("After clean nConns = %d\n", nConns);
 	//DumpConnectionTable();
 }
 
-void UpdateProcessSocketInfo(time_t curSec) {	
+void UpdateProcessSocketInfo(time_t curSec) {
 	Init();
 
 	ReadConnections("/proc/net/tcp",  PROT_TCP, curSec);
@@ -646,6 +656,20 @@ void SetCaptureDir(char * pcapFileDir) {
 	
 }
 
+void initShortArray(short sArray[], short value, int size){
+	int i = 0;
+	for (; i < size; ++i){
+		sArray[i] = value;
+	}
+}
+
+void initIntArray(int iArray[], int val, int size){
+	int i = 0;
+	for (; i < size; ++i){
+		iArray[i] = val;
+	}
+}
+
 
 void StartCapture(char * pcapFilename) {	
 	// Note: pcapFilename recieves full path to tcpdump file name at end of
@@ -746,9 +770,16 @@ void StartCapture(char * pcapFilename) {
 	printf("Pcap file: %s\n", pcapFilename);	
 	
 	//Init memory for socket-proc
-	memset(port2connid, 0xff, sizeof(port2connid));		
-	nPort2connidSet = 0;	
-	memset(ip2connid, 0xff, sizeof(ip2connid));
+	//memset(port2connid, 0xff, sizeof(port2connid));
+	initShortArray(port2connid, -1, CONNID_ARR_SIZE);		
+	
+	nPort2connidSet = 0;
+	initIntArray(port2connidSetList, -1, MAX_CONNS);
+	initIntArray(ip2connidSetList, -1, MAX_CONNS);
+		
+	
+	//memset(ip2connid, 0xff, sizeof(ip2connid));
+	initShortArray(ip2connid, -1, CONNID_ARR_SIZE);
 	nIP2connidSet = 0;
 	//Init appid-related data structures
 	nApps = 0;

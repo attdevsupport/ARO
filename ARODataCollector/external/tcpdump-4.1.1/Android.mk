@@ -133,7 +133,9 @@ LOCAL_SRC_FILES:=\
 LOCAL_CFLAGS:=-O2 -g -fpic
 LOCAL_CFLAGS+=-DHAVE_CONFIG_H -D_U_="__attribute__((unused))" -Dlinux -D__GLIBC__ -D_GNU_SOURCE
 
-LOCAL_C_INCLUDES := $(ANDROID_NDK_ROOT)/external/libpcap-1.1.1
+LIB_PCAP_DIR := ../libpcap-1.1.1
+
+LOCAL_C_INCLUDES := $(LIB_PCAP_DIR)
 
 LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH)/missing
@@ -152,4 +154,4 @@ LOCAL_MODULE := tcpdump
 
 include $(BUILD_EXECUTABLE)
 
-include $(ANDROID_NDK_ROOT)/external/libpcap-1.1.1/Android.mk
+include $(LIB_PCAP_DIR)/Android.mk

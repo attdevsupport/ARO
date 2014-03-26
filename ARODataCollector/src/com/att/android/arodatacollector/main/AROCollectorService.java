@@ -378,10 +378,9 @@ public class AROCollectorService extends Service {
 		DataOutputStream os = null;
 		int shExitValue = 0;
 		try {
-			final AROCollectorTaskManagerProcessInfo mAROTaskManagerProcessInfo = new AROCollectorTaskManagerProcessInfo();
 			startCalTime = Calendar.getInstance();
 			
-			if (!mAROTaskManagerProcessInfo.pstcpdump()){
+			if (!AROCollectorUtils.isTcpDumpRunning()){
 				//only start tcpdump if it's not already running, to handle the case where the background
 				//service was stopped and now restarting
 				
@@ -398,8 +397,11 @@ public class AROCollectorService extends Service {
 				//flurry timed event duration
 				mApp.writeToFlurryAndLogEvent(flurryTimedEvent, "Flurry trace start", startCalTime.getTime().toString(), "Trace Duration", true);
 				
-				Command = "." + ARODataCollector.INTERNAL_DATA_PATH + TCPDUMPFILENAME + " -w "
-						+ TRACE_FOLDERNAME + "\n";
+				/*Command = "." + ARODataCollector.INTERNAL_DATA_PATH + TCPDUMPFILENAME + " -w "
+						+ TRACE_FOLDERNAME + "\n";*/
+				
+				Command = "." + ARODataCollector.INTERNAL_DATA_PATH + TCPDUMPFILENAME + " -i any -w " + TRACE_FOLDERNAME + "\n";
+				
 				os.writeBytes(Command);
 				Command = "exit\n";
 				os.writeBytes(Command);
@@ -421,7 +423,7 @@ public class AROCollectorService extends Service {
 			
 			//We will continue and block the thread untill we see valid instance of tcpdump running in shell
 			//waitFor() does not seems to be working on ICS firmware 
-			while (mAROTaskManagerProcessInfo.pstcpdump()) {
+			while (AROCollectorUtils.isTcpDumpRunning()) {
 				continue;
 			}
 			if (DEBUG) {

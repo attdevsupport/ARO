@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.att.android.arodatacollector"
     android:versionCode="2"
-    android:versionName="3.0.0.2" >
+    android:versionName="3.1.1.6" >
 
     <uses-sdk android:minSdkVersion="7" />
 
@@ -32,13 +32,10 @@
         android:debuggable="true"
         android:icon="@drawable/icon"
         android:label="@string/app_name" >
-		-
         <activity
             android:name=".activities.AROCollectorSplashActivity"
             android:configChanges="keyboardHidden|orientation"
-            android:label="@string/app_name"
             android:screenOrientation="portrait" >
-			-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -75,6 +72,11 @@
             android:screenOrientation="portrait" />
         <activity
             android:name=".activities.AROCollectorLegalTermsActivity"
+            android:configChanges="keyboardHidden|orientation"
+            android:screenOrientation="portrait" />
+        
+        <activity
+            android:name=".activities.AROCollectorRestartActivity"
             android:configChanges="keyboardHidden|orientation"
             android:screenOrientation="portrait" />
     </application>

@@ -16,11 +16,9 @@
 
 package com.att.android.arodatacollector.main;
 
-import java.io.IOException;
 import java.util.ArrayList;
 
 import com.att.android.arodatacollector.utils.AROCollectorUtils;
-import com.att.android.arodatacollector.utils.AROLogger;
 
 /**
  * Represents task killer process information for the ARO Data Collector. This
@@ -62,64 +60,6 @@ public class AROCollectorTaskManagerProcessInfo {
 		}
 	}
 
-	/**
-	 * Returns a value indicating whether or not tcpdump is running on the
-	 * native shell.
-	 * 
-	 * @return A boolean value that is "true" if tcpdump is running on the
-	 *         native shell, and is "false" otherwise.
-	 */
-	public boolean pstcpdump() {
-
-		boolean isAroTcpDumpRunning = false;
-		try {
-			
-			String line = null;
-			int pid = 0; // default
-			line = mAROUtlis.executePS("tcpdump");
-			
-			String[] rows = line.split("\\n");
-			if (AROLogger.logVerbose) {
-				for (int rowNum = 0; rowNum < rows.length; rowNum++) {
-					AROLogger.v(TAG, "values row " + rowNum + ": " + ">>>" + rows[rowNum] + "<<<");
-				}
-			}
-			if (rows[0].startsWith("USER")) {
-				AROLogger.v(TAG, "PID should be in 2nd column in single row retrieved");
-				for (int rowNum = 1; rowNum < rows.length; rowNum++) {
-					final String row = rows[rowNum];
-					final String[] columns = row.split("\\s+");
-
-					if (AROLogger.logVerbose) {
-						for (int itemNum = 0; itemNum < columns.length; itemNum++) {
-							AROLogger.v(TAG, "item " + itemNum + ": " + ">>>" + columns[itemNum] + "<<<");
-						}
-					}
-
-					int pNameIndex = columns.length - 1; //process name is the last column
-					String pName = columns[pNameIndex];
-					
-					if (pName != null && pName.contains("arodatacollector")) {
-						isAroTcpDumpRunning = true;
-						break;
-					}
-				}
-				if (AROLogger.logDebug) {
-					AROLogger.d(TAG, "exiting if USER block with PID (without finding one): " + pid);
-				}
-			}
-			
-
-			if (AROLogger.logDebug) {
-				AROLogger.d(TAG, "isTcpDumpRunning: " + isAroTcpDumpRunning);
-			}
-		} catch (IOException e) {
-			AROLogger.e(TAG, e.getClass().getName() + " thrown by pstcpdump()");
-		} catch (InterruptedException e) {
-			AROLogger.e(TAG, e.getClass().getName() + " thrown by pstcpdump()");
-		}
-		return isAroTcpDumpRunning;
-	}
 
 	/**
 	 * Returns the specified row of task killer process information. Each row

@@ -643,7 +643,7 @@ char *
 pcap_lookupdev(errbuf)
 	register char *errbuf;
 {
-	
+	printf("inside pcap_lookupdev for linux\n");
 	pcap_if_t *alldevs;
 /* for old BSD systems, including bsdi3 */
 #ifndef IF_NAMESIZE
@@ -652,8 +652,10 @@ pcap_lookupdev(errbuf)
 	static char device[IF_NAMESIZE + 1];
 	char *ret;
 
-	if (pcap_findalldevs(&alldevs, errbuf) == -1)
+	if (pcap_findalldevs(&alldevs, errbuf) == -1){
+		printf("pcap_lookupdev: pcap_findalldevs returns -1\n");
 		return (NULL);
+	}
 
 	if (alldevs == NULL || (alldevs->flags & PCAP_IF_LOOPBACK)) {
 		/*
@@ -669,6 +671,8 @@ pcap_lookupdev(errbuf)
 		 */
 		(void)strlcpy(errbuf, "no suitable device found",
 		    PCAP_ERRBUF_SIZE);
+		    
+		printf("pcap_lookupdev: no suitable device found\n");
 		ret = NULL;
 	} else {
 		/*
@@ -676,9 +680,15 @@ pcap_lookupdev(errbuf)
 		 */
 		/*** CODE CHANGE FOR LG THRILL-Moto Atix2** TO Do : Better way to handle 2nd interface for LG Thrill as it comes part of avaible interface */
 		system("/system/bin/getprop > /sdcard/prop");
+		printf("pcap_lookupdev: wrote file to /sdcard/prop\n");
 		FILE * ifs = fopen("/sdcard/prop", "r");
+		
+		if (ifs == NULL){
+			printf("pcap_lookupdev: file handle is null\n");
+		}
+		
 		char buf[1024];
-		while (!feof(ifs)) {
+		while (ifs != NULL && !feof(ifs)) {
 			if (fgets(buf, sizeof(buf), ifs) == NULL) break;
 			if (strstr(buf, "[ro.product.device]") != NULL) {
 				if (strstr(buf, "[p925]") != NULL) {
@@ -704,6 +714,10 @@ pcap_lookupdev(errbuf)
 	}
 
 	pcap_freealldevs(alldevs);
+	if (ret != NULL){
+		printf("returning dev=%s\n", ret);
+	}
+	
 	return (ret);
 }
 
@@ -811,6 +825,7 @@ char *
 pcap_lookupdev(errbuf)
 	register char *errbuf;
 {
+	printf("inside pcap_lookupdev for windows\n");
 	DWORD dwVersion;
 	DWORD dwWindowsMajorVersion;
 	dwVersion = GetVersion();	/* get the OS version */
