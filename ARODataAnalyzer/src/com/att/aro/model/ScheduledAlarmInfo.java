@@ -25,14 +25,14 @@ public class ScheduledAlarmInfo extends AlarmInfo implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	private String applicationName;
-	private int hasFired;
+	private double hasFired;
 
 	// Repeat interval in milliseconds
-	private int repeatInterval;
+	private double repeatInterval;
 
 	public ScheduledAlarmInfo(String applicationName, double timestampTrace, 
 			double timestampEpoch, double timestampElapsed, 
-			AlarmType alarmType, int repeatInterval, int hasFired) {
+			AlarmType alarmType, double repeatInterval, double hasFired) {
 		super(timestampTrace, timestampEpoch, timestampElapsed, alarmType);
 		this.applicationName=applicationName;
 		this.repeatInterval=repeatInterval;
@@ -43,11 +43,11 @@ public class ScheduledAlarmInfo extends AlarmInfo implements Serializable {
 		return applicationName;
 	}
 
-	public int getRepeatInterval() {
+	public double getRepeatInterval() {
 		return repeatInterval;
 	}
 
-	public int getHasFired() {
+	public double getHasFired() {
 		return hasFired;
 	}
 }

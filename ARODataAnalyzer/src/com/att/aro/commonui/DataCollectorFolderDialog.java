@@ -28,7 +28,11 @@ import javax.swing.JLabel;
 import javax.swing.JTextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ResourceBundle;
+
 import javax.swing.JCheckBox;
+
+import com.att.aro.main.ResourceBundleManager;
 
 public class DataCollectorFolderDialog extends JDialog {
 
@@ -36,7 +40,9 @@ public class DataCollectorFolderDialog extends JDialog {
 	private JTextField textField;
 	private JFileChooser file;
 	JCheckBox chckbxCaptureVideo;
-
+	private boolean iscancelled = false;
+	private static final ResourceBundle rb = ResourceBundleManager
+			.getDefaultBundle();
     public DataCollectorFolderDialog()
     {
         this(null);
@@ -46,11 +52,11 @@ public class DataCollectorFolderDialog extends JDialog {
      * Create the dialog.
      */
     public DataCollectorFolderDialog(Frame parent) {
+    	super(parent,rb.getString("aro.title.short"));
 		setAlwaysOnTop(true);
 		setModalityType(ModalityType.APPLICATION_MODAL);
 		setModal(true);
 		setResizable(false);
-		setLocationRelativeTo(parent);
         setTitle("Folder Name");
 		setBounds(100, 100, 500, 132);
 		getContentPane().setLayout(new BorderLayout());
@@ -120,6 +126,7 @@ public class DataCollectorFolderDialog extends JDialog {
 	    // disable the "All files" option.
 	    //
 	    file.setAcceptAllFileFilterUsed(false);
+	    setLocationRelativeTo(parent);
 	}
 	void onBrowse(){
 		file.showSaveDialog(DataCollectorFolderDialog.this);
@@ -130,13 +137,17 @@ public class DataCollectorFolderDialog extends JDialog {
 	}
 	public void onOk(){
 		if(textField.getText().length() < 1){
-			MessageDialogFactory.showErrorDialog(null, "Please select a folder to store data.");
+			MessageDialogFactory.showErrorDialog(DataCollectorFolderDialog.this, "Please provide a folder name to store data.");
 			return;
 		}
 		this.setVisible(false);
 	}
 	public void onCancel(){
+		this.iscancelled = true;
 		this.setVisible(false);
+	}
+	public boolean isCancelled(){
+		return this.iscancelled;
 	}
 	/**
 	 * get full directory path selected by user. e.g: /User/Documents

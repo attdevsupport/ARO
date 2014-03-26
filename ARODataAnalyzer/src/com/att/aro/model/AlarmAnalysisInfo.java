@@ -29,12 +29,12 @@ public class AlarmAnalysisInfo implements Serializable {
 	// Dumpsys alarm statistics
 	private String application;
 	private List<String> intent;
-	private int wakeup;
-	private int running;
-	private int totalFired;
+	private double wakeup;
+	private double running;
+	private double totalFired;
 	
-	public AlarmAnalysisInfo(String application, int running,
-		       		int wakeup, int totalFired, 
+	public AlarmAnalysisInfo(String application, double running,
+			double wakeup, double totalFired, 
 				List<String> intent) {
 		this.application = application;
 		this.wakeup = wakeup;
@@ -47,18 +47,18 @@ public class AlarmAnalysisInfo implements Serializable {
 		return application;
 	}
 
-	public int getFired() {
+	public double getFired() {
 		if(totalFired < 0) {
 			return 0;
 		}
 		return totalFired;
 	}
 
-	public int getRunning() {
+	public double getRunning() {
 		return running;
 	}
 	
-	public int getWakeup() {
+	public double getWakeup() {
 		return wakeup;
 	}
 
@@ -66,7 +66,7 @@ public class AlarmAnalysisInfo implements Serializable {
 		return intent;
 	}
 
-	protected void setWakeup(int wakeup) {
+	protected void setWakeup(double wakeup) {
 		this.wakeup = wakeup;
 	}
 }

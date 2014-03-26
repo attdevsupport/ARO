@@ -13,6 +13,8 @@ import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.interfaces.ImageSubscriber;
 import com.att.aro.libimobiledevice.Screencapture;
 import com.att.aro.libimobiledevice.ScreencaptureImpl;
+import com.att.aro.libimobiledevice.ScreenshotManager;
+import com.att.aro.model.CustomClassLoader;
 import com.att.aro.util.ImageHelper;
 
 public class VideoCaptureMacOS extends Thread{
@@ -20,6 +22,7 @@ public class VideoCaptureMacOS extends Thread{
 	private List<ImageSubscriber> subscribers;
 	
 	private volatile boolean stop = false;
+	private volatile boolean hasQuit = false;
 	
 	private String workingFolder = "";
 	
@@ -28,15 +31,17 @@ public class VideoCaptureMacOS extends Thread{
 	private Date videoStartTime;
 	
 	Screencapture capt = null;
+	ScreenshotManager smanage = null;
+	
 	int videoWidth = 0;
 	int videoHeight = 0;
 	public VideoCaptureMacOS(File file) throws IOException{
-		//capt = new ScreencaptureImpl();
 		subscribers = new ArrayList<ImageSubscriber>();
 		qos = new QuickTimeOutputStream(file,
 				QuickTimeOutputStream.VideoFormat.JPG);
 		qos.setVideoCompressionQuality(1f);
 		qos.setTimeScale(10);
+		
 	}
 	//for use in unit test
 	public VideoCaptureMacOS(QuickTimeOutputStream qt, Screencapture screencapture){
@@ -60,43 +65,36 @@ public class VideoCaptureMacOS extends Thread{
 	 */
 	public void doWork(){
 		stop = false;
-		logger.info("Start Screencapture...");
-		if(capt == null){
-			capt = new ScreencaptureImpl();
-		}
-		String res = "";
-		try{
-			res = capt.initService();
-		}catch(UnsatisfiedLinkError er){
-			MessageDialogFactory.showErrorDialog(null, "Failed to load external library libimobiledevie for capturing video. "+er.getMessage());
-			return;
-		}
-		catch(Exception ex){
-			MessageDialogFactory.showErrorDialog(null, "Error: "+ex.getMessage());
-			return;
-		}
-		if(res != null){
-			res = res.trim();
-		}
-		if(res.contains("SUCCESS")){
-			logger.info("Started screencapture service.");
-			
-		}else{
-			logger.info("Failed to start screencapture service. Result: "+res);
-			//return?
-		}
-		Date lastFrameTime = this.videoStartTime = new Date();
-		while(!stop){//loop till "stop" is set to true
-			byte[] data = capt.getScreenImage();
-			if(data == null){
-				logger.info("FAiled to get screenshot. Exiting...");
-				break;
-			}else{
-				//logger.info("Received an image from screencapture service.");
-			}
+		hasQuit = false;
+		logger.info("Init Screencapture...");
+		
+		smanage = new ScreenshotManager(this.workingFolder);
+		smanage.start();
+		logger.info("started ScreenshotManager.");
+		int timeoutcounter = 0;
+		while(!smanage.isReady()){
 			try {
-				BufferedImage image = ImageHelper.getImageFromByte(data);
+				logger.info("waiting for ScreenshotManager to be ready");
+				Thread.sleep(200);
+				timeoutcounter++;
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			if(timeoutcounter > 30){//give it 6 seconds to start up
+				logger.info("Timeout on screenshotmanager");
+				break;
+			}
+		}
+		logger.info("ScreenshotManager is ready: "+smanage.isReady());
+		
+		Date lastFrameTime = this.videoStartTime = new Date();
+		int pausecounter = 0;
+		while(!stop){//loop till "stop" is set to true
+			
+			try {
+				BufferedImage image = smanage.getImage();// ImageHelper.getImageFromByte(data);
 				if(image != null){
+					pausecounter = 0;
 					if(videoWidth == 0 && image.getWidth() > 0){
 						if(image.getWidth() > image.getHeight()){
 							//starting up with landscape?
@@ -123,46 +121,65 @@ public class VideoCaptureMacOS extends Thread{
 					lastFrameTime = timestamp;
 					//logger.info("Passing image to subscriber");
 					callSubscriber(image);
+				}else if(!stop){
+					logger.info("Failed to get screenshot image, pause for 1/2 second");
+					try {
+						Thread.sleep(500);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+						logger.severe(e.getMessage());
+					}
+					pausecounter++;
+					if(pausecounter>20){
+						break;
+					}
 				}
-				//limit the speed to 10 frame per seconds to avoid overhead on mobile device
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-					logger.severe(e.getMessage());
+				if(!stop){
+					//limit the speed to 10 frame per seconds to avoid overhead on mobile device
+					try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+						logger.severe(e.getMessage());
+					}
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
 				logger.severe(e.getMessage());
+				break;
 			}
 			
 		}
-		
+		hasQuit = true;
 		stop = false;//signal waiter to stop waiting
 		logger.info("stopped screencapture");
 		
 	}
-	
+	public void signalStop(){
+		stop = true;
+		logger.info("signal video capture to stop. no waiting for now");
+	}
 	public void stopCapture(){
-		if(!stop){//in case video is already stopped
+		if(!hasQuit){//in case video is already stopped
 			stop = true;
 			logger.info("sent signal to stop long running task and now wait");
 			int waitcount = 0;
 			while(stop){//run() should reset it to false before it quit
 				try {
 					logger.info("Waiting for videocapture to stop, counter: "+waitcount);
-					Thread.sleep(500);
+					Thread.sleep(100);
 					waitcount++;
-					if(waitcount > 5){
+					if(waitcount > 20){
 						logger.info("Timeout on wait, force exit on counter: "+waitcount);
 						break;
 					}
 				} catch (InterruptedException e) {
-					e.printStackTrace();
 					logger.severe(e.getMessage());
 					break;
 				}
 			}
+		}else{
+			logger.info("capture engine already quit, proceed to next step");
 		}
 		if(capt !=  null){
 			try{
@@ -170,6 +187,15 @@ public class VideoCaptureMacOS extends Thread{
 			}catch(UnsatisfiedLinkError er){
 			}
 			capt = null;
+			logger.info("disposed screencapture");
+		}
+		if(smanage != null){
+			try {
+				smanage.signalShutdown();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			smanage = null;
 		}
 		//properly close video creator
 		try {
@@ -177,8 +203,10 @@ public class VideoCaptureMacOS extends Thread{
 			logger.info("properly closed video writer.");
 		} catch (IOException e) {
 			e.printStackTrace();
+			logger.severe(e.getMessage());
 		}
 		logger.info("finished video capture");
+		System.gc();
 	}
 	/**
 	 * passing image to subscribers

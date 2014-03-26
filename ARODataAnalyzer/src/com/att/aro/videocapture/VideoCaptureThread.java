@@ -193,7 +193,7 @@ public class VideoCaptureThread extends Thread {
 	@Override
 	protected void finalize() throws Throwable {
 		super.finalize();
-		//qos.close();
+		qos.close();
 	}
 
 	/**
@@ -201,12 +201,6 @@ public class VideoCaptureThread extends Thread {
 	 */
 	public void stopRecording() {
 		this.allDone = true;
-        try{
-            qos.close();
-        }catch(IOException ex){
-            logger.log(Level.WARNING, "Exception closing video output stream",
-                    ex);
-        }
 	}
 
 	/**

@@ -113,6 +113,7 @@ import com.att.aro.pcap.PCapAdapter;
 import com.att.aro.plugin.AnalyzerPlugin;
 import com.att.aro.plugin.MenuPlugin;
 import com.att.aro.plugin.ResultExportPlugin;
+import com.att.aro.ssl.SslKey;
 import com.att.aro.util.Util;
 import com.att.aro.video.AROVideoPlayer;
 
@@ -129,7 +130,6 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private static final int DEFAULT_APP_WIDTH = 1040;
 	private static final int DEFAULT_APP_HEIGHT = 775;
 
-	private static String token = null;
 	private static String errorMessage;
 	private static ApplicationResourceOptimizer aroFrame;
 
@@ -172,6 +172,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private JMenuItem helpLearnMoreMenuItem;
 	private JMenuItem helpQuickGuideMenuItem;
 	private JMenuItem helpDependenciesMenuItem;
+	private JMenuItem helpSupportMenuItem;
 	private JMenuItem recordingIndicatorMenuItem;
 
 	private JToolTip recordingIndicatorToolTip;
@@ -489,12 +490,13 @@ public class ApplicationResourceOptimizer extends JFrame {
 						 * Waiting for an additional 2 seconds as sometimes
 						 * parsing doesnt start in the given 3 seconds time
 						 */
-						if (TraceData.totalNoPackets == 0)
+						if (TraceData.totalNoPackets == 0) {
 							try {
 								Thread.sleep(2000);
 							} catch (InterruptedException e) {
 								LOGGER.log(Level.INFO, "Exception while calling sleep");
 							}
+						}
 
 						if (TraceData.totalNoPackets > 0) {
 							onePercent = TraceData.totalNoPackets / 100;
@@ -571,6 +573,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 		if (this.analysisData != null) {
 			getAroVideoPlayer().clear();
 			this.analysisData.clear();
+			SslKey.clearSavedTLSSessions();
 			displayAnalysis(null, this.profile, null, null);
 		}
 	}
@@ -705,7 +708,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 				setDataCollectorMenuItems(true, false);
 			}
 			break;
-		
+		default:
+			LOGGER.log(Level.WARNING, "Unexpected DatacollectorBridge Status");
 		}
 	}
 	
@@ -808,6 +812,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 			jHelpMenu.add(getLearnMoreMenuItem());
 			jHelpMenu.add(getQuickGuideMenuItem());
 			jHelpMenu.add(getHelpDependenciesMenuItem());
+			jHelpMenu.add(getHelpSupportMenuItem());
 		}
 		return jHelpMenu;
 	}
@@ -985,6 +990,28 @@ public class ApplicationResourceOptimizer extends JFrame {
 	}
 
 	/**
+     * Initializes and returns the Support menu item under the Help menu.
+     */
+    private JMenuItem getHelpSupportMenuItem() {
+        if (helpSupportMenuItem == null) {
+            helpSupportMenuItem = new JMenuItem(RB.getString("menu.help.support"));
+            helpSupportMenuItem.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent arg0) {
+                    try {
+                        BrowserGenerator.openBrowser(RB.getString("About.supportUrl"));
+                    } catch (IOException e) {
+                        MessageDialogFactory.showUnexpectedExceptionDialog(ApplicationResourceOptimizer.this, e);
+                    }
+                }
+            });
+        }
+        return helpSupportMenuItem;
+    }
+	
+	
+	/**
 	 * Initializes and returns the View menu.
 	 */
 	private JMenu getJViewMenu() {
@@ -1069,12 +1096,6 @@ public class ApplicationResourceOptimizer extends JFrame {
 		return startDataCollectorMenuItem;
 	}
 	private void startCollector(){
-		if (aroDataCollectorBridge == null) {
-			aroDataCollectorBridge = new DatacollectorBridge(ApplicationResourceOptimizer.this);
-		}
-		aroDataCollectorBridge.startARODataCollector();
-		
-		/* disabled until bugs fixed
 		boolean isMac = Util.IsMacOS();
 		boolean isIOS = false;
 		
@@ -1085,8 +1106,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 		try {
 			type = device.getDeviceType();
 		} catch (IOException e1) {
-			e1.printStackTrace();
-			
+			LOGGER.log(Level.WARNING, "IOException", e1);			
 		}
 		if(type == MobileDeviceType.NO_DEVICE_CONNECTED){
 			AdbService adbservice = new AdbService();
@@ -1134,13 +1154,16 @@ public class ApplicationResourceOptimizer extends JFrame {
 				}
 				aroDataCollectorBridge.startARODataCollector();
 			}else{
-				if(aroDataCollectorBridgeNoRoot == null){
-					aroDataCollectorBridgeNoRoot = new DatacollectorBridgeNoRoot(ApplicationResourceOptimizer.this);
-				}
-				aroDataCollectorBridgeNoRoot.startCollector();
+                if(Util.isWindowsOS()){
+                    if(aroDataCollectorBridgeNoRoot == null){
+                        aroDataCollectorBridgeNoRoot = new DatacollectorBridgeNoRoot(ApplicationResourceOptimizer.this);
+                    }
+                    aroDataCollectorBridgeNoRoot.startCollector();
+                }else{
+                    MessageDialogFactory.showErrorDialog(mAROAnalyzer, "Currently non-rooted android collector is only supported by Windows.");
+                }
 			}
 		}
-		*/
 	}
 
 	/**
@@ -1689,7 +1712,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 			if(analysis != null) {
 				BestPractices bp = analysis.getBestPractice();
 				if(bp != null) {
-					HttpCode3XXResultPanel http_code_3XX_panel = bp.getHttpPanel();
+					HttpCode3XXResultPanel httpCode3XXPanel = bp.getHttpPanel();
 					Http4xx5xxStatusResponseCodesResultPanel http4xx5xxStatusResponseCodesResultPanel
 					= bp.getHttp4xx5xxPanel();
 					DuplicateResultPanel duplicateResultPanel
@@ -1711,8 +1734,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 					TextFileCompressionResultPanel textFileCompressionResultPanel
 					= bp.gettextFileCompressionResultPanel();
 					
-					if(http_code_3XX_panel != null) {
-						http_code_3XX_panel.updateTableForPrint();
+					if(httpCode3XXPanel != null) {
+						httpCode3XXPanel.updateTableForPrint();
 					}
 					if(http4xx5xxStatusResponseCodesResultPanel != null) {
 						http4xx5xxStatusResponseCodesResultPanel.updateTableForPrint();
@@ -1761,6 +1784,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
+					ApplicationResourceOptimizer.aroFrame.Dispose();
 					System.exit(0);
 				}
 			});
@@ -1818,6 +1842,10 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 		// Register aroWindowStateListener with the frame
 		this.addWindowStateListener(aroWindowStateListener);
+		
+		// Register addWindowListener with the frame
+		this.addWindowListener(aroWindowListener);
+
 		// Load user preference
 		this.traceDirectory = userPreferences.getLastTraceDirectory();
 
@@ -1838,6 +1866,12 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 		chartPlotOptionsDialog = new ChartPlotOptionsDialog(ApplicationResourceOptimizer.this, aroAdvancedTab);
 
+		this.addWindowListener(new WindowAdapter() {
+		      public void windowClosing(WindowEvent e) {
+		    	  ApplicationResourceOptimizer.aroFrame.Dispose();
+		          System.exit(0);
+		      }
+		});
 	}
 
 	/**
@@ -2281,7 +2315,21 @@ public class ApplicationResourceOptimizer extends JFrame {
 				// aroSimpleTab.resetSplitPanesSimpleTabb();
 				aroAdvancedTab.resetSplitPanesAdvancedTabb();
 			}
+		
 		}
+	};
+	
+	/**
+	 * This listener checks to see if the ApplicationResourceOptimizer window
+	 * has been closed. 
+	 */
+	private final WindowListener aroWindowListener = new WindowAdapter() {
+		public void windowClosing(WindowEvent e) {
+            if(CommandLineHandler.getInstance().IsCommandLineEvent()) {
+            	CommandLineHandler.getInstance().UpdateTraceInfoFile(RB.getString("cmdline.ErrorInPropFile"), RB.getString("cmdline.analyzerstopped"));
+				CommandLineHandler.getInstance().UpdateTraceInfoFile(RB.getString("cmdline.Status"), RB.getString("cmdline.status.failed"));				
+			}
+        }
 	};
 
 	/**
@@ -2401,5 +2449,22 @@ public class ApplicationResourceOptimizer extends JFrame {
 		}
 		
 		return result;
+	}
+	/**
+	 * stop background tasks and clean up all resources
+	 */
+	public void Dispose(){
+		//for user friendly experience, there should be a progress box while cleaning up resource
+		//which take a few seconds
+		final AROProgressDialog box = new AROProgressDialog(ApplicationResourceOptimizer.this, "Please wait...");
+		box.setAlwaysOnTop(true);
+		box.pack();
+		box.setVisible(true);
+		if(aroDataCollectorMacOS != null){
+			//this will take a couple seconds
+			aroDataCollectorMacOS.Dispose();
+		}
+		LOGGER.info("Finished Dispose()");
+		box.setVisible(false);
 	}
 }

@@ -17,7 +17,7 @@ import com.att.aro.model.TraceData;
 import com.att.aro.model.TraceData.Analysis;
 import com.att.aro.util.Util;
 
-public class FlashBestPractice implements BestPracticeDisplay {
+public class FlashBestPractice extends BestPracticeDisplay {
 	@Override
 	public String getOverviewTitle() {
 		return Util.RB.getString("flash.title");

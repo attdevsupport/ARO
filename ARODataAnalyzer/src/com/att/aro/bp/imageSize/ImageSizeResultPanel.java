@@ -80,8 +80,9 @@ public class ImageSizeResultPanel extends JPanel implements DataTableResultPanel
 	public void setData(Collection<ImageSizeEntry> data) {
 		this.tableModel.setData(data);
 		noOfRecords = data.size();
-		if (bpButtonPanel != null)
+		if (bpButtonPanel != null) {
 			bpButtonPanel.setNoOfRecords(noOfRecords);
+		}
 	}
 
 	/**

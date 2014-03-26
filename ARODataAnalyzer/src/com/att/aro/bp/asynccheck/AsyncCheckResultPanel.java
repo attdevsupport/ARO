@@ -87,8 +87,9 @@ public class AsyncCheckResultPanel extends JPanel implements DataTableResultPane
 		LOGGER.log(Level.FINE, "setData, size: {0}", new Object[] { data.size() });
 		this.tableModel.setData(data);
 		noOfRecords=data.size();
-		if(bpButtonPanel!=null)
-		bpButtonPanel.setNoOfRecords(noOfRecords);
+		if(bpButtonPanel != null) {
+			bpButtonPanel.setNoOfRecords(noOfRecords);
+		}
 
 	}
 

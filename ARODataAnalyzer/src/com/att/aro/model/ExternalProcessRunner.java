@@ -78,6 +78,36 @@ public class ExternalProcessRunner {
 		
 		return datastr;
 	}
+	public String runCmdWithTimeout(String[] command, long timeout) throws IOException{
+		ProcessBuilder processbuild = builder.command(command);
+		Process process = processbuild.start();
+		ProcessWorker worker = new ProcessWorker(process, 3000);
+		worker.start();
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		InputStream input = process.getInputStream();
+		byte[] data = new byte[1024];
+		int totalread = -1;
+		
+		while((totalread = input.read(data, 0, data.length)) != -1){
+			out.write(data, 0, totalread);
+		}
+		worker.setExit();
+		worker.interrupt();
+		worker = null;
+		if(input != null){
+			input.close();
+		}
+		if(process != null){
+			process.destroy();
+		}
+		String datastr = null;
+		if(out != null){
+			datastr = out.toString();
+			out.close();
+		}
+		
+		return datastr;
+	}
 	public String runCmdInDirectory(String[] command, String directoryPath) throws IOException{
 		builder.command(command);
 		builder.directory(new File(directoryPath));
@@ -132,5 +162,38 @@ public class ExternalProcessRunner {
 		}
 		return out;
 	}
+	
+	class ProcessWorker extends Thread {
+		  private final Process process;
+		  long timeout = 100;
+		  volatile boolean exit = false;
+		  int maxcount = 1;
+		  private ProcessWorker(Process process, long timeout) {
+		    this.process = process;
+		    if(timeout > this.timeout){
+		    	this.timeout = timeout;
+		    	maxcount = (int) (timeout / 100);
+		    }
+		  }
+		  public void setExit(){
+			  this.exit = true;
+		  }
+		  public void run() {
+			int counter = 0;
+		    while(!exit){
+		    	try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+				}
+		    	counter++;
+		    	if(counter >= maxcount){
+		    		if(process != null){
+		    			process.destroy();
+		    		}
+		    		break;
+		    	}
+		    }
+		  }  
+		}
 
 }//end class

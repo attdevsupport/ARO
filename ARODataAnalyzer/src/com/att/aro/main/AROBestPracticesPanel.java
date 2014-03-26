@@ -44,6 +44,7 @@ import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 
+import com.att.aro.bp.BPTextFileCompression;
 import com.att.aro.bp.BestPracticeDisplay;
 import com.att.aro.bp.BestPracticeDisplayFactory;
 import com.att.aro.bp.BestPracticeDisplayGroup;
@@ -237,7 +238,20 @@ public class AROBestPracticesPanel extends JScrollPane implements Printable {
 			if (bp.isSelfTest()) {
 				BestPracticeExport.writeValue(writer, manual);
 			} else {
-				if(((bp.getOverviewTitle()).equals(rb.getString("caching.usingCache.title")))
+				//Added for Text Compression US197546
+				if (bp.getOverviewTitle().equals(rb.getString(BPTextFileCompression.TEXT_FILE_COMPRESSION_OVERVIEW_TITLE))){
+					String status = fail;
+					if (bp.isPass(analysisData)){
+						status = pass;
+					}
+					else if (bp.isWarning(analysisData)){
+						status = warning;
+					}
+					
+					BestPracticeExport.writeValue(writer, status);
+				} //end for Text Compression US197546
+				
+				else if(((bp.getOverviewTitle()).equals(rb.getString("caching.usingCache.title")))
 						|| ((bp.getOverviewTitle()).equals(rb.getString("caching.cacheControl.title")))
 						|| ((bp.getOverviewTitle()).equals(rb.getString("connections.offloadingToWifi.title")))
 						|| ((bp.getOverviewTitle()).equals(rb.getString("html.httpUsage.title")))

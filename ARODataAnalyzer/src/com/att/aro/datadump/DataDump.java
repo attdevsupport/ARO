@@ -42,6 +42,7 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import com.att.aro.bp.BPTextFileCompression;
 import com.att.aro.bp.BestPracticeDisplay;
 import com.att.aro.bp.BestPracticeDisplayFactory;
 import com.att.aro.bp.BestPracticeDisplayGroup;
@@ -840,7 +841,19 @@ public class DataDump {
 		final String commaSepWithSpace = COMMA_SEP + " ";
 		
 		for (BestPracticeDisplay bp : this.bestPractices) {
-			if(((bp.getOverviewTitle()).equals(Util.RB.getString("caching.usingCache.title")))
+			//Added for Text Compression US197546
+			if (bp.getOverviewTitle().equals(Util.RB.getString(BPTextFileCompression.TEXT_FILE_COMPRESSION_OVERVIEW_TITLE))){
+				String status = bpFail;
+				if (bp.isPass(analysis)){
+					status = bpPass;
+				}
+				else if (bp.isWarning(analysis)){
+					status = bpWarning;
+				}
+				
+				BestPracticeExport.writeValue(writer, status);
+			} //end for Text Compression US197546
+			else if(((bp.getOverviewTitle()).equals(Util.RB.getString("caching.usingCache.title")))
 					|| ((bp.getOverviewTitle()).equals(Util.RB.getString("caching.cacheControl.title")))
 					|| ((bp.getOverviewTitle()).equals(Util.RB.getString("connections.offloadingToWifi.title")))
 					|| ((bp.getOverviewTitle()).equals(Util.RB.getString("html.httpUsage.title")))

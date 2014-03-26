@@ -689,18 +689,21 @@ public class CacheAnalysis implements Serializable {
 		if (response.isRangeResponse()) {
 			expectedBytes = response.getRangeLast() - response.getRangeFirst()
 					+ 1;
-			if (expectedBytes <= 0)
+			if (expectedBytes <= 0) {
 				expectedBytes = response.getContentLength();
+			}
 		} else {
 			expectedBytes = response.getContentLength();
 		}
-		if (expectedBytes <= 0)
+		if (expectedBytes <= 0) {
 			return -1;
+		}
 
 		// compute actualTransferred
 		long actualBytes = response.getActualByteCount();
-		if (actualBytes <= 0)
+		if (actualBytes <= 0) {
 			return -1;
+		}
 
 		if (actualBytes < (int) (expectedBytes * 0.9f)) {
 			return actualBytes;

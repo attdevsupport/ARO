@@ -17,8 +17,6 @@ package com.att.aro.model;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Represents Text File Compression Analysis
@@ -26,18 +24,18 @@ import java.util.logging.Logger;
  */
 public class TextFileCompressionAnalysis {
 
-	private static final Logger LOGGER = Logger.getLogger(TextFileCompressionAnalysis.class.getName());
-
-	private static final double ALLOWED_TO_FAIL = 5.0;
-
-	private static final double PERCENT_100 = 100.0;
-
 	private static final int KILO = 1024;
+	
+	public static final int FILE_SIZE_THRESHOLD_BYTES = 850;
+	
+	public static final int UNCOMPRESSED_SIZE_FAILED_THRESHOLD_KB = 100;
 
 	private List<TextFileCompressionEntry> results = new ArrayList<TextFileCompressionEntry>();
 	private int noOfCompressedFiles;
 	private int noOfUncompressedFiles;
-	private int totalSize;
+	private int totalUncompressedSize;
+	
+	public enum TextCompressionAnalysisResult {PASS, WARNING, FAIL};
 
 	/** 
 	 * Performs Text File Compression Analysis
@@ -57,30 +55,38 @@ public class TextFileCompressionAnalysis {
 		}
 	}
 
-	/**
-	 * Returns percentage number of uncompressed text files.
-	 * 
-	 * @return percentage number of uncompressed text files
-	 */
-	public int getPercentage() {
-		double percentage = 0;
-		double total = noOfCompressedFiles + noOfUncompressedFiles;
-		if (total > 0) {
-			percentage = (noOfUncompressedFiles * PERCENT_100) / total;
-		}
-		LOGGER.log(Level.FINE, "Uncomp.: {0}, Compr.: {1}, %: {2}", new Object[] { noOfUncompressedFiles, noOfCompressedFiles, percentage });
-		return (int)percentage;
-	}
 
 	/**
 	 * Returns an indicator whether the text file compression test has failed or not.
+	 * Failed if total uncompressed size >= UNCOMPRESSED_SIZE_FAILED_THRESHOLD
 	 * 
 	 * @return failed/success test indicator
 	 */
-	public boolean isTestFailed() {
-		return (getPercentage() >= ALLOWED_TO_FAIL);
+	private boolean isTestFailed() {
+		return getTotalUncompressedSize() >= UNCOMPRESSED_SIZE_FAILED_THRESHOLD_KB;
 	}
 
+	/**
+	 * Test passes if there is no uncompressed file exceeding the size threshold
+	 * @return
+	 */
+	private boolean isTestPassed(){
+		return getNoOfUncompressedFiles() == 0;
+	}
+	
+	public TextCompressionAnalysisResult getTextCompressionAnalysisResult(){
+		if (isTestPassed()){
+			return TextCompressionAnalysisResult.PASS;
+		}
+		
+		if (isTestFailed()){
+			return TextCompressionAnalysisResult.FAIL;
+		}
+		
+		return TextCompressionAnalysisResult.WARNING;
+	}
+	
+	
 	/**
 	 * Returns a list of uncompressed text files.
 	 * 
@@ -124,12 +130,14 @@ public class TextFileCompressionAnalysis {
 	}
 
 	/**
-	 * Get total size of all uncompressed files in kilobytes.
+	 * Get total size in KB of all uncompressed files that are more than 850 bytes.
+	 * Note that we just return the total size since we had only incremented this when
+	 * the uncompressed file is greater than 850 bytes (in HttpRequestResponseInfo.setHttpCompression)
 	 * 
 	 * @return the total size
 	 */
-	public int getTotalSize() {
-		return totalSize / KILO;
+	public int getTotalUncompressedSize() {
+		return totalUncompressedSize / KILO;
 	}
 
 	/**
@@ -137,8 +145,8 @@ public class TextFileCompressionAnalysis {
 	 * 
 	 * @param the size to be added
 	 */
-	public void addToTotalSize(int size) {
-		this.totalSize += size;
+	public void addToTotalUncompressedSize(int size) {
+		this.totalUncompressedSize += size;
 	}
 	
 }

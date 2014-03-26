@@ -208,8 +208,9 @@ public class HttpCode3XXResultPanel extends JPanel implements DataTableResultPan
 	public void setData(Collection<HttpCode3XXEntry> data) {
 		this.tableModel.setData(data);
 	//	noOfRecords=data.size();
-		if(bpButtonPanel!=null)
+		if(bpButtonPanel!=null) {
 			bpButtonPanel.setNoOfRecords(noOfRecords);
+		}
 	}
 
 	/**

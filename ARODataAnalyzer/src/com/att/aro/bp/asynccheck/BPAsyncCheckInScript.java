@@ -35,7 +35,7 @@ import com.att.aro.util.Util;
 /**
  * Asynchronous loadin of scripts best practice.
  */
-public class BPAsyncCheckInScript implements BestPracticeDisplay {
+public class BPAsyncCheckInScript extends BestPracticeDisplay {
 
 	private AsyncCheckResultPanel resultPanel;
 

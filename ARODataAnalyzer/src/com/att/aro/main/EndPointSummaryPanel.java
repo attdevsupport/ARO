@@ -65,9 +65,6 @@ public class EndPointSummaryPanel extends JSplitPane {
 			tableModel.setData(null);
 			ipTableModel.setData(null);
 		}
-
-		if (analysis == null || analysis.getProfile() == null)
-			return;
 	}
 
 	/**

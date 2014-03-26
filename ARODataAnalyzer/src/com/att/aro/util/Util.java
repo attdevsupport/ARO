@@ -45,6 +45,9 @@ public final class Util {
 	public static boolean IsMacOS(){
 		return Util.OS_NAME.contains("Mac OS");
 	}
+    public static boolean isWindowsOS(){
+        return Util.OS_NAME.contains("Windows");
+    }
 	/**
 	 * location to save trace data such as pcap, video etc. used by non-rooted IOS
 	 * @return
@@ -170,4 +173,12 @@ public final class Util {
 		}
 	}
 	
+	public static String escapeRegularExpressionChar(String str){
+		String token = str.replace("$", "\\$");
+		token = token.replace("^", "\\^");
+		token = token.replace("*", "\\*");
+		token = token.replace(".", "\\.");
+		token = token.replace("?", "\\?");
+		return token;
+	}
 }

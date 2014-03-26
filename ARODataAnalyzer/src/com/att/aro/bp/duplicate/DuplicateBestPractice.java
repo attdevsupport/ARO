@@ -36,7 +36,7 @@ import com.att.aro.model.TraceData.Analysis;
 /**
  * Represents Duplicate content Best Practice.
  */
-public class DuplicateBestPractice implements BestPracticeDisplay {
+public class DuplicateBestPractice extends BestPracticeDisplay {
 
 
 	private static final int DUPLICATE_CONTENT_DENOMINATOR = 1048576;

@@ -154,12 +154,13 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 	protected Object getColumnValue(TCPSession item, int columnIndex) {
 		switch (columnIndex) {
 		case TIME_COL:
-			if (!item.isUDP())
+			if (!item.isUDP()) {
 				return item.getPackets().get(0).getTimeStamp();
-			else
+			} else {
 				return item.getUDPPackets().get(0).getTimeStamp();
+			}
 		case APP_COL:
-			if(!item.isUDP()){
+			if(!item.isUDP()) {
 				TableColumn appCol = cols.getColumn(APP_COL);
 				int width = appCol.getWidth();
 	
@@ -174,7 +175,7 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 				// start with 16% and add another .5% for each 70 pixels
 				double basePct = .16;
 				int units = width / 70;
-				if (units > 0){
+				if (units > 0) {
 					basePct = basePct + (units * .005);
 				}
 				
@@ -189,9 +190,7 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 								+ app.substring(appStrLength - (int) shortLength);
 					}
 					return app;
-				}
-	
-				else {
+				} else {
 					StringBuffer sb = new StringBuffer(app);
 					while (it.hasNext()) {
 						sb.append(stringListSeparator);
@@ -207,35 +206,39 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 						return sb.toString();
 					}
 				}
-			}else{
+			} else {
 				return item.getUDPPackets().get(0).getAppName();
 			}
 		case DOMAIN_COL:
-			if(!item.isUDP())
+			if(!item.isUDP()) {
 				return item.getDomainName();
-			else
+			} else {
 				return item.getDomainName();
+			}
 		case LOCALPORT_COL:
-			if(!item.isUDP())
+			if(!item.isUDP()) {
 				return rb.getString("tcp.localhost") + hostPortSeparator + item.getLocalPort();
-			else
+			} else {
 				return rb.getString("tcp.localhost") + hostPortSeparator + item.getLocalPort();
+			}
 			
 		case REMOTEPORT_COL:
-			if(!item.isUDP())
+			if(!item.isUDP()) {
 				return item.getRemoteIP().getHostAddress() + hostPortSeparator + item.getRemotePort();
-			else
+			} else {
 				return item.getRemoteIP().getHostAddress() + hostPortSeparator + item.getRemotePort();
+			}
 		
 		case PACKETCOUNT_COL:
-			if(!item.isUDP())
+			if(!item.isUDP()) {
 				return item.getPackets().size();
-			else
+			} else {
 				return item.getUDPPackets().size();
+			}
 		case TCP_UDP_COL:
-			if(!item.isUDP()){
+			if(!item.isUDP()) {
 				return rb.getString("tcp.tcp");
-			}else{
+			} else {
 				return rb.getString("tcp.udp");
 			}
 						

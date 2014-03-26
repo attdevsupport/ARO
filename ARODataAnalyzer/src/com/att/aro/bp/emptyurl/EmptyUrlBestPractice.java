@@ -35,7 +35,7 @@ import com.att.aro.util.Util;
 /**
  * Represents Empty URL Best Practice.
  */
-public class EmptyUrlBestPractice implements BestPracticeDisplay {
+public class EmptyUrlBestPractice extends BestPracticeDisplay {
 
 	@Override
 	public String getOverviewTitle() {

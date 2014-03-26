@@ -41,9 +41,9 @@ import com.att.aro.util.Util;
  * @author ns5254
  * 
  */
-public abstract class HttpRspCdBestPractice implements BestPracticeDisplay {
+public abstract class HttpRspCdBestPractice extends BestPracticeDisplay {
 	private String rbPrefix;
-	private HttpCode3XXResultPanel resultPanel;
+	protected JPanel resultPanel;
 	
 	public HttpRspCdBestPractice(String rbKey) {
 		rbPrefix = "connections." + rbKey;
@@ -166,8 +166,7 @@ public abstract class HttpRspCdBestPractice implements BestPracticeDisplay {
 
 	@Override
 	public List<BestPracticeExport> getExportData(Analysis analysisData) {
-		Map<Integer, Integer> map = analysisData.getBestPractice()
-				.getHttpRedirectCounts();
+		Map<Integer, Integer> map = getHttpRspCdCountMap(analysisData.getBestPractice());
 		List<BestPracticeExport> result = new ArrayList<BestPracticeExport>(
 				map.size());
 		for (Map.Entry<Integer, Integer> entry : map.entrySet()) {
@@ -179,17 +178,15 @@ public abstract class HttpRspCdBestPractice implements BestPracticeDisplay {
 		return result;
 	}
 
+	abstract public JPanel getResultPanel();
+	
 	@Override
 	public JPanel getTestResults() {
-		if ((rbPrefix.compareToIgnoreCase("connections.http3xx") == 0)) {
 			if(this.resultPanel == null) {
-				this.resultPanel = new HttpCode3XXResultPanel();
+				this.resultPanel = getResultPanel();
 			}
 			this.resultPanel.setVisible(false);
 			return this.resultPanel;
-		} 
-		
-		return null;
 	}
 	
 	/**

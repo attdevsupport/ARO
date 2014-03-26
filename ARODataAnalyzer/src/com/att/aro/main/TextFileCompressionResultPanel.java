@@ -89,8 +89,9 @@ public class TextFileCompressionResultPanel extends JPanel {
 		LOGGER.log(Level.FINE, "setData, size: {0}", new Object[] { data.size() });
 		this.tableModel.setData(data);
 		noOfRecords = data.size();
-		if (bpButtonPanel != null)
+		if (bpButtonPanel != null) {
 			bpButtonPanel.setNoOfRecords(noOfRecords);
+		}
 	}
 
 	/**

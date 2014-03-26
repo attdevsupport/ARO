@@ -34,7 +34,7 @@ import com.att.aro.util.Util;
 /**
  * Represents Minification Best Practice.
  */
-public class MinificationBestPractice implements BestPracticeDisplay {
+public class MinificationBestPractice extends BestPracticeDisplay {
 
 	private MinificationResultPanel resultPanel;
 

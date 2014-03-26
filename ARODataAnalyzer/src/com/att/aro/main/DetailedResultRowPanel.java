@@ -127,7 +127,7 @@ public class DetailedResultRowPanel {
 						|| ((bp.getDetailTitle()).equals(rb.getString("connections.offloadingToWifi.detailedTitle")))
 						|| ((bp.getDetailTitle()).equals(rb.getString("other.accessingPeripherals.detailedTitle")))
 						|| ((bp.getDetailTitle()).equals(rb.getString("html.httpUsage.detailedTitle")))
-						){
+						|| (bp.isWarning(analysisData))){
 					iconLabel.setIcon(warningIcon);
 					iconLabel.setToolTipText(WARNING);
 					resultDetailsLabel.setText(bp.resultText(analysisData));

@@ -17,6 +17,8 @@ package com.att.aro.bp.httprspcd;
 
 import java.util.Map;
 
+import javax.swing.JPanel;
+
 import com.att.aro.model.BestPractices;
 import com.att.aro.model.HttpRequestResponseInfo;
 
@@ -52,5 +54,14 @@ public class Http3xxBestPractice extends HttpRspCdBestPractice {
 		} else {
 			return null;
 		}
+	}
+	
+	@Override
+	public JPanel getResultPanel() {
+		if(this.resultPanel == null) {
+			this.resultPanel = new HttpCode3XXResultPanel();
+		}
+
+		return this.resultPanel;
 	}
 }

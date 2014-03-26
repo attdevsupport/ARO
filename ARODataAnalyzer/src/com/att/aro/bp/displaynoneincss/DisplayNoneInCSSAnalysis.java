@@ -75,10 +75,11 @@ public class DisplayNoneInCSSAnalysis {
 		if (htmlContent != null){
 			doc = Jsoup.parse(htmlContent);
 		}
-		if (doc != null)
+		if (doc != null) {
 			return doc;
-		else 
+		} else { 
 			return null;
+		}
 	}
 	/**
 	 * This method return the CSS file from the RR objects
@@ -89,7 +90,7 @@ public class DisplayNoneInCSSAnalysis {
 		String cssContent = null;
 		try {
 			cssContent = rr.getContentString();
-		}catch (ContentException e) {
+		} catch (ContentException e) {
 			logger.log(Level.SEVERE, "CSS content is not available.");
 		} catch (IOException e) {
 			logger.log(Level.SEVERE, "CSS content is not available.");
@@ -119,8 +120,9 @@ public class DisplayNoneInCSSAnalysis {
 		}
 		/* get all the html elements which contains inline CSS rules.*/
 		Elements cssElements  = doc.select("[style*=display:none]");
-		if(!cssElements.isEmpty())
+		if(!cssElements.isEmpty()) {
 			return true;
+		}
 		
 		return false;
 	}

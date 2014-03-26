@@ -91,8 +91,9 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 				} else {
 					dchDemotionQueueUL += size;
 				}
-				if (ts > dchLastPktTSDL + profile.getDchTimerResetWin())
+				if (ts > dchLastPktTSDL + profile.getDchTimerResetWin()) {
 					dchDemotionQueueDL = 0;
+				}
 				dchLastPktTSUL = ts;
 			}
 
@@ -102,14 +103,15 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 				} else {
 					dchDemotionQueueDL += size;
 				}
-				if (ts > dchLastPktTSUL + profile.getDchTimerResetWin())
+				if (ts > dchLastPktTSUL + profile.getDchTimerResetWin()) {
 					dchDemotionQueueUL = 0;
+				}
 				dchLastPktTSDL = ts;
 
 			}
 
-			if (dchDemotionQueueUL >= profile.getDchTimerResetSize()
-					|| dchDemotionQueueDL >= profile.getDchTimerResetSize()) {
+			if ((dchDemotionQueueUL >= profile.getDchTimerResetSize())
+					|| (dchDemotionQueueDL >= profile.getDchTimerResetSize())) {
 				dchTimerResetTS = ts;
 			}
 		}
@@ -160,8 +162,9 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 				// MyAssert(ts >= ulTS, 113);
 				double queueConsumptionTime = (ulQueue * ulQueue * profile.getRlcUlRateP2()
 						+ ulQueue * profile.getRlcUlRateP1() + profile.getRlcUlRateP0()) / 1000.0f;
-				if (ts - ulTS > queueConsumptionTime)
+				if (ts - ulTS > queueConsumptionTime) {
 					ulQueue = 0;
+				}
 
 				// if (ts - ulTS > 0.2f) ulQueue = 0;
 
@@ -174,15 +177,16 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 				// MyAssert(ts >= dlTS, 114);
 				double queueConsumptionTime = (dlQueue * dlQueue * profile.getRlcDlRateP2()
 						+ dlQueue * profile.getRlcDlRateP1() + profile.getRlcDlRateP0()) / 1000.0f;
-				if (ts - dlTS > queueConsumptionTime)
+				if (ts - dlTS > queueConsumptionTime) {
 					dlQueue = 0;
+				}
 
 				dlQueue += size;
 				dlTS = ts;
 
 			}
 
-			return (dlQueue > profile.getRlcDlTh() || ulQueue > profile.getRlcUlTh());
+			return ((dlQueue > profile.getRlcDlTh()) || (ulQueue > profile.getRlcUlTh()));
 		}
 
 	}
@@ -785,8 +789,9 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 														// double EPS = 1e-4;
 														if (result.get(jj).getBeginTime() == t0) {
 
-															for (int k = 0; k < nn - jj + 1; k++)
+															for (int k = 0; k < nn - jj + 1; k++) {
 																result.remove(result.size() - 1);
+															}
 
 															double yy;
 															if (currTimeStamp >= t0
@@ -916,10 +921,12 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 	 */
 	private static double addStateRangeEx(List<RrcStateRange> rrc, double t, double duration,
 			RRCState state, double tMax) {
-		if (t >= tMax || duration <= 0)
+		if ((t >= tMax) || (duration <= 0)) {
 			return t;
-		if (t + duration > tMax)
+		}
+		if ((t + duration) > tMax) {
 			duration = tMax - t;
+		}
 
 		double end = t + duration;
 		rrc.add(new RrcStateRange(t, end, state));
@@ -931,16 +938,18 @@ public class RrcStateRange implements Comparable<RrcStateRange>, Serializable {
 
 		final double EPS = 1e-5;
 
-		if (duration < EPS)
+		if (duration < EPS) {
 			return;
+		}
 
 		int n = rrc.size();
 		for (int i = n - 1; i >= 0; i--) {
 			rrc.get(i).state = newState;
 			duration -= rrc.get(i).getEndTime() - rrc.get(i).getBeginTime();
 
-			if (duration > EPS)
+			if (duration > EPS) {
 				continue;
+			}
 			return;
 		}
 

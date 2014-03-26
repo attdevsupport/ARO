@@ -24,6 +24,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 import com.android.ddmlib.IDevice;
 import com.att.aro.commonui.DataCollectorFolderDialog;
@@ -116,17 +117,23 @@ public class DatacollectorBridgeNoRoot implements ImageSubscriber {
 			}
 			
 		} else {
-            //Clear All file under existing directory if files already exist
-            try{
-                String[] existingFiles = localTraceFolder.list();
-                for(int i = 0; i < existingFiles.length ; i++){
-                    File deletingFile = new File(localTraceFolder, existingFiles[i]);
-                    deletingFile.delete();
+            //ask user before overriding existing contents
+            int answer = MessageDialogFactory.showConfirmDialog(mAROAnalyzer, "Trace folder already exists, do you want to override it?", JOptionPane.YES_NO_OPTION);
+            if(answer == JOptionPane.YES_OPTION){
+                //removed existing contents
+                for(File file : localTraceFolder.listFiles()){
+                    file.delete();
                 }
-            } catch(Exception ex){
-                ex.printStackTrace();
+                //logger.info("Folder exist and user want to override => removed existing contents: "+fnames);
+            }else{
+                return;
             }
         }
+		
+		//For getting the device details
+        MobileDevice connectedDevice = new MobileDevice();
+        device = connectedDevice.getFirstAndroidDevice();
+        writeDeviceDetailsToFile();
 		
 		final String filepath = dirpath + Util.FILE_SEPARATOR + TraceData.VIDEO_MOV_FILE;
 		
@@ -144,7 +151,7 @@ public class DatacollectorBridgeNoRoot implements ImageSubscriber {
         //Add the code to setup virtual wifi .
         Thread pcapThread =  new Thread(new Runnable() {
             public void run() {
-                String tracePath = dirpath + Util.FILE_SEPARATOR + "trace.pcap";
+                String tracePath = dirpath + Util.FILE_SEPARATOR + Util.TRAFFIC_FILE;
                 winPacketCapture.startPacketCapture(tracePath); }
         });
         pcapThread.start();
@@ -170,7 +177,7 @@ public class DatacollectorBridgeNoRoot implements ImageSubscriber {
 				@Override
 				protected Object doInBackground() throws Exception {
 
-                    String tracePath = dirpath + Util.FILE_SEPARATOR + "trace.pcap";
+                    String tracePath = dirpath + Util.FILE_SEPARATOR + Util.TRAFFIC_FILE;
                     File traceFile = new File(tracePath);
 
                     //Delaying the video capture until pcap starts
@@ -182,6 +189,7 @@ public class DatacollectorBridgeNoRoot implements ImageSubscriber {
                             break;
                         }
                     }
+                    logger.info("Check flag for the video capture "+ winPacketCapture.isCancelFlag());
                     if(!winPacketCapture.isCancelFlag()){
 					    doBackgroundTask();
                     } else{
@@ -221,6 +229,7 @@ public class DatacollectorBridgeNoRoot implements ImageSubscriber {
 	}
 	
 	void doBackgroundTask(){
+        logger.info("Inside the background process ");
 		startTime = System.currentTimeMillis();
 		videoCapture.start();
 	}
@@ -265,9 +274,19 @@ public class DatacollectorBridgeNoRoot implements ImageSubscriber {
 		this.mAROAnalyzer.dataCollectorStatusCallBack(DatacollectorBridge.Status.READY);
 
         //open trace automatically when we stop the collector
-        File pcapTrace = new File(localTraceFolder + Util.FILE_SEPARATOR + "trace.pcap");
-        if(pcapTrace.exists()){
-            this.mAROAnalyzer.openTrace(pcapTrace);
+        //File pcapTrace = new File(localTraceFolder + Util.FILE_SEPARATOR + Util.TRAFFIC_FILE);
+        if(localTraceFolder.exists()){
+
+            try {
+                this.mAROAnalyzer.openTrace(localTraceFolder);
+            } catch (IOException e) {
+                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                logger.info(e.getMessage());
+               // MessageDialogFactory.showErrorDialog(null, " NO VIDEO FILE EXISTS ");
+                MessageDialogFactory.showMessageDialog(null, " NO VIDEO FILE EXISTS ");
+
+            }
+
         }
 
     }
@@ -278,4 +297,63 @@ public class DatacollectorBridgeNoRoot implements ImageSubscriber {
 			liveview.setImage(newimg);
 		}
 	}
+	
+	/**
+    * Getting the device info and writing the details into device_details text file.
+    */
+   private void writeDeviceDetailsToFile(){
+       try {
+           BufferedWriter devicedetailsWriter = new BufferedWriter(
+                   new FileWriter(new File(localTraceFolder,
+                           TraceData.DEVICEDETAILS_FILE)));
+           try {
+               // Writing device details in file.
+               final String eol = System
+                       .getProperty("line.separator");
+               final String collector = rb
+                       .getString("Emulator.datacollectorpath")
+                       .substring(
+                               rb.getString(
+                                       "Emulator.datacollectorpath")
+                                       .lastIndexOf("/") + 1);
+               devicedetailsWriter.write(collector + eol);
+               /*devicedetailsWriter.write(rb
+                       .getString("bridge.device") + eol);*/
+               String deviceModel = device.getProperty("ro.product.model");
+               devicedetailsWriter
+                       .write((deviceModel != null ? deviceModel
+                               : "")
+                               + eol);
+               String deviceManufacturer = device.getProperty("ro.product.manufacturer");
+               devicedetailsWriter
+                       .write((deviceManufacturer != null ? deviceManufacturer
+                               : "")
+                               + eol);
+               devicedetailsWriter.write(device.getProperty(device.PROP_BUILD_CODENAME) + eol);
+               devicedetailsWriter.write(rb
+                       .getString("bridge.platform") + " / ");
+               devicedetailsWriter
+                       .write(device.getProperty("ro.build.version.release")
+                               + eol);
+               devicedetailsWriter.write(" " + eol);
+
+               final int deviceNetworkType = rb
+                       .getString("bridge.network.UMTS")
+                       .equalsIgnoreCase(
+                               device.getProperty("gsm.network.type")) ? 3
+                       : -1;
+               devicedetailsWriter.write(deviceNetworkType
+                       + eol);
+           } finally {
+               devicedetailsWriter.close();
+           }
+       } catch (IOException e) {
+           if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
+               MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
+           } else {
+               CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), e.getLocalizedMessage());
+               CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
+           }
+       }
+   }
 }//end class

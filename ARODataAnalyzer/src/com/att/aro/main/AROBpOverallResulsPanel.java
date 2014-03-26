@@ -81,14 +81,18 @@ public class AROBpOverallResulsPanel extends JPanel {
 	private static final int TITLE_GRIDX_2ST_COLUMN = 3;
 
 	private DateTraceAppDetailPanel dateTraceAppDetailPanel;
-
-	private JLabel httpsPercentValueLabel;
+	
+	private JLabel totalhttpsDataLabelValue;
+	private JLabel httpsDataAnalyzedLabelValue;
+	private JLabel httpsDataNotAnalyzedLabelValue;
 	private JLabel durationValueLabel;
 	private JLabel totalDataValueLabel;
 	private JLabel energyConsumedValueLabel;
 	private JTextPane causesScoreValueLabel;
 	private JTextPane effectsScoreValueLabel;
 	private JTextPane totalAppScoreValueLabel;
+	private JPanel totalhttpsDataPanel = null;
+	private JPanel httpsDataAnalyzedPanel = null;
 
 	private ApplicationResourceOptimizer parent;
 	private Map<BestPracticeDisplayGroup, List<BPResultRowPanel>> panelMap = new HashMap<BestPracticeDisplayGroup, List<BPResultRowPanel>>();
@@ -112,7 +116,7 @@ public class AROBpOverallResulsPanel extends JPanel {
 		gridY = addTestsConductedSummary(gridY);
 		
 		pctFmt = NumberFormat.getPercentInstance();
-		pctFmt.setMaximumFractionDigits(1);
+		pctFmt.setMaximumFractionDigits(2);
 	}
 
 	/**
@@ -283,12 +287,35 @@ public class AROBpOverallResulsPanel extends JPanel {
 			nf.setMaximumFractionDigits(1);
 			nf.setMinimumFractionDigits(1);
 			nf.setMinimumIntegerDigits(1);
-			httpsPercentValueLabel.setText(MessageFormat.format(
-					RB.getString("bestPractices.percentageHTTPSValue"),
-					pctFmt.format((double)analysisData.getTotalHTTPSBytes()/analysisData.getTotalBytes()), 
-					analysisData.getTotalHTTPSBytes()/1024));
-			
 			DecimalFormat df = new DecimalFormat("#.##");
+			
+			long httpsDataNotAnalyzed = analysisData.getTotalHTTPSBytes() - analysisData.getTotalHTTPSAnalyzedBytes();
+			double httpsDataNotAnalyzedKB = (double)httpsDataNotAnalyzed/1024;
+			double httpsDataNotAnalyzedPct = (double)httpsDataNotAnalyzed/analysisData.getTotalBytes();
+			httpsDataNotAnalyzedLabelValue.setText(MessageFormat.format(
+					RB.getString("bestPractices.HTTPSDataNotAnalyzedValue"),
+					pctFmt.format(httpsDataNotAnalyzedPct), 
+					df.format(httpsDataNotAnalyzedKB)));
+			
+			if(TraceData.getCryptAdapter() == null) {
+				totalhttpsDataPanel.setVisible(false);
+				httpsDataAnalyzedPanel.setVisible(false);
+			} else {
+				totalhttpsDataPanel.setVisible(true);
+				double totalhttpsDataKB = (double)analysisData.getTotalHTTPSBytes()/1024;
+				totalhttpsDataLabelValue.setText(MessageFormat.format(
+						RB.getString("bestPractices.HTTPSDataNotAnalyzedValue"),
+						pctFmt.format((double)analysisData.getTotalHTTPSBytes()/analysisData.getTotalBytes()), 
+						df.format(totalhttpsDataKB)));
+				
+				httpsDataAnalyzedPanel.setVisible(true);
+				double httpsDataAnalyzedKB = (double)analysisData.getTotalHTTPSAnalyzedBytes()/1024;
+				httpsDataAnalyzedLabelValue.setText(MessageFormat.format(
+						RB.getString("bestPractices.HTTPSDataNotAnalyzedValue"),
+						pctFmt.format((double)analysisData.getTotalHTTPSAnalyzedBytes()/analysisData.getTotalBytes()), 
+						df.format(httpsDataAnalyzedKB)));				
+			}
+			
 			String duration = df.format(analysisData.getTraceData().getTraceDuration() / 60);
 			durationValueLabel.setText(MessageFormat.format(
 					RB.getString("bestPractices.durationValue"), duration));
@@ -317,7 +344,9 @@ public class AROBpOverallResulsPanel extends JPanel {
 				bpp.refreshFields(analysisData);
 			}
 		} else {
-			httpsPercentValueLabel.setText(null);
+			httpsDataNotAnalyzedLabelValue.setText(null);
+			totalhttpsDataLabelValue.setText(null);
+			httpsDataAnalyzedLabelValue.setText(null);
 			durationValueLabel.setText(null);
 			energyConsumedValueLabel.setText(null);
 			totalDataValueLabel.setText(null);
@@ -350,14 +379,34 @@ public class AROBpOverallResulsPanel extends JPanel {
 		statisticsHeaderLabel.setBackground(Color.WHITE);
 		statisticsHeaderLabel.setFont(HEADER_FONT);
 
-		JPanel httpsPercentPanel = new JPanel(new GridLayout(1, 2));
-		httpsPercentPanel.setBackground(Color.WHITE);
-		JLabel httpsPercentLabel = new JLabel(RB.getString("bestPractices.percentageHTTPS"));
-		httpsPercentLabel.setFont(TEXT_FONT);
-		httpsPercentValueLabel = new JLabel();
-		httpsPercentValueLabel.setFont(TEXT_FONT);
-		httpsPercentPanel.add(httpsPercentLabel);
-		httpsPercentPanel.add(httpsPercentValueLabel);
+		JPanel httpsDataNotAnalyzedPanel = new JPanel(new GridLayout(1, 2));
+		httpsDataNotAnalyzedPanel.setBackground(Color.WHITE);
+		JLabel httpsDataNotAnalyzedLabel = new JLabel(RB.getString("bestPractices.HTTPSDataNotAnalyzed"));
+		httpsDataNotAnalyzedLabel.setFont(TEXT_FONT);
+		httpsDataNotAnalyzedLabelValue = new JLabel();
+		httpsDataNotAnalyzedLabelValue.setFont(TEXT_FONT);
+		httpsDataNotAnalyzedPanel.add(httpsDataNotAnalyzedLabel);
+		httpsDataNotAnalyzedPanel.add(httpsDataNotAnalyzedLabelValue);
+		
+		totalhttpsDataPanel = new JPanel(new GridLayout(1, 2));
+		totalhttpsDataPanel.setBackground(Color.WHITE);
+		totalhttpsDataPanel.setVisible(false);
+		JLabel totalhttpsDataLabel = new JLabel(RB.getString("bestPractices.TotalHTTPSData"));
+		totalhttpsDataLabel.setFont(TEXT_FONT);
+		totalhttpsDataLabelValue = new JLabel();
+		totalhttpsDataLabelValue.setFont(TEXT_FONT);
+		totalhttpsDataPanel.add(totalhttpsDataLabel);
+		totalhttpsDataPanel.add(totalhttpsDataLabelValue);
+		
+		httpsDataAnalyzedPanel = new JPanel(new GridLayout(1, 2));
+		httpsDataAnalyzedPanel.setBackground(Color.WHITE);
+		httpsDataAnalyzedPanel.setVisible(false);
+		JLabel httpsDataAnalyzedLabel = new JLabel(RB.getString("bestPractices.HTTPSDataAnalyzed"));
+		httpsDataAnalyzedLabel.setFont(TEXT_FONT);
+		httpsDataAnalyzedLabelValue = new JLabel();
+		httpsDataAnalyzedLabelValue.setFont(TEXT_FONT);
+		httpsDataAnalyzedPanel.add(httpsDataAnalyzedLabel);
+		httpsDataAnalyzedPanel.add(httpsDataAnalyzedLabelValue);
 		
 		JPanel durationPanel = new JPanel(new GridLayout(1, 2));
 		durationPanel.setBackground(Color.WHITE);
@@ -448,7 +497,9 @@ public class AROBpOverallResulsPanel extends JPanel {
 		titlePanel.setBackground(Color.WHITE);
 		titlePanel.add(summaryFillerHeaderLabel);
 		titlePanel.add(statisticsHeaderLabel);
-		titlePanel.add(httpsPercentPanel);
+		titlePanel.add(totalhttpsDataPanel);
+		titlePanel.add(httpsDataAnalyzedPanel);
+		titlePanel.add(httpsDataNotAnalyzedPanel);
 		titlePanel.add(durationPanel);
 		titlePanel.add(totalDataPanel);
 		titlePanel.add(energyConsumedPanel);
@@ -565,7 +616,7 @@ public class AROBpOverallResulsPanel extends JPanel {
 							|| ((bp.getOverviewTitle()).equals(rb.getString("connections.offloadingToWifi.title")))
 							|| ((bp.getOverviewTitle()).equals(rb.getString("html.httpUsage.title")))
 							|| ((bp.getOverviewTitle()).equals(rb.getString("other.accessingPeripherals.title")))
-							){
+							|| (bp.isWarning(analysis))){
 						iconLabel.setIcon(WARNING_ICON);
 						iconLabel.setToolTipText(WARNING); 
 					}else {
@@ -629,14 +680,40 @@ public class AROBpOverallResulsPanel extends JPanel {
 		nf.setMaximumFractionDigits(1);
 		nf.setMinimumFractionDigits(1);
 		nf.setMinimumIntegerDigits(1);
-
-		writer = addKeyValue(writer, RB.getString("bestPractices.percentageHTTPS"),
+		DecimalFormat df = new DecimalFormat("#.##");
+		
+		if(TraceData.getCryptAdapter() != null) {
+			double totalhttpsDataKB = (double)analysisData.getTotalHTTPSBytes()/1024;
+			writer = addKeyValue(writer, RB.getString("bestPractices.TotalHTTPSData"),
+					MessageFormat.format(
+							RB.getString("exportall.csvPercentagetotalHTTPSValue"),
+							(pctFmt.format((double)analysisData.getTotalHTTPSBytes()/analysisData.getTotalBytes()))));
+			writer.append(RB.getString("statics.csvCell.seperator"));
+			writer.append(MessageFormat.format(
+					RB.getString("exportall.csvBytetotalHTTPSValue"), df.format(totalhttpsDataKB)));
+			writer.append(lineSep);
+			
+			double httpsDataAnalyzedKB = (double)analysisData.getTotalHTTPSAnalyzedBytes()/1024;
+			writer = addKeyValue(writer, RB.getString("bestPractices.HTTPSDataAnalyzed"),
+					MessageFormat.format(
+							RB.getString("exportall.csvPercentageHTTPSAnalyzedValue"),
+							pctFmt.format((double)analysisData.getTotalHTTPSAnalyzedBytes()/analysisData.getTotalBytes())));
+			writer.append(RB.getString("statics.csvCell.seperator"));
+			writer.append(MessageFormat.format(
+					RB.getString("exportall.csvByteHTTPSAnalyzedValue"), df.format(httpsDataAnalyzedKB)));
+			writer.append(lineSep);
+		}
+		
+		long httpsDataNotAnalyzed = analysisData.getTotalHTTPSBytes() - analysisData.getTotalHTTPSAnalyzedBytes();
+		double httpsDataNotAnalyzedKB = (double)httpsDataNotAnalyzed/1024;
+		double httpsDataNotAnalyzedPct = (double)httpsDataNotAnalyzed/analysisData.getTotalBytes();
+		writer = addKeyValue(writer, RB.getString("bestPractices.HTTPSDataNotAnalyzed"),
 				MessageFormat.format(
-						RB.getString("exportall.csvPercentageHTTPSValue"),
-						pctFmt.format((double)analysisData.getTotalHTTPSBytes()/analysisData.getTotalBytes())));
+						RB.getString("exportall.csvPercentageHTTPSNotAnalyzedValue"),
+						pctFmt.format(httpsDataNotAnalyzedPct)));
 		writer.append(RB.getString("statics.csvCell.seperator"));
 		writer.append(MessageFormat.format(
-				RB.getString("exportall.csvByteHTTPSValue"), analysisData.getTotalHTTPSBytes()/1024));
+				RB.getString("exportall.csvByteHTTPSNotAnalyzedValue"), df.format(httpsDataNotAnalyzedKB)));
 		writer.append(lineSep);
 
 		writer = addKeyValue(writer, RB.getString("bestPractices.duration"),

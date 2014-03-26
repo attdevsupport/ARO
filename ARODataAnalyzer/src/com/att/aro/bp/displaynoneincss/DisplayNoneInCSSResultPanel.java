@@ -91,8 +91,9 @@ public class DisplayNoneInCSSResultPanel extends JPanel implements DataTableResu
 				new Object[] { data.size() });
 		this.tableModel.setData(data);
 		noOfRecords = data.size();
-		if (bpButtonPanel != null)
+		if (bpButtonPanel != null) {
 			bpButtonPanel.setNoOfRecords(noOfRecords);
+		}
 	}
 
 	/**

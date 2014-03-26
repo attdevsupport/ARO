@@ -34,7 +34,7 @@ import com.att.aro.util.Util;
 /**
  * Image Size Best Practice.
  */
-public class ImageSizeBestPractice implements BestPracticeDisplay {
+public class ImageSizeBestPractice extends BestPracticeDisplay {
 
 	private ImageSizeResultPanel resultPanel;
 

@@ -16,7 +16,7 @@ import com.att.aro.model.TraceData;
 import com.att.aro.model.TraceData.Analysis;
 import com.att.aro.util.Util;
 
-public class SpriteImageBestPractice implements BestPracticeDisplay {
+public class SpriteImageBestPractice extends BestPracticeDisplay {
 	private SpriteImageResultPanel resultPanel;
 
 	@Override

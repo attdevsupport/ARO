@@ -15,6 +15,8 @@
  */
 package com.att.aro.pcap;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 
@@ -36,6 +38,13 @@ public class Packet implements Serializable {
 	private static final int NETMON_WIRELESSWAN = 8;
 	private static final int NETMON_RAW = 9;
 
+	private static PcapngHelper pcapng = null;
+	private synchronized static PcapngHelper getPcapng(){
+		if(pcapng == null){
+			pcapng = new PcapngHelper();
+		}
+		return pcapng;
+	}
 	/**
 	 * Returns a new instance of the Packet class, using a datalink to a Pcap file and the specified 
 	 * parameters to initialize the class members.
@@ -48,7 +57,7 @@ public class Packet implements Serializable {
 	 * @return The newly created packet.
 	 */
 	public static Packet createPacketFromPcap(int datalink, long seconds, long microSeconds, int len,
-			byte[] data) {
+			byte[] data, File pcapfile) {
 
 		// Determine network protocol
 		short network = 0;
@@ -66,6 +75,18 @@ public class Packet implements Serializable {
 			case DLT_LINUX_SLL: // Linux cooked capture (Android)
 				network = bytes.getShort(14);
 				hdrLen = 16;
+				break;
+			default:
+				if(pcapfile != null){
+					try {
+						if(Packet.getPcapng().isApplePcapng(pcapfile)){
+							network = IP;
+							hdrLen = 4;
+						}
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
 				break;
 			}
 		} catch (IndexOutOfBoundsException e) {
@@ -91,7 +112,7 @@ public class Packet implements Serializable {
 
 		// Check for PCAP datalink
 		if (datalink >= 0xe000 && datalink <= 0xefff) {
-			return createPacketFromPcap(datalink - 0xe000, seconds, microSeconds, len, data);
+			return createPacketFromPcap(datalink - 0xe000, seconds, microSeconds, len, data, null);
 		}
 		
 		// Determine network protocol

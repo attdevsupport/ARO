@@ -77,8 +77,9 @@ public class BurstAnalysisPanel extends JPanel {
 				: null);
 		burstTableModel.setData(analysis != null ? analysis.getBcAnalysis().getBurstCollection()
 				: null);
-		if (analysis == null || analysis.getProfile() == null)
+		if ((analysis == null) || (analysis.getProfile() == null)) {
 			return;
+		}
 
 		if (analysis.getProfile() instanceof ProfileLTE) {
 			tableModel.changeLTECol();
@@ -166,8 +167,9 @@ public class BurstAnalysisPanel extends JPanel {
 	public FileWriter addBurstTable(FileWriter writer) throws IOException {
 		final String lineSep = System.getProperty(rb.getString("statics.csvLine.seperator"));
 		
-		if (table == null)
+		if (table == null) {
 			return writer;
+		}
 		
 		// Write headers
 		for (int i = 0; i < table.getColumnCount(); ++i) {
@@ -197,8 +199,9 @@ public class BurstAnalysisPanel extends JPanel {
 	 */
 	public FileWriter addBurstCollectionTable(FileWriter writer) throws IOException {
 		final String lineSep = System.getProperty(rb.getString("statics.csvLine.seperator"));
-		if (burstTable == null)
+		if (burstTable == null) {
 			return writer;
+		}
 		// Write headers
 		for (int i = 0; i < burstTable.getColumnCount(); ++i) {
 			if (i > 0) {

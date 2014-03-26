@@ -83,8 +83,9 @@ public class MinificationResultPanel extends JPanel implements DataTableResultPa
 	public void setData(Collection<MinificationEntry> data) {
 		this.tableModel.setData(data);
 		noOfRecords = data.size();
-		if (bpButtonPanel != null)
+		if (bpButtonPanel != null) {
 			bpButtonPanel.setNoOfRecords(noOfRecords);
+		}
 	}
 
 	/**

@@ -36,6 +36,8 @@ public class PCapAdapter {
 	static String aroJpcapLibFileName;
 
 	private PacketListener pl;
+	
+	private File currentPcapfile = null;
 
 	/**
 	 * Checks that all necessary Pcap libraries are installed on the system
@@ -58,6 +60,7 @@ public class PCapAdapter {
 	 * @throws java.io.IOException
 	 */
 	public PCapAdapter(File file, final PacketListener pl) throws IOException {
+		currentPcapfile = file;
 		logger.fine("Creating a new instance of the PCapAdapter");
 		
 		if (pl == null) {
@@ -88,7 +91,7 @@ public class PCapAdapter {
 			int len, byte[] data) {
 		try {
 			pl.packetArrived(null, Packet.createPacketFromPcap(datalink, seconds, microSeconds,
-					len, data));
+					len, data, currentPcapfile));
 		} catch (Throwable t) {
 
 			// Log exceptions before they are returned to native code

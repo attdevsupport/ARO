@@ -746,10 +746,11 @@ public class AROVideoPlayer extends JFrame implements ActionListener {
 						return name.toLowerCase().equals("exvideo.mov");
 					}
 				});
-		if (exVideoFileMatch.length > 0)
+		if (exVideoFileMatch.length > 0) {
 			return exVideoFileMatch[0];
-		else
+		} else {
 			return null;
+		}
 	}
 
 	/**

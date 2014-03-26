@@ -82,8 +82,9 @@ public class SpriteImageResultPanel extends JPanel implements DataTableResultPan
 	public void setData(Collection<SpriteImageEntry> data) {
 		this.tableModel.setData(data);
 		noOfRecords = data.size();
-		if (bpButtonPanel != null)
+		if (bpButtonPanel != null) {
 			bpButtonPanel.setNoOfRecords(noOfRecords);
+		}
 	}
 
 	/**

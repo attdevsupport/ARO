@@ -381,16 +381,21 @@ public class PacketInfo implements Comparable<PacketInfo>, Serializable {
 	 */
 	private void setTcpFlagString(TCPPacket tcpPacket) {
 		StringBuilder strBuf = new StringBuilder();
-		if (tcpPacket.isACK())
+		if (tcpPacket.isACK()) {
 			strBuf.append("A");
-		if (tcpPacket.isPSH())
+		}
+		if (tcpPacket.isPSH()) {
 			strBuf.append("P");
-		if (tcpPacket.isRST())
+		}
+		if (tcpPacket.isRST()) {
 			strBuf.append("R");
-		if (tcpPacket.isSYN())
+		}
+		if (tcpPacket.isSYN()) {
 			strBuf.append("S");
-		if (tcpPacket.isFIN())
+		}
+		if (tcpPacket.isFIN()) {
 			strBuf.append("F");
+		}
 		strTcpFlags = strBuf.toString();
 	}
 

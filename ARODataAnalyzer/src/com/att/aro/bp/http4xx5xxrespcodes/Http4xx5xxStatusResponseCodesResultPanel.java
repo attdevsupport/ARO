@@ -95,8 +95,9 @@ public class Http4xx5xxStatusResponseCodesResultPanel extends JPanel implements 
 		LOGGER.log(Level.FINE, "setData, size: {0}",
 			new Object[] { data.size() });
 		this.tableModel.setData(data);
-		if(bpButtonPanel!=null)
-		bpButtonPanel.setNoOfRecords(noOfRecords);
+		if(bpButtonPanel!=null) {
+			bpButtonPanel.setNoOfRecords(noOfRecords);
+		}
 	}	
 	/**
 	* Returns the title label.

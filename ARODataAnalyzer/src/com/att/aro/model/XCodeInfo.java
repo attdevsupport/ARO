@@ -16,8 +16,11 @@
 package com.att.aro.model;
 
 import java.io.IOException;
+import java.util.logging.Logger;
+
 
 public class XCodeInfo {
+	private static final Logger logger = Logger.getLogger(XCodeInfo.class.getName());
 	ExternalProcessRunner runner = null;
 	public XCodeInfo(){
 		runner = new ExternalProcessRunner();
@@ -35,6 +38,7 @@ public class XCodeInfo {
 		String result = "";
 		try {
 			result = runner.runCmd(cmd);
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -43,4 +47,58 @@ public class XCodeInfo {
 		}
 		return yes;
 	}
+	/**
+	 * Find whether xcode is installed or not.
+	 * @return
+	 */
+	public boolean isXcodeAvailable(){
+		boolean flag = false;
+		String[] cmd = new String[]{"bash","-c","which xcodebuild"};
+		String xCode = "";
+		try{
+			xCode = runner.runCmd(cmd);
+			logger.info("xCode Installation Dir : "+xCode);
+		}catch(IOException ioE){
+			ioE.printStackTrace();
+		}
+		if(xCode.length() > 1){
+			flag = true;
+		}
+		return flag;
+	}
+	
+	/**
+	 * ARO is supporting version 5 and above. This is method will check for supported version.
+	 * @return
+	 */
+	public boolean isXcodeSupportedVersionInstalled(){
+		boolean supportedVersionFlag = false;
+		String[] cmd = new String[] {"bash","-c","xcodebuild -version"};
+		String xCodeVersion = "";
+		try{
+			xCodeVersion = runner.runCmd(cmd);
+			logger.info("xCode Version : "+xCodeVersion);
+		}catch(IOException ex){
+			ex.printStackTrace();
+		}
+		if(xCodeVersion.length() > 0){
+			String[] version = xCodeVersion.split("\\r?\\n");
+			String xCode = version[0];
+			String versionOfxCode = xCode.substring(xCode.indexOf(" "));
+			logger.info(" Version Code : "+versionOfxCode);
+			int versionNumber = 0;
+			try{
+				versionNumber = Integer.parseInt(versionOfxCode.substring(0, versionOfxCode.indexOf(".")).trim());
+				logger.info(" Version Number : "+versionNumber);
+			}catch(NumberFormatException e){
+				e.printStackTrace();
+			}
+			if(versionNumber >= 5){
+				supportedVersionFlag = true;
+			}
+			
+		}
+		return supportedVersionFlag;
+	}
 }//end class
+

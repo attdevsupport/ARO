@@ -16,10 +16,15 @@
 
 package com.att.aro.libimobiledevice;
 
+import java.util.logging.Logger;
+
 public class ScreencaptureImpl implements Screencapture {
+	private static final Logger logger = Logger.getLogger(ScreencaptureImpl.class.getName());
 	static { 
 		System.loadLibrary("ScreencaptureBridge");
 	}
+	private static volatile boolean isAlreadyInit = false;
+	private static volatile boolean isRunning = false;
 	/**
 	 * create screen capture service
 	 */
@@ -40,7 +45,15 @@ public class ScreencaptureImpl implements Screencapture {
 	 */
 	@Override
 	public String initService(){
-		return this.startService();
+		if(!isAlreadyInit){
+			logger.info("initService()");
+			isAlreadyInit = true;
+			isRunning = true;
+			return this.startService();
+		}else{
+			logger.info("skip initService(). It is already done");
+		}
+		return "SUCCESS";
 	}
 	/* (non-Javadoc)
 	 * @see com.att.aro.libimobiledevice.Screencapture#getScreenImage()
@@ -54,6 +67,18 @@ public class ScreencaptureImpl implements Screencapture {
 	 */
 	@Override
 	public void stopCapture(){
-		this.stopService();
+		if(isRunning){
+			try{
+				this.stopService();
+				logger.info("stopCapture()");
+			}catch(Exception ex){
+				logger.severe("Error stopping screencapture service: "+ex.getMessage());
+			}
+			isRunning = false;
+			isAlreadyInit = false;
+			
+		}else{
+			logger.info("skip stopCapture(), it was already stopped");
+		}
 	}
 }

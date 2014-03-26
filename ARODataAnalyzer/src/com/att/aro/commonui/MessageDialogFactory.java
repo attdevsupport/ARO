@@ -182,21 +182,26 @@ public class MessageDialogFactory extends JOptionPane {
 	 */
 	public static String showInputPassword(Component parent, String title, String message, int fontsize){
 		JPanel panel = new JPanel();
-		JLabel label = new JLabel(rb.getString("Message.entersudopassword")+"\r\n");
+		JLabel label = new JLabel(message+"\r\n");
 		label.setFont(new Font(label.getFont().getName(), Font.PLAIN, fontsize));
 		JPasswordField pass = new JPasswordField(10);
 		panel.add(label);
 		panel.add(pass);
+		pass.selectAll();
+		pass.requestFocusInWindow();
+		
 		String[] options = new String[]{"OK", "Cancel"};
 		
-		MessageDialogFactory.showOptionDialog(parent, panel, "Admin Right Required",
-                JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE,
+		int opt = MessageDialogFactory.showOptionDialog(parent, panel, title,
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE,
                 null, options, options[0]);
 		char[] passarr = pass.getPassword();
-		if(passarr == null){
-			return "";
+		String passwd = null; //if cancel return null else return value
+		if(opt == MessageDialogFactory.OK_OPTION){
+			passwd = new String(passarr);
 		}
-		return new String(passarr);
+
+		return passwd;
 	}
 
 }

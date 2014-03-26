@@ -22,7 +22,7 @@ import com.att.aro.util.Util;
  * Display:none Best Practice
  *
  */
-public class DisplayNoneInCSSBestPractice implements BestPracticeDisplay {
+public class DisplayNoneInCSSBestPractice extends BestPracticeDisplay {
 
 	private DisplayNoneInCSSResultPanel resultPanel;
 

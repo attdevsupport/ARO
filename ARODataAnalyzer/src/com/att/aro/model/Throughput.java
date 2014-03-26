@@ -66,8 +66,9 @@ public class Throughput implements Serializable {
 					// Set up time slot
 					endTS += thStep;
 					beginTS = endTS - thBin;
-					if (beginTS < startTime)
+					if (beginTS < startTime) {
 						continue;
+					}
 
 					// Determine the number of bytes downloaded in the
 					// current

@@ -37,10 +37,11 @@ public class PcapHelper {
 	 * @return instance of Date if availale or null
 	 */
 	public Date getFirstPacketDate(String filepath){
-		String cmd = "tcpdump -tt -r "+filepath;
+		String cmd = "tcpdump -tt -c 2 -r "+filepath;
 		String data = "";
 		try {
-			data = runner.runCmd(new String[]{"bash","-c",cmd});
+			long timeout = 3000;
+			data = runner.runCmdWithTimeout(new String[]{"bash","-c",cmd}, timeout);
 		} catch (IOException e) {
 			e.printStackTrace();
 			logger.severe(e.getMessage());

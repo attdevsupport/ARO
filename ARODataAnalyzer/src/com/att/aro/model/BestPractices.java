@@ -56,6 +56,7 @@ import com.att.aro.bp.spriteimage.SpriteImageEntry;
 import com.att.aro.bp.spriteimage.SpriteImageResultPanel;
 import com.att.aro.main.TextFileCompressionResultPanel;
 import com.att.aro.model.HttpRequestResponseInfo.Direction;
+import com.att.aro.model.TextFileCompressionAnalysis.TextCompressionAnalysisResult;
 
 /**
  * A bean class that contains the information that appears on the Best Practices
@@ -1136,32 +1137,33 @@ public class BestPractices {
 	 * 
 	 * @return File Compression test status.
 	 */
-	public boolean isTextFileCompresionTestFailed() {
-		return analysisData.getTextFileCompressionAnalysis().isTestFailed();
+	public TextCompressionAnalysisResult getTextCompressionAnalysisResult() {
+		return analysisData.getTextFileCompressionAnalysis().getTextCompressionAnalysisResult();
 	}
+	
 
 	/**
 	 * Get the number of uncompressed text file calculated as percentage.
 	 * 
 	 * @return Percentage of uncompressed text file
-	 */
+	
 	public double getFileCompressionPercentage() {
 		// obtain the results of TFC Analysis
 		TextFileCompressionAnalysis tfca = analysisData
 				.getTextFileCompressionAnalysis();
 		return tfca.getPercentage();
-	}
+	} */
 
 	/**
 	 * Get total size of all uncompressed files in kilobytes.
 	 * 
 	 * @return Percentage of uncompressed text file
 	 */
-	public double getTotalSize() {
+	public double getTotalUncompressedSizeKB() {
 		// obtain the results of TFC Analysis
 		TextFileCompressionAnalysis tfca = analysisData
 				.getTextFileCompressionAnalysis();
-		return tfca.getTotalSize();
+		return tfca.getTotalUncompressedSize();
 	}
 
 	/**
@@ -1190,8 +1192,9 @@ public class BestPractices {
 	public long getMinifyFileszsavings() {
 		Long value = analysisData.getMinificationAnalysis()
 				.getTotalSavingsInKb();
-		if (value != 0)
+		if (value != 0) {
 			value = value / 1024;
+		}
 		return value;
 	}
 
@@ -1341,4 +1344,5 @@ public class BestPractices {
 	public TraceData.Analysis getAnalysisData() {
 		return analysisData;
 	}
+	
 }

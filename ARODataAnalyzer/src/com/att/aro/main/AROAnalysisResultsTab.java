@@ -394,8 +394,9 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 
 				@Override
 				public void mouseClicked(MouseEvent e) {
-					if (!exportBtn.isEnabled())
+					if (!exportBtn.isEnabled()) {
 						return;
+					}
 					JFileChooser chooser = new JFileChooser(UserPreferences.getInstance()
 							.getLastExportDirectory());
 					chooser.addChoosableFileFilter(new FileNameExtensionFilter(rb

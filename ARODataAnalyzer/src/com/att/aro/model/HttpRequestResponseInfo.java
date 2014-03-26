@@ -64,6 +64,11 @@ public class HttpRequestResponseInfo implements
 	 * Returns HTTP version 1.1.
 	 */
 	public static final String HTTP11 = "HTTP/1.1";
+	
+	/**
+     * Returns UTF-8.
+     */
+    public static final String UTF8 = "UTF-8";
 
 	/**
 	 * Returns the GET HTTP type.
@@ -86,16 +91,16 @@ public class HttpRequestResponseInfo implements
 	private static final String CONTENT_ENCODING_NONE = Util.RB.getString("rrview.http.compression.no");
 	private static final String CONTENT_ENCODING_NA = "";
 	private static final Date BEGINNING_OF_TIME = new Date(0);
-	private static final Logger logger = Logger.getLogger(HttpRequestResponseInfo.class.getName());
-	private static final Map<String, Integer> wellKnownPorts = new HashMap<String, Integer>(5);
+	private static final Logger LOGGER = Logger.getLogger(HttpRequestResponseInfo.class.getName());
+	private static final Map<String, Integer> WELL_KNOWN_PARTS = new HashMap<String, Integer>(5);
 	private static final Pattern TEXT_CONTENT_TYPE_TEXT = Pattern.compile("^text/.*");
 	private static final Pattern TEXT_CONTENT_TYPE_XML = Pattern.compile("^application/.*xml");
 	private static final CharSequence IMAGE = Util.RB.getString("fileChooser.contentType.image");
 	
 	static {
-		wellKnownPorts.put(HTTP_SCHEME, 80);
-		wellKnownPorts.put("HTTPS", 443);
-		wellKnownPorts.put("RTSP", 554);
+	    WELL_KNOWN_PARTS.put(HTTP_SCHEME, 80);
+	    WELL_KNOWN_PARTS.put("HTTPS", 443);
+	    WELL_KNOWN_PARTS.put("RTSP", 554);
 	}
 
 	private PacketInfo.Direction packetDirection;
@@ -347,54 +352,62 @@ public class HttpRequestResponseInfo implements
 						}
 						
 						double startTime = -1;
-						double firstReqPacket = rr.firstDataPacket.getTimeStamp();
-						double lastReqPacket = rr.lastDataPacket.getTimeStamp();
-						
-						HttpRequestResponseInfo resp = rr.getAssocReqResp();
-						double firstRespPacket = resp.firstDataPacket.getTimeStamp();
-						double lastRespPacket = resp.lastDataPacket.getTimeStamp();
-	
-						// Add DNS and initial connect to fist req/resp pair only
-						Double dnsDuration = null;
-						if (dns != null) {
-							startTime = dns.doubleValue();
-							if (synTime != null) {
-								dnsDuration = synTime.doubleValue() - dns.doubleValue();
-							} else {
-								logger.warning("Found DNS connection with no initial session connection");
-								dnsDuration = firstReqPacket - dns.doubleValue();
-							}
+						//check firstDataPacket and lastDataPacket
+						if(rr.firstDataPacket != null && rr.lastDataPacket != null) {
+							double firstReqPacket = rr.firstDataPacket.getTimeStamp();
+							double lastReqPacket = rr.lastDataPacket.getTimeStamp();
 							
-							// Prevent from being added again
-							dns = null;
-						}
-						
-						Double initConnDuration = null;
-						if (synTime != null) {
-							initConnDuration = firstReqPacket - synTime;
-							if (startTime < 0.0) {
-								startTime = synTime.doubleValue();
-							}
+							HttpRequestResponseInfo resp = rr.getAssocReqResp();
 							
-							// Prevent from being added again
-							synTime = null;
-						}
+							// check getAssocReqResp firstDataPacket and lastDataPacket packet
+							if(resp != null && resp.firstDataPacket !=null && resp.lastDataPacket != null) {
+								double firstRespPacket = resp.firstDataPacket.getTimeStamp();
+								double lastRespPacket = resp.lastDataPacket.getTimeStamp();
+			
+								// Add DNS and initial connect to fist req/resp pair only
+								Double dnsDuration = null;
+								if (dns != null) {
+									startTime = dns.doubleValue();
+									if (synTime != null) {
+										dnsDuration = synTime.doubleValue() - dns.doubleValue();
+									} else {
+										LOGGER.warning("Found DNS connection with no initial session connection");
+										dnsDuration = firstReqPacket - dns.doubleValue();
+									}
+									
+									// Prevent from being added again
+									dns = null;
+								}
+								
+								Double initConnDuration = null;
+								if (synTime != null) {
+									initConnDuration = firstReqPacket - synTime;
+									if (startTime < 0.0) {
+										startTime = synTime.doubleValue();
+									}
+									
+									// Prevent from being added again
+									synTime = null;
+								}
+								
+								// Calculate request time
+								if (startTime < 0.0) {
+									startTime = firstReqPacket;
+								}
+								
+								// Store waterfall in request/response
+								if (sslNegTime != null) {
+									rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, initConnDuration, sslNegTime - firstReqPacket, 0, 0, lastRespPacket - sslNegTime);
+								} else {
+									if (firstRespPacket >= lastReqPacket) {
+										rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, initConnDuration, null, lastReqPacket - firstReqPacket, firstRespPacket - lastReqPacket, lastRespPacket - firstRespPacket);
+									} else {
+										rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, initConnDuration, null, 0, 0, lastRespPacket - firstReqPacket);
+									}
+								}
+							}// if null check end
+						}// rr check end
 						
-						// Calculate request time
-						if (startTime < 0.0) {
-							startTime = firstReqPacket;
-						}
-						
-						// Store waterfall in request/response
-						if (sslNegTime != null) {
-							rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, initConnDuration, sslNegTime - firstReqPacket, 0, 0, lastRespPacket - sslNegTime);
-						} else {
-							if (firstRespPacket >= lastReqPacket) {
-								rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, initConnDuration, null, lastReqPacket - firstReqPacket, firstRespPacket - lastReqPacket, lastRespPacket - firstRespPacket);
-							} else {
-								rr.waterfallInfos = new RequestResponseTimeline(startTime, dnsDuration, initConnDuration, null, 0, 0, lastRespPacket - firstReqPacket);
-							}
-						}
 					}
 				}
 			} /* by pass for UDP sessions.*/
@@ -480,7 +493,7 @@ public class HttpRequestResponseInfo implements
 									// CRLF at end of each chunk
 									line = readLine();
 									if (line != null && line.length() > 0) {
-										logger.warning("Unexpected end of chunk: "
+										LOGGER.warning("Unexpected end of chunk: "
 												+ line);
 									}
 								} else {
@@ -489,7 +502,7 @@ public class HttpRequestResponseInfo implements
 									// End of chunks
 									line = readLine();
 									if (line != null && line.length() > 0) {
-										logger.warning("Unexpected end of chunked data: "
+										LOGGER.warning("Unexpected end of chunked data: "
 												+ line);
 									}
 									break;
@@ -507,11 +520,11 @@ public class HttpRequestResponseInfo implements
 					// Build an absolute URI if possible
 					if (rrInfo.objUri != null && !rrInfo.objUri.isAbsolute()) {
 						try {
-							int port = Integer.valueOf(rrInfo.port).equals(wellKnownPorts.get(rrInfo.scheme)) ? -1 : rrInfo.port;
+							int port = Integer.valueOf(rrInfo.port).equals(WELL_KNOWN_PARTS.get(rrInfo.scheme)) ? -1 : rrInfo.port;
 							rrInfo.objUri = new URI(rrInfo.scheme.toLowerCase(), null, rrInfo.hostName, port, rrInfo.objUri.getPath(), rrInfo.objUri.getQuery(), rrInfo.objUri.getFragment());
 						} catch (URISyntaxException e) {
 							// Just log fine message
-							logger.log(Level.FINE, "Unexpected exception creating URI for request: " + e.getMessage()+
+							LOGGER.log(Level.FINE, "Unexpected exception creating URI for request: " + e.getMessage()+
 									". Scheme=" + rrInfo.scheme.toLowerCase() +",Host name="+ rrInfo.hostName
 									+",Path=" + rrInfo.objUri.getPath() + ",Fragment="+ rrInfo.objUri.getFragment());
 							
@@ -520,7 +533,7 @@ public class HttpRequestResponseInfo implements
 					
 					result.add(rrInfo);
 					if (rrInfo.getDirection() == null) {
-						logger.warning("Request/response object has unknown direction");
+						LOGGER.warning("Request/response object has unknown direction");
 					}
 					rrInfo = findNextRequestResponse(direction, packetOffsets);
 				} else {
@@ -549,10 +562,10 @@ public class HttpRequestResponseInfo implements
 
 			// Determine the packets that make up the request/response
 			rrInfo.firstDataPacket = determineDataPacketAtIndex(packetOffsets,
-					start);
+					start, direction);
 
 			rrInfo.lastDataPacket = determineDataPacketAtIndex(
-					packetOffsets, counter - 1);
+					packetOffsets, counter - 1, direction);
 // Removed because this logic is not totally correct and is currently not needed
 //			long startSeq = ((TCPPacket) rrInfo.firstDataPacket.getPacket())
 //					.getSequenceNumber();
@@ -583,9 +596,25 @@ public class HttpRequestResponseInfo implements
 		 *         else null.
 		 */
 		private PacketInfo determineDataPacketAtIndex(
-				SortedMap<Integer, PacketInfo> packetOffsets, int index) {
+				SortedMap<Integer, PacketInfo> packetOffsets, int index, PacketInfo.Direction direction) {
 
 			// Determine the packets that make up the request/response
+			for (SortedMap.Entry<Integer, PacketInfo> entry : packetOffsets
+					.entrySet()) {
+				int packetOffset = entry.getKey().intValue();
+				if (index >= packetOffset
+						&& index < packetOffset
+								+ entry.getValue().getPayloadLen()) {
+					return entry.getValue();
+				}
+			}
+			
+			if(direction == PacketInfo.Direction.UPLINK && this.session.getStorageUlEx() != null) {
+				index = this.session.getStorageUlEx().length - 1;
+			} else if(direction == PacketInfo.Direction.DOWNLINK && this.session.getStorageDlEx() != null) {
+				index = this.session.getStorageDlEx().length - 1;
+			}
+			
 			for (SortedMap.Entry<Integer, PacketInfo> entry : packetOffsets
 					.entrySet()) {
 				int packetOffset = entry.getKey().intValue();
@@ -619,7 +648,7 @@ public class HttpRequestResponseInfo implements
 						if (b == '\n') {
 
 							// Return found line of text
-							return new String(output.toByteArray(), "UTF-8");
+							return new String(output.toByteArray(), UTF8);
 						} else {
 							output.write('\r');
 							output.write(b);
@@ -632,7 +661,7 @@ public class HttpRequestResponseInfo implements
 
 				// End of stream
 				return output.size() > 0 ? new String(output.toByteArray(),
-						"UTF-8") : null;
+						UTF8) : null;
 			} finally {
 				output.close();
 			}
@@ -712,8 +741,9 @@ public class HttpRequestResponseInfo implements
 					if (session.isSsl()) {
 						rrInfo.ssl = true;
 					}
-					while ((line = readLine()) != null && line.length() > 0)
+					while ((line = readLine()) != null && line.length() > 0) {
 						;
+					}
 					rrInfo.rawSize = counter - index;
 					switch (direction) {
 					case UPLINK:
@@ -772,7 +802,7 @@ public class HttpRequestResponseInfo implements
 					rrInfo.contentLength = Integer.parseInt(headerLine.substring(matcher.end()).trim());
 				}catch(NumberFormatException e) {
 					/* The value exceeds the Interger.MAX_VALUE i.e 2^31-1=2147483647*/
-					logger.log(Level.FINE, "Cannot parse the string to int for contentLength,because"
+					LOGGER.log(Level.FINE, "Cannot parse the string to int for contentLength,because"
 							+ " The value to parse is :" 
 							+ (headerLine.substring(matcher.end()).trim()) 
 							+ " which is greater than the Integer.MAX_VALUE (2^31-1=2147483647).");
@@ -940,7 +970,7 @@ public class HttpRequestResponseInfo implements
 					}catch(NumberFormatException e) {
 					/* The value exceeds the Interger.MAX_VALUE i.e 2^31-1=2147483647.
 					 * Continue.*/
-					logger.log(Level.FINE, "Cannot parse the string to int for rangeLast,because"
+					LOGGER.log(Level.FINE, "Cannot parse the string to int for rangeLast,because"
 							+ " The value to parse is :" 
 							+ matcher.group(2)
 							+ " which is greater than the Integer.MAX_VALUE (2^31-1=2147483647).");
@@ -963,7 +993,7 @@ public class HttpRequestResponseInfo implements
 					try {
 						rrInfo.referrer = new URI(matcher.group(1).trim());
 					} catch (URISyntaxException e) {
-						logger.fine("Invalid referrer URI: "
+						LOGGER.fine("Invalid referrer URI: "
 								+ matcher.group(1));
 					}
 					return;
@@ -985,7 +1015,7 @@ public class HttpRequestResponseInfo implements
 
 			}
 			
-			logger.log(Level.FINEST, "found a line that was not parsed: {0}", headerLine);
+			LOGGER.log(Level.FINEST, "found a line that was not parsed: {0}", headerLine);
 		}
 
 		private void appendHeaderToHttpRequestResponseInfo(String line, HttpRequestResponseInfo rrInfo) {
@@ -1045,7 +1075,7 @@ public class HttpRequestResponseInfo implements
 				return BEGINNING_OF_TIME;
 			}
 			
-			logger.fine("Unable to parse HTTP date: " + value);
+			LOGGER.fine("Unable to parse HTTP date: " + value);
 			return null;
 		}
 
@@ -1566,21 +1596,26 @@ public class HttpRequestResponseInfo implements
 			if (buffer == null) {
 				return null;
 			}
-
-			ByteArrayOutputStream output = new ByteArrayOutputStream(
-					(int) getActualByteCount());
+			
+			ByteArrayOutputStream output = null;
 			for (Map.Entry<Integer, Integer> entry : contentOffsetLength
 					.entrySet()) {
 				int start = entry.getKey();
 				int size = entry.getValue();
-				if (buffer.length < start + size) {
-					throw new ContentException("The content may be corrupted.");
+				if( start + size < 0) {
+				       throw new ContentException("The content may be too big.");
+				} else if (buffer.length < start + size) {
+				       throw new ContentException("The content may be corrupted.");
 				}
+
 				for (int i = start; i < start + size; ++i) {
+				    if (output == null) {
+				        output = new ByteArrayOutputStream((int) getActualByteCount());
+				    }
 					output.write(buffer[i]);
 				}
 			}
-			if (CONTENT_ENCODING_GZIP.equals(contentEncoding)) {
+			if (CONTENT_ENCODING_GZIP.equals(contentEncoding) && output != null) {
 
 				// Decompress gzipped content
 				GZIPInputStream gzip=null;
@@ -1608,10 +1643,14 @@ public class HttpRequestResponseInfo implements
 							throw ex;
 						}
 					}
-					logger.log(Level.FINE, " IOException !!.The file may be corrupt." + ioe.getMessage());
+					LOGGER.log(Level.FINE, " IOException !!.The file may be corrupt." + ioe.getMessage());
 				}
 			}
-			return output.toByteArray();
+			if (output != null) {
+			    return output.toByteArray();
+			} else {
+			    return new byte[0];
+			}
 		} else {
 			return null;
 		}
@@ -1840,7 +1879,7 @@ public class HttpRequestResponseInfo implements
 	public String getContentString() throws ContentException, IOException {
 		byte[] content = getContent();
 		return content != null ? new String(content, charset != null ? charset
-				: "UTF-8") : null;
+				: UTF8) : null;
 	}
 
 	/**
@@ -1854,11 +1893,11 @@ public class HttpRequestResponseInfo implements
 			return null;
 		}
 		try {
-			return new String(storage, rrStart, rawSize, "UTF-8");
+			return new String(storage, rrStart, rawSize, UTF8);
 		} catch (UnsupportedEncodingException e) {
 
 			// This should not happen because UTF-8 is valid encoding
-			logger.log(Level.SEVERE, "Unexpected error creating request/response string", e);
+			LOGGER.log(Level.SEVERE, "Unexpected error creating request/response string", e);
 			return null;
 		}
 	}
@@ -1877,7 +1916,7 @@ public class HttpRequestResponseInfo implements
 		default:
 
 			// This should not happen because value is checked on construction
-			logger.severe("Packet direction for request/response is has unexpected value");
+			LOGGER.severe("Packet direction for request/response is has unexpected value");
 			return null;
 		}
 
@@ -1938,9 +1977,9 @@ public class HttpRequestResponseInfo implements
 				// the content should be compressed but is not
 				textFileCompression = TextFileCompression.NONE;
 				
-				if(contentLength > 850) {
+				if(contentLength > TextFileCompressionAnalysis.FILE_SIZE_THRESHOLD_BYTES) {
 					textFileCompressionAnalysis.incrementNoOfUncompressedFiles();
-					textFileCompressionAnalysis.addToTotalSize(contentLength);
+					textFileCompressionAnalysis.addToTotalUncompressedSize(contentLength);
 					rsp = true;
 				} else {
 					textFileCompressionAnalysis.incrementNoOfCompressedFiles();
@@ -1982,11 +2021,7 @@ public class HttpRequestResponseInfo implements
 	 * @return Returns true if the content type is text/html otherwise return false;
 	 */
 	boolean isContentTypeTextHtml(String contentType){
-		if (contentType.equalsIgnoreCase("text/html")) {
-			return true;
-		} else {
-			return false;
-		}
+		return (contentType.equalsIgnoreCase("text/html"));
 	}
 	
 	public org.jsoup.nodes.Document parseHtml(FileOrderAnalysis fileOrderAnalysis){
@@ -2000,10 +2035,10 @@ public class HttpRequestResponseInfo implements
 					try {
 						packetContent = this.getContentString();
 					} catch (ContentException e) {
-						logger.log(Level.FINE,
+						LOGGER.log(Level.FINE,
 								"ContentException in parseHtml()");
 					} catch (IOException e) {
-						logger.log(Level.FINE, "IOExecption in parseHtml()");
+						LOGGER.log(Level.FINE, "IOExecption in parseHtml()");
 					}
 					if (packetContent != null) {
 						doc = Jsoup.parse(packetContent);
@@ -2011,9 +2046,9 @@ public class HttpRequestResponseInfo implements
 				}
 			}
 		} catch (ContentException e) {
-			logger.log(Level.FINE,"ContentException in parseHtml()");
+			LOGGER.log(Level.FINE,"ContentException in parseHtml()");
 		} catch (IOException e) {
-			logger.log(Level.FINE,"IOExecption in parseHtml()");
+			LOGGER.log(Level.FINE,"IOExecption in parseHtml()");
 		}
 			if (doc != null) {
 				return doc;
@@ -2070,13 +2105,9 @@ public class HttpRequestResponseInfo implements
 	 */
 	public static boolean isJavaScript(String contentType) {
 
-		if (contentType.equals("application/ecmascript") ||
+		return (contentType.equals("application/ecmascript") ||
 			contentType.equals("application/javascript") ||
-			contentType.equals("text/javascript")) {
-			return true;
-		} else {
-			return false;
-		}
+			contentType.equals("text/javascript"));
 	}
 	
 	/**

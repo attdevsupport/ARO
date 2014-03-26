@@ -230,6 +230,10 @@ public abstract class DataTableModel<T> extends AbstractTableModel {
 	 * @return The index of the specified item, or -1 if the item is not found.
 	 */
 	public int indexOf(T item) {
+		if (this.data == null || this.data.isEmpty()){
+			return -1;
+		}
+		
 		return this.data.indexOf(item);
 	}
 

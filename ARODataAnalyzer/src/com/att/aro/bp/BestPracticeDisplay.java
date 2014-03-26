@@ -25,35 +25,39 @@ import com.att.aro.main.ApplicationResourceOptimizer;
 import com.att.aro.model.TraceData;
 
 /**
- * Defines the interface for a best practice.  Developers may create new ARO 
- * best practices by creating classes that implement this interface.
+ * Defines the abstract class for a best practice.  Developers may create new ARO 
+ * best practices by creating classes that extends this class.
+ * 
+ * Because of limited time, note that this was originally an interface, but temporarily changed to an abstract
+ * class to make it work with the Text Compression US197546 that requires 3 status
+ * (Pass, Fail, Warning). We'll have to refactor later.
  */
-public interface BestPracticeDisplay {
+public abstract class BestPracticeDisplay {
 
 	/**
 	 * Returns the title of the best practice displayed in the tests conducted
 	 * list on the Best Practices page.
 	 * @return the title string
 	 */
-	String getOverviewTitle();
+	public abstract String getOverviewTitle();
 
 	/**
 	 * Returns the title of the best practice that is displayed in the detail panel for the best practice group.
 	 * @return The title string.
 	 */
-	String getDetailTitle();
+	public abstract String getDetailTitle();
 
 	/**
 	 * Indicates whether this best practice is a manual test.
 	 * @return true if best practice is a self test
 	 */
-	boolean isSelfTest();
+	public abstract boolean isSelfTest();
 
 	/**
 	 * Returns the detailed About description of the best practice that is displayed in the detail panel for the best practice group.
 	 * @return The text string that is the About description.
 	 */
-	String getAboutText();
+	public abstract String getAboutText();
 
 	/**
 	 * Allows a best practice to indicate a link for more detailed information
@@ -61,7 +65,7 @@ public interface BestPracticeDisplay {
 	 * "Learn More" link in the detail panel.
 	 * @return The "Learn More" URI or null if one does not exist.
 	 */
-	URI getLearnMoreURI();
+	public abstract URI getLearnMoreURI();
 	
 	/**
 	 * Returns a value that indicates whether the specified best practices
@@ -72,7 +76,18 @@ public interface BestPracticeDisplay {
 	 * @return A boolean value that is "true" if the best practices test has passed, 
 	 * 		   and "false" otherwise.
 	 */
-	boolean isPass(TraceData.Analysis analysis);
+	public abstract boolean isPass(TraceData.Analysis analysis);
+	
+	/**
+	 * Added for US197546 Text Compression to temporarily handle the 3-status
+	 * case of Pass, Warning, Fail. Will return false by default, and will be
+	 * overriden in the BPTextFileCompression class
+	 * @param analysis
+	 * @return
+	 */
+	public boolean isWarning(TraceData.Analysis analysis){
+		return false;
+	}
 
 	/**
 	 * Returns a string containing the results of the best practices test based on the 
@@ -82,7 +97,7 @@ public interface BestPracticeDisplay {
 	 * 
 	 * @return A string containing the test results.
 	 */
-	String resultText(TraceData.Analysis analysisData);
+	public abstract String resultText(TraceData.Analysis analysisData);
 
 	/**
 	 * This method is used to allow the best practice to do something within the 
@@ -91,7 +106,7 @@ public interface BestPracticeDisplay {
 	 * failed test.  This method is never called for a self-test.
 	 * @param parent The ARO parent window that is displaying current analysis
 	 */
-	void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent);
+	public abstract void performAction(HyperlinkEvent h, ApplicationResourceOptimizer parent);
 
 	/**
 	 * Allows the developer to include extra information when a best practice
@@ -102,7 +117,7 @@ public interface BestPracticeDisplay {
 	 * @return A list of items to be included in the export or null if no extra
 	 * information is necessary.
 	 */
-	List<BestPracticeExport> getExportData(TraceData.Analysis analysisData);
+	public abstract List<BestPracticeExport> getExportData(TraceData.Analysis analysisData);
 	
 	/**
 	 * Returns results of the test.
@@ -110,6 +125,6 @@ public interface BestPracticeDisplay {
 	 * 
 	 * @return Results
 	 */
-	JPanel getTestResults();
+	public abstract JPanel getTestResults();
 
 }

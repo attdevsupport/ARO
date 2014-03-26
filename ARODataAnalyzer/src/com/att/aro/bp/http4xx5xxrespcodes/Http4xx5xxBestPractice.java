@@ -17,6 +17,8 @@ package com.att.aro.bp.http4xx5xxrespcodes;
 
 import java.util.Map;
 
+import javax.swing.JPanel;
+
 import com.att.aro.model.BestPractices;
 import com.att.aro.model.HttpRequestResponseInfo;
 
@@ -26,7 +28,7 @@ import com.att.aro.model.HttpRequestResponseInfo;
  * @author ns5254
  * 
  */
-public class Http4xx5xxBestPractice extends HttpRspCdBestPractice {
+public class Http4xx5xxBestPractice extends com.att.aro.bp.httprspcd.HttpRspCdBestPractice {
 	private final static String RB_KEY = "http4xx5xx";
 
 	/**
@@ -53,5 +55,14 @@ public class Http4xx5xxBestPractice extends HttpRspCdBestPractice {
 		} else {
 			return null;
 		}
+	}
+	
+	@Override
+	public JPanel getResultPanel() {
+		if(this.resultPanel == null) {
+			this.resultPanel = new Http4xx5xxStatusResponseCodesResultPanel();
+		}
+
+		return this.resultPanel;
 	}
 }

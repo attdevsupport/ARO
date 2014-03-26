@@ -153,10 +153,7 @@ public class FileOrderAnalysis {
 	 * @return failed/success test indicator
 	 */
 	public boolean isTestFailed() {
-		if (getFileOrderCount() > 0)
-			return true;
-		else
-			return false;
+		return (getFileOrderCount() > 0);
 	}
 
 	/**

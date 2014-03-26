@@ -91,8 +91,9 @@ public class DuplicateResultPanel extends JPanel implements DataTableResultPanel
 				new Object[] { data.size() });
 		this.tableModel.setData(data);
 		noOfRecords = data.size();
-		if (bpButtonPanel != null)
+		if (bpButtonPanel != null) {
 			bpButtonPanel.setNoOfRecords(noOfRecords);
+		}
 	}
 
 	/**

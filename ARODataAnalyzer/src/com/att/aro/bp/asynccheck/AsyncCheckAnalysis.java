@@ -101,9 +101,10 @@ public class AsyncCheckAnalysis {
 						} else {
 							incrementSyncLoadedScripts();
 						}
-					} else
+					} else {
 						LOGGER.log(Level.FINE,
 								"The <SCRIPT> element doesn't download any javascript files");
+					}
 				}
 			} catch (Exception e) {
 				LOGGER.log(Level.FINE, "Exception while parsing the html file");
@@ -202,11 +203,7 @@ public class AsyncCheckAnalysis {
 	 * @return failed/success test indicator
 	 */
 	public boolean isTestFailed() {
-
-		if (getSyncPacketCount() > 0)
-			return true;
-		else
-			return false;
+		return (getSyncPacketCount() > 0);
 	}
 
 	/**

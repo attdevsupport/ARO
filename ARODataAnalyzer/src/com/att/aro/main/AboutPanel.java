@@ -103,12 +103,13 @@ public class AboutPanel extends JPanel {
 			JLabel brandLabel = new JLabel(Images.BRAND.getIcon());
 			JLabel swLabel = new JLabel(rb.getString("About.built"),
 					SwingConstants.CENTER);
-			JPanel vPanel = new JPanel(new GridLayout(4, 1));
+			JPanel vPanel = new JPanel(new GridLayout(5, 1));
 			vPanel.setBackground(Color.WHITE);
 			vPanel.add(titleLabel);
 			vPanel.add(buildLabel);
 			vPanel.add(swLabel);
 			vPanel.add(getJReleaseNotePanel());
+	        vPanel.add(getJSupportPanel());
 
 			aboutPanel = new JPanel();
 			Insets insets = new Insets(10, 0, 10, 0);
@@ -151,4 +152,29 @@ public class AboutPanel extends JPanel {
 		return releaseNoteLabel;
 	}
 
+	/**
+     * Creates the support click-able label on the about dialog
+     */
+    private JLabel getJSupportPanel() {
+        HyperlinkLabel supportLabel = new HyperlinkLabel(
+                rb.getString("About.supportUrl"), SwingConstants.CENTER);
+        Font font = supportLabel.getFont();
+        Map<TextAttribute, Object> map = new Hashtable<TextAttribute, Object>();
+        map.put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON);
+        font = font.deriveFont(map);
+        supportLabel.setFont(font);
+        supportLabel.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    BrowserGenerator.openBrowser(rb
+                            .getString("About.supportUrl"));
+                } catch (IOException ex) {
+                    MessageDialogFactory.showUnexpectedExceptionDialog(
+                            AboutPanel.this, ex);
+                }
+            }
+        });
+        return supportLabel;
+    }
 }

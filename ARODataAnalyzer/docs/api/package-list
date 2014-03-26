@@ -24,6 +24,7 @@ com.att.aro.model.cpu
 com.att.aro.pcap
 com.att.aro.pcap.windows
 com.att.aro.plugin
+com.att.aro.ssl
 com.att.aro.util
 com.att.aro.video
 com.att.aro.videocapture

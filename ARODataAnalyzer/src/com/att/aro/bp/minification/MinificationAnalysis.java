@@ -157,65 +157,71 @@ public class MinificationAnalysis {
 		String contentType;
 		// loop through TCP session
 		for (TCPSession tcpSession : tcpSessions) {
+			
+			/*Taking this variable inside TCPSession FOR loop because after analyzing the content, 
+			we should always reset lastRequestObj to null for a different TCP session.*/
+			HttpRequestResponseInfo lastRequestObj = null;
+			
 			// loop through HTTP requests and responses
 			for (HttpRequestResponseInfo rr : tcpSession
 					.getRequestResponseInfo()) {
-
 				contentType = rr.getContentType();
 				if ((rr.getDirection() == Direction.RESPONSE)
 						&& (rr.getContentLength() != 0)
 						&& (contentType != null)) {
 
 					try {
-						analyzeContent(rr, contentType);
+						analyzeContent(rr, lastRequestObj, contentType);
 					} catch (Exception e) {
 						LOGGER.log(
 								Level.FINE,
 								"MinificationAnalysis - Unexpected Exception {0}",
 								e.getMessage());
 					}
+				} else if (rr.getDirection() == Direction.REQUEST) {
+					lastRequestObj = rr;
 				}
 			}
 		}
 	}
 
-	private void analyzeContent(HttpRequestResponseInfo rr, String contentType)
+	private void analyzeContent(HttpRequestResponseInfo rr, HttpRequestResponseInfo lastRequestObj, String contentType)
 			throws Exception {
 
 		if (HttpRequestResponseInfo.isJavaScript(contentType)) {
-			analyzeJavaScript(rr);
+			analyzeJavaScript(rr, lastRequestObj);
 
 		} else if (HttpRequestResponseInfo.isCss(contentType)) {
-			analyzeCss(rr);
+			analyzeCss(rr, lastRequestObj);
 
 		} else if (HttpRequestResponseInfo.isHtml(contentType)) {
-			analyzeHtml(rr);
+			analyzeHtml(rr, lastRequestObj);
 		}else if ( HttpRequestResponseInfo.isJSON(contentType)){
-			analyzeJSON(rr);
+			analyzeJSON(rr, lastRequestObj);
 		}
 	}
 
-	private void analyzeJSON(HttpRequestResponseInfo rr) throws IOException {
+	private void analyzeJSON(HttpRequestResponseInfo rr, HttpRequestResponseInfo lastRequestObj) throws IOException {
 		savePayloadToTmpFile(rr);
 		runJsonMinify();
-		evaluateMinificationSavings(rr, getMinificationFileSizeSaving(),tmpOriginalFile.length()-tmpMinifiedFile.length());
+		evaluateMinificationSavings(rr, lastRequestObj, getMinificationFileSizeSaving(),tmpOriginalFile.length()-tmpMinifiedFile.length());
 	}
 
-	private void analyzeJavaScript(HttpRequestResponseInfo rr) throws Exception {
+	private void analyzeJavaScript(HttpRequestResponseInfo rr, HttpRequestResponseInfo lastRequestObj) throws Exception {
 		savePayloadToTmpFile(rr);
 		runJavaScriptMinify(IS_JAVA_SCRIPT);
-		evaluateMinificationSavings(rr, getMinificationFileSizeSaving(),tmpOriginalFile.length()-tmpMinifiedFile.length());
+		evaluateMinificationSavings(rr, lastRequestObj, getMinificationFileSizeSaving(),tmpOriginalFile.length()-tmpMinifiedFile.length());
 	}
 
-	private void analyzeCss(HttpRequestResponseInfo rr) throws Exception {
+	private void analyzeCss(HttpRequestResponseInfo rr, HttpRequestResponseInfo lastRequestObj) throws Exception {
 		savePayloadToTmpFile(rr);
 		runJavaScriptMinify(IS_CSS);
-		evaluateMinificationSavings(rr, getMinificationFileSizeSaving(),tmpOriginalFile.length()-tmpMinifiedFile.length());
+		evaluateMinificationSavings(rr, lastRequestObj, getMinificationFileSizeSaving(),tmpOriginalFile.length()-tmpMinifiedFile.length());
 	}
 
-	private void analyzeHtml(HttpRequestResponseInfo rr) throws IOException, ContentException {
+	private void analyzeHtml(HttpRequestResponseInfo rr, HttpRequestResponseInfo lastRequestObj) throws IOException, ContentException {
 		htmlMinificationResult result = runHtmlMinify(rr); 
-		evaluateMinificationSavings(rr, getMinificationFileSizeSaving(result.originalSize, result.minifiedSize),new Long(result.originalSize-result.minifiedSize));
+		evaluateMinificationSavings(rr, lastRequestObj, getMinificationFileSizeSaving(result.originalSize, result.minifiedSize),new Long(result.originalSize-result.minifiedSize));
 	}
 
 	private void savePayloadToTmpFile(HttpRequestResponseInfo rr)
@@ -304,9 +310,9 @@ public class MinificationAnalysis {
 		return result;
 	}
 
-	private void evaluateMinificationSavings(HttpRequestResponseInfo rr, int saving,Long savingzinKb) {
+	private void evaluateMinificationSavings(HttpRequestResponseInfo rr, HttpRequestResponseInfo lastRequestObj, int saving,Long savingzinKb) {
 		if(saving > MIN_FILE_COMPRESSION) {
-			this.analysisResults.add(new MinificationEntry(rr, saving,savingzinKb.intValue()));
+			this.analysisResults.add(new MinificationEntry(rr, lastRequestObj, saving,savingzinKb.intValue()));
 			LOGGER.log(Level.FINE, "minify the file");
 		} else {
 			totalSavingsInKb-=savingzinKb;

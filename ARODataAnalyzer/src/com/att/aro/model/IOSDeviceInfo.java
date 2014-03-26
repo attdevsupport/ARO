@@ -34,6 +34,8 @@ public class IOSDeviceInfo {
 	ExternalProcessRunner runner;
 	Map<String,String> list;
 	String buildversion;
+	boolean foundrealscreensize = false;
+	String currentFilepath = "";
 	public IOSDeviceInfo(){
 		list = new HashMap<String,String>();
 		String dir = Util.getCurrentRunningDir();
@@ -48,6 +50,21 @@ public class IOSDeviceInfo {
 		buildversion = buildBundle.getString("build.majorversion");
 	}
 	/**
+	 * check if a device is password protected
+	 * @param deviceId
+	 * @return
+	 * @throws IOException
+	 */
+	public boolean isPasswordProtected(String deviceId) throws IOException{
+		String data = getDeviceData(deviceId);
+		readData(data);
+		String pass = list.get("PasswordProtected");
+		if(pass != null && pass.toLowerCase().trim().equals("true")){
+			return true;
+		}
+		return false;
+	}
+	/**
 	 * Get device info by UDID
 	 * @param deviceId is UDID for IOS device
 	 * @return
@@ -58,42 +75,66 @@ public class IOSDeviceInfo {
 			logger.info("bin/libimobiledevice/ideviceinfo is not found.");
 			return false;
 		}
-		String[] cmds = new String[]{"bash","-c", exepath,"-u "+deviceId};
 		String data = null;
+		this.currentFilepath = filepath;
 		try {
-			data = runner.runCmd(cmds);
-			//logger.info(data);
+			data = getDeviceData(deviceId);
 			readData(data);
 			writeData(filepath);
 			return true;
 		} catch (IOException e) {
 			e.printStackTrace();
+			logger.severe(e.getMessage());
 		}
 		return false;
 	}
+	private String getDeviceData(String deviceId) throws IOException{
+		String[] cmds = new String[]{"bash","-c", exepath,"-u "+deviceId};
+		String data = runner.runCmd(cmds);
+		return data;
+	}
+	
+	/**
+	 * For getting the Device Version. Used for prompt a message to the user.
+	 * @return
+	 */
+	public String getDeviceVersion(){
+		String deviceVersion = "0";
+		if(list != null){
+			deviceVersion = list.get("ProductVersion"); //Since list get when device info called
+		}
+		return deviceVersion;
+	}
+	
 	private void readData(String data){
 		String[] arr = data.split("\\r?\\n");
 		String[] tokens;
 		String key,value;
 		for(String line : arr){
 			tokens = line.split(":");
-			key = tokens[0].trim();
-			value = tokens[1].trim();
-			list.put(key, value);
+			if(tokens.length > 1){
+				key = tokens[0].trim();
+				value = tokens[1].trim();
+				list.put(key, value);
+			}
 		}
 	}
 	private void writeData(String filepath){
 		try {
 			File file = new File(filepath);
+			if(file.exists()){
+				file.delete();
+			}
 			FileWriter writer = new FileWriter(file,false);
             BufferedWriter bw = new BufferedWriter(writer);
             bw.write("ARO Analyzer/IOS");
             bw.newLine();
             
+            String deviceType;
             String val;
-    		val = list.get("ProductType");
-    		if(val != null){
-    			bw.write(val);
+    		deviceType = list.get("ProductType");
+    		if(deviceType != null){
+    			bw.write(deviceType);
     		}else{
     			bw.write("Unknown");
     		}
@@ -119,10 +160,44 @@ public class IOSDeviceInfo {
     		bw.write("0");
     		bw.newLine();
     		
+    		val = list.get("ScreenResolution");
+    		if(val == null){
+    			bw.write(getScreensize(deviceType));
+    		}else{
+    			bw.write(val);
+    		}
+    		bw.newLine();
+    		
             bw.close();
 		} catch (Exception e) {
 		}
 		
 		
+	}
+	public void updateScreensize(int width, int height){
+		if(width > height){
+			list.put("ScreenResolution", height + "*"+width);
+		}else{
+			list.put("ScreenResolution", width + "*"+height);
+		}
+		writeData(this.currentFilepath);
+		this.foundrealscreensize = true;
+	}
+	public boolean foundScreensize(){
+		return this.foundrealscreensize;
+	}
+	private String getScreensize(String deviceType){
+		this.foundrealscreensize = true;
+		if(deviceType.contains("iPhone5") || deviceType.contains("iPhone6")){
+			return "640*1136";
+		}else if(deviceType.contains("iPhone4")){
+			return "640*960";
+		}else if(deviceType.contains("iPad2")){
+			return "768*1024";
+		}else if(deviceType.contains("iPad3")){
+			return "1536*2048";
+		}
+		this.foundrealscreensize = false;
+		return "640*960";
 	}
 }

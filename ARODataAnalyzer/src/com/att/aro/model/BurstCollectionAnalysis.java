@@ -381,8 +381,9 @@ public class BurstCollectionAnalysis implements Serializable {
 		List<RrcStateRange> promoDelays = new ArrayList<RrcStateRange>();
 		for (RrcStateRange rrc : analysis.getRrcStateMachine().getRRcStateRanges()) {
 			RRCState state = rrc.getState();
-			if (state == RRCState.PROMO_FACH_DCH || state == RRCState.PROMO_IDLE_DCH)
+			if ((state == RRCState.PROMO_FACH_DCH) || (state == RRCState.PROMO_IDLE_DCH)) {
 				promoDelays.add(rrc);
+			}
 		}
 		Collections.sort(promoDelays);
 		PacketTimestamp[] timeStampList = new PacketTimestamp[packets.size()];
@@ -676,8 +677,10 @@ public class BurstCollectionAnalysis implements Serializable {
 			final double USER_EVENT_SMALL_TOLERATE = profile.getUserInputTh();
 			if (burstPayloadLen > 0) {
 				UserEvent ue = null;
-				while ((userEventPointer < userEventsSize) && ((ue = userEvents.get(userEventPointer)).getReleaseTime() < (time0 - USER_EVENT_TOLERATE)))
+				while ((userEventPointer < userEventsSize)
+						&& ((ue = userEvents.get(userEventPointer)).getReleaseTime() < (time0 - USER_EVENT_TOLERATE))) {
 					++userEventPointer;
+				}
 				
 				BurstCategory userInputBurst = (ue != null) ? ((ue.getEventType() == UserEventType.SCREEN_LANDSCAPE || ue
 						.getEventType() == UserEventType.SCREEN_PORTRAIT) ? BurstCategory.SCREEN_ROTATION

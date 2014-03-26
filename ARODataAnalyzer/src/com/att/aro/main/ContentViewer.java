@@ -117,11 +117,10 @@ public class ContentViewer {
 	public void saveContent(Component parent,
 			HttpRequestResponseInfo httpReqResInfo) {
 		String contentType = httpReqResInfo.getContentType();
-		if (contentType == null)
+		if (contentType == null) {
 			contentType = "";
-		// if
-		// (contentType.indexOf(rb.getString("fileType.filters.forwardSlash"))
-		// >= 0) {
+		}
+		
 		JFileChooser fc = new JFileChooser();
 		if (contentViewerDirectory != null) {
 			fc.setCurrentDirectory(new File(contentViewerDirectory));
@@ -275,8 +274,6 @@ public class ContentViewer {
 				}
 
 			}
-
-			// }
 		}
 
 		// Set up filters

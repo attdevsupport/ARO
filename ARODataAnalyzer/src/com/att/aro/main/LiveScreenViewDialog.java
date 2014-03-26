@@ -53,6 +53,7 @@ public class LiveScreenViewDialog extends JDialog {
 				JButton stopButton = new JButton("Stop");
 				stopButton.setIcon(new ImageIcon(LiveScreenViewDialog.class.getResource("/com/att/aro/images/X_active.png")));
 				stopButton.setActionCommand("Stop");
+				stopButton.setFocusable(false);
 				stopButton.addActionListener(new ActionListener(){
 					@Override
 					public void actionPerformed(ActionEvent arg0) {

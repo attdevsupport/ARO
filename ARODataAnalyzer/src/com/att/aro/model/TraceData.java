@@ -47,6 +47,8 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.swing.JOptionPane;
+
 import com.att.aro.bp.asynccheck.AsyncCheckAnalysis;
 import com.att.aro.bp.displaynoneincss.DisplayNoneInCSSAnalysis;
 import com.att.aro.bp.emptyurl.EmptyUrlAnalysis;
@@ -56,6 +58,7 @@ import com.att.aro.bp.imageSize.ImageSizeAnalysis;
 import com.att.aro.bp.minification.MinificationAnalysis;
 import com.att.aro.bp.scripts.ScriptsAnalysis;
 import com.att.aro.bp.spriteimage.SpriteImageAnalysis;
+import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.main.ResourceBundleManager;
 import com.att.aro.model.AlarmInfo.AlarmType;
 import com.att.aro.model.BluetoothInfo.BluetoothState;
@@ -68,6 +71,7 @@ import com.att.aro.model.WakelockInfo.WakelockState;
 import com.att.aro.model.WifiInfo.WifiState;
 import com.att.aro.model.cpu.CpuActivity;
 import com.att.aro.model.cpu.CpuActivityList;
+import com.att.aro.pcap.AROCryptoAdapter;
 import com.att.aro.pcap.IPPacket;
 import com.att.aro.pcap.NetmonAdapter;
 import com.att.aro.pcap.PCapAdapter;
@@ -117,6 +121,7 @@ public class TraceData implements Serializable {
 		private Collection<IPPacketSummary> ipPacketSummary = new ArrayList<IPPacketSummary>();
 		private long totalBytes = 0;
 		private long totalHTTPSBytes = 0;
+		private long totalHTTPSAnalyzedBytes = 0;
 		private double packetsDuration = 0.0;
 		private double avgKbps = 0.0;
 		private List<TCPSession> tcpSessions;
@@ -234,6 +239,7 @@ public class TraceData implements Serializable {
 
 				// Filter packets based upon selected app names
 				packets = new ArrayList<PacketInfo>();
+				int packetIdx = 0;
 				for (PacketInfo packet : TraceData.this.allPackets) {
 
 					// Check time range
@@ -252,6 +258,7 @@ public class TraceData implements Serializable {
 						continue;
 					}
 
+					packet.setId(++packetIdx);
 					packets.add(packet);
 				}
 			} else {
@@ -914,15 +921,31 @@ public class TraceData implements Serializable {
 		}
 		
 		/**
-		 * Returns the total number of HTTPS bytes analyzed
+		 * Returns the total number of HTTPS bytes
 		 * 
 		 * @return The HTTPS bytes
 		 */
 		public long getTotalHTTPSBytes() {
 			return totalHTTPSBytes;
 		}
+		
+		/**
+		 * Returns the total number of HTTPS analyzed bytes
+		 * 
+		 * @return The HTTPS analyzed bytes
+		 */
+		public long getTotalHTTPSAnalyzedBytes() {
+			return totalHTTPSAnalyzedBytes;
+		}
 
-
+		/**
+		 * Sets the total number of HTTPS analyzed bytes
+		 * 
+		 */
+		public void setTotalHTTPSAnalyzedBytes(long totalHttpsAnalBytes) {
+			this.totalHTTPSAnalyzedBytes = totalHttpsAnalBytes;
+		}
+		
 		/**
 		 * Returns the duration of time from the first packet to the last
 		 * 
@@ -961,7 +984,7 @@ public class TraceData implements Serializable {
 					if (packet.getPacket() instanceof TCPPacket) {
 						TCPPacket tcp = (TCPPacket) packet.getPacket();
 						if ((tcp.isSsl()) || (tcp.getDestinationPort() == 443) || (tcp.getSourcePort() == 443)) {
-							totalHTTPSBytes += packet.getLen();							
+							totalHTTPSBytes += packet.getLen();					
 						}
 					}
 
@@ -1021,7 +1044,7 @@ public class TraceData implements Serializable {
 
 			// Analyze packets for TCP sessions
 			logger.fine("Extracting TCP Sessions");
-			this.tcpSessions = TCPSession.extractTCPSessions(packets);
+			this.tcpSessions = TCPSession.extractTCPSessions(this);
 			
 			// Do text file compression analysis
 			logger.fine("Performing text file compression analysis");
@@ -1563,6 +1586,12 @@ public class TraceData implements Serializable {
 	 * The name of the device_info file
 	 */
 	public static final String DEVICEINFO_FILE = "device_info";
+	
+	/**
+	 * The name of the ssl file
+	 */
+	public static final String SSLKEY_FILE = "keys.ssl";
+	
 	/**
 	 * The name of the network_details file
 	 */
@@ -1726,59 +1755,6 @@ public class TraceData implements Serializable {
 		SEVERITY_1, SEVERITY_2, SEVERITY_3, VAMPIRE;
 	}
 
-	/**
-	 * Utility method for reading the trace time file information for the
-	 * specified trace directory.
-	 * 
-	 * @param traceDirectory
-	 *            The trace directory.
-	 * 
-	 * @return A TraceData.Times object containing the times read from the TIME
-	 *         file in the specified trace directory.
-	 * @throws IOException
-	 */
-	public static Times readTimes(File traceDirectory) throws IOException {
-
-		BufferedReader br = new BufferedReader(new FileReader(new File(traceDirectory, TIME_FILE)));
-		Times result = new Times();
-		try {
-			String s;
-
-			// Ignore first line
-			br.readLine();
-
-			// Second line is pcap time
-			s = br.readLine();
-			if (s != null) {
-				result.startTime = Double.valueOf(s);
-
-				s = br.readLine();
-				if (s != null) {
-					result.eventTime = Double.parseDouble(s) / 1000.0;
-				}
-
-				s = br.readLine();
-				if (s != null) {
-					result.duration = Double.valueOf(Double.parseDouble(s)
-							- result.startTime.doubleValue());
-				}
-				
-				s = br.readLine();
-				if (s != null) {
-					try {
-					result.timezoneOffset = Integer.valueOf(s);
-					}catch (NumberFormatException e){
-						logger.log(Level.WARNING, "Unable to parse Collector Timezone Offset - " + s);
-					}
-				}
-			}
-		} finally {
-			br.close();
-		}
-
-		return result;
-	}
-
 	private double videoStartTime;
 	
 	private File traceDir;
@@ -1864,7 +1840,7 @@ public class TraceData implements Serializable {
 	private Set<String> allAppNames = new HashSet<String>();
 	private Map<String, Set<InetAddress>> appIps = new HashMap<String, Set<InetAddress>>();
 	private List<NetworkType> networkTypesList = new ArrayList<NetworkType>();
-
+	private static AROCryptoAdapter cryptAdapter = null;
 	
 	public static int packetIdx = 0;
 	public static int totalNoPackets = 0;
@@ -1939,6 +1915,59 @@ public class TraceData implements Serializable {
 	 * Non-argument constructor.
 	 */
 	public TraceData() {}
+	
+	/**
+	 * Utility method for reading the trace time file information for the
+	 * specified trace directory.
+	 * 
+	 * @param traceDirectory
+	 *            The trace directory.
+	 * 
+	 * @return A TraceData.Times object containing the times read from the TIME
+	 *         file in the specified trace directory.
+	 * @throws IOException
+	 */
+	public static Times readTimes(File traceDirectory) throws IOException {
+
+		BufferedReader br = new BufferedReader(new FileReader(new File(traceDirectory, TIME_FILE)));
+		Times result = new Times();
+		try {
+			String s;
+
+			// Ignore first line
+			br.readLine();
+
+			// Second line is pcap time
+			s = br.readLine();
+			if (s != null) {
+				result.startTime = Double.valueOf(s);
+
+				s = br.readLine();
+				if (s != null) {
+					result.eventTime = Double.parseDouble(s) / 1000.0;
+				}
+
+				s = br.readLine();
+				if (s != null) {
+					result.duration = Double.valueOf(Double.parseDouble(s)
+							- result.startTime.doubleValue());
+				}
+				
+				s = br.readLine();
+				if (s != null) {
+					try {
+					result.timezoneOffset = Integer.valueOf(s);
+					}catch (NumberFormatException e){
+						logger.log(Level.WARNING, "Unable to parse Collector Timezone Offset - " + s);
+					}
+				}
+			}
+		} finally {
+			br.close();
+		}
+
+		return result;
+	}
 
 	/**
 	 * Returns list of all packets.
@@ -2098,6 +2127,15 @@ public class TraceData implements Serializable {
 	 */
 	public Map<String, Set<InetAddress>> getAppIps() {
 		return Collections.unmodifiableMap(appIps);
+	}
+	
+	/**
+	 * Returns the CryptAdapter.
+	 * 
+	 * @return The CryptAdapter.
+	 */
+	static public AROCryptoAdapter getCryptAdapter() {
+		return cryptAdapter;
 	}
 
 	/**
@@ -2327,6 +2365,81 @@ public class TraceData implements Serializable {
 	}
 
 	/**
+	 * Reads SSL keys from the ssl file in trace folder.
+	 * 
+	 * @throws IOException
+	 */
+	private void readSSLKeys() throws IOException {
+
+		int ret = -1;
+		cryptAdapter = null;
+		boolean retry = true;
+		String osname = System.getProperty("os.name");
+		
+		File file = new File(traceDir, SSLKEY_FILE);
+		if (!file.exists()) {
+			return;
+		}
+		
+		while(cryptAdapter == null) {
+			try {
+				cryptAdapter = new AROCryptoAdapter();
+				if (osname != null && osname.contains("Windows")) {
+					ret = cryptAdapter.ReadSSLKeys(traceDir + "\\" + SSLKEY_FILE);
+				} else if (osname != null && osname.contains("Mac")) {
+					ret = cryptAdapter.ReadSSLKeys(traceDir + "/" + SSLKEY_FILE);
+				}
+				
+				if(ret == -1) {
+					cryptAdapter = null;
+					if(retry == true) {
+						retry = false;
+						try {
+						    Thread.sleep(1000);
+						} catch(InterruptedException ex) {
+						    Thread.currentThread().interrupt();
+						}
+						continue;
+					} else {
+						MessageDialogFactory.showMessageDialog(null, Util.RB.getString("tls.error.readssl"), Util.RB.getString("Error.title"), JOptionPane.ERROR_MESSAGE);
+						break;
+					}
+				} else {
+					AROCryptoAdapter.getSSL_keys().remove(AROCryptoAdapter.getSSL_keys().size() - 1); //Work around as it gets total sslkeys + 1 (which is not in MPPtool code).
+					Collections.sort(AROCryptoAdapter.getSSL_keys());
+				}
+			} catch (UnsatisfiedLinkError e1) {
+				cryptAdapter = null;
+				if (osname != null && osname.contains("Windows")) {
+					String uleMsg = e1.getMessage();
+					if (uleMsg.endsWith("in java.library.path")) {
+						MessageDialogFactory.showMessageDialog(null, Util.RB.getString("tls.error.dllload"), Util.RB.getString("Error.title"), JOptionPane.ERROR_MESSAGE);
+					} else if (uleMsg.endsWith("Can't find dependent libraries")) {
+						MessageDialogFactory.showMessageDialog(null, Util.RB.getString("tls.error.dllload.dep"), Util.RB.getString("Error.title"), JOptionPane.ERROR_MESSAGE);
+					}			
+				} else if (osname != null && osname.contains("Mac")) {
+					MessageDialogFactory.showMessageDialog(null, Util.RB.getString("tls.error.jnilibload"), Util.RB.getString("Error.title"), JOptionPane.ERROR_MESSAGE);
+				}
+				break;
+			} catch (Exception e1) {
+				cryptAdapter = null;
+				if(retry == true) {
+					retry = false;
+					try {
+					    Thread.sleep(1000);
+					} catch(InterruptedException ex) {
+					    Thread.currentThread().interrupt();
+					}
+					continue;
+				} else {
+					MessageDialogFactory.showMessageDialog(null, Util.RB.getString("tls.error.readsslfile"), Util.RB.getString("Error.title"), JOptionPane.ERROR_MESSAGE);
+					break;
+				}
+			}
+		}
+	}
+	
+	/**
 	 * Reads a device data from the device file in trace folder.
 	 * 
 	 * @throws IOException
@@ -2525,7 +2638,7 @@ public class TraceData implements Serializable {
 			}
 
 			int packetIdx = 0;
-			for (Iterator<PacketInfo> iter = allPackets.iterator(); iter.hasNext(); ++packetIdx) {
+			for (Iterator<PacketInfo> iter = allPackets.iterator(); iter.hasNext();) {
 				PacketInfo packet = iter.next();
 
 				// Filter out non-IP packets
@@ -2553,8 +2666,7 @@ public class TraceData implements Serializable {
 				ips.add(packet.getRemoteIPAddress());
 
 				// Set packet ID to match Wireshark ID
-				packet.setId(packetIdx + 1);
-
+				packet.setId(++packetIdx);
 			}
 
 			Collections.sort(allPackets);
@@ -2943,6 +3055,11 @@ public class TraceData implements Serializable {
 			logger.info("*** Warning: no Video time information found ***");
 		}
 
+		try {
+			readSSLKeys();
+		} catch (IOException e) {
+			logger.info("*** Warning: no SSL Key information found ***");
+		}
 	}
 	
 	/**
@@ -3549,9 +3666,10 @@ public class TraceData implements Serializable {
 						// Checks to make sure that the new line is not the same
 						// as the previous line so duplicate points arn't
 						// plotted
-						if (bLevel != previousLevel || bTemp != previousTemp
-								|| bState != previousState)
+						if ((bLevel != previousLevel) || (bTemp != previousTemp)
+								|| (bState != previousState)) {
 							batteryInfos.add(new BatteryInfo(bTimeStamp, bState, bLevel, bTemp));
+						}
 						previousLevel = Integer.parseInt(strFields[1]);
 						previousTemp = Integer.parseInt(strFields[2]);
 						previousState = Boolean.valueOf(strFields[3]);
@@ -3611,7 +3729,7 @@ public class TraceData implements Serializable {
 									// should not arrive here
 									logger.log(Level.WARNING, "cannot resolve alarm type: " 
 											+ timestamp + " type " 
-											+ Integer.parseInt(strFields[strFields.length - 3]));
+											+ Double.parseDouble(strFields[strFields.length - 3]));
 									alarmType = AlarmType.UNKNOWN;
 									break;
 							}
@@ -3742,7 +3860,9 @@ public class TraceData implements Serializable {
 		alarmStatisticsInfosStart = alarmAnalysisInfoParser(fileStart);
 
 		// Differentiate the triggered alarms between start/end of catpure.
-		alarmStatisticsInfos = compareAlarmAnalysis(alarmStatisticsInfosEnd, alarmStatisticsInfosStart);
+		if(alarmStatisticsInfosEnd != null && alarmStatisticsInfosStart != null) {
+			alarmStatisticsInfos = compareAlarmAnalysis(alarmStatisticsInfosEnd, alarmStatisticsInfosStart);
+		} 	
 	}
 
 	/**
@@ -3815,8 +3935,8 @@ public class TraceData implements Serializable {
 
 							// round to 3 decimal places.
 							whenNextElapsed = (double)Math.round(whenNextElapsed * 1000) / 1000;
-							int repeatInterval = Integer.parseInt(alarmMatcher.group(3));
-							int count = Integer.parseInt(alarmMatcher.group(4));
+							double repeatInterval = Double.parseDouble(alarmMatcher.group(3));
+							double count = Double.parseDouble(alarmMatcher.group(4));
 							List<ScheduledAlarmInfo> adding;
 							if(scheduledAlarms.containsKey(appName)) {
 								adding = scheduledAlarms.get(appName);
@@ -3849,27 +3969,27 @@ public class TraceData implements Serializable {
 						running = br.readLine();
 					}
 					Matcher run = patternRunning.matcher(running);
-					int runningTime = 0;
-					int wakeups = 0;
+					double runningTime = 0;
+					double wakeups = 0;
 					if(run.matches()) {
 						logger.log(Level.FINE, "RUNNING: " +  run.group(1) 
 								+ " wakeups: " + run.group(2));
-						runningTime = Integer.parseInt(run.group(1));
-						wakeups = Integer.parseInt(run.group(2));
+						runningTime = Double.parseDouble(run.group(1));
+						wakeups = Double.parseDouble(run.group(2));
 					}
 					logger.log(Level.FINE, "APPLICATION: " + applicationName 
 							+ " running "+ running + "ms");
 
 					// Gathering alarm intents of an application
 					List<String> intents = new ArrayList<String>();
-					int totalAlarmFiredofThatApplication = 0;
+					double totalAlarmFiredofThatApplication = 0;
 
 					// Alarm may not have any fired intent
 					String alarms = br.readLine();
 					if (alarms != null) {
 						Matcher alarmsFired = patternAlarms.matcher(alarms);
 						while (alarms != null && alarmsFired.matches()) {
-							totalAlarmFiredofThatApplication += Integer.parseInt(alarmsFired.group(1));
+							totalAlarmFiredofThatApplication += Double.parseDouble(alarmsFired.group(1));
 							intents.add(alarms.trim());
 							alarms = br.readLine();
 							if (alarms != null) {
@@ -3896,6 +4016,9 @@ public class TraceData implements Serializable {
 			}
 			logger.log(Level.FINE, "Number of scheduled alarm = " + totalScheduledAlarms 
 					+ "\n Number of apps has scheduled alarms: " + scheduledAlarms.size());
+		} catch (Exception e) {
+			MessageDialogFactory.showMessageDialog(null, Util.RB.getString("Error.alammanalysis"), Util.RB.getString("Error.title"), JOptionPane.ERROR_MESSAGE);
+			return null;
 		} finally {
 			br.close();
 		}
@@ -3930,7 +4053,7 @@ public class TraceData implements Serializable {
 			 * Start iterator from beginning for every new applications
 			 * as the lists are not in any order
 			 */
-			int totalFired = 0;
+			double totalFired = 0;
 			itrAlarmAnalysisInfoS = start.iterator();
 			AlarmAnalysisInfo alarmInfoS = (AlarmAnalysisInfo) itrAlarmAnalysisInfoS.next();
 
@@ -3951,15 +4074,15 @@ public class TraceData implements Serializable {
 			 * Found matching application
 			 * Note down the difference in Alarm Stats
 			 */
-			int wakeup = alarmInfoE.getWakeup() - alarmInfoS.getWakeup();
-			int running = alarmInfoE.getRunning() - alarmInfoS.getRunning();
+			double wakeup = alarmInfoE.getWakeup() - alarmInfoS.getWakeup();
+			double running = alarmInfoE.getRunning() - alarmInfoS.getRunning();
 
 			/**
 			 * Discard those applications didn't fire any alarms
 			 * using running time as reference.
 			 */
 			if (running > 0) {
-				List<String> intentS = alarmInfoS.getIntent();;
+				List<String> intentS = alarmInfoS.getIntent();
 				List<String> intentE = alarmInfoE.getIntent();
 				Iterator<String> itStringStart;
 				ListIterator<String> itStringEnd = intentE.listIterator();
@@ -3991,7 +4114,7 @@ public class TraceData implements Serializable {
 
 						// Found matching fired intent, update the statistics here
 						if (s.group(2).equals(e.group(2))) {
-							int alarms = Integer.parseInt(e.group(1)) - Integer.parseInt(s.group(1));
+							double alarms = Double.parseDouble(e.group(1)) - Double.parseDouble(s.group(1));
 							if (alarms > 0) {
 								totalFired += alarms;
 								itStringEnd.set(alarms + " alarms: " + e.group(2));
@@ -4002,7 +4125,7 @@ public class TraceData implements Serializable {
 										+  e.group(2));
 							}
 						} else {
-							totalFired += Integer.parseInt(e.group(1));
+							totalFired += Double.parseDouble(e.group(1));
 							logger.log(Level.FINE, 
 									"No matching alarm intent found \n Total fired = " 
 									+ e.group(1) + " " + stringEnd );

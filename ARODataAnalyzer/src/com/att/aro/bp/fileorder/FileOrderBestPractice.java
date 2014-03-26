@@ -35,7 +35,7 @@ import com.att.aro.util.Util;
 /**
  * File order best practices - CSS files should be loaded before JS.
  */
-public class FileOrderBestPractice implements BestPracticeDisplay {
+public class FileOrderBestPractice extends BestPracticeDisplay {
 
 	private FileOrderResultPanel resultPanel;
 

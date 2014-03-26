@@ -35,7 +35,7 @@ import com.att.aro.util.Util;
 /**
  * Represents 3rd party scripts best practice.
  */
-public class Scripts implements BestPracticeDisplay {
+public class Scripts extends BestPracticeDisplay {
 
 	@Override
 	public String getOverviewTitle() {
