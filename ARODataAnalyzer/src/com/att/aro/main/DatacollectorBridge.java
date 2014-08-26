@@ -43,6 +43,7 @@ import com.android.ddmlib.IShellOutputReceiver;
 import com.android.ddmlib.MultiLineReceiver;
 import com.android.ddmlib.SyncService;
 import com.android.ddmlib.SyncService.SyncResult;
+import com.att.aro.analytics.AnalyticFactory;
 import com.att.aro.commonui.AROProgressDialog;
 import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.model.TraceData;
@@ -350,7 +351,7 @@ public class DatacollectorBridge {
 							rb.getString("Error.sdcardfull"));
 					return;
 				}
-
+				AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(rb.getString("ga.request.event.category.collector"), rb.getString("ga.request.event.collector.action.starttrace")); //end of GA Req
 				// Show progress dialog that indicates
 				setStatus(Status.STARTING);
 				localTraceFolder.mkdirs();
@@ -492,7 +493,7 @@ public class DatacollectorBridge {
 							rb.getString("Message.startcollectorOnDevice"));
 				}
 				progress.setVisible(true);
-
+				AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(rb.getString("ga.request.event.category.collector"), rb.getString("ga.request.event.collector.action.starttrace"));  //end of GA Req
 				// Worker thread that starts collector
 				new SwingWorker<String, Object>() {
 
@@ -589,6 +590,9 @@ public class DatacollectorBridge {
 	 * instance that is associated with this class through the constructor.
 	 */
 	public synchronized void stopARODataCollector() {
+		//Calling Google Analytics
+		AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(rb.getString("ga.request.event.category.collector"), rb.getString("ga.request.event.collector.action.endtrace"));  //end of GA Req	
+		
 		if (getStatus() == Status.STARTED) {
 			
 			if(CommandLineHandler.getInstance().IsCommandLineEvent() == true) {

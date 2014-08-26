@@ -77,7 +77,7 @@ public class VideoCaptureThread extends Thread {
 		this.traceData = traceData;
 		qos = new QuickTimeOutputStream(file,
 				QuickTimeOutputStream.VideoFormat.JPG);
-		qos.setVideoCompressionQuality(1f);
+		qos.setVideoCompressionQuality(0.2f);
 		qos.setTimeScale(10);
 		
 		subscribers = new ArrayList<ImageSubscriber>();

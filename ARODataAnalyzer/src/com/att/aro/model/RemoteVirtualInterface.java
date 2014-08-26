@@ -29,7 +29,9 @@ public class RemoteVirtualInterface {
 	String serialNumber = "";
 	String sudoPassword = "";//we need to ask user for password to run some command on Mac
 	ExternalProcessRunner runner = null;
+	Date initDate;
 	Date startDate;
+	Date stopDate;
 	String pcapfilepath;
 	PcapHelper pcaphelp = null;
 	ExternalTcpdumpExecutor tcpdumpexe;
@@ -42,11 +44,13 @@ public class RemoteVirtualInterface {
 		runner = new ExternalProcessRunner();
 		pcaphelp = new PcapHelper(runner);
 		startDate = new Date();
+		initDate = startDate;
 	}
 	public RemoteVirtualInterface(String sudoPassword, ExternalProcessRunner runner){
 		this.sudoPassword = sudoPassword;
 		this.runner = runner;
 		startDate = new Date();
+		initDate = startDate;
 		
 	}
 	public String getErrorMessage(){
@@ -115,36 +119,40 @@ public class RemoteVirtualInterface {
 	public void startCapture() throws Exception{
 		logger.info("********** Starting tcpdump... **********");
 		startDate = new Date();
+		initDate = startDate;
 		tcpdumpexe = new ExternalTcpdumpExecutor(this.pcapfilepath, sudoPassword, this.runner);
 		tcpdumpexe.start();
 		logger.info("************  Tcpdump started in background. ****************");
 	}
+	
 	/**
 	 * stop background thread that run tcpdump and destroy thread
 	 */
-	public void stopCapture(){
-		//kill tcpdump process first
-		if(tcpdumpexe != null){
-			try{
+	public void stopCapture() {
+		// kill tcpdump process first
+		if (tcpdumpexe != null) {
+			try {
 				tcpdumpexe.stopTcpdump();
+				stopDate = new Date();
 				this.totalPacketCaptured = tcpdumpexe.getTotalPacketCaptured();
 				tcpdumpexe.interrupt();
-			}catch(Exception ex){}
+			} catch (Exception ex) {
+			}
 			tcpdumpexe = null;
 
 			logger.info("destroyed tcpdump executor thread");
-			
-			
-			if(this.totalPacketCaptured > 0){
+
+			if (this.totalPacketCaptured > 0) {
 				Date dt = pcaphelp.getFirstPacketDate(this.pcapfilepath);
-				if(dt != null){
+				if (dt != null) {
 					this.startDate = dt;
-					logger.info("RVI Set packet date to: "+dt.getTime());
+					logger.info("RVI Set packet date to: " + dt.getTime());
 				}
 			}
-			
+
 		}
 	}
+	
 	/**
 	 * Stop RVI and stop packet capture.
 	 */
@@ -175,8 +183,14 @@ public class RemoteVirtualInterface {
 		}
 		return success;
 	}
+	public Date getTcpdumpInitDate(){
+		return this.initDate;
+	}
 	public Date getTcpdumpStartDate(){
 		return this.startDate;
+	}
+	public Date getTcpdumpStopDate(){
+		return this.stopDate;
 	}
 	public int getTotalPacketCaptured(){
 		return this.totalPacketCaptured;

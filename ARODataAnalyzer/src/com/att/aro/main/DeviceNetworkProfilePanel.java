@@ -45,6 +45,7 @@ public class DeviceNetworkProfilePanel extends JPanel {
 	private JPanel dataPanel;
 	private JLabel dateValueLabel;
 	private JLabel traceValueLabel;
+	private JLabel byteCountTotalLabel; //GregStory
 	private JLabel networkTypeValueLabel;
 	private JLabel profileValueLabel;
 	private static final Font LABEL_FONT = new Font("TEXT_FONT", Font.BOLD, 12);
@@ -66,6 +67,9 @@ public class DeviceNetworkProfilePanel extends JPanel {
 		traceValueLabel = new JLabel();
 		traceValueLabel.setFont(TEXT_FONT);
 
+		byteCountTotalLabel = new JLabel(); //Greg STory
+		byteCountTotalLabel.setFont(TEXT_FONT); //GregStory
+		
 		networkTypeValueLabel = new JLabel();
 		networkTypeValueLabel.setFont(TEXT_FONT);
 		profileValueLabel = new JLabel();
@@ -98,10 +102,12 @@ public class DeviceNetworkProfilePanel extends JPanel {
 
 				}
 			}
+			byteCountTotalLabel.setText(Long.toString((analysisData.getTotalBytes())));
 			profileValueLabel.setText(analysisData.getProfile().getName());
 		} else {
 			dateValueLabel.setText(null);
 			traceValueLabel.setText(null);
+			byteCountTotalLabel.setText(null);
 			networkTypeValueLabel.setText(null);
 			profileValueLabel.setText(null);
 		}
@@ -144,6 +150,15 @@ public class DeviceNetworkProfilePanel extends JPanel {
 	}
 
 	/**
+	 * Return the total number of bytes
+	 * 
+	 * @return A JLabel object contains the total number of bytes.
+	 */
+	public JLabel getByteCountTotalLabel() {
+		return byteCountTotalLabel;
+	}
+
+	/**
 	 * Creates the JPanel containing the Date , Trace, network profile and
 	 * profile name.
 	 * 
@@ -151,7 +166,7 @@ public class DeviceNetworkProfilePanel extends JPanel {
 	 */
 	private JPanel getDataPanel() {
 		
-		final int gridX = 3;
+		final int gridX = 5;
 		final double wightX = 0.5;
 		
 		if (dataPanel == null) {
@@ -171,7 +186,7 @@ public class DeviceNetworkProfilePanel extends JPanel {
 			networkTypeLabel = new JLabel(RB.getString("overview.info.networktype"),
 					JLabel.RIGHT);
 			networkTypeLabel.setFont(LABEL_FONT);
-			dataPanel.add(networkTypeLabel, new GridBagConstraints(2, 0, 1, 1, 0.0, 0.0,
+			dataPanel.add(networkTypeLabel, new GridBagConstraints(4, 0, 1, 1, 0.0, 0.0,
 					GridBagConstraints.EAST, GridBagConstraints.NONE, insets,
 					0, 0));
 			dataPanel.add(networkTypeValueLabel, new GridBagConstraints(gridX, 0,
@@ -186,11 +201,22 @@ public class DeviceNetworkProfilePanel extends JPanel {
 			dataPanel.add(traceValueLabel, new GridBagConstraints(1, 1, 1, 1,
 					wightX, 0.0, GridBagConstraints.NORTHWEST,
 					GridBagConstraints.HORIZONTAL, insets, 0, 0));
-
+			
+			//Adding Greg Story
+			label = new JLabel(RB.getString("overview.info.bytecounttotal"), JLabel.CENTER);
+			label.setFont(LABEL_FONT);
+			dataPanel.add(label, new GridBagConstraints(2, 1, 1, 1, 0.0, 0.0,
+					GridBagConstraints.EAST, GridBagConstraints.NONE, insets,
+					0, 0));
+			dataPanel.add(byteCountTotalLabel, new GridBagConstraints(3, 1, 1, 1,
+					wightX, 0.0, GridBagConstraints.WEST,
+					GridBagConstraints.NONE, insets, 0, 0));
+			
+			//End of the story 
 			label = new JLabel(RB.getString("overview.info.profile"),
 					JLabel.RIGHT);
 			label.setFont(LABEL_FONT);
-			dataPanel.add(label, new GridBagConstraints(2, 1, 1, 1, 0.0, 0.0,
+			dataPanel.add(label, new GridBagConstraints(4, 1, 1, 1, 0.0, 0.0, //Change made here 2 to 4
 					GridBagConstraints.EAST, GridBagConstraints.NONE, insets,
 					0, 0));
 			dataPanel.add(profileValueLabel, new GridBagConstraints(gridX, 1, 1, 1,

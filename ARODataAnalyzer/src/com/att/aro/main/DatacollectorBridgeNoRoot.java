@@ -27,6 +27,7 @@ import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 import com.android.ddmlib.IDevice;
+import com.att.aro.analytics.AnalyticFactory;
 import com.att.aro.commonui.DataCollectorFolderDialog;
 import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.interfaces.ImageSubscriber;
@@ -146,7 +147,7 @@ public class DatacollectorBridgeNoRoot implements ImageSubscriber {
 			MessageDialogFactory.showErrorDialog(null,rb.getString("Error.nodevicefound"));
 			return;
 		}
-
+		AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(rb.getString("ga.request.event.category.collector"), rb.getString("ga.request.event.collector.action.starttrace")); //end of GA Req
         winPacketCapture = new WinPacketCapture();
         //Add the code to setup virtual wifi .
         Thread pcapThread =  new Thread(new Runnable() {
@@ -235,6 +236,7 @@ public class DatacollectorBridgeNoRoot implements ImageSubscriber {
 	}
 	public void stopCollector() throws IOException{
 
+		AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(rb.getString("ga.request.event.category.collector"), rb.getString("ga.request.event.collector.action.endtrace")); //end of GA Req
         //Stop collecting the trace
         if(winPacketCapture != null){
             winPacketCapture.stopPacketCapture();

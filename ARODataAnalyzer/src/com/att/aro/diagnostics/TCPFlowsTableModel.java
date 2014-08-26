@@ -23,13 +23,14 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Logger;
 
-import javax.swing.SwingConstants;
+
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
+import com.att.aro.commonui.CheckBoxRenderer;
 import com.att.aro.commonui.DataTableModel;
 import com.att.aro.commonui.NumberFormatRenderer;
 import com.att.aro.main.ResourceBundleManager;
@@ -44,19 +45,22 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 	private static final Logger LOGGER = Logger.getLogger(TCPFlowsTableModel.class.getName());
 
 	private static final int TIME_COL = 0;
-	private static final int APP_COL = 1;
-	private static final int DOMAIN_COL = 2;
-	private static final int LOCALPORT_COL = 3;
-	private static final int REMOTEPORT_COL = 4;
-	private static final int PACKETCOUNT_COL = 5;
-	private static final int TCP_UDP_COL = 6;
+	private static final int CHECKBOX_COL = 1;
+	private static final int APP_COL = 2;
+	private static final int DOMAIN_COL = 3;
+	private static final int LOCALPORT_COL = 4;
+	private static final int REMOTEIP_COL = 5;
+	private static final int REMOTEPORT_COL = 6;
+	private static final int BYTE_COUNT_COL = 7;
+	private static final int PACKETCOUNT_COL = 8;
+	private static final int TCP_UDP_COL = 9;
 
 	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
 	private static final String hostPortSeparator = rb.getString("tcp.hostPortSeparator");
 	private static final String stringListSeparator = rb.getString("stringListSeparator");
-	private static final String[] columns = { rb.getString("tcp.time"), rb.getString("tcp.app"),
-			rb.getString("tcp.domain"), rb.getString("tcp.local"), rb.getString("tcp.remote"),
-			rb.getString("tcp.packetcount"),rb.getString("tcp.protocol") };
+	private static final String[] columns = { rb.getString("tcp.time"),"" ,rb.getString("tcp.app"),
+			rb.getString("tcp.domain"), rb.getString("tcp.local"), rb.getString("tcp.remote"), rb.getString("tcp.remoteport"),
+			rb.getString("tcp.bytecount"),rb.getString("tcp.packetcount"),rb.getString("tcp.protocol") };
 
 	private Set<TCPSession> highlighted = new HashSet<TCPSession>();
 
@@ -106,12 +110,29 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 			TableColumn col = cols.getColumn(TIME_COL);
 			col.setCellRenderer(new NumberFormatRenderer(new DecimalFormat(
 					"0.000")));
+			col.setMaxWidth(60);
 
 			TableColumn appCol = cols.getColumn(APP_COL);
 			DefaultTableCellRenderer r = new DefaultTableCellRenderer();
-			r.setHorizontalAlignment(SwingConstants.RIGHT);
+			//r.setHorizontalAlignment(SwingConstants.RIGHT);
 			appCol.setCellRenderer(r);
+			
+			//Re-sizing the column
+			appCol = cols.getColumn(BYTE_COUNT_COL);
+			appCol.setMaxWidth(75); 
+			
+			appCol = cols.getColumn(PACKETCOUNT_COL);
+			appCol.setMaxWidth(75); 
+			
+			appCol = cols.getColumn(TCP_UDP_COL);
+			appCol.setMaxWidth(75); 
+			
+			//Adding checkbox to column greg story
+			appCol = cols.getColumn(CHECKBOX_COL);
+			appCol.setCellRenderer(new CheckBoxRenderer());
+			appCol.setMaxWidth(35);
 
+			
 		}
 		return cols;
 	}
@@ -134,11 +155,46 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 			return Double.class;
 		case PACKETCOUNT_COL:
 			return Integer.class;
+		case CHECKBOX_COL:
+			return Boolean.class;
+		case REMOTEPORT_COL:
+			return Integer.class;
+		case BYTE_COUNT_COL:
+			return Integer.class;
 		default:
 			return super.getColumnClass(columnIndex);
 		}
 	}
+	
+	
+	public boolean isCellEditable(int row, int col) {
+        //Note that the data/cell address is constant,
+        //no matter where the cell appears onscreen.
+        if (col == CHECKBOX_COL) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 
+	/**
+	 * updata the datamodel with data 
+	 */
+	public void setValueAt(Object value, int row, int col) {
+		if(col == CHECKBOX_COL){
+			TCPSession item = getValueAt(row);
+			if(value instanceof Boolean){
+				boolean checkBoxValue = (Boolean) value;
+				item.setSelectedRow(checkBoxValue);
+			}
+			
+			fireTableCellUpdated(row, col);
+		}	
+       
+
+    }
+	
+	
 	/**
 	 * This is the one method that must be implemented by subclasses. This method defines how 
 	 * the data object managed by this table model is mapped to its columns when displayed 
@@ -159,6 +215,8 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 			} else {
 				return item.getUDPPackets().get(0).getTimeStamp();
 			}
+		case CHECKBOX_COL:
+			return item.isSelectedRow();
 		case APP_COL:
 			if(!item.isUDP()) {
 				TableColumn appCol = cols.getColumn(APP_COL);
@@ -221,14 +279,26 @@ public class TCPFlowsTableModel extends DataTableModel<TCPSession> {
 			} else {
 				return rb.getString("tcp.localhost") + hostPortSeparator + item.getLocalPort();
 			}
+		case REMOTEIP_COL:
+			if(!item.isUDP()) {
+				return item.getRemoteIP().getHostAddress();
+			} else {
+				return item.getRemoteIP().getHostAddress();
+			}
 			
 		case REMOTEPORT_COL:
 			if(!item.isUDP()) {
-				return item.getRemoteIP().getHostAddress() + hostPortSeparator + item.getRemotePort();
+				return item.getRemotePort();
 			} else {
-				return item.getRemoteIP().getHostAddress() + hostPortSeparator + item.getRemotePort();
+				return item.getRemotePort();
 			}
-		
+		case BYTE_COUNT_COL:
+			if(!item.isUDP()) {
+				return item.getBytesTransferred();
+			} else {
+				return item.getBytesTransferred();
+			}
+			
 		case PACKETCOUNT_COL:
 			if(!item.isUDP()) {
 				return item.getPackets().size();

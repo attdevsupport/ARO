@@ -27,6 +27,11 @@ public class FileOrderAnalysis {
 
 	public FileOrderAnalysis(List<TCPSession> tcpSessions) {
 		for (TCPSession tcpSession : tcpSessions) {
+			
+			/*Taking this variable inside TCPSession FOR loop because after analyzing the content, 
+			we should always reset lastRequestObj to null for a different TCP session.*/
+			HttpRequestResponseInfo lastRequestObj = null;
+			
 			for (HttpRequestResponseInfo rr : tcpSession
 					.getRequestResponseInfo()) {
 				org.jsoup.nodes.Document doc = null;
@@ -34,9 +39,11 @@ public class FileOrderAnalysis {
 					doc = rr.parseHtml(this);
 					if (doc != null) {
 						if (checkFileOrderAnalysisResults(doc)) {
-							results.add(new FileOrderEntry(rr));
+							results.add(new FileOrderEntry(rr, lastRequestObj));
 						}
 					}
+				} else if (rr.getDirection() == Direction.REQUEST) {
+					lastRequestObj = rr;
 				}
 			}
 		}

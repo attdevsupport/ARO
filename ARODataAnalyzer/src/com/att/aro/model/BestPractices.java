@@ -220,8 +220,18 @@ public class BestPractices {
 		for (TCPSession s : analysisData.getTcpSessions()) {
 			double cssLastTimeStamp = 0.0;
 			double jsLastTimeStamp = 0.0;
+			
+			/*Taking this variable inside TCPSession FOR loop because after analyzing the content, 
+			we should always reset lastRequestObj to null for a different TCP session.*/
+			HttpRequestResponseInfo lastRequestObj = null;
+			
 			for (HttpRequestResponseInfo reqRessInfo : s
 					.getRequestResponseInfo()) {
+				
+				if (reqRessInfo.getDirection() == Direction.REQUEST) {
+					lastRequestObj = reqRessInfo;
+				}
+				
 				if (HttpRequestResponseInfo.HTTP10.equals(reqRessInfo
 						.getVersion())) {
 					++http1_0HeaderCount;
@@ -246,7 +256,7 @@ public class BestPractices {
 						firstErrorRespMap_4XX.put(status, reqRessInfo);
 					}
 					results.add(new Http4xx5xxStatusResponseCodesEntry(
-							reqRessInfo));
+							reqRessInfo, lastRequestObj));
 				}
 
 				if (reqRessInfo.getDirection() == Direction.RESPONSE
@@ -264,7 +274,7 @@ public class BestPractices {
 					if (firstRedirectRespMap_3XX.get(status) == null) {
 						firstRedirectRespMap_3XX.put(status, reqRessInfo);
 					}
-					this.httpRspCd.add(new HttpCode3XXEntry(reqRessInfo));					
+					this.httpRspCd.add(new HttpCode3XXEntry(reqRessInfo, lastRequestObj));					
 				}
 
 				/* Calculate number of inefficient Css and Js requests. */

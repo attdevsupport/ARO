@@ -16,18 +16,20 @@
 package com.att.aro.main;
 
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
-import javax.swing.SwingWorker.StateValue;
 
+import com.att.aro.analytics.AnalyticFactory;
 import com.att.aro.commonui.AROProgressDialog;
 import com.att.aro.commonui.DataCollectorFolderDialog;
 import com.att.aro.commonui.MessageDialogFactory;
@@ -73,7 +75,7 @@ public class DataCollectorMacOS implements ImageSubscriber, IOSDeviceStatus {
 	
 	private SwingWorker<String,Object> packetworker;
 	
-	private String datadir = "";//dir to save pcap file, video, etc
+	private String datadir = ""; // dir to save pcap file, video, etc
 	
 	private File videofile;
 	private IOSDeviceInfo deviceinfo;
@@ -83,9 +85,12 @@ public class DataCollectorMacOS implements ImageSubscriber, IOSDeviceStatus {
 	 */
 	private File localTraceFolder;
 	
-	
 	/**** progress box ****/
 	final AROProgressDialog waitbox;
+	
+	/**** time file ****/
+	private File timeFile;
+	private FileOutputStream timeStream;
 	
 	public DataCollectorMacOS(ApplicationResourceOptimizer aro){
 		this.mainAROAnalyzer = aro;
@@ -235,6 +240,7 @@ public class DataCollectorMacOS implements ImageSubscriber, IOSDeviceStatus {
 			}
 					
 		}
+		AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(rb.getString("ga.request.event.category.collector"), rb.getString("ga.request.event.collector.action.starttrace")); //end of GA Req
 		
 		if(rvi == null){
 			rvi = new RemoteVirtualInterface(this.sudoPassword);
@@ -319,6 +325,7 @@ public class DataCollectorMacOS implements ImageSubscriber, IOSDeviceStatus {
 			this.stopCollector();
 		}
 	}
+	
 	/**
 	 * Check if the password provided is correct
 	 * @param pass sudoer password
@@ -345,6 +352,7 @@ public class DataCollectorMacOS implements ImageSubscriber, IOSDeviceStatus {
 		return false;
 	}
 	public void stopCollector(){
+		AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(rb.getString("ga.request.event.category.collector"), rb.getString("ga.request.event.collector.action.endtrace")); //end of GA Req
 		showWaitBox();
 		this.stopWorkers();
 		hideWaitBox();
@@ -378,38 +386,46 @@ public class DataCollectorMacOS implements ImageSubscriber, IOSDeviceStatus {
 			}
 		}
 	}
-	void stopWorkers(){
-		if(videoCapture != null){
-			videoCapture.signalStop();//no waiting for now
+	
+	/**
+	 * Close down collection processes, Video, RemoteVirtualInterface(tcpdump).
+	 * Record start times for Video and tcpdump into video_time file
+	 * Report stop times to time file
+	 */
+	void stopWorkers() {
+		if (videoCapture != null) {
+			videoCapture.signalStop();// no waiting for now
 		}
-		if(rvi !=  null){
+		
+		if (rvi != null) {
 			rvi.stopCapture();
+			recordPcapStartStop();
 		}
-		if(packetworker != null){
+		
+		if (packetworker != null) {
 			packetworker.cancel(true);
 			packetworker = null;
 			logger.info("disposed packetworker");
 		}
-		if(videoCapture != null){
-			videoCapture.stopCapture();//blocking till video capture engine fully stop
-			
-			//create video timestamp file that will sync with pcap file
+		
+		if (videoCapture != null) {
+			videoCapture.stopCapture();// blocking till video capture engine fully stop
+
+			// create video timestamp file that will sync with pcap file
 			BufferedWriter videoTimeStampWriter = null;
-			
-			
+
 			try {
 				logger.info("Writing video time to file");
-				videoTimeStampWriter = new BufferedWriter(
-						new FileWriter(new File(localTraceFolder,TraceData.VIDEO_TIME_FILE)));
+				videoTimeStampWriter = new BufferedWriter(new FileWriter(new File(localTraceFolder, TraceData.VIDEO_TIME_FILE)));
 				// Writing a video time in file.
-				String timestr = Double.toString(videoCapture.getVideoStartTime().getTime()/1000.0);
-				//append time from tcpdump
-				timestr += " " + Double.toString(rvi.getTcpdumpStartDate().getTime()/1000.0);
+				String timestr = Double.toString(videoCapture.getVideoStartTime().getTime() / 1000.0);
+				// append time from tcpdump
+				timestr += " " + Double.toString(rvi.getTcpdumpInitDate().getTime() / 1000.0);
 				videoTimeStampWriter.write(timestr);
 				
 			} catch (IOException e) {
 				e.printStackTrace();
-				logger.info("Error writing vide time to file: "+e.getMessage());
+				logger.info("Error writing video time to file: " + e.getMessage());
 			} finally {
 				try {
 					videoTimeStampWriter.close();
@@ -417,20 +433,86 @@ public class DataCollectorMacOS implements ImageSubscriber, IOSDeviceStatus {
 					e.printStackTrace();
 				}
 			}
-			if(videoCapture.isAlive()){
+			
+			if (videoCapture.isAlive()) {
 				videoCapture.interrupt();
 			}
+			
 			videoCapture = null;
 			logger.info("disposed videoCapture");
+//			closeTimeFile();
 		}
-		if(videoworker != null){
+		
+		if (videoworker != null) {
 			videoworker.cancel(true);
 			videoworker = null;
 			logger.info("disposed videoworker");
 		}
-		
+
 		mainAROAnalyzer.dataCollectorStatusCallBack(DatacollectorBridge.Status.READY);
 	}
+	
+	/**
+	 * Create and populate the "time" file
+	 * time file format
+	 * line 1: header
+	 * line 2: pcap start time 
+	 * line 3: eventtime or uptime (doesn't appear to be used)
+	 * line 4: pcap stop time 
+	 * line 5: time zone offset
+
+	 */
+	private void recordPcapStartStop() {
+		try {
+
+			String sFileName = "time";
+			timeFile = new File(datadir + Util.FILE_SEPARATOR + sFileName);
+			timeStream = new FileOutputStream(timeFile);
+		} catch (IOException e) {
+			e.printStackTrace();
+			logger.severe("file creation error: " + e.getMessage());
+		}
+		
+		String str = String.format("%s\n%.3f\n%d\n%.3f\n", "Synchronized timestamps" // line 1 (header),,
+				, rvi.getTcpdumpInitDate().getTime() / 1000.0	// line 2 (pcap start time)
+				, 0												// line 3 (userTime) should refer to device. [ not used ]
+				, rvi.getTcpdumpStopDate().getTime() / 1000.0	// line 4 (pcap stop time)
+				);
+
+		try {
+			timeStream.write(str.getBytes());
+			timeStream.flush();
+			timeStream.close();
+		} catch (IOException e) {
+			logger.severe("closeTimeFile() IOException:" + e.getMessage());
+		}
+
+	}
+	
+	/**
+	 * Calculate uptime from boottime and currenttime
+	 * @return int value of uptime
+	 */
+	public static int upTime() {
+		double curTime = System.currentTimeMillis();
+		String line = null;
+		try {
+			Process uptimeProc = Runtime.getRuntime().exec("sysctl -n kern.boottime | cut -c14-18");
+			BufferedReader in = new BufferedReader(new InputStreamReader(uptimeProc.getInputStream()));
+			line = in.readLine();
+		} catch (NumberFormatException e) {
+			logger.severe("NumberFormatException " + e.getMessage());
+		} catch (IOException e) {
+			logger.severe("IOException " + e.getMessage());
+		}
+		
+		String[] strarr = line.split(" ");
+		String[] strSec = strarr[3].split(",");
+		double bTime = Double.parseDouble(strSec[0])*1000.d;
+		
+		return (int)(curTime-bTime);
+	}
+
 	@Override
 	public void receiveImage(BufferedImage image) {
 		if(liveview.isVisible()){
@@ -462,10 +544,12 @@ public class DataCollectorMacOS implements ImageSubscriber, IOSDeviceStatus {
 		}
 		logger.info("cleaned up background task => Device Monitor");
 	}
+	
 	@Override
 	public void onConnected() {
 		this.isDeviceConnected = true;
 	}
+	
 	@Override
 	public void onDisconnected() {
 		showWaitBox();

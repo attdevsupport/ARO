@@ -20,6 +20,7 @@ import java.io.Serializable;
 import java.net.InetAddress;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,6 +33,8 @@ public class AnalysisFilter implements Serializable {
 
 	private Map<String, ApplicationSelection> appSelections;
 	private TimeRange timeRange;
+	private List<TCPSession> tcpSessions; // Adding TCPSessions for getting the domain Names
+	private Map<InetAddress, String> domainNames;
 
 	/**
 	 * Initializes an instance of the AnalysisFilter class using the specified trace data.
@@ -56,9 +59,22 @@ public class AnalysisFilter implements Serializable {
 	 * 			  This parameter cannot be null.
 	 */
 	public AnalysisFilter(AnalysisFilter filter) {
+		if(filter.getTcpSessions() != null){ 
+			if(filter.getDomainNames() == null){
+				//call method to set domain names map
+				this.generateDomainNames(filter);
+			} else{
+				this.domainNames = filter.getDomainNames();
+			}
+			
+		}
+		
 		this.timeRange = filter.timeRange;
 		this.appSelections = new HashMap<String, ApplicationSelection>(filter.appSelections.size());
 		for (ApplicationSelection sel : filter.appSelections.values()) {
+			if(getDomainNames() != null){ //Greg Story Add domain names map to Application Selection
+				sel.setDomainNames(getDomainNames());
+			}
 			appSelections.put(sel.getAppName(), new ApplicationSelection(sel));
 		}
 	}
@@ -120,5 +136,45 @@ public class AnalysisFilter implements Serializable {
 	public void setTimeRange(TimeRange timeRange) {
 		this.timeRange = timeRange;
 	}
+
+	/**
+	 * Return list of TCP sessions for the filter for getting the domain names
+	 * @return tcpSessions - TCPSession list
+	 */
+	public List<TCPSession> getTcpSessions() {
+		return tcpSessions;
+	}
+
+	/**
+	 * Set the TCPSession list for the filter
+	 * @param TCPSession - TCPSession list
+	 */
+	public void setTcpSessions(List<TCPSession> tcpSessions) {
+		this.tcpSessions = tcpSessions;
+	}
+
+	/**
+	 * Return the Domain name map with key as inetAddress
+	 * @return Map - InetAddress and Domain name map
+	 */
+	public Map<InetAddress, String> getDomainNames() {
+		return domainNames;
+	}
+	
+	/**
+	 * Prepare domain name map from the list of TCPSession. 
+	 * @param AnalysisFiletr - Which has domain names set
+	 */
+	private void generateDomainNames(AnalysisFilter filter){
+		
+		domainNames = new HashMap<InetAddress, String>();
+		for (TCPSession tcpSession : filter.getTcpSessions()) {
+			if(! domainNames.containsKey(tcpSession.getRemoteIP())){
+				domainNames.put(tcpSession.getRemoteIP(), tcpSession.getDomainName());
+			}
+		}
+		
+	}
+	
 
 }

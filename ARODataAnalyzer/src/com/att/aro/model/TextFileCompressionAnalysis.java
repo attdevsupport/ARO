@@ -18,6 +18,8 @@ package com.att.aro.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.att.aro.model.HttpRequestResponseInfo.Direction;
+
 /**
  * Represents Text File Compression Analysis
  *
@@ -46,10 +48,18 @@ public class TextFileCompressionAnalysis {
 	public TextFileCompressionAnalysis(List<TCPSession> tcpSessions) {
 
 		for (TCPSession tcpSession : tcpSessions) {
+			/*Taking this variable inside TCPSession FOR loop because after analyzing the content, 
+			we should always reset lastRequestObj to null for a different TCP session.*/
+			HttpRequestResponseInfo lastRequestObj = null;
+			
 			for (HttpRequestResponseInfo rr : tcpSession.getRequestResponseInfo()) {
 				// if the http payload should be compressed but is not
 				if (rr.setHttpCompression(this)) {
-					results.add(new TextFileCompressionEntry(rr));
+					results.add(new TextFileCompressionEntry(rr, lastRequestObj));
+				}
+				
+				if (rr.getDirection() == Direction.REQUEST) {
+					lastRequestObj = rr;
 				}
 			}
 		}

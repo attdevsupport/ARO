@@ -65,20 +65,54 @@ public class MobileDevice {
 		}
 		return type;
 	}
+	
 	/**
 	 * check if a connected Android device is rooted or not
 	 * @throws IOException 
 	 */
 	public boolean isRootedAndroid() throws IOException{
+		
+		boolean rootUser = false;
+		
 		if(devices != null && devices.length > 0){
+			
 			IDevice device = devices[0];
+			
 			ShellOutputReceiver receiver = new ShellOutputReceiver();
 			logger.info("executing su command on device");
 			device.executeShellCommand("su", receiver);
+
 			return receiver.isRoot();
 		}
 		return false;
 	}
+	
+	/**
+	 * check if a connected Android device is rooted or not
+	 * , performs 'su -c id' on Android a response of "uid=0(root) gid=0(root)" is considered rooted
+	 * @throws IOException 
+	 */
+	public boolean isAndroidRooted() throws IOException{
+		
+		boolean rootUser = false;
+		
+		if(devices != null && devices.length > 0){
+			
+			IDevice device = devices[0];
+			
+			ShellOutputReceiver receiverSU = new ShellOutputReceiver();
+			logger.info("executing su command on device");
+			device.executeShellCommand("su -c id", receiverSU);
+
+			// uid=2000(shell) gid=2000(shell) groups=1003(graphics),1004(input),1007(log),1011(adb),1015(sdcard_rw),1028(sdcard_r),3001(net_bt_admin),3002(net_bt),3003(inet),3006(net_bw_stats) context=u:r:shell:s0
+			// uid=0(root) gid=0(root) context=u:r:shell:s0
+			// uid=0(root) gid=0(root)
+
+			return receiverSU.isRootId();
+		}
+		return false;
+	}
+	
 	private int getTotalAndroidDevice(){
 		if(devices == null){
 			adb = AndroidDebugBridge.createBridge();
@@ -134,6 +168,19 @@ public class MobileDevice {
 		//rooted device
 		//root@android:/ #
 		
+		/*
+		 * not root
+		 * uid=2000(shell) gid=2000(shell) groups=1003(graphics),1004(input),1007(log),1011(adb),1015(sdcard_rw),1028(sdcard_r),3001(net_bt_admin),3002(net_bt),3003(inet),3006(net_bw_stats) context=u:r:shell:s0
+		 * 
+		 * root
+		 * uid=0(root) gid=0(root) context=u:r:shell:s0
+		 * uid=0(root) gid=0(root)
+		 */
+		public boolean isRootId() {
+			System.out.println(data);
+			return data.contains("uid=0(root) gid=0(root)");
+		}
+
 		//emulator
 		//root@generic:/ #
 		public boolean isRoot(){

@@ -26,6 +26,7 @@ public class ExternalTcpdumpExecutor extends Thread implements ExternalProcessRe
 		this.runner = runner;
 		pidlist = new ArrayList<Integer>();
 	}
+	
 	@Override
     public void run() {
 		tcpdumpCommand = "echo "+ this.sudoPassword +" | sudo -S tcpdump -i rvi0 -s 0 -w \""+this.pcappath+"\"";
@@ -47,39 +48,50 @@ public class ExternalTcpdumpExecutor extends Thread implements ExternalProcessRe
 		procreader.addSubscriber(ExternalTcpdumpExecutor.this);
 		procreader.start();
 		
-		String[] pscmd = new String[]{"bash","-c","ps ax | grep \""+this.pcappath+"\""};
-		
-		try {
-			String str = runner.runCmd(pscmd);
-			String[] strarr = str.split("\n");
-			String token;
-			//find child process first
-			for(int i =0;i<strarr.length;i++){
-				token = strarr[i];
-				if(token.contains(this.pcappath) && !token.contains("grep ") && !token.contains("sudo ")){
-					this.extractPid(token);
-				}
-			}
-			//find another child
-			for(int i =0;i<strarr.length;i++){
-				token = strarr[i];
-				if(token.contains(this.pcappath) && !token.contains("grep ") && token.contains("sudo ") && !token.contains("echo ")){
-					this.extractPid(token);
-				}
-			}
-			//find parent
-			for(int i =0;i<strarr.length;i++){
-				token = strarr[i];
-				if(token.contains(this.pcappath) && !token.contains("grep ") && token.contains("echo ")){
-					this.extractPid(token);
-				}
-			}
-		} catch (IOException e1) {
-			e1.printStackTrace();
+		// find the processID for tcpdump, used to kill the process when done with trace
+		if (!findPcapPathProcess(40)){
+			logger.severe("failed to locate process number for "+this.pcappath);
 		}
-		
-		
 	}
+	
+	/**
+	 * find running process for this.pcappath
+	 * 
+	 * @param attemptCounter - number of times to attempt finding the process
+	 * @return process string from ps
+	 */
+	private boolean findPcapPathProcess(int attemptCounter) {
+
+		String[] pscmd = new String[] { "bash", "-c", "ps ax | grep \"" + this.pcappath + "\"" };
+		boolean result = false;
+
+		while ((!result) || (attemptCounter-- > 0)) {
+			try {
+				String str = runner.runCmd(pscmd);
+				String[] strarr = str.split("\n");
+				String token;
+				// find child process first
+				for (int i = 0; i < strarr.length; i++) {
+					token = strarr[i];
+					if (token.contains(this.pcappath) && !token.contains("grep ") && !token.contains("sudo ")) {
+						// record the ProcessID
+						this.extractPid(token);
+						result = true;
+						break;
+					}
+				}
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+			try {
+				sleep(50);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		return result;
+	}
+	
 	void extractPid(String line){
 		line = line.trim();
 		int end = line.indexOf(' ');

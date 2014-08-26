@@ -25,6 +25,12 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.ResourceBundle;
 
@@ -37,8 +43,12 @@ import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
 
 import com.att.aro.commonui.DataTable;
+import com.att.aro.commonui.DataTableModel;
+import com.att.aro.commonui.TCPFlowsDataTable;
 import com.att.aro.main.ApplicationResourceOptimizer;
 import com.att.aro.main.ChartPlotOptions;
 import com.att.aro.main.DeviceNetworkProfilePanel;
@@ -76,8 +86,8 @@ public class AROAdvancedTabb extends SearchablePanel {
 	private JPanel jTCPFlowsPanel;
 	private JScrollPane jTCPFlowsScrollPane;
 	private TCPFlowsTableModel jTCPFlowsTableModel = new TCPFlowsTableModel();
-	private DataTable<TCPSession> jTCPFlowsTable;
-
+//	private DataTable<TCPSession> jTCPFlowsTable;
+	private TCPFlowsDataTable<TCPSession> jTCPFlowsTable;  //Greg
 	// TCP flow detail tabbed pane
 	private JTabbedPane jTCPFlowsContentTabbedPane;
 
@@ -135,12 +145,28 @@ public class AROAdvancedTabb extends SearchablePanel {
 	public synchronized void setAnalysisData(TraceData.Analysis analysisData) {
 		this.analysisData = analysisData;
 		if (analysisData != null) {
+			jTCPFlowsTable.setHeaderDefaultValue();
 			jTCPFlowsTableModel.setData(analysisData.getTcpSessions());
+			if(analysisData.getTcpSessions() != null){//greg story
+				if(analysisData.getTcpSessions().size() < 1){
+					//analysisData.setTcpSessions(TCPSession.extractTCPSessions(analysisData));
+					analysisData.extractTCPSessions();
+					
+				}
+				getGraphPanel().setAllTcpSessions(analysisData.getTcpSessions().size()); 
+				getGraphPanel().setAllPackets(analysisData.getPackets());
+				getGraphPanel().setTraceDuration(analysisData.getTraceData().getTraceDuration());
+			} 
+			//getGraphPanel().resetPacketsAndTcpSessions();
 		} else {
 			jTCPFlowsTableModel.setData(null);
 		}
 		getGraphPanel().resetChart(analysisData);
 		deviceNetworkProfilePanel.refresh(analysisData);
+	}
+
+	public TraceData.Analysis getAnalysisData() {
+		return analysisData;
 	}
 
 	/**
@@ -423,7 +449,8 @@ public class AROAdvancedTabb extends SearchablePanel {
 	 */
 	private DataTable<TCPSession> getJTCPFlowsTable() {
 		if (jTCPFlowsTable == null) {
-			jTCPFlowsTable = new DataTable<TCPSession>(jTCPFlowsTableModel);
+//			jTCPFlowsTable = new DataTable<TCPSession>(jTCPFlowsTableModel);
+			jTCPFlowsTable = new TCPFlowsDataTable<TCPSession>(jTCPFlowsTableModel);
 			jTCPFlowsTable.setAutoCreateRowSorter(true);
 			jTCPFlowsTable.setGridColor(Color.LIGHT_GRAY);
 			jTCPFlowsTable.getSelectionModel().addListSelectionListener(
@@ -476,6 +503,26 @@ public class AROAdvancedTabb extends SearchablePanel {
 							}
 						}
 					});
+
+			//Adding the table listner for getting the check box changes //greg story 
+			jTCPFlowsTable.getModel().addTableModelListener(new TableModelListener() {
+				
+				@Override
+				public void tableChanged(TableModelEvent arg0) {
+					// Getting the check box selected data from the check box column 
+					List<TCPSession> tcpsessionsList =  jTCPFlowsTable.getSelectedCheckboxRows(1);				
+					if(getAnalysisData() != null && tcpsessionsList != null){
+						TraceData.Analysis selectedData = getAnalysisData();
+						Collections.sort(tcpsessionsList);
+						selectedData.setTcpSessions(tcpsessionsList);
+					
+						getGraphPanel().setTraceAnalysis(selectedData);
+					}
+					//Greg Story End 
+					
+				}
+					
+			});			
 		}
 		return jTCPFlowsTable;
 	}

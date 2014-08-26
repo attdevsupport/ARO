@@ -36,6 +36,11 @@ public enum Images {
 	 */
 	ICON("icon"),
 	/**
+	 * The Refresh image key. The associated image is used to identify that
+	 * refresh on a chart has been disabled.
+	 */
+	REFRESH("refresh"),
+	/**
 	 * The Demagnify image key. The associated image is used to identify that
 	 * magnification on a chart has been disabled.
 	 */
