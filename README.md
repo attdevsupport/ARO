@@ -61,24 +61,46 @@ Contact Us:  http://developer.att.com/developer/contact_us.jsp
 
 
 **Version:**  
-ARO Data Collector 3.1  
-ARO Data Analyzer  3.1  
+ARO Data Analyzer 3.2  
+ARO Data Collector 3.1.1.7  
 
 
 
-**What’s new in Release 3.1?**  
+**What’s new in Release 3.2?  (8/13/14)**  
 
-+  **AT&T ARO Data Collector supports IOS**  
-	+  AT&T ARO can now collect trace data directly from an iOS device. Connect an iPhone to a Mac computer running OS X Mountain Lion 10.8 or OS X Mavericks 10.9 with the AT&T ARO Analyzer and XCode installed. Open the ARO Analyzer on the Mac and use the Start Collector option on the Data Collector menu to begin collecting packet data, device information, and (if selected) a video of the trace from the device. Note: This data collection method has been tested on the following devices: iPhone 4s running iOS 6 through 7, and iPhone 5, 5c, or 5s (running iOS 7).  
++  **ARO Analyzer Diagnostics Chart Enhancements**  
+The following enhancements have been made to the ARO Analyzer, allowing you to select the set of data that you view on the Diagnostics Chart more precisely:  
+	+  On the TCP/UDP Flows table, a check box has been added in the header of the table so that you can select/deselect all of the TCP/UDP flows.  
+	+  Check boxes have been added to each row in the table so that you can select/deselect individual TCP/UDP flows.  
+	+  A Refresh button has been added on the right side of the Diagnostics Chart so that the graph can be updated after TCP/UDP flows have been selected or deselected.  
+	+  The Remote Port column has been expanded into two columns; Remote IP Endpoint and Remote Port Number.  
+	+  A Byte Count column has been added that displays the total byte count for each TCP/UDP flow.  
+	+  A Domain Name column has been added to the Select Applications/IPs dialog box that is accessed from the View menu.  
+  
 
-+  **AT&T ARO Data Collector compatibility with Android versions 4.3 and 4.4**  
-The AT&T ARO Data Collector .apk is now supported on devices running Android version 4.3 and has been validated on the Android Nexus running version 4.4. Please note that you must have root level access to your device before running the AT&T ARO Data Collector and collecting application traces.  
- 
-+  **New AT&T ARO support link**  
-A support link has been added to the AT&T ARO Analyzer Help menu that allows you to log in to the AT&T Developer Program and file a ticket with ARO Support.  
++  **Downloads Option Added to the Help Menu**  
+You can now download the ARO Installer and the ARO Collector App for Android from developer.att.com/ARO, by just opening ARO and clicking on the Downloads option on the Help menu.  
+  
 
 
-**What are the known issues in Release 3.1**  
+**What are the known issues in Release 3.2?** 
+
++  **ARO Analyzer Diagnostics Chart:**   
+
+	+  Alarm Triggers are not displayed in the Diagnostics chart of the ARO Analyzer for traces collected from the HTC One X.  
+	+  The type of Burst may be reported differently, for the same testing scenario steps, on the Diagnostics Chart for traces captured from an Android device and an iPhone.  
+	+  When a TCP/UDP flow is deselected and the Diagnostics Chart is refreshed more than three times, the deselected packet information displays on the chart and the burst length changes.  
+
++  **AT&T ARO Windows 8 Data Collector:**  The current version of the AT&T ARO Windows 8 Data Collector (version 2.2.1) does not support trace collection from Windows 8.1.  
+
++  **ARO Analyzer Best Practices "Resize images for Mobile":**  Due to limitations in the structure of pcap files, the results for the “Resize Images for Mobile” test will appear differently for ARO trace files and pcap files.  
+
++  **Set ADB Path Option:**  When using the Set ADB Path option on the File menu, the Cancel button does not work correctly, it saves the path name that is entered in the dialog.  
+
++  **•	iOS Traces:**  Some devices may not record video during a trace due to hardware limitations. For these devices, use the USB Video feature to record a video for the trace.  
+
+
+**What are the Other known issues from previous releases?**
  
 +  **Video Sync/Video Correlation feature:**  This feature allows you to sync externally captured video to PCAP data by placing it in the trace folder. When using this feature in ARO 2.3, note the following:  
 	+  Please ensure that the video duration is at least as long as the trace duration.  
@@ -97,8 +119,8 @@ A support link has been added to the AT&T ARO Analyzer Help menu that allows you
 +  **AT&T ARO Data Collector support for iOS:**  The following issues can occur on the specified iPhone devices if they are disconnected from a Mac running OS X Mountain Lion 10.8 and OS X Mavericks 10.9 while a trace is being collected:  
 	+  On the iPhone 5c, the ARO Data Analyzer may hang and display an empty pop-up, requiring the Analyzer to be closed.  
 	+  On the iPhone 5 and iPhone 4s, the error message “No data Packet captured” may be displayed. The correct error message is “Device got disconnected”.  
+	+  Traces collected from an iPhone connected to a Mac running OS X Mavericks 10.9 are not supported by the AT&T ARO Analyzer when it is running on a Windows OS. 
 
-+  **AT&T ARO Data Analyzer support for iOS:**  Traces collected from an iPhone connected to a Mac running OS X Mavericks 10.9 do not display network traffic when they are opened in the ARO Data Analyzer on a computer running a Windows OS. The trace will open correctly, but the packet data is captured in the pcapng format which is not yet supported by the AT&T ARO Analyzer on the Windows OS.  
 
 
 ##Documentation:
@@ -136,7 +158,7 @@ The ARO Open Source code package contains the following:
 
 
 **ARO Compilation and Build Guide.pdf** - Describes how to compile and build the ARO components.  
-**ARODataCollector_OpenSource_v3.1.1.6.apk.zip** - A zip package containing a compiled open source version of the ARO Data Collector.  
+**ARODataCollector_OpenSource_v3.1.1.7.apk.zip** - A zip package containing a compiled open source version of the ARO Data Collector.  
 **Adding Custom Best Practices in Open Source ARO.pdf** - Describes how to add custom Best Practices to the ARO Data Analyzer.  
 **README.md** - This file.
 
