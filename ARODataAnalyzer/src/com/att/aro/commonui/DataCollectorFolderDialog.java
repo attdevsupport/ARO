@@ -149,6 +149,10 @@ public class DataCollectorFolderDialog extends JDialog {
 	public boolean isCancelled(){
 		return this.iscancelled;
 	}
+	
+	public void setCancelled(boolean cancelFlag){
+		this.iscancelled = cancelFlag ;
+	}
 	/**
 	 * get full directory path selected by user. e.g: /User/Documents
 	 * @return

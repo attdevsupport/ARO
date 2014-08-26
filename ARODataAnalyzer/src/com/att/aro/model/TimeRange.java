@@ -50,5 +50,8 @@ public class TimeRange implements Serializable {
 	public double getEndTime() {
 		return endTime;
 	}
-
+	
+	public void setEndTime(Double d){
+		this.endTime = d;
+	}
 }

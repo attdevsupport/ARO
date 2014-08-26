@@ -77,19 +77,24 @@ public class FilterIpAddressesTableModel extends DataTableModel<AppIPAddressSele
 	 * An integer that identifies the application name column.
 	 */
 	public static final int APP_COL = 1;
+	
+	/**
+	 * An integer that identifies the domain name column.
+	 */
+	public static final int DOMAIN_COL = 2;
 
 	/**
 	 * An integer that identifies the color for an IP address.
 	 */
-	public static final int IP_COL = 2;
+	public static final int IP_COL = 3;
 
 	/**
 	 * An integer that identifies the color for an application.
 	 */
-	public static final int COLOR_COL = 3;
+	public static final int COLOR_COL = 4;
 
 	private static final String[] columns = { Util.RB.getString("filter.select"),
-			Util.RB.getString("filter.app"), Util.RB.getString("filter.ip"),
+			Util.RB.getString("filter.app"), Util.RB.getString("tcp.domain"), Util.RB.getString("filter.ip"),
 			Util.RB.getString("filter.color") };
 
 	/**
@@ -129,6 +134,8 @@ public class FilterIpAddressesTableModel extends DataTableModel<AppIPAddressSele
 			return item.ipSelection.isSelected();
 		case APP_COL:
 			return Util.getDefaultAppName(item.appName);
+		case DOMAIN_COL:
+			return item.ipSelection.getDomainName() != null ? item.ipSelection.getDomainName() : null;
 		case IP_COL:
 			return item.ipSelection.getIpAddress() != null ? item.ipSelection.getIpAddress().getHostAddress() : null;
 		case COLOR_COL:
@@ -191,7 +198,7 @@ public class FilterIpAddressesTableModel extends DataTableModel<AppIPAddressSele
 		col = result.getColumn(SELECT_COL);
 		col.setCellRenderer(new CheckBoxRenderer());
 		col.setCellEditor(new CheckBoxCellEditor());
-
+		col.setMaxWidth(45); // Reducing the width of checkBox column for more real estate
 		col = result.getColumn(COLOR_COL);
 		col.setCellRenderer(new ColorCellRenderer());
 		col.setCellEditor(new ColorCellEditor());

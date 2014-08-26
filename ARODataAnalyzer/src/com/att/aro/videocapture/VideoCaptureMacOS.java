@@ -7,14 +7,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
+
 import javax.swing.SwingUtilities;
 
-import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.interfaces.ImageSubscriber;
 import com.att.aro.libimobiledevice.Screencapture;
-import com.att.aro.libimobiledevice.ScreencaptureImpl;
 import com.att.aro.libimobiledevice.ScreenshotManager;
-import com.att.aro.model.CustomClassLoader;
 import com.att.aro.util.ImageHelper;
 
 public class VideoCaptureMacOS extends Thread{
@@ -39,7 +37,7 @@ public class VideoCaptureMacOS extends Thread{
 		subscribers = new ArrayList<ImageSubscriber>();
 		qos = new QuickTimeOutputStream(file,
 				QuickTimeOutputStream.VideoFormat.JPG);
-		qos.setVideoCompressionQuality(1f);
+		qos.setVideoCompressionQuality(0.2f); // orig 1f
 		qos.setTimeScale(10);
 		
 	}

@@ -120,6 +120,8 @@ public class TraceData implements Serializable {
 		private Collection<ApplicationPacketSummary> applicationPacketSummary = new ArrayList<ApplicationPacketSummary>();
 		private Collection<IPPacketSummary> ipPacketSummary = new ArrayList<IPPacketSummary>();
 		private long totalBytes = 0;
+	//	private long totalBytesTransferred = 0;
+		private boolean totalByteCountFlag;
 		private long totalHTTPSBytes = 0;
 		private long totalHTTPSAnalyzedBytes = 0;
 		private double packetsDuration = 0.0;
@@ -266,9 +268,9 @@ public class TraceData implements Serializable {
 				// No filter. Use all packets
 				packets = TraceData.this.allPackets;
 			}
-
+ 
 			this.applicationFilter = filter != null ? new AnalysisFilter(filter) : new AnalysisFilter(TraceData.this);
-
+			
 			runAnalysis(datadump);
 		}
 
@@ -720,7 +722,11 @@ public class TraceData implements Serializable {
 			// Returns a copy to prevent changes
 			return new AnalysisFilter(applicationFilter);
 		}
-
+		
+		public void setFilter(AnalysisFilter anApplicationFilter){
+			this.applicationFilter = anApplicationFilter;
+		}
+		
 		/**
 		 * Returns the list of packets associated with the trace data.
 		 * 
@@ -728,6 +734,20 @@ public class TraceData implements Serializable {
 		 */
 		public List<PacketInfo> getPackets() {
 			return Collections.unmodifiableList(packets);
+		}
+
+		public void setPackets(List<PacketInfo> packets) { //greg Story
+			this.packets = packets;
+		}
+		
+		public void extractTCPSessions(){
+			try{
+				this.tcpSessions = TCPSession.extractTCPSessions(this);
+				this.applicationFilter.setTcpSessions(this.getTcpSessions()); //greg Story
+				totalByteCountFlag = true;
+			} catch(IOException exception){
+				logger.info(exception.getMessage());
+			}
 		}
 
 		/**
@@ -756,6 +776,10 @@ public class TraceData implements Serializable {
 		 */
 		public List<TCPSession> getTcpSessions() {
 			return Collections.unmodifiableList(tcpSessions);
+		}
+
+		public void setTcpSessions(List<TCPSession> tcpSessions) {
+			this.tcpSessions = tcpSessions;
 		}
 
 		/**
@@ -971,21 +995,26 @@ public class TraceData implements Serializable {
 		 * 
 		 * @throws IOException
 		 */
-		private synchronized void runAnalysis(boolean datadump) throws IOException {
-
+		public synchronized void runAnalysis(boolean datadump) throws IOException {
+			
 			// Collect basic statistics
 			if (packets.size() > 0) {
 				PacketInfo lastPacket = packets.get(packets.size() - 1);
 				Map<String, PacketCounter> appPackets = new HashMap<String, PacketCounter>();
 				Map<InetAddress, PacketCounter> ipPackets = new HashMap<InetAddress, PacketCounter>();
 				for (PacketInfo packet : packets) {
-					totalBytes += packet.getLen();
+					//totalBytes += packet.getLen();
 					
 					if (packet.getPacket() instanceof TCPPacket) {
 						TCPPacket tcp = (TCPPacket) packet.getPacket();
 						if ((tcp.isSsl()) || (tcp.getDestinationPort() == 443) || (tcp.getSourcePort() == 443)) {
-							totalHTTPSBytes += packet.getLen();					
+							totalHTTPSBytes += packet.getLen();
 						}
+						totalBytes += packet.getLen();
+						
+					} else {
+						
+						totalBytes += packet.getPayloadLen();
 					}
 
 					String appName = packet.getAppName();
@@ -1041,10 +1070,25 @@ public class TraceData implements Serializable {
 					logger.fine("");
 				}
 			}
-
-			// Analyze packets for TCP sessions
-			logger.fine("Extracting TCP Sessions");
-			this.tcpSessions = TCPSession.extractTCPSessions(this);
+			
+			if(this.tcpSessions == null || this.tcpSessions.size()==0){ //greg condition added to analyze only selected tcp session from UI 
+				logger.fine("Extracting TCP Sessions");
+				this.tcpSessions = TCPSession.extractTCPSessions(this);
+				this.applicationFilter.setTcpSessions(this.getTcpSessions()); //greg Story
+				totalByteCountFlag = true;
+			} 
+			
+			if(totalByteCountFlag){
+				//This Block should be added when I am working on refresh button
+				if(this.tcpSessions != null && this.tcpSessions.size()!=0){
+				this.totalBytes = 0;
+					for (TCPSession byteCountSession : this.tcpSessions) {
+						this.totalBytes += byteCountSession.getBytesTransferred();
+					}
+				}
+				totalByteCountFlag = false;
+			}
+			
 			
 			// Do text file compression analysis
 			logger.fine("Performing text file compression analysis");
@@ -1101,7 +1145,7 @@ public class TraceData implements Serializable {
 			// Create energy model
 			logger.fine("Initializing EnergyModel");
 			this.energyModel = new EnergyModel(this);
-
+			
 			// Burst Analysis
 			logger.fine("Initializing BurstCollectionAnalysis");
 			this.bcAnalysis = new BurstCollectionAnalysis(this);
@@ -1445,6 +1489,90 @@ public class TraceData implements Serializable {
 		 */
 		public double getGPSActiveDuration() {
 			return gpsActiveDuration;
+		}
+		
+		/**
+		 * Running analysis for the diagnostic tab refresh button based on the tcp session check boxes
+		 * @param profile
+		 * @param timeRange
+		 * @param datadump
+		 * @throws IOException
+		 */
+		public void runReAnalysis(Profile profile, TimeRange timeRange, boolean datadump) throws IOException{
+			this.profile = profile != null ? profile : new Profile3G();
+
+			//TimeRange timeRange = filter != null ? filter.getTimeRange() : null;
+			//System.out.println("Time Range  " +timeRange);
+			if (timeRange != null) {
+				double beginTime = timeRange.getBeginTime();
+				double endTime = timeRange.getEndTime();
+				
+				this.cpuActivityList = TraceData.this.cpuActivityList;
+				cpuActivityList.updateTimeRange(beginTime, endTime);
+				
+				this.gpsInfos = getGpsInfosForTheTimeRange(TraceData.this.gpsInfos, beginTime, endTime);
+				this.bluetoothInfos = getBluetoothInfosForTheTimeRange(TraceData.this.bluetoothInfos, beginTime, endTime);
+				this.wifiInfos = getWifiInfosForTheTimeRange(TraceData.this.wifiInfos, beginTime, endTime);
+				this.batteryInfos = getBatteryInfosForTheTimeRange(TraceData.this.batteryInfos, beginTime, endTime);
+				this.radioInfos = getRadioInfosForTheTimeRange(TraceData.this.radioInfos, beginTime, endTime);
+				this.cameraInfos = getCameraInfosForTheTimeRange(TraceData.this.cameraInfos, beginTime, endTime);
+				this.screenStateInfos = getScreenInfosForTheTimeRange(TraceData.this.screenStateInfos, beginTime, endTime);
+				this.userEvents = getUserEventsForTheTimeRange(TraceData.this.userEvents, beginTime, endTime);
+				this.networkTypeInfos = getNetworkInfosForTheTimeRange(TraceData.this.networkTypeInfos, beginTime, endTime);
+				traceDuration = endTime -beginTime;
+
+			} else {
+				this.cpuActivityList = TraceData.this.cpuActivityList;
+				this.gpsInfos = TraceData.this.gpsInfos;
+				this.bluetoothInfos = TraceData.this.bluetoothInfos;
+				this.wifiInfos = TraceData.this.wifiInfos;
+				this.batteryInfos = TraceData.this.batteryInfos;
+				this.radioInfos = TraceData.this.radioInfos;
+				this.cameraInfos = TraceData.this.cameraInfos;
+				this.screenStateInfos = TraceData.this.screenStateInfos;
+				this.userEvents = TraceData.this.userEvents;
+				this.bluetoothActiveDuration = TraceData.this.bluetoothActiveDuration;
+				this.gpsActiveDuration = TraceData.this.gpsActiveDuration;
+				this.cameraActiveDuration = TraceData.this.cameraActiveDuration;
+				this.wifiActiveDuration = TraceData.this.wifiActiveDuration;
+				this.networkTypeInfos = TraceData.this.networkTypeInfos;
+			}
+/* need to work while refresh number of packets .........
+			if (filter != null) {
+
+				// Filter packets based upon selected app names
+				packets = new ArrayList<PacketInfo>();
+				int packetIdx = 0;
+				for (PacketInfo packet : TraceData.this.allPackets) {
+
+					// Check time range
+					double timestamp = packet.getTimeStamp();
+					if (timeRange != null
+							&& (timeRange.getBeginTime() > timestamp || timeRange.getEndTime() < timestamp)) {
+
+						// Not in time range
+						continue;
+					}
+
+					// Check to see if application is selected
+					if (filter.getPacketColor(packet) == null) {
+
+						// App unknown by filter
+						continue;
+					}
+
+					packet.setId(++packetIdx);
+					packets.add(packet);
+				}
+			} else {
+
+				// No filter. Use all packets
+				packets = TraceData.this.allPackets;
+			}
+ 
+			this.applicationFilter = filter != null ? new AnalysisFilter(filter) : new AnalysisFilter(TraceData.this);
+*/			
+			runAnalysis(datadump);
 		}
 
 		/**
@@ -1934,30 +2062,32 @@ public class TraceData implements Serializable {
 		try {
 			String s;
 
-			// Ignore first line
+			// line 1 - Ignore first line
 			br.readLine();
 
-			// Second line is pcap time
+			// Line 2 - pcap time
 			s = br.readLine();
 			if (s != null) {
 				result.startTime = Double.valueOf(s);
 
+				// line 3 - "/proc/uptime"
 				s = br.readLine();
 				if (s != null) {
 					result.eventTime = Double.parseDouble(s) / 1000.0;
 				}
 
+				// line 4 - duration
 				s = br.readLine();
 				if (s != null) {
-					result.duration = Double.valueOf(Double.parseDouble(s)
-							- result.startTime.doubleValue());
+					result.duration = Double.valueOf(Double.parseDouble(s) - result.startTime.doubleValue());
 				}
-				
+
+				// line 5 - time zone offset
 				s = br.readLine();
 				if (s != null) {
 					try {
-					result.timezoneOffset = Integer.valueOf(s);
-					}catch (NumberFormatException e){
+						result.timezoneOffset = Integer.valueOf(s);
+					} catch (NumberFormatException e) {
 						logger.log(Level.WARNING, "Unable to parse Collector Timezone Offset - " + s);
 					}
 				}
@@ -4396,8 +4526,7 @@ public class TraceData implements Serializable {
 			if (videoDisplayFile.exists() || videoFileFromDevice.exists()) {
 				File file = new File(traceDir, VIDEO_TIME_FILE);
 				if (!file.exists()) {
-					if (new File(traceDir, VIDEO_MP4_FILE).exists()
-							|| new File(traceDir, VIDEO_MOV_FILE).exists()) {
+					if (new File(traceDir, VIDEO_MP4_FILE).exists() || new File(traceDir, VIDEO_MOV_FILE).exists()) {
 						this.missingFiles.add(VIDEO_TIME_FILE);
 					}
 				} else {
@@ -4426,8 +4555,7 @@ public class TraceData implements Serializable {
 									// and
 									// videoStartTime are in sync.
 									double tcpdumpLocalStartTime = Double.parseDouble(strValues[1]);
-									double tcpdumpDeviceVsLocalTimeDelta = (getTraceDateTime()
-											.getTime() / 1000.0) - tcpdumpLocalStartTime;
+									double tcpdumpDeviceVsLocalTimeDelta = (getTraceDateTime().getTime() / 1000.0) - tcpdumpLocalStartTime;
 									videoStartTime += tcpdumpDeviceVsLocalTimeDelta;
 								}
 							}

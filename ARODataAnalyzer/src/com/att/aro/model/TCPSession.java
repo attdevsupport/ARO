@@ -106,6 +106,7 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 			.getName());
 	private InetAddress remoteIP;
 	private String remoteHostName;
+	private boolean selectedRow = true; //Greg Story
 
 	/**
 	 * Domain name is the initial host name requested that initiated a TCP
@@ -2009,6 +2010,10 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 						reassembledSession.storage.write(data, dataOffset, l);
 					}
 				}
+				
+				 //Added to find UDP packet bytes transfered
+				session.bytesTransferred += packet.getPayloadLen();
+				
 					
 			}
 			session.storageDl = dl.storage.toByteArray();
@@ -2034,7 +2039,7 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 						}
 					}
 				} 
-			}
+			}			
 			if (sess.domainName == null) {
 				sess.domainName = sess.remoteHostName != null ? sess.remoteHostName : sess.remoteIP.getHostAddress();
 			}
@@ -2130,6 +2135,14 @@ public class TCPSession implements Serializable, Comparable<TCPSession> {
 	 */
 	public String getRemoteHostName() {
 		return remoteHostName;
+	}
+
+	public boolean isSelectedRow() {
+		return selectedRow;
+	}
+
+	public void setSelectedRow(boolean selectedRow) {
+		this.selectedRow = selectedRow;
 	}
 
 	/**

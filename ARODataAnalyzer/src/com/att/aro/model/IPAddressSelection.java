@@ -29,6 +29,7 @@ public class IPAddressSelection implements Serializable {
 	private InetAddress ipAddress;
 	private boolean selected = true;
 	private Color color = Color.GRAY;
+	private String domainName; //Greg Strory
 
 	/**
 	 * Initializes an instance of the IPAddressSelection class, using the
@@ -39,6 +40,11 @@ public class IPAddressSelection implements Serializable {
 	 */
 	public IPAddressSelection(InetAddress ipAddress) {
 		this.ipAddress = ipAddress;
+	}
+	
+	public IPAddressSelection(InetAddress ipAddress, String domainName) {
+		this.ipAddress = ipAddress;
+		this.domainName = domainName;
 	}
 
 	/**
@@ -52,6 +58,7 @@ public class IPAddressSelection implements Serializable {
 		this.ipAddress = sel.ipAddress;
 		this.selected = sel.selected;
 		this.color = sel.color;
+		this.domainName = sel.getDomainName();
 	}
 
 	/**
@@ -103,6 +110,14 @@ public class IPAddressSelection implements Serializable {
 	 */
 	public void setColor(Color color) {
 		this.color = color;
+	}
+
+	public String getDomainName() {
+		return domainName;
+	}
+
+	public void setDomainName(String domainName) {
+		this.domainName = domainName;
 	}
 
 }

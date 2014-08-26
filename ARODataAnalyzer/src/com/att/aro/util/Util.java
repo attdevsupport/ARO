@@ -36,6 +36,7 @@ public final class Util {
 	public static final ResourceBundle RB = ResourceBundleManager.getDefaultBundle();
 	private static final double TIME_CORRECTION = 1.0E9;
 	public static final String TRAFFIC_FILE = RB.getString("datadump.trafficFile");
+	public static final String VPN_ENABLED = RB.getString("Emulator.vpnEnabled");
 	public static final String OS_NAME = System.getProperty("os.name");
 	public static final String OS_ARCHYTECTURE = System.getProperty("os.arch");
 	public static final String FILE_SEPARATOR = System.getProperty("file.separator"); 
@@ -47,6 +48,13 @@ public final class Util {
 	}
     public static boolean isWindowsOS(){
         return Util.OS_NAME.contains("Windows");
+    }
+    /**
+     * Controls whether to launch WIFI or VPN methods
+     * @return
+     */
+    public static boolean isVpnEnabled(){
+    	return VPN_ENABLED.equals("Yes") ? true : false;
     }
 	/**
 	 * location to save trace data such as pcap, video etc. used by non-rooted IOS

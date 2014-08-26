@@ -33,6 +33,7 @@ public class ApplicationSelection implements Serializable {
 	private boolean selected = true;
 	private Color color = Color.GRAY;
 	private Map<InetAddress, IPAddressSelection> ipAddressSelection;
+	private Map<InetAddress, String> domainNames; //Greg Story
 
 	/**
 	 * Initializes an instance of the ApplicationSelection class, using the specified 
@@ -50,6 +51,7 @@ public class ApplicationSelection implements Serializable {
 			}
 		}
 	}
+	
 
 	/**
 	 * Initializes an instance of the ApplicationSelection class, using another instance 
@@ -61,8 +63,14 @@ public class ApplicationSelection implements Serializable {
 		this.appName = app.appName;
 		this.selected = app.selected;
 		this.color = app.color;
+		this.domainNames = app.domainNames;
 		this.ipAddressSelection = new HashMap<InetAddress, IPAddressSelection>(app.ipAddressSelection.size());
 		for (IPAddressSelection sel : app.ipAddressSelection.values()) {
+			String domainName = ""; // greg Story
+			if(app.getDomainNames() != null){
+				domainName = app.getDomainNames().get(sel.getIpAddress());
+				sel.setDomainName(domainName);
+			}
 			ipAddressSelection.put(sel.getIpAddress(), new IPAddressSelection(sel));
 		}
 	}
@@ -130,6 +138,23 @@ public class ApplicationSelection implements Serializable {
 	 */
 	public Collection<IPAddressSelection> getIPAddressSelections() {
 		return ipAddressSelection.values();
+	}
+
+	/**
+	 * Return Domain Names map
+	 * 
+	 * @return map
+	 */
+	public Map<InetAddress, String> getDomainNames() {
+		return domainNames;
+	}
+
+	/**
+	 * Set the value to Domain names map
+	 * @param map
+	 */
+	public void setDomainNames(Map<InetAddress, String> domainNames) {
+		this.domainNames = domainNames;
 	}
 
 }

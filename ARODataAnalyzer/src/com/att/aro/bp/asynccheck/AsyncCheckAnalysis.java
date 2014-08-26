@@ -52,12 +52,19 @@ public class AsyncCheckAnalysis {
 	 */
 	public AsyncCheckAnalysis(List<TCPSession> tcpSessions) {
 		for (TCPSession tcpSession : tcpSessions) {
+			
+			/*Taking this variable inside TCPSession FOR loop because after analyzing the content, 
+			we should always reset lastRequestObj to null for a different TCP session.*/
+			HttpRequestResponseInfo lastRequestObj = null;
+			
 			for (HttpRequestResponseInfo rr : tcpSession
 					.getRequestResponseInfo()) {
 				if (rr.getDirection() == Direction.RESPONSE) {
 					if (!rr.checkAsyncAttributeInHead(this)) {
-						results.add(new AsyncCheckEntry(rr));
+						results.add(new AsyncCheckEntry(rr, lastRequestObj));
 					}
+				} else if (rr.getDirection() == Direction.REQUEST) {
+					lastRequestObj = rr;
 				}
 			}
 		}

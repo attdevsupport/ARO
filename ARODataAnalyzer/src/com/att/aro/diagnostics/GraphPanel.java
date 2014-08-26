@@ -41,6 +41,7 @@ import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -113,6 +114,7 @@ import com.att.aro.main.GraphPanelPlotLabels;
 import com.att.aro.main.PacketPlots;
 import com.att.aro.main.ResourceBundleManager;
 import com.att.aro.model.BatteryInfo;
+import com.att.aro.model.TimeRange;
 import com.att.aro.model.WakelockInfo;
 import com.att.aro.model.WakelockInfo.WakelockState;
 import com.att.aro.model.BluetoothInfo;
@@ -133,6 +135,7 @@ import com.att.aro.model.RRCState;
 import com.att.aro.model.RadioInfo;
 import com.att.aro.model.RrcStateRange;
 import com.att.aro.model.ScreenStateInfo;
+import com.att.aro.model.TCPSession;
 import com.att.aro.model.ScreenStateInfo.ScreenState;
 import com.att.aro.model.Throughput;
 import com.att.aro.model.TraceData;
@@ -319,6 +322,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 	private static final String ZOOM_IN_ACTION = "zoomIn";
 	private static final String ZOOM_OUT_ACTION = "zoomOut";
 	private static final String SAVE_AS_ACTION = "saveGraph";
+	private static final String REFRESH_AS_ACTION = "refreshGraph";
 
 	private static final int MINOR_TICK_COUNT_10 = 10;
 	private static final int MINOR_TICK_COUNT_5 = 5;
@@ -422,6 +426,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 	private JButton zoomInButton;
 	private JButton zoomOutButton;
 	private JButton saveGraphButton;
+	private JButton refreshGraphButton;
 	private JPanel zoomSavePanel;
 	private JViewport port;
 	private JPanel graphLabelsPanel;
@@ -440,6 +445,12 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 
 	private TraceData traceData;
 
+	private TraceData.Analysis traceAnalysis; //greg story
+	private List<PacketInfo> allPackets;//GregStrory
+	private double allTcpSessions; //GregStorys
+	private double traceDuration; //GregStorys added to go back to original trace duration
+	private double endTime = 0.0;
+	private double startTime = 0.0;
 	private int zoomCounter = 0;
 	private int maxZoom = 5;
 	private double zoomFactor = 2;
@@ -556,7 +567,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 	 *            - An Analysis object containing the new trace analysis data.
 	 */
 	public synchronized void resetChart(TraceData.Analysis analysis) {
-
+	
 		this.traceData = analysis != null ? analysis.getTraceData() : null;
 		getSaveGraphButton().setEnabled(analysis != null);
 		// Setting the initial value on the time axis to -0.01 as the first
@@ -565,8 +576,18 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		if (analysis != null && analysis.getFilter().getTimeRange() != null){
 			this.axis.setRange(new Range(-0.01, analysis != null ? analysis.getFilter().getTimeRange().getEndTime() : DEFAULT_TIMELINE));
 		}else{
-			this.axis.setRange(new Range(-0.01, analysis != null ? analysis.getTraceData()
-				.getTraceDuration() : DEFAULT_TIMELINE));
+			if(this.endTime > 0){ //greg story selected rows from UI
+				if(analysis != null){ 
+					this.axis.setRange(new Range(this.startTime, this.endTime));
+				} else {
+					this.axis.setRange(new Range(-0.01, DEFAULT_TIMELINE));
+				}
+				this.startTime = 0.0; //Reset times
+				this.endTime = 0.0;
+			} else { 
+				this.axis.setRange(new Range(-0.01, analysis != null ? analysis.getTraceData()
+						.getTraceDuration() : DEFAULT_TIMELINE));
+			}
 		}
 		setGraphView(0);
 		for (Map.Entry<ChartPlotOptions, GraphPanelPlotLabels> entry : subplotMap.entrySet()) {
@@ -624,6 +645,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		this.getZoomInButton().setEnabled(analysis != null);
 		this.getZoomOutButton().setEnabled(analysis != null);
 		this.getSaveGraphButton().setEnabled(analysis != null);
+		this.getRefreshButton().setEnabled(false); //Greg Story
 	}
 
 	/**
@@ -894,7 +916,120 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 			zoomIn();
 		} else if (ZOOM_OUT_ACTION.equals(e.getActionCommand())) {
 			zoomOut();
+		} else if (REFRESH_AS_ACTION.equals(e.getActionCommand())){ //Greg Story
+			
+			refreshGraph();
 		}
+	}
+	
+	/**
+	 * Added refresh button. Refresh the graph for selected rows in the TCP session
+	 */
+	private void refreshGraph(){
+		// Greg Story
+			
+			List<TCPSession> tcpsessionsList = new ArrayList<TCPSession>(); 
+			if(this.traceAnalysis == null){
+				return;
+			} else {
+				tcpsessionsList = this.traceAnalysis.getTcpSessions();
+				
+			}
+			List<PacketInfo> packetsForSlectedSession = new ArrayList<PacketInfo>();
+			for (TCPSession tcpSession : tcpsessionsList) {
+				if(tcpSession.getPackets() != null){
+					packetsForSlectedSession.addAll(tcpSession.getPackets());
+				}
+			}
+			boolean selectedAllPackets = false;
+			
+			//Adding the TCP packets to the trace for getting redoing the analysis
+			if(packetsForSlectedSession.size() > 0){
+				/*if(packetsForSlectedSession.size() == this.traceAnalysis.getTraceData().getAllPackets().size()){ //For select all use all exiting packets 
+					this.traceAnalysis.setPackets(this.traceAnalysis.getTraceData().getAllPackets());
+					selectedAllPackets = true;
+				}*/
+				if(tcpsessionsList.size() == this.getAllTcpSessions()){ //For select all use all exiting packets 
+					this.traceAnalysis.setPackets(this.getAllPackets());
+					selectedAllPackets = true;
+				}
+				else {
+					Collections.sort(packetsForSlectedSession);
+					this.traceAnalysis.setPackets(Collections.unmodifiableList(packetsForSlectedSession));
+				}
+			}
+			if(tcpsessionsList.size() == 0){
+				this.traceAnalysis = null;
+			}
+	/*
+			if(this.traceAnalysis != null){
+				try{
+					this.traceAnalysis.runAnalysis(false); // Do the analysis 
+					
+				} catch (IOException ex){
+					logger.info("IO Exception for selected sessions ");
+				} 
+			}
+	*/		
+			if(selectedAllPackets){
+				startTime = -0.01;
+				//endTime = 0.0;
+				endTime = this.traceDuration;
+			} else	{
+				int i = 0;
+				for (TCPSession tcpSession : tcpsessionsList) {
+					if(tcpSession.getPackets().size() != 0){
+						if(i==0){
+							startTime = tcpSession.getPackets().get(0).getTimeStamp();
+							endTime = tcpSession.getPackets().get(0).getTimeStamp();
+						}
+						
+						if(startTime > tcpSession.getPackets().get(0).getTimeStamp()){
+							startTime = tcpSession.getPackets().get(0).getTimeStamp();
+						}
+						
+						if( endTime < tcpSession.getPackets().get(0).getTimeStamp()){
+							endTime = tcpSession.getPackets().get(0).getTimeStamp();
+						}
+						i++;
+					}
+				}
+				
+				if(i == 0){
+					startTime = 0.0;
+					endTime = 0.0;
+				}
+			} 
+			// for Analysis data perticalar time of the graph.
+			if(startTime > 0){
+				startTime = startTime - 5;
+				if(startTime < 0){
+					startTime = -0.01;
+				}
+			} 
+			if(startTime < 0){
+				startTime = -0.01;
+			}
+			if(!selectedAllPackets){
+				if (endTime > 0){
+					endTime = endTime + 20;
+				}
+				if(endTime > this.traceDuration){
+					endTime = traceDuration;
+				}
+			}
+			if(this.traceAnalysis != null){
+				
+
+				TimeRange tr = new TimeRange(startTime, endTime);
+				try{
+					this.traceAnalysis.runReAnalysis(this.traceAnalysis.getProfile(), tr, false);
+				} catch (IOException ex){
+					logger.info("IO Exception for selected sessions ");
+				} 
+			}
+		
+		this.resetChart(this.traceAnalysis);
 	}
 
 	/**
@@ -1174,14 +1309,17 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 			zoomSavePanel = new JPanel();
 			zoomSavePanel.setLayout(new GridBagLayout());
 			GridBagConstraints gbc = new GridBagConstraints();
-			gbc.gridx = 0;
+			gbc.gridx = 0; //Greg Story
 			gbc.gridy = 0;
-			zoomSavePanel.add(getZoomInButton(), gbc);
+			zoomSavePanel.add(getRefreshButton(), gbc); 
 			gbc.gridx = 0;
 			gbc.gridy = 1;
-			zoomSavePanel.add(getZoomOutButton(), gbc);
+			zoomSavePanel.add(getZoomInButton(), gbc);
 			gbc.gridx = 0;
 			gbc.gridy = 2;
+			zoomSavePanel.add(getZoomOutButton(), gbc);
+			gbc.gridx = 0;
+			gbc.gridy = 3;
 			zoomSavePanel.add(getSaveGraphButton(), gbc);
 		}
 		return zoomSavePanel;
@@ -1224,6 +1362,19 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 			saveGraphButton.setToolTipText(rb.getString("chart.tooltip.saveas"));
 		}
 		return saveGraphButton;
+	}
+ //Greg Story	
+	private JButton getRefreshButton() {
+		if (refreshGraphButton == null) {
+			ImageIcon refreshButtonIcon = Images.REFRESH.getIcon();
+			refreshGraphButton = new JButton("", refreshButtonIcon);
+			refreshGraphButton.setActionCommand(REFRESH_AS_ACTION);
+			refreshGraphButton.setEnabled(false);
+			refreshGraphButton.setPreferredSize(new Dimension(60, 30));
+			refreshGraphButton.addActionListener(this);
+			refreshGraphButton.setToolTipText(rb.getString("chart.tooltip.refresh"));
+		}
+		return refreshGraphButton;
 	}
 
 	private CombinedDomainXYPlot getPlot() {
@@ -2230,14 +2381,14 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 			// Get packet iterators
 			List<PacketInfo> packets = analysis.getPackets();
 			final double maxTS = analysis.getTraceData().getTraceDuration();
-
+			
 			final List<String> tooltipList = new ArrayList<String>(1000);
 
 			Double zeroTime = null;
 			double lastTime = 0.0;
 			for (Throughput t : Throughput.calculateThroughput(0.0, maxTS, analysis.getProfile()
 					.getThroughputWindow(), packets)) {
-
+				
 				double time = t.getTime();
 				double kbps = t.getKbps();
 				if (kbps != 0.0) {
@@ -2319,7 +2470,7 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 			while (iter.hasNext()) {
 				Burst currEvent = iter.next();
 				if (currEvent != null) {
-					BurstCategory burstState = currEvent.getBurstCategory();
+					BurstCategory burstState = currEvent.getBurstCategory(); 
 					if (burstState != null) {
 						seriesMap.get(burstState).add(currEvent.getBeginTime(),
 								currEvent.getBeginTime(), currEvent.getEndTime(), 0.5, 0, 1);
@@ -2583,4 +2734,39 @@ public class GraphPanel extends JPanel implements ActionListener, ChartMouseList
 		Rectangle2D rect = new Rectangle2D.Double(0, 0, 5, 5);
 		return new TexturePaint(bufferedImage, rect);
 	}
+
+	//greg Story
+	public TraceData.Analysis getTraceAnalysis() {
+		return traceAnalysis;
+	}
+
+	public void setTraceAnalysis(TraceData.Analysis traceAnalysis) {
+		this.getRefreshButton().setEnabled(traceAnalysis != null); //Greg Story
+		this.traceAnalysis = traceAnalysis;
+	}
+
+	public List<PacketInfo> getAllPackets() {
+		return allPackets;
+	}
+
+	public void setAllPackets(List<PacketInfo> allPackets) {
+		this.allPackets = allPackets;
+	}
+
+	public double getAllTcpSessions() {
+		return allTcpSessions;
+	}
+
+	public void setAllTcpSessions(double allTcpSessions) {
+		this.allTcpSessions = allTcpSessions;
+	}
+
+	public double getTraceDuration() {
+		return traceDuration;
+	}
+
+	public void setTraceDuration(double traceDuration) {
+		this.traceDuration = traceDuration;
+	}
+
 }
