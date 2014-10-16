@@ -162,7 +162,7 @@ The ARO Open Source code package contains the following:
 **README.md** - This file.
 
 
-###ARO Data Collector
+###ARO Data Collector: Build + Install
 ARO Data Collector is an Android application (.apk) that runs on your phone. To build the apk you will need [Android SDK](http://developer.android.com/sdk/index.html) and Apache ANT.
 ```
 cd ARODataCollector
@@ -170,15 +170,14 @@ android update project --name ARODataCollector --target 7 --path ../ARODataColle
 adb install bin/ARODataCollector-debug.apk
 ```
 ***Note:*** Replace `--target 7` with an appropriate target from the list of targets `android list targets`
-###ARO Data Analyzer
 
-###Run Pre-Compiled ARO Analyzer 
+###ARO Analyzer: Run Pre-Compiled 
 This repo includes a pre-built version of ARO Analyzer for Mac, Windows, or Linux (x64)
 ```
 cd bin
 ./aro or aro.bat
 ```
-###Build + Run ARO Analyzer
+###ARO Analyzer: Build + Run
 Environment requirements:
 + 1GB or more of RAM.
 + JRE 1.6 and above to run
