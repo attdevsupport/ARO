@@ -4,7 +4,8 @@ ARO is split into two components.
 1. **ARO Data Collector** an app for Android and iPhone that runs on your phone and captures data (i.e. network traffic).
 2. **The ARO Data Analyzer** a java app used to visualize and interpret the captured data.
 
-###ARO Data Collector: Build + Install
+##ARO Data Collector
+###Build + Install
 ARO Data Collector is an Android application (.apk) that runs on your phone. To build the apk you will need [Android SDK](http://developer.android.com/sdk/index.html) and Apache ANT.
 ```
 cd ARODataCollector
@@ -13,13 +14,14 @@ adb install bin/ARODataCollector-debug.apk
 ```
 ***Note:*** Replace `--target 7` with an appropriate target from the list of targets `android list targets`
 
-###ARO Analyzer: Run Pre-Compiled 
+##ARO Analyzer
+###Run Pre-Compiled 
 This repo includes a pre-built version of ARO Analyzer for Mac, Windows, or Linux (x64)
 ```
 cd bin
 ./aro or aro.bat
 ```
-###ARO Analyzer: Build + Run
+###Build + Run
 Environment requirements:
 + 1GB or more of RAM.
 + JRE 1.6 and above to run
