@@ -34,6 +34,8 @@ ant
 ./aro or aro.bat
 ```
 
+***
+
 All works distributed in this package are covered by the Apache 2.0 License unless otherwise stated.
 
 > Copyright 2012 AT&T Intellectual Property
