@@ -1,5 +1,40 @@
 #Application Resource Optimizer (ARO)
 
+ARO consists of two components:
+1. **ARO Data Collector** is an Android app (.apk) that runs on your Android phone and captures data (i.e. network traffic).
+2. **The ARO Data Analyzer** a java app used to visualize and interpret the captured data.
+
+###ARO Data Collector: Build + Install
+ARO Data Collector is an Android application (.apk) that runs on your phone. To build the apk you will need [Android SDK](http://developer.android.com/sdk/index.html) and Apache ANT.
+```
+cd ARODataCollector
+android update project --name ARODataCollector --target 7 --path ../ARODataCollector
+adb install bin/ARODataCollector-debug.apk
+```
+***Note:*** Replace `--target 7` with an appropriate target from the list of targets `android list targets`
+
+###ARO Analyzer: Run Pre-Compiled 
+This repo includes a pre-built version of ARO Analyzer for Mac, Windows, or Linux (x64)
+```
+cd bin
+./aro or aro.bat
+```
+###ARO Analyzer: Build + Run
+Environment requirements:
++ 1GB or more of RAM.
++ JRE 1.6 and above to run
++ JDK 1.6 and above to compile
++ ANT, An Apache Java build tool
++ Mac OS X 10.6 and above OR Ubuntu 12.04 and above OR Windows XP, Windows Vista, or Windows Seven.
++ WinPcap if on windows
+
+**Note:** If needed, configure the JAVA_HOME system variable so that it points to your Java installation directory. This can be done in the Advanced tab of System Properties, by editing the Environment Variables in windows.
+
+```
+cd ARODataAnalyzer
+ant
+./aro or aro.bat
+```
 
 All works distributed in this package are covered by the Apache 2.0 License unless otherwise stated.
 
@@ -36,10 +71,6 @@ AT&T Application Resource Optimizer contains the following open source libraries
 **Android Open Source Project**   
 > The AT&T Application Resource Optimizer(ARO) uses Open Source Software that is licensed under the Apache Software License 2.0  (the "License"), and you may not use this file except in compliance with the License. You may obtain a copy of the Licenses at: http://source.android.com/source/licenses.html. Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the Licenses for the specific language governing permissions and limitations under the Licenses.
 
-
-
-
-##Open Source Code Package
 
 The Application Resource Optimizer (ARO) is a diagnostic tool for analyzing mobile web application performance developed by AT&T. ARO allows you to automatically profile an application to optimize performance, make battery utilization more efficient, and reduce network impact.
 
@@ -160,39 +191,5 @@ The ARO Open Source code package contains the following:
 **ARODataCollector_OpenSource_v3.1.1.7.apk.zip** - A zip package containing a compiled open source version of the ARO Data Collector.  
 **Adding Custom Best Practices in Open Source ARO.pdf** - Describes how to add custom Best Practices to the ARO Data Analyzer.  
 **README.md** - This file.
-
-
-###ARO Data Collector: Build + Install
-ARO Data Collector is an Android application (.apk) that runs on your phone. To build the apk you will need [Android SDK](http://developer.android.com/sdk/index.html) and Apache ANT.
-```
-cd ARODataCollector
-android update project --name ARODataCollector --target 7 --path ../ARODataCollector
-adb install bin/ARODataCollector-debug.apk
-```
-***Note:*** Replace `--target 7` with an appropriate target from the list of targets `android list targets`
-
-###ARO Analyzer: Run Pre-Compiled 
-This repo includes a pre-built version of ARO Analyzer for Mac, Windows, or Linux (x64)
-```
-cd bin
-./aro or aro.bat
-```
-###ARO Analyzer: Build + Run
-Environment requirements:
-+ 1GB or more of RAM.
-+ JRE 1.6 and above to run
-+ JDK 1.6 and above to compile
-+ ANT, An Apache Java build tool
-+ Mac OS X 10.6 and above OR Ubuntu 12.04 and above OR Windows XP, Windows Vista, or Windows Seven.
-+ WinPcap if on windows
-
-**Note:** If needed, configure the JAVA_HOME system variable so that it points to your Java installation directory. This can be done in the Advanced tab of System Properties, by editing the Environment Variables in windows.
-
-```
-cd ARODataAnalyzer
-ant
-./aro or aro.bat
-```
-
 ------------------------------------------------------------------------------  
 <img src="http://www.sillarsfamily.com/ARO.gif" alt="ARO Image" />
