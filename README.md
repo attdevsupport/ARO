@@ -1,6 +1,4 @@
 #Application Resource Optimizer (ARO)
-
-ARO consists of two components:
 1. **ARO Data Collector** is an Android app (.apk) that runs on your Android phone and captures data (i.e. network traffic).
 2. **The ARO Data Analyzer** a java app used to visualize and interpret the captured data.
 
