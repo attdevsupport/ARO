@@ -175,7 +175,6 @@ This section will generate an .apk Environment requirements:
 + [Android SDK](http://developer.android.com/sdk/index.html)
 + ANT, An Apache Java build tool
 
-####Compile and Install
 ```
 cd ARODataCollector
 android update project --name ARODataCollector --target 7 --path ../ARODataCollector
@@ -193,7 +192,6 @@ Environment requirements:
 + WinPcap if on windows
 **Note:** If needed, configure the JAVA_HOME system variable so that it points to your Java installation directory. This can be done in the Advanced tab of System Properties, by editing the Environment Variables in windows.
 
-####Compile and Run
 ```
 cd ARODataAnalyzer
 ant
