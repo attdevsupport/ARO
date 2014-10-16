@@ -168,20 +168,20 @@ The ARO Open Source code package contains the following:
   
 To launch the pre-built version of ARO Analyzer that is included in this open source download, do the following:
 
-**On Mac:**  
+**On Mac, Windows, or Linux**
 1. Download the zip file for this repository, and un-zip the files to the desired location. (e.g: Desktop)  
 2. Confirm that there is one main folder in the unzipped files: ARO, and two sub-folders inside ARO: bin and lib.  
+
+
+**On Mac or Linux (x64):**  
 3. Open terminal and change directory to the bin folder in the ARO location. (e.g: cd Desktop/ARO/bin)  
 4. Inside the bin directory, type: ./aro  
   
 
 **On Windows:**  
-1. Download the zip file for this repository, and un-zip the files to the desired location. (e.g: Desktop)  
-2. Confirm that there is one main folder in the unzipped files: ARO, and two sub-folders inside ARO: bin and lib.  
 3. Open a command prompt (cmd) and change directory to the bin folder in the ARO location. (e.g: cd Desktop/ARO/bin)  
 4. Inside the bin directory, type: aro  
 
- 
 
 ##Compiling and Building ARO
 The following sections describe the basic steps for compiling and building the ARO Data Collector and ARO Data Analyzer. For more detailed information, see the ARO Compilation and Build Guide.
