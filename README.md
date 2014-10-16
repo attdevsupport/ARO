@@ -1,6 +1,50 @@
-
 #Application Resource Optimizer (ARO)
+ARO is split into two components.
 
+1. **ARO Data Collector** an app for Android and iPhone that runs on your phone and captures data (i.e. network traffic).
+2. **The ARO Data Analyzer** a java app used to visualize and interpret the captured data.
+
+##ARO Data Collector
+###Install
+```
+unzip ARODataCollector_OpenSource_v3.1.1.7.apk.zip
+adb install ARODataCollector_OpenSource_v3.1.1.7.apk
+```
+###Build + Install
+ARO Data Collector is an Android application (.apk) that runs on your phone. To build the apk you will need [Android SDK](http://developer.android.com/sdk/index.html) and Apache ANT.
+```
+cd ARODataCollector
+android update project --name ARODataCollector --target 7 --path ../ARODataCollector
+adb install bin/ARODataCollector-debug.apk
+```
+***Note:*** Replace `--target 7` with an appropriate target from the list of targets `android list targets`
+
+##ARO Analyzer
+###Run
+This repo includes a pre-built version of ARO Analyzer for Mac, Windows, or Linux (x64)
+```
+cd ARODataAnalyzer/bin
+./aro or ./aro.bat
+```
+###Build + Run
+Environment requirements:
++ 1GB or more of RAM.
++ JRE 1.6 and above to run
++ JDK 1.6 and above to compile
++ ANT, An Apache Java build tool
++ Mac OS X 10.6 and above OR Ubuntu 12.04 and above OR Windows XP, Windows Vista, or Windows Seven.
++ WinPcap if on windows
+
+**Note:** If needed, configure the JAVA_HOME system variable so that it points to your Java installation directory. This can be done in the Advanced tab of System Properties, by editing the Environment Variables in windows.
+
+```
+cd ARODataAnalyzer
+ant
+cd bin/
+./aro or aro.bat
+```
+
+***
 
 All works distributed in this package are covered by the Apache 2.0 License unless otherwise stated.
 
@@ -38,10 +82,6 @@ AT&T Application Resource Optimizer contains the following open source libraries
 > The AT&T Application Resource Optimizer(ARO) uses Open Source Software that is licensed under the Apache Software License 2.0  (the "License"), and you may not use this file except in compliance with the License. You may obtain a copy of the Licenses at: http://source.android.com/source/licenses.html. Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the Licenses for the specific language governing permissions and limitations under the Licenses.
 
 
-
-
-##Open Source Code Package
-
 The Application Resource Optimizer (ARO) is a diagnostic tool for analyzing mobile web application performance developed by AT&T. ARO allows you to automatically profile an application to optimize performance, make battery utilization more efficient, and reduce network impact.
 
 The ARO Data Collector is the component of the ARO application that captures the data traffic of a mobile device and stores that information in trace files that can be analyzed using the ARO Data Analyzer.
@@ -66,7 +106,7 @@ ARO Data Collector 3.1.1.7
 
 
 
-**What’s new in Release 3.2?  (8/13/14)**  
+**Whatï¿½s new in Release 3.2?  (8/13/14)**  
 
 +  **ARO Analyzer Diagnostics Chart Enhancements**  
 The following enhancements have been made to the ARO Analyzer, allowing you to select the set of data that you view on the Diagnostics Chart more precisely:  
@@ -93,11 +133,11 @@ You can now download the ARO Installer and the ARO Collector App for Android fro
 
 +  **AT&T ARO Windows 8 Data Collector:**  The current version of the AT&T ARO Windows 8 Data Collector (version 2.2.1) does not support trace collection from Windows 8.1.  
 
-+  **ARO Analyzer Best Practices "Resize images for Mobile":**  Due to limitations in the structure of pcap files, the results for the “Resize Images for Mobile” test will appear differently for ARO trace files and pcap files.  
++  **ARO Analyzer Best Practices "Resize images for Mobile":**  Due to limitations in the structure of pcap files, the results for the ï¿½Resize Images for Mobileï¿½ test will appear differently for ARO trace files and pcap files.  
 
 +  **Set ADB Path Option:**  When using the Set ADB Path option on the File menu, the Cancel button does not work correctly, it saves the path name that is entered in the dialog.  
 
-+  **•	iOS Traces:**  Some devices may not record video during a trace due to hardware limitations. For these devices, use the USB Video feature to record a video for the trace.  
++  **ï¿½	iOS Traces:**  Some devices may not record video during a trace due to hardware limitations. For these devices, use the USB Video feature to record a video for the trace.  
 
 
 **What are the Other known issues from previous releases?**
@@ -114,11 +154,11 @@ You can now download the ARO Installer and the ARO Collector App for Android fro
 
 +  **Recording video in a trace:**  Some devices may not record video during a trace due to hardware limitations. For these devices, use the USB Video feature to record a video for the trace.  
 
-+  **Loading a trace:**  While loading a trace in the ARO Analyzer, an Out of Memory (OOM) notification (application heap size issue) error may occur, or the message: “ARO Analyzer has reached the maximum memory heap size. Close ARO Analyzer and try again or increase ARO Analyzer’s heap size. Also consider collecting multiple, smaller, more isolated traces.” may appear. This can also occur when the same trace is re-loaded.  
++  **Loading a trace:**  While loading a trace in the ARO Analyzer, an Out of Memory (OOM) notification (application heap size issue) error may occur, or the message: ï¿½ARO Analyzer has reached the maximum memory heap size. Close ARO Analyzer and try again or increase ARO Analyzerï¿½s heap size. Also consider collecting multiple, smaller, more isolated traces.ï¿½ may appear. This can also occur when the same trace is re-loaded.  
   
 +  **AT&T ARO Data Collector support for iOS:**  The following issues can occur on the specified iPhone devices if they are disconnected from a Mac running OS X Mountain Lion 10.8 and OS X Mavericks 10.9 while a trace is being collected:  
 	+  On the iPhone 5c, the ARO Data Analyzer may hang and display an empty pop-up, requiring the Analyzer to be closed.  
-	+  On the iPhone 5 and iPhone 4s, the error message “No data Packet captured” may be displayed. The correct error message is “Device got disconnected”.  
+	+  On the iPhone 5 and iPhone 4s, the error message ï¿½No data Packet capturedï¿½ may be displayed. The correct error message is ï¿½Device got disconnectedï¿½.  
 	+  Traces collected from an iPhone connected to a Mac running OS X Mavericks 10.9 are not supported by the AT&T ARO Analyzer when it is running on a Windows OS. 
 
 
@@ -162,113 +202,5 @@ The ARO Open Source code package contains the following:
 **Adding Custom Best Practices in Open Source ARO.pdf** - Describes how to add custom Best Practices to the ARO Data Analyzer.  
 **README.md** - This file.
 
-
-  
-##Running the pre-built Open Source ARO Analyzer:  
-  
-To launch the pre-built version of ARO Analyzer that is included in this open source download, do the following:
-
-**On Mac:**  
-1. Download the zip file for this repository, and un-zip the files to the desired location. (e.g: Desktop)  
-2. Confirm that there is one main folder in the unzipped files: ARO, and two sub-folders inside ARO: bin and lib.  
-3. Open terminal and change directory to the bin folder in the ARO location. (e.g: cd Desktop/ARO/bin)  
-4. Inside the bin directory, type: ./aro  
-  
-
-**On Windows:**  
-1. Download the zip file for this repository, and un-zip the files to the desired location. (e.g: Desktop)  
-2. Confirm that there is one main folder in the unzipped files: ARO, and two sub-folders inside ARO: bin and lib.  
-3. Open a command prompt (cmd) and change directory to the bin folder in the ARO location. (e.g: cd Desktop/ARO/bin)  
-4. Inside the bin directory, type: aro  
-
- 
-
-##Compiling and Building ARO
-The following sections describe the basic steps for compiling and building the ARO Data Collector and ARO Data Analyzer. For more detailed information, see the ARO Compilation and Build Guide.
-
-
-###ARO Data Collector
-This section describes how to setup the development environment, and then compile and build the ARO Data Collector into an Android Application Package (APK) using the Android SDK and Apache Ant. The APK file can then be installed on a device via the Android Debug Bridge (ADB).
-
-Note: In order for the ARO Data Collector to be fully functional, it must be installed on a rooted device. 
-
-
-**Setup the Development Environment**
-
-1. Download and setup the Android SDK. Go to the Android Developers website http://developer.android.com/sdk/index.html, download the Android package for your platform, and follow the steps to setup the Android SDK.
-
-2. Add additional components. Follow the installation instructions at http://developer.android.com/sdk/installing.html, especially the step: Adding Platforms and Other Components.
-
-3. Download Apache ANT. Go to http://ant.apache.org and follow the download instructions.
-
-
-**Compile and Build the ARO Data Collector**
-
-1. Checkout the ARO Data Collector source code from the ARODataCollector folder to a local folder.
-
-2. Update the project.properties to match your local configuration and generate a build.xml by using the following command syntax:  
-
-		android update project --name <project_name> --target <target_ID> --path <path_to_your_project>
-
-	Note: ARO Data Collector supports Android 2.1 and above, so the target id should be set to a value greater than 2.1. In the following example, it is set to 7.
-
-		android update project --name ARODataCollector --target 7 --path ../ARODataCollector
-
-3. Build the ARO Data Collector project for debug using the command "ant debug", or for release using the command "ant release".
-
-4. Transfer the ARO Data Collector APK file to a rooted device using the ADB, with the command:  "adb aro"
-
-
-
-###ARO Data Analyzer
-To build the ARO Data Analyzer, follow these steps to setup the development environment for your OS and compile and build the code.
-
-Note: A build of the ARO Data Analyzer application (aro.jar) is included in the ARODataAnalyzer\lib directory. 
-
-**Windows**  
-The system requirements for compiling, building, and running the ARO Data Analyzer on the Windows OS are:
-
-+  A computer running Windows XP, Windows Vista, or Windows Seven.
-
-+  At least 1GB of RAM.
-
-+  Java Runtime Environment (JRE) version 1.6 or greater is required to run the ARO Data Analyzer. To compile and build the ARO Data Analyzer in the same environment, install the Java Development Kit (JDK) version 1.6 or greater which includes the JRE.
-
-+  WinPcap, the "industry-standard windows packet capture library".
-
-+  ANT, An Apache Java build tool.
-
-Note: If needed, configure the JAVA_HOME system variable so that it points to your Java installation directory. This can be done in the Advanced tab of System Properties, by editing the Environment Variables.
-
-
-**Mac**  
-The system requirements for compiling, building, and running the ARO Data Analyzer on the Mac OS are:
-
-+  A computer running Mac OS X 10.6 and above.
-
-+  At least 1GB of RAM.
-
-+  Java Runtime Environment (JRE) version 1.6 or greater is required to run the ARO Data Analyzer. To compile and build the ARO Data Analyzer in the same environment, install the Java Development Kit (JDK) version 1.6 or greater which includes the JRE.
-
-+  ANT, An Apache Java build tool.
-
-
-**Compile and Build the ARO Data Analyzer**  
-To compile and build the open source ARO Data Analyzer code for Java, do the following:
-
-Checkout the ARO Data Analyzer source code including the build.xml file, from the ARODataAnalyzer folder to a local folder, and use ANT to compile and build the application. 
-
-+  The build.xml file builds the .jar file that contains the compiled classes for the ARO Data Analyzer.
-
-+  The files aro.bat and aro are included in the ARODataAnalyzer\lib directory of the ARO Open Source Package to help you run the .jar file with default run settings:
-
-+  To launch the .jar file in the Windows OS, run aro.bat from the command line.
-
-+  To launch the .jar file in the Mac OS, run aro.  
-
-
-
 ------------------------------------------------------------------------------  
-
-
 <img src="http://www.sillarsfamily.com/ARO.gif" alt="ARO Image" />
