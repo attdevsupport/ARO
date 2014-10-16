@@ -18,8 +18,8 @@ adb install bin/ARODataCollector-debug.apk
 ###Run Pre-Compiled 
 This repo includes a pre-built version of ARO Analyzer for Mac, Windows, or Linux (x64)
 ```
-cd bin
-./aro or aro.bat
+cd ARODataAnalyzer/bin
+./aro or ./aro.bat
 ```
 ###Build + Run
 Environment requirements:
@@ -35,6 +35,7 @@ Environment requirements:
 ```
 cd ARODataAnalyzer
 ant
+cd bin/
 ./aro or aro.bat
 ```
 
