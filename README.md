@@ -163,43 +163,19 @@ The ARO Open Source code package contains the following:
 
 
   
-##Running the pre-built Open Source ARO Analyzer:  
-  
-To launch the pre-built version of ARO Analyzer that is included in this open source download, do the following:
-
-**On Mac, Windows, or Linux**
-1. Download the zip file for this repository, and un-zip the files to the desired location. (e.g: Desktop)  
-2. Confirm that there is one main folder in the unzipped files: ARO, and two sub-folders inside ARO: bin and lib.  
-
-
-**On Mac or Linux (x64):**  
-3. Open terminal and change directory to the bin folder in the ARO location. (e.g: cd Desktop/ARO/bin)  
-4. Inside the bin directory, type: ./aro  
-  
-
-**On Windows:**  
-3. Open a command prompt (cmd) and change directory to the bin folder in the ARO location. (e.g: cd Desktop/ARO/bin)  
-4. Inside the bin directory, type: aro  
-
-
-##Compiling and Building ARO
-The following sections describe the basic steps for compiling and building the ARO Data Collector and ARO Data Analyzer. For more detailed information, see the ARO Compilation and Build Guide.
-
+##Running ARO Analyzer 
+This repo includes a pre-built version of ARO Analyzer for Mac, Windows, or Linux (x64)
+```
+cd bin
+./aro
+```
 
 ###ARO Data Collector
-This section describes how to setup the development environment, and then compile and build the ARO Data Collector into an Android Application Package (APK) using the Android SDK and Apache Ant. The APK file can then be installed on a device via the Android Debug Bridge (ADB).
+This section will generate an .apk Environment requirements:
++ [Android SDK](http://developer.android.com/sdk/index.html)
++ ANT, An Apache Java build tool
 
-Note: In order for the ARO Data Collector to be fully functional, it must be installed on a rooted device. 
-
-
-**Setup the Development Environment**
-
-1. Download and setup the Android SDK. Go to the Android Developers website http://developer.android.com/sdk/index.html, download the Android package for your platform, and follow the steps to setup the Android SDK.
-2. Add additional components. Follow the installation instructions at http://developer.android.com/sdk/installing.html, especially the step: Adding Platforms and Other Components.
-3. Download Apache ANT. Go to http://ant.apache.org and follow the download instructions.
-
-
-**Compile and Build the ARO Data Collector**
+####Compile and Install
 ```
 cd ARODataCollector
 android update project --name ARODataCollector --target 7 --path ../ARODataCollector
@@ -208,30 +184,20 @@ adb install bin/ARODataCollector-debug.apk
 ***Note:*** Replace `--target 7` with an appropriate target from the list of targets `android list targets`
 
 ###ARO Data Analyzer
-Building and running Aro Data Analyzer
-####System Requirements
+Environment requirements:
 + 1GB or more of RAM.
 + JRE 1.6 and above to run
 + JDK 1.6 and above to compile
 + ANT, An Apache Java build tool
-+ Mac OS X 10.6 and above
-
-#####Windows 
-+ Windows XP, Windows Vista, or Windows Seven.
-+ WinPcap
-**Note:** If needed, configure the JAVA_HOME system variable so that it points to your Java installation directory. This can be done in the Advanced tab of System Properties, by editing the Environment Variables.
++ Mac OS X 10.6 and above OR Ubuntu 12.04 and above OR Windows XP, Windows Vista, or Windows Seven.
++ WinPcap if on windows
+**Note:** If needed, configure the JAVA_HOME system variable so that it points to your Java installation directory. This can be done in the Advanced tab of System Properties, by editing the Environment Variables in windows.
 
 ####Compile and Run
-#####Linux or Mac
 ```
 cd ARODataAnalyzer
 ant
 ./aro or aro.bat
-```
-#####Windows
-```
-Compile ARODataAnalyzer using ANT
-ARODataAnalyzer/aro.bat
 ```
 
 ------------------------------------------------------------------------------  
