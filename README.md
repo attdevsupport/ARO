@@ -5,6 +5,11 @@ ARO is split into two components.
 2. **The ARO Data Analyzer** a java app used to visualize and interpret the captured data.
 
 ##ARO Data Collector
+###Install
+```
+unzip ARODataCollector_OpenSource_v3.1.1.7.apk.zip
+adb install ARODataCollector_OpenSource_v3.1.1.7.apk
+```
 ###Build + Install
 ARO Data Collector is an Android application (.apk) that runs on your phone. To build the apk you will need [Android SDK](http://developer.android.com/sdk/index.html) and Apache ANT.
 ```
@@ -15,7 +20,7 @@ adb install bin/ARODataCollector-debug.apk
 ***Note:*** Replace `--target 7` with an appropriate target from the list of targets `android list targets`
 
 ##ARO Analyzer
-###Run Pre-Compiled 
+###Run
 This repo includes a pre-built version of ARO Analyzer for Mac, Windows, or Linux (x64)
 ```
 cd ARODataAnalyzer/bin
