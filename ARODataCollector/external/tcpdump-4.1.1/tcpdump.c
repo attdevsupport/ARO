@@ -616,8 +616,11 @@ __android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "interface %s",devpointer->nam
 
 pcap_dumper_t *p;
 
-int tcpdumpstartcapture(int isBearerChange)
-{
+int tcpdumpstartcapture(int isBearerChange) {
+
+	fprintf(stderr, "tcpdumpstartcapture(int %i)",isBearerChange);
+	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "tcpdumpstartcapture(int %i)",isBearerChange);
+
 	register int cnt, op, i;
 	bpf_u_int32 localnet, netmask;
 	register char *cp, *infile, *cmdbuf, *device, *RFileName, *WFileName;
@@ -642,15 +645,15 @@ int tcpdumpstartcapture(int isBearerChange)
 	if(wsockinit() != 0) return 1;
 #endif /* WIN32 */
 
-    gndo->ndo_Oflag=1;
-	gndo->ndo_Rflag=1;
-	gndo->ndo_dlt=-1;
-	gndo->ndo_default_print=ndo_default_print;
-	gndo->ndo_printf=tcpdump_printf;
-	gndo->ndo_error=ndo_error;
-	gndo->ndo_warning=ndo_warning;
+	gndo->ndo_Oflag = 1;
+	gndo->ndo_Rflag = 1;
+	gndo->ndo_dlt = -1;
+	gndo->ndo_default_print = ndo_default_print;
+	gndo->ndo_printf = tcpdump_printf;
+	gndo->ndo_error = ndo_error;
+	gndo->ndo_warning = ndo_warning;
 	gndo->ndo_snaplen = DEFAULT_SNAPLEN;
-  
+
 	cnt = -1;
 	device = NULL;
 	infile = NULL;
@@ -669,72 +672,70 @@ int tcpdumpstartcapture(int isBearerChange)
 #endif
 
 	opterr = 0;
-	
+
 	/************************ CODE CHANGED **************************/
 	//Copy the code of only two paras: -s 0 and -w
 	captureMode = 0;
-	
+
 	//-s	
 	//snaplen = MAXIMUM_SNAPLEN;
 	snaplen = 2048;
 	//-w : move to later
 	static char pcapFileDir[256];
-	
+
 	/************************ CODE CHANGED **************************/
-	
-	while (
-	    (op = getopt(Gargc, Gargv, "aAb" B_FLAG "c:C:d" D_FLAG "eE:fF:G:i:" I_FLAG "KlLm:M:nNOpqr:Rs:StT:u" U_FLAG "vw:W:xXy:Yz:Z:")) != -1)
+
+	while ((op = getopt(Gargc, Gargv, "aAb" B_FLAG "c:C:d" D_FLAG "eE:fF:G:i:" I_FLAG "KlLm:M:nNOpqr:Rs:StT:u" U_FLAG "vw:W:xXy:Yz:Z:")) != -1)
 		switch (op) {
 
 #ifdef HAVE_PCAP_FINDALLDEVS
 		case 'D':
-			if (pcap_findalldevs(&devpointer, ebuf) < 0)
-				error("%s", ebuf);
-			else {
-				for (i = 0; devpointer != 0; i++) {
-					printf("%d.%s", i+1, devpointer->name);
-					if (devpointer->description != NULL)
-						printf(" (%s)", devpointer->description);
-					printf("\n");
-					devpointer = devpointer->next;
-				}
+		if (pcap_findalldevs(&devpointer, ebuf) < 0)
+		error("%s", ebuf);
+		else {
+			for (i = 0; devpointer != 0; i++) {
+				printf("%d.%s", i+1, devpointer->name);
+				if (devpointer->description != NULL)
+				printf(" (%s)", devpointer->description);
+				printf("\n");
+				devpointer = devpointer->next;
 			}
-			return 0;
+		}
+		return 0;
 #endif // HAVE_PCAP_FINDALLDEVS
-
 		case 'i':
 			if (optarg[0] == '0' && optarg[1] == 0)
 				error("Invalid adapter index");
-			
+
 #ifdef HAVE_PCAP_FINDALLDEVS
 
-			 // If the argument is a number, treat it as
-			 // an index into the list of adapters, as
-			 // printed by "tcpdump -D".
-			 //
-			 // This should be OK on UNIX systems, as interfaces
-			 // shouldn't have names that begin with digits.
-			 // It can be useful on Windows, where more than
-			 // one interface can have the same name.
+			// If the argument is a number, treat it as
+			// an index into the list of adapters, as
+			// printed by "tcpdump -D".
+			//
+			// This should be OK on UNIX systems, as interfaces
+			// shouldn't have names that begin with digits.
+			// It can be useful on Windows, where more than
+			// one interface can have the same name.
 
 			if ((devnum = atoi(optarg)) != 0) {
 				if (devnum < 0)
-					error("Invalid adapter index");
+				error("Invalid adapter index");
 
 				if (pcap_findalldevs(&devpointer, ebuf) < 0)
-					error("%s", ebuf);
+				error("%s", ebuf);
 				else {
 
-					 // Look for the devnum-th entry
-					 // in the list of devices
-					 // (1-based).
+					// Look for the devnum-th entry
+					// in the list of devices
+					// (1-based).
 
 					for (i = 0;
-					    i < devnum-1 && devpointer != NULL;
-					    i++, devpointer = devpointer->next)
-						;
+							i < devnum-1 && devpointer != NULL;
+							i++, devpointer = devpointer->next)
+					;
 					if (devpointer == NULL)
-						error("Invalid adapter index");
+					error("Invalid adapter index");
 				}
 				device = devpointer->name;
 				break;
@@ -745,7 +746,7 @@ int tcpdumpstartcapture(int isBearerChange)
 		case 'w':
 			memset(pcapFileDir, '\0', sizeof(pcapFileDir));
 			printf("captureDir: %s\n", optarg);
-			sprintf(pcapFileDir,"%s",optarg);
+			sprintf(pcapFileDir, "%s", optarg);
 			//SetCaptureDir(pcapFileDir);
 			break;
 
@@ -753,37 +754,36 @@ int tcpdumpstartcapture(int isBearerChange)
 			usage();
 			// NOTREACHED 
 		}
-	
-	
+
 	/************************ CODE CHANGED **************************/
 	//-w
 	pthread_t thread_user_input;
 	pthread_t thread_socket_server;
 	pthread_t thread_cpu;
 	/*static char pcapFileDir[256];
-	memset(pcapFileDir, '\0', sizeof(pcapFileDir));
-	sprintf(pcapFileDir,"%s",Gargv[2]);*/
+	 memset(pcapFileDir, '\0', sizeof(pcapFileDir));
+	 sprintf(pcapFileDir,"%s",Gargv[2]);*/
 	SetCaptureDir(pcapFileDir);
-	
-	if(isBearerChange ==0)
-	pthread_create(&thread_user_input, NULL, CaptureUserInput, NULL);
+
+	if (isBearerChange == 0)
+		pthread_create(&thread_user_input, NULL, CaptureUserInput, NULL);
 
 	static char pcapFilename[256];
-	
+
 	//sprintf(pcapFilename,"%s",Gargv[2]);
-	sprintf(pcapFilename,"%s",pcapFileDir);
-	
+	sprintf(pcapFilename, "%s", pcapFileDir);
+
 	StartCapture(pcapFilename);
 	WFileName = pcapFilename;
-	
-	if(isBearerChange ==0)
-	pthread_create(&thread_socket_server, NULL, start_server_socket, NULL);
+
+	if (isBearerChange == 0)
+		pthread_create(&thread_socket_server, NULL, start_server_socket, NULL);
 
 	//if(isBearerChange ==0)
 	//pthread_create(&thread_cpu, NULL, CaptureCPUUsage, NULL);
 
 	/************************ CODE CHANGED **************************/
-	
+
 	switch (tflag) {
 
 	case 0: /* Default */
@@ -794,7 +794,7 @@ int tcpdumpstartcapture(int isBearerChange)
 	case 1: /* No time stamp */
 	case 2: /* Unix timeval style */
 	case 3: /* Microseconds since previous packet */
-        case 5: /* Microseconds since first packet */
+	case 5: /* Microseconds since first packet */
 		break;
 
 	default: /* Not supported */
@@ -807,16 +807,16 @@ int tcpdumpstartcapture(int isBearerChange)
 	if (getuid() == 0 || geteuid() == 0) {
 		/* future extensibility for cmd-line arguments */
 		if (!chroot_dir)
-			chroot_dir = WITH_CHROOT;
+		chroot_dir = WITH_CHROOT;
 	}
 #endif
 
 #ifdef WITH_USER
 	/* if run as root, prepare for dropping root privileges */
 	if (getuid() == 0 || geteuid() == 0) {
-		/* Run with '-Z root' to restore old behaviour */ 
+		/* Run with '-Z root' to restore old behaviour */
 		if (!username)
-			username = WITH_USER;
+		username = WITH_USER;
 	}
 #endif
 
@@ -834,7 +834,7 @@ int tcpdumpstartcapture(int isBearerChange)
 		 * people's trace files (especially if we're set-UID
 		 * root).
 		 */
-		if (setgid(getgid()) != 0 || setuid(getuid()) != 0 )
+		if (setgid(getgid()) != 0 || setuid(getuid()) != 0)
 			fprintf(stderr, "Warning: setgid/setuid failed !\n");
 #endif /* WIN32 */
 		pd = pcap_open_offline(RFileName, ebuf);
@@ -843,13 +843,9 @@ int tcpdumpstartcapture(int isBearerChange)
 		dlt = pcap_datalink(pd);
 		dlt_name = pcap_datalink_val_to_name(dlt);
 		if (dlt_name == NULL) {
-			fprintf(stderr, "reading from file %s, link-type %u\n",
-			    RFileName, dlt);
+			fprintf(stderr, "reading from file %s, link-type %u\n", RFileName, dlt);
 		} else {
-			fprintf(stderr,
-			    "reading from file %s, link-type %s (%s)\n",
-			    RFileName, dlt_name,
-			    pcap_datalink_val_to_description(dlt));
+			fprintf(stderr, "reading from file %s, link-type %s (%s)\n", RFileName, dlt_name, pcap_datalink_val_to_description(dlt));
 		}
 		localnet = 0;
 		netmask = 0;
@@ -860,15 +856,15 @@ int tcpdumpstartcapture(int isBearerChange)
 			printf("device to listen is null, calling pcap_lookupdev\n");
 			device = pcap_lookupdev(ebuf);
 			printf("returns from pcap_lookupdev\n");
-			if (device == NULL){
+			if (device == NULL) {
 				printf("pcap_lookupdev returns null\n");
 				error("%s", ebuf);
 			}
 		}
 
 #ifdef WIN32
-		if(strlen(device) == 1)	//we assume that an ASCII string is always longer than 1 char
-		{						//a Unicode string has a \0 as second byte (so strlen() is 1)
+		if(strlen(device) == 1) //we assume that an ASCII string is always longer than 1 char
+		{ //a Unicode string has a \0 as second byte (so strlen() is 1)
 			fprintf(stderr, "%s: listening on %ws\n", program_name, device);
 		}
 		else
@@ -876,45 +872,45 @@ int tcpdumpstartcapture(int isBearerChange)
 			fprintf(stderr, "%s: listening on %s\n", program_name, device);
 		}
 
-		fflush(stderr);	
+		fflush(stderr);
 #endif /* WIN32 */
 #ifdef HAVE_PCAP_CREATE
 		fprintf(stderr, "before calling pcap_create(device, ebuf), device=%s\n", device);
 		pd = pcap_create(device, ebuf);
 		fprintf(stderr, "returns from calling pcap_create(device, ebuf)\n");
-		
+
 		if (pd == NULL)
-			error("%s", ebuf);
+		error("%s", ebuf);
 		/*
 		 * Is this an interface that supports monitor mode?
 		 */
 		if (pcap_can_set_rfmon(pd) == 1)
-			supports_monitor_mode = 1;
+		supports_monitor_mode = 1;
 		else
-			supports_monitor_mode = 0;
+		supports_monitor_mode = 0;
 		status = pcap_set_snaplen(pd, snaplen);
 		if (status != 0)
-			error("%s: pcap_set_snaplen failed: %s",
-			    device, pcap_statustostr(status));
+		error("%s: pcap_set_snaplen failed: %s",
+				device, pcap_statustostr(status));
 		status = pcap_set_promisc(pd, !pflag);
 		if (status != 0)
-			error("%s: pcap_set_promisc failed: %s",
-			    device, pcap_statustostr(status));
+		error("%s: pcap_set_promisc failed: %s",
+				device, pcap_statustostr(status));
 		if (Iflag) {
 			status = pcap_set_rfmon(pd, 1);
 			if (status != 0)
-				error("%s: pcap_set_rfmon failed: %s",
-				    device, pcap_statustostr(status));
+			error("%s: pcap_set_rfmon failed: %s",
+					device, pcap_statustostr(status));
 		}
 		status = pcap_set_timeout(pd, 1000);
 		if (status != 0)
-			error("%s: pcap_set_timeout failed: %s",
-			    device, pcap_statustostr(status));
+		error("%s: pcap_set_timeout failed: %s",
+				device, pcap_statustostr(status));
 		if (Bflag != 0) {
 			status = pcap_set_buffer_size(pd, Bflag);
 			if (status != 0)
-				error("%s: pcap_set_buffer_size failed: %s",
-				    device, pcap_statustostr(status));
+			error("%s: pcap_set_buffer_size failed: %s",
+					device, pcap_statustostr(status));
 		}
 		status = pcap_activate(pd);
 		if (status < 0) {
@@ -923,15 +919,15 @@ int tcpdumpstartcapture(int isBearerChange)
 			 */
 			cp = pcap_geterr(pd);
 			if (status == PCAP_ERROR)
-				error("%s", cp);
+			error("%s", cp);
 			else if ((status == PCAP_ERROR_NO_SUCH_DEVICE ||
-			          status == PCAP_ERROR_PERM_DENIED) &&
-			         *cp != '\0')
-				error("%s: %s\n(%s)", device,
-				    pcap_statustostr(status), cp);
+							status == PCAP_ERROR_PERM_DENIED) &&
+					*cp != '\0')
+			error("%s: %s\n(%s)", device,
+					pcap_statustostr(status), cp);
 			else
-				error("%s: %s", device,
-				    pcap_statustostr(status));
+			error("%s: %s", device,
+					pcap_statustostr(status));
 		} else if (status > 0) {
 			/*
 			 * pcap_activate() succeeded, but it's warning us
@@ -939,14 +935,14 @@ int tcpdumpstartcapture(int isBearerChange)
 			 */
 			cp = pcap_geterr(pd);
 			if (status == PCAP_WARNING)
-				warning("%s", cp);
+			warning("%s", cp);
 			else if (status == PCAP_WARNING_PROMISC_NOTSUP &&
-			         *cp != '\0')
-				warning("%s: %s\n(%s)", device,
-				    pcap_statustostr(status), cp);
+					*cp != '\0')
+			warning("%s: %s\n(%s)", device,
+					pcap_statustostr(status), cp);
 			else
-				warning("%s: %s", device,
-				    pcap_statustostr(status));
+			warning("%s: %s", device,
+					pcap_statustostr(status));
 		}
 #else
 		*ebuf = '\0';
@@ -965,16 +961,16 @@ int tcpdumpstartcapture(int isBearerChange)
 #endif /* WIN32 */
 #if !defined(HAVE_PCAP_CREATE) && defined(WIN32)
 		if(Bflag != 0)
-			if(pcap_setbuff(pd, Bflag)==-1){
-				error("%s", pcap_geterr(pd));
-			}
+		if(pcap_setbuff(pd, Bflag)==-1) {
+			error("%s", pcap_geterr(pd));
+		}
 #endif /* !defined(HAVE_PCAP_CREATE) && defined(WIN32) */
 		if (Lflag)
 			show_dlts_and_exit(device, pd);
 		if (gndo->ndo_dlt >= 0) {
 #ifdef HAVE_PCAP_SET_DATALINK
 			if (pcap_set_datalink(pd, gndo->ndo_dlt) < 0)
-				error("%s", pcap_geterr(pd));
+			error("%s", pcap_geterr(pd));
 #else
 			/*
 			 * We don't actually support changing the
@@ -982,13 +978,11 @@ int tcpdumpstartcapture(int isBearerChange)
 			 * set it to what it already is.
 			 */
 			if (gndo->ndo_dlt != pcap_datalink(pd)) {
-				error("%s is not one of the DLTs supported by this device\n",
-				      gndo->ndo_dltname);
+				error("%s is not one of the DLTs supported by this device\n", gndo->ndo_dltname);
 			}
 #endif
-			(void)fprintf(stderr, "%s: data link type %s\n",
-				      program_name, gndo->ndo_dltname);
-			(void)fflush(stderr);
+			(void) fprintf(stderr, "%s: data link type %s\n", program_name, gndo->ndo_dltname);
+			(void) fflush(stderr);
 		}
 		i = pcap_snapshot(pd);
 		if (snaplen < i) {
@@ -1002,15 +996,13 @@ int tcpdumpstartcapture(int isBearerChange)
 		}
 	}
 
+	/*if(Gargc > 3 )
+	 {
+	 optind = 3;
+	 }*/
 
-	/*if(Gargc > 3 ) 
-	{
-	   optind = 3;
-	}*/
-	
-	if(Gargc > 5 ) 
-	{
-	   optind = 5;
+	if (Gargc > 5) {
+		optind = 5;
 	}
 
 	if (infile) {
@@ -1019,11 +1011,11 @@ int tcpdumpstartcapture(int isBearerChange)
 		cmdbuf = copy_argv(&Gargv[optind]);
 		fprintf(stderr, "cmdbuf: %s\n", cmdbuf);
 	}
-	if (pcap_compile(pd, &fcode, cmdbuf, Oflag, netmask) < 0){
+	if (pcap_compile(pd, &fcode, cmdbuf, Oflag, netmask) < 0) {
 		error("%s", pcap_geterr(pd));
 		fprintf(stderr, "error in pcap_compile\n");
 	}
-	
+
 	free(cmdbuf);
 	if (dflag) {
 		bpf_dump(&fcode, dflag);
@@ -1031,46 +1023,43 @@ int tcpdumpstartcapture(int isBearerChange)
 		exit(0);
 	}
 	init_addrtoname(localnet, netmask);
-        init_checksum();
+	init_checksum();
 #ifndef WIN32	
-	(void)setsignal(SIGPIPE, cleanup);
-	(void)setsignal(SIGTERM, cleanup);
-	(void)setsignal(SIGINT, cleanup);
-	(void)setsignal(SIGCHLD, child_cleanup);
+	(void) setsignal(SIGPIPE, cleanup);
+	(void) setsignal(SIGTERM, cleanup);
+	(void) setsignal(SIGINT, cleanup);
+	(void) setsignal(SIGCHLD, child_cleanup);
 #endif /* WIN32 */
 	/* Cooperate with nohup(1) */
 #ifndef WIN32	
 	if ((oldhandler = setsignal(SIGHUP, cleanup)) != SIG_DFL)
-		(void)setsignal(SIGHUP, oldhandler);
+		(void) setsignal(SIGHUP, oldhandler);
 #endif /* WIN32 */
-	if (pcap_setfilter(pd, &fcode) < 0)
-	{
-		printf("\nerror : %s ",pcap_geterr(pd));
+	if (pcap_setfilter(pd, &fcode) < 0) {
+		printf("\nerror : %s ", pcap_geterr(pd));
 		error("%s", pcap_geterr(pd));
 	}
 
-	if (WFileName ) {
-		
-		
+	if (WFileName) {
+
 		/* Do not exceed the default NAME_MAX for files. */
-		dumpinfo.CurrentFileName = (char *)malloc(NAME_MAX + 1);
+		dumpinfo.CurrentFileName = (char *) malloc(NAME_MAX + 1);
 
 		if (dumpinfo.CurrentFileName == NULL)
 			error("malloc of dumpinfo.CurrentFileName");
-		
+
 		/* We do not need numbering for dumpfiles if Cflag isn't set. */
 		if (Cflag != 0)
-		  MakeFilename(dumpinfo.CurrentFileName, WFileName, 0, WflagChars);
+			MakeFilename(dumpinfo.CurrentFileName, WFileName, 0, WflagChars);
 		else
-		  MakeFilename(dumpinfo.CurrentFileName, WFileName, 0, 0);
-		
+			MakeFilename(dumpinfo.CurrentFileName, WFileName, 0, 0);
+
 		char errbuf[256];
-		
+
 		//We have changed the bearer and would continue trace in new dump file
 		p = pcap_dump_open(pd, dumpinfo.CurrentFileName);
-		
-		if (p == NULL)
-		{
+
+		if (p == NULL) {
 			error("%s", pcap_geterr(pd));
 		}
 		if (Cflag != 0 || Gflag != 0) {
@@ -1078,33 +1067,30 @@ int tcpdumpstartcapture(int isBearerChange)
 			dumpinfo.WFileName = WFileName;
 			dumpinfo.pd = pd;
 			dumpinfo.p = p;
-			pcap_userdata = (u_char *)&dumpinfo;
+			pcap_userdata = (u_char *) &dumpinfo;
 		} else {
 			callback = dump_packet;
-			pcap_userdata = (u_char *)p;
+			pcap_userdata = (u_char *) p;
 		}
-		
-		
-		
+
 	} else {
 		type = pcap_datalink(pd);
-                printinfo.ndo_type = 1;
-                printinfo.ndo = gndo;
+		printinfo.ndo_type = 1;
+		printinfo.ndo = gndo;
 		printinfo.p.ndo_printer = lookup_ndo_printer(type);
-                if (printinfo.p.ndo_printer == NULL) {
-                        printinfo.p.printer = lookup_printer(type);
-                        printinfo.ndo_type = 0;
-                        if (printinfo.p.printer == NULL) {
-                                gndo->ndo_dltname = pcap_datalink_val_to_name(type);
-                                if (gndo->ndo_dltname != NULL)
-                                        error("packet printing is not supported for link type %s: use -w",
-                                              gndo->ndo_dltname);
-                                else
-                                        error("packet printing is not supported for link type %d: use -w", type);
-                        }
-                }
+		if (printinfo.p.ndo_printer == NULL) {
+			printinfo.p.printer = lookup_printer(type);
+			printinfo.ndo_type = 0;
+			if (printinfo.p.printer == NULL) {
+				gndo->ndo_dltname = pcap_datalink_val_to_name(type);
+				if (gndo->ndo_dltname != NULL)
+					error("packet printing is not supported for link type %s: use -w", gndo->ndo_dltname);
+				else
+					error("packet printing is not supported for link type %d: use -w", type);
+			}
+		}
 		callback = print_packet;
-		pcap_userdata = (u_char *)&printinfo;
+		pcap_userdata = (u_char *) &printinfo;
 	}
 #ifndef WIN32
 	/*
@@ -1122,7 +1108,7 @@ int tcpdumpstartcapture(int isBearerChange)
 	 * than capturing from a device.
 	 */
 	if (RFileName == NULL)
-		(void)setsignal(SIGINFO, requestinfo);
+	(void)setsignal(SIGINFO, requestinfo);
 #endif
 
 	if (vflag > 0 && WFileName) {
@@ -1146,38 +1132,34 @@ int tcpdumpstartcapture(int isBearerChange)
 		int dlt;
 		const char *dlt_name;
 		if (!vflag && !WFileName) {
-			(void)fprintf(stderr,
-			    "%s: verbose output suppressed, use -v or -vv for full protocol decode\n",
-			    program_name);
+			(void) fprintf(stderr, "%s: verbose output suppressed, use -v or -vv for full protocol decode\n", program_name);
 		} else
-			(void)fprintf(stderr, "%s: ", program_name);
+			(void) fprintf(stderr, "%s: ", program_name);
 		dlt = pcap_datalink(pd);
 		dlt_name = pcap_datalink_val_to_name(dlt);
 		if (dlt_name == NULL) {
-			(void)fprintf(stderr, "listening on %s, link-type %u, capture size %u bytes\n",device, dlt, snaplen);
+			(void) fprintf(stderr, "listening on %s, link-type %u, capture size %u bytes\n", device, dlt, snaplen);
 
 		} else {
-			(void)fprintf(stderr, "listening on %s, link-type %s (%s), capture size %u bytes\n",
-			    device, dlt_name, pcap_datalink_val_to_description(dlt), snaplen);
+			(void) fprintf(stderr, "listening on %s, link-type %s (%s), capture size %u bytes\n", device, dlt_name, pcap_datalink_val_to_description(dlt), snaplen);
 		}
-		(void)fflush(stderr);
+		(void) fflush(stderr);
 	}
 #endif /* WIN32 */
 
 	/************************ CODE CHANGED ****************************************************************/
 	status = pcap_loop(pd, cnt, callback, pcap_userdata);
-	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "TcpDump Capture Stopped=%d and In",exitFlag);
+	__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "TcpDump Capture Stopped=%d and In", exitFlag);
 	printf("tcpdump capture stopped, exitFlag=%d\n", exitFlag);
-	if(exitFlag ==4 || exitFlag==3) 
-	{
+	if (exitFlag == 4 || exitFlag == 3) {
 		pthread_join(thread_user_input, NULL);
 		pthread_join(thread_cpu, NULL);
 		pthread_join(thread_socket_server, NULL);
-		TerminateCapture();	
+		TerminateCapture();
 		printf("All captures terminated\n");
 		__android_log_print(ANDROID_LOG_INFO, DEBUG_TAG, "All captures terminated\n");
 		/************************ CODE CHANGED **************************/
-		
+
 		if (WFileName == NULL) {
 			/*
 			 * We're printing packets.  Flush the printed output,
@@ -1191,13 +1173,13 @@ int tcpdumpstartcapture(int isBearerChange)
 				 */
 				putchar('\n');
 			}
-			(void)fflush(stdout);
+			(void) fflush(stdout);
 		}
 		if (status == -1) {
 			/*
 			 * Error.  Report it.
 			 */
-			(void)fprintf(stderr, "%s: pcap_loop: %s\n",program_name, pcap_geterr(pd));
+			(void) fprintf(stderr, "%s: pcap_loop: %s\n", program_name, pcap_geterr(pd));
 		}
 		if (RFileName == NULL) {
 			/*
@@ -1206,34 +1188,44 @@ int tcpdumpstartcapture(int isBearerChange)
 			 */
 			info(1);
 		}
+
 		pcap_dump_close(p);
+		printf("pcap_dump_close(p) closed\n");
+		__android_log_print(ANDROID_LOG_INFO, DEBUG_TAG, "pcap_dump_close(p) closed\n");
+
 		pcap_close(pd);
+		printf("pcap_close(pd) closed\n");
+		__android_log_print(ANDROID_LOG_INFO, DEBUG_TAG, "pcap_close(pd) closed\n");
+
+		printf("tcpdumpstartcapture(%i)status : %i\n", isBearerChange, status);
+		__android_log_print(ANDROID_LOG_INFO, DEBUG_TAG, "tcpdumpstartcapture(%i)status : %i\n", isBearerChange, status);
+
 		exit(status == -1 ? 1 : 0);
-	}
-	else
-	{
-			//Bearer Change
-			++bearerChangedvalue;
-			fprintf(stderr, "bearer changed, bearerChangedValue=%d\n", bearerChangedvalue);
-			sleep(sleeptimeforbearerchange);
-			
-			//Closing the PCAP dump file
-			pcap_dump_close(p);
-			fprintf(stderr, "pcap file closed\n");
-			
-			//Closing the previous capture interface
-			pcap_close(pd);
-			fprintf(stderr, "previous capture interface closed\n");
-					
-			//Restartng the tcpdump capture as bearer changes
-			fprintf(stderr, "restarting capture on new interface");
-			tcpdumpstartcapture(1);
+
+	} else {
+		//Bearer Change
+		++bearerChangedvalue;
+		fprintf(stderr, "bearer changed, bearerChangedValue=%d\n", bearerChangedvalue);
+		sleep(sleeptimeforbearerchange);
+
+		//Closing the PCAP dump file
+		pcap_dump_close(p);
+		fprintf(stderr, "pcap file closed\n");
+
+		//Closing the previous capture interface
+		pcap_close(pd);
+		fprintf(stderr, "previous capture interface closed\n");
+
+		//Restartng the tcpdump capture as bearer changes
+		fprintf(stderr, "restarting capture on new interface");
+		tcpdumpstartcapture(1);
 	}
 }
 
 int main(int argc, char **argv)
 {
-	
+
+	__android_log_print(ANDROID_LOG_INFO, DEBUG_TAG, "tcpdump main(%i, **argv)\n", argc);
 	
 	int    i = 0;
 	size_t n = 0;
@@ -1251,6 +1243,8 @@ int main(int argc, char **argv)
 	//0- New Capture
 	//1- Continue Capture
 	tcpdumpstartcapture(0);
+	printf("exiting tcpdump\n");
+	__android_log_print(ANDROID_LOG_INFO, DEBUG_TAG, "exiting tcpdump\n");
 }
 
 /* make a clean exit on interrupts */

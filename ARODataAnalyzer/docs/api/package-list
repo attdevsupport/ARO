@@ -17,12 +17,14 @@ com.att.aro.datadump
 com.att.aro.diagnostics
 com.att.aro.images
 com.att.aro.interfaces
+com.att.aro.json
 com.att.aro.libimobiledevice
 com.att.aro.main
 com.att.aro.main.menu.view
 com.att.aro.model
 com.att.aro.model.cpu
 com.att.aro.pcap
+com.att.aro.pcap.packetRebuild
 com.att.aro.pcap.windows
 com.att.aro.plugin
 com.att.aro.ssl

@@ -17,28 +17,78 @@ public class DefaultGoogleAnalyticsImpl implements IGoogleAnalytics{
 	public void applicationInfo(String gaTracker, String applicationName,
 			String applicationVersion) {
 		// TODO Auto-generated method stub
-		LOGGER.info("Default impl of Application Info Tracker ID, Application Name, Application Version "+gaTracker + " " +applicationName + " "+applicationVersion);
+//		LOGGER.info("Default impl of Application Info Tracker ID, Application Name, Application Version "+gaTracker + " " +applicationName + " "+applicationVersion);
 		
 	}
 
 	@Override
 	public void sendAnalyticsEvents(String eventCategory, String eventAction) {
 		// TODO Auto-generated method stub
-		LOGGER.info("Default impl Analytics Events event Category, eventAction "+eventCategory + " " +eventAction);
+//		LOGGER.info("Default impl Analytics Events event Category, eventAction "+eventCategory + " " +eventAction);
 	}
 
 	@Override
 	public void sendAnalyticsEvents(String eventCategory, String eventAction,
 			String eventLable) {
 		// TODO Auto-generated method stub
-		LOGGER.info("Default impl Analytics Events event Category, eventAction, event lable "+eventCategory + ", " +eventAction +", " +eventLable );
+//		LOGGER.info("Default impl Analytics Events event Category, eventAction, event lable "+eventCategory + ", " +eventAction +", " +eventLable );
 	}
 
 	@Override
 	public void sendAnalyticsEvents(String eventCategory, String eventAction,
 			String eventLable, String eventValue) {
 		// TODO Auto-generated method stub
-		LOGGER.info("Default impl Analytics Events event Category, eventAction, event lable, event value "+eventCategory + ", " +eventAction +", " +eventLable + ", "+eventValue);
+//		LOGGER.info("Default impl Analytics Events event Category, eventAction, event lable, event value "+eventCategory + ", " +eventAction +", " +eventLable + ", "+eventValue);
+	}
+
+	@Override
+	public void sendAnalyticsStartSessionEvents(String eventCategory,
+			String eventAction) {
+		// TODO Auto-generated method stub
+//		LOGGER.info("Default impl Analytics Start Session event");
+		
+	}
+
+	@Override
+	public void sendAnalyticsStartSessionEvents(String eventCategory,
+			String eventAction, String eventLable) {
+		// TODO Auto-generated method stub
+//		LOGGER.info("Default impl Analytics Start Session event");
+	}
+
+	@Override
+	public void sendAnalyticsStartSessionEvents(String eventCategory,
+			String eventAction, String eventLable, String eventValue) {
+		// TODO Auto-generated method stub
+//		LOGGER.info("Default impl Analytics Start Session event");
+	}
+
+	@Override
+	public void sendAnalyticsEndSessionEvents(String eventCategory,
+			String eventAction) {
+		// TODO Auto-generated method stub
+//		LOGGER.info("Default impl Analytics End Session event");
+		
+	}
+
+	@Override
+	public void sendAnalyticsEndSessionEvents(String eventCategory,
+			String eventAction, String eventLable) {
+		// TODO Auto-generated method stub
+//		LOGGER.info("Default impl Analytics End Session event");
+		
+	}
+
+	@Override
+	public void sendAnalyticsEndSessionEvents(String eventCategory,
+			String eventAction, String eventLable, String eventValue) {
+		// TODO Auto-generated method stub
+//		LOGGER.info("Default impl Analytics End Session event");
+	}
+
+	@Override
+	public void close() {
+		
 	}
 	
 	

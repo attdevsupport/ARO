@@ -177,7 +177,7 @@ public class TCPFlowsDataTable<T> extends DataTable<T>{
 	  
 	  public void setHeaderDefaultValue(){
 		
-		  System.out.println("Inside the setting default Value");
+//		  System.out.println("Inside the setting default Value");
 		  ((JCheckBox)rendererComponent).setSelected(true);
 		  table.getTableHeader().repaint();  
 	  }

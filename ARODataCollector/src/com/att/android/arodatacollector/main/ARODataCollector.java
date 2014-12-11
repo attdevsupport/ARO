@@ -68,7 +68,7 @@ public class ARODataCollector extends Application {
 	public static final String INTERNAL_DATA_PATH = "/data/data/com.att.android.arodatacollector/";
 
 	/** The path for ffmpeg output file to be written. */
-	private static String FFMPEG_OUTPUT_FILEPATH = "/data/ffmpegout.txt";
+	public static final String FFMPEG_OUTPUT_FILEPATH = INTERNAL_DATA_PATH + "ffmpegout.txt";
 
 	/** The root directory of the ARO Data Collector Trace. */
 	public static final String ARO_TRACE_ROOTDIR = "/sdcard/ARO/";
@@ -92,7 +92,7 @@ public class ARODataCollector extends Application {
 	 * The name of native libs to be pushed to internal data path in sequence as
 	 * per the resource id in R file
 	 */
-	private static final String mARODataCollectorNativeExe[] = { "key.db", PROCESS_CPU_MON, "tcpdump" };
+	private static final String mARODataCollectorNativeExe[] = { "key.db", PROCESS_CPU_MON, "tcpdump" , "tcpdump_pie" };
 
 	/**
 	 * The boolean value to enable logs depending on if production build or
@@ -229,6 +229,8 @@ public class ARODataCollector extends Application {
 	 * the collector has started*/
 	private static boolean isAnalyzerLaunchInProgress = false;
 	
+	
+	
 	/**
 	 * Handles processing when an ARODataCollector object is created. Overrides
 	 * the android.app.Application#onCreate method.
@@ -249,9 +251,12 @@ public class ARODataCollector extends Application {
 	 * @throws IOException
 	 */
 	public void initARODataCollector() {
-		
+		boolean pieMode = android.os.Build.VERSION.RELEASE.equals("5.0");
 		try {
 			for (int resId = 0; resId < mARODataCollectorNativeExe.length; resId++) {
+				if ((pieMode && resId == 2 ) || (!pieMode && resId == 3 )){
+					continue;
+				}
 				PushDataCollectorExeToNative(resId, mARODataCollectorNativeExe[resId]);
 			}
 			PushDataCollectorFFmpegToNative();
@@ -263,6 +268,19 @@ public class ARODataCollector extends Application {
 		isVideoCaptureFailed = false;
 		mSelectTaskKillerAllTask = false;
 		mAROVideoCaptureStartTime = null;
+	}
+
+	private HashMap<String, Process> pids = new HashMap<String, Process>();
+	
+	public void addPid(String key, Process pid){
+		pids.put(key, pid);
+	}
+	public Process getPid(String key){
+		return pids.get(key);
+	}
+	
+	public Process popPid(String key) {
+		return pids.remove(key)	;
 	}
 
 	/**
@@ -385,14 +403,14 @@ public class ARODataCollector extends Application {
 	 *            name of the executable
 	 * @throws IOException
 	 */
-	private void PushDataCollectorExeToNative(int resourceId, String exetuableName)
-			throws IOException {
+	private void PushDataCollectorExeToNative(int resourceId, String exetuableName) throws IOException {
+		
 		InputStream myInput = null;
 		OutputStream myOutput = null;
 		try {
 			myInput = this.getResources().openRawResource(R.raw.key + resourceId);
 			final File file = new File(INTERNAL_DATA_PATH + exetuableName);
-			if (file.exists()){
+			if (file.exists()) {
 				//this is needed to fix the issue of the new tcpdump is not picked up 
 				//when the new aro version is installed on top of the old one.
 				file.delete();
@@ -560,6 +578,7 @@ public class ARODataCollector extends Application {
 		boolean exitFlag = false;
 		FileReader ffmpegOutFile = null;
 		BufferedReader bufferReader = null;
+		
 		try {
 			ffmpegOutFile = new FileReader(FFMPEG_OUTPUT_FILEPATH);
 			bufferReader = new BufferedReader(ffmpegOutFile);
@@ -587,11 +606,11 @@ public class ARODataCollector extends Application {
 			if (mAROVideoCaptureStartTime == null) {
 				mAROVideoCaptureStartTime = 0.0;
 			}
-			if (bufferReader != null){
+			if (bufferReader != null) {
 				bufferReader.close();
 			}
-			
-			if (ffmpegOutFile != null){
+
+			if (ffmpegOutFile != null) {
 				ffmpegOutFile.close();
 			}
 		}
@@ -1292,7 +1311,7 @@ public class ARODataCollector extends Application {
 		int exitValue = -1;
 		boolean hasRootAccess = false;
 		try {
-			sh = Runtime.getRuntime().exec("su");
+			sh = Runtime.getRuntime().exec("su"); AROLogger.e(TAG, "hasRootAccess - su pid = "+sh);
 			os = new DataOutputStream(sh.getOutputStream());
 			
 			String command = "exit\n";
@@ -1353,6 +1372,7 @@ public class ARODataCollector extends Application {
 		AROLogger.d(TAG, "registering analyzerTimeOutReceiver");
 		registerReceiver(analyzerTimeoutReceiver, new IntentFilter(AROCollectorUtils.ANALYZER_TIMEOUT_SHUTDOWN_INTENT));
 	}
+
 }
 
 

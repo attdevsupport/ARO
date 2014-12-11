@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.att.aro.pcap.packetRebuild.PCapFileWriter;
 import com.att.aro.util.Util;
 
 /**
@@ -38,6 +39,14 @@ public class PCapAdapter {
 	private PacketListener pl;
 	
 	private File currentPcapfile = null;
+
+	/*
+	 * converting pcap file support
+	 */
+	String convertedCapFile = "converted.cap";
+	String backupCapFileName = "backup.cap";
+	private File convertedPcapFile;
+	private PCapFileWriter pcapOutput;
 
 	/**
 	 * Checks that all necessary Pcap libraries are installed on the system
@@ -62,6 +71,8 @@ public class PCapAdapter {
 	public PCapAdapter(File file, final PacketListener pl) throws IOException {
 		currentPcapfile = file;
 		logger.fine("Creating a new instance of the PCapAdapter");
+
+		provisionalStartPcapConversion(file);
 		
 		if (pl == null) {
 			logger.severe("PacketListener cannot be null");
@@ -71,11 +82,59 @@ public class PCapAdapter {
 		this.pl = pl;
 		String result = loopPacket(file.getAbsolutePath());
 
+		if (pcapOutput != null) {
+			logger.info("close converted.cap and rename stuff");
+			pcapOutput.close();
+			pcapOutput = null;
+
+			if (renameFile(currentPcapfile, backupCapFileName)) {
+				renameFile(convertedPcapFile, currentPcapfile.getName());
+			}
+		}
+
 		if (result != null) {
 			logger.info("Result from executing all pcap packets: " +  result);
 			throw new IOException(result);
 		}
 		logger.fine("Created PCapAdapter");
+	}
+	/**
+	 * Potentially start the pcapng conversion process. Two conditions are tested, has conversion already been done and is the pcap file a pcapng.
+	 * 
+	 * @param file
+	 */
+	private void provisionalStartPcapConversion(File file) {
+		String tracePath = file.getAbsolutePath().substring(0, file.getAbsolutePath().length() - file.getName().length());
+		File backupCapFile = new File(tracePath, backupCapFileName);
+		if (!backupCapFile.exists()) {
+			try {
+				if (Packet.getPcapng().isApplePcapng(file)) {
+					convertedPcapFile = new File(tracePath, convertedCapFile);
+					pcapOutput = new PCapFileWriter(convertedPcapFile);
+				}
+			} catch (Exception e) {
+				logger.severe("failed to create :" + convertedPcapFile);
+				pcapOutput = null;
+			}
+		}
+	}
+	
+	/**
+	 * rename a File with a newName
+	 * 
+	 * @param origFileName a File
+	 * @param newName a String containing a new name
+	 * @return
+	 */
+	private boolean renameFile(File origFileName, String newName){
+		String path = origFileName.getAbsolutePath().substring(0, origFileName.getAbsolutePath().length() - origFileName.getName().length());
+		File renameFile = new File(path, newName);
+		if (!renameFile.exists()){
+			if (origFileName.renameTo(renameFile)){
+				return true;
+			} 
+		}
+		return false;
 	}
 
 	/**
@@ -87,11 +146,19 @@ public class PCapAdapter {
 	 * @param len
 	 * @param data
 	 */
-	private void pcapHandler(int datalink, long seconds, long microSeconds,
-			int len, byte[] data) {
+	private void pcapHandler(int datalink, long seconds, long microSeconds, int len, byte[] data) {
 		try {
-			pl.packetArrived(null, Packet.createPacketFromPcap(datalink, seconds, microSeconds,
-					len, data, currentPcapfile));
+			Packet packet = Packet.createPacketFromPcap(datalink, seconds, microSeconds, len, data, currentPcapfile);
+			pl.packetArrived(null, packet);
+			if (pcapOutput != null) {
+				int offset = packet.getDatalinkHeaderSize();
+				if (offset == 4) {
+					int length = packet.getData().length;
+					pcapOutput.addPacketConvertedPcapng(packet.getData(), offset, length, seconds * 1000000 + microSeconds);
+				} else {
+					pcapOutput.addPacket(packet.getData(), seconds * 1000000 + microSeconds);
+				}
+			}
 		} catch (Throwable t) {
 
 			// Log exceptions before they are returned to native code

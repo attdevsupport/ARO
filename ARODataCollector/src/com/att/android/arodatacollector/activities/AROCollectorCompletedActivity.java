@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.view.Display;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -73,7 +74,17 @@ public class AROCollectorCompletedActivity extends Activity {
 		}
 		
 		mApp = (ARODataCollector) getApplication();
-		setContentView(R.layout.arocollector_tracecompleted_screen);
+		
+		Display display = getWindowManager().getDefaultDisplay();
+		int height = display.getHeight();
+		int width = display.getWidth();
+		display = null;
+		if (width < 300){
+			setContentView(R.layout.arocollector_tracecompleted_screen_wear);
+		} else {
+			setContentView(R.layout.arocollector_tracecompleted_screen);
+		}
+
 		initTraceSummaryControls();
 		initTraceSummaryControlListeners();
 		registerAnalyzerLaunchReceiver();

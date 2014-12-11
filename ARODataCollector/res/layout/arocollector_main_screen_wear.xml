@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/TestFrame0"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@drawable/white"
+    android:gravity="center"
+    android:orientation="vertical" >
+
+    <RelativeLayout
+        android:id="@+id/RelativeLayout1"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:background="@drawable/gray"
+        android:orientation="vertical" >
+
+        <TextView
+            android:id="@+id/learnmore"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:background="@drawable/att_blue_headercolor"
+            android:gravity="center_horizontal"
+            android:text="@string/aro_learnmore"
+            android:textColor="@drawable/white_text"
+            android:textSize="10sp" />
+
+        <CheckBox
+            android:id="@+id/ckbx_screenshot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/btn_frame"
+            android:layout_centerHorizontal="true"
+            android:checked="true"
+            android:text="Record Video"
+            android:textColor="@drawable/white_text"
+            android:textSize="10sp" />
+
+        <TextView
+            android:id="@+id/testdata"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:gravity="center_horizontal"
+            android:padding="3sp"
+            android:text="@string/aro_usetestdata"
+            android:textColor="@drawable/white_text"
+            android:textSize="10sp" />
+
+        <LinearLayout
+            android:id="@+id/btn_frame"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/testdata"
+            android:layout_centerHorizontal="true"
+            android:background="@drawable/gray"
+            android:orientation="horizontal" >
+
+            <Button
+                android:id="@+id/taskkiller"
+                style="@style/BlueButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:padding="5sp"
+                android:text="Task\nKiller"
+                android:textSize="10sp" />
+
+            <Button
+                android:id="@+id/startcollector"
+                style="@style/BlueButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:padding="5sp"
+                android:text="@string/startcollector"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </RelativeLayout>
+
+</RelativeLayout>

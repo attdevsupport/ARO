@@ -32,8 +32,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 import javax.swing.BorderFactory;
@@ -52,6 +54,8 @@ import com.att.aro.bp.BestPracticeExport;
 import com.att.aro.commonui.AROUIManager;
 import com.att.aro.commonui.ImagePanel;
 import com.att.aro.images.Images;
+import com.att.aro.json.BestPracticeDetails;
+import com.att.aro.json.BestPractices;
 import com.att.aro.model.TraceData;
 
 /**
@@ -275,6 +279,165 @@ public class AROBestPracticesPanel extends JScrollPane implements Printable {
 			}
 		}
 	}
+	
+	/**
+	 * 
+	 * @param analysisData
+	 * @return
+	 * @throws IOException
+	 */
+/*	public List<Object> addBestPracticeContent(TraceData.Analysis analysisData) throws IOException {
+
+		String pass = rb.getString("bestPractice.tooltip.pass");
+		String fail = rb.getString("bestPractice.tooltip.fail");
+		String warning = rb.getString("bestPractice.tooltip.warning");
+		String manual = rb.getString("bestPractice.tooltip.manual");
+
+		// Write the section header
+//		writer.append(rb.getString("exportall.csvHeader.bestpractice"));
+//		writer.append(lineSep);
+
+		List<Object> bestPracticesList = new ArrayList<Object>();
+		// Iterate through best practices
+		for (AROBpOverallResulsPanel.BPResultRowPanel resultPanel : bpOverallResultsPanel.getResultRowPanels(null)) {
+			
+			Map<String, Object> bestPractices = new HashMap<String, Object>();
+			BestPracticeDisplay bp = resultPanel.getBp();
+			
+			// Write title and status
+			//BestPracticeExport.writeValue(writer, bp.getDetailTitle());
+			bestPractices.put("name", bp.getDetailTitle());
+			
+			String bpresultString = "";
+			if (bp.isSelfTest()) {
+				bpresultString = manual;
+			} else {
+				//Added for Text Compression US197546
+				if (bp.getOverviewTitle().equals(rb.getString(BPTextFileCompression.TEXT_FILE_COMPRESSION_OVERVIEW_TITLE))){
+					String status = fail;
+					if (bp.isPass(analysisData)){
+						status = pass;
+					}
+					else if (bp.isWarning(analysisData)){
+						status = warning;
+					}
+					
+					bpresultString = status;
+				} //end for Text Compression US197546
+				
+				else if(((bp.getOverviewTitle()).equals(rb.getString("caching.usingCache.title")))
+						|| ((bp.getOverviewTitle()).equals(rb.getString("caching.cacheControl.title")))
+						|| ((bp.getOverviewTitle()).equals(rb.getString("connections.offloadingToWifi.title")))
+						|| ((bp.getOverviewTitle()).equals(rb.getString("html.httpUsage.title")))
+						|| ((bp.getOverviewTitle()).equals(rb.getString("other.accessingPeripherals.title")))
+						) {
+					bpresultString = bp.isPass(analysisData) ? pass : warning;
+					
+				} else {
+					bpresultString = bp.isPass(analysisData) ? pass : fail;
+				}
+			}
+			bestPractices.put("result", bpresultString);
+				
+			List<Object> resultList = new ArrayList<Object>();
+			// Write custom info for best practice
+			List<BestPracticeExport> list = bp.getExportData(analysisData);
+			if (list != null && list.size() > 0) {
+				for (BestPracticeExport bpe : list) {
+					Map<String, Object> resultDetailsMap = new HashMap<String, Object>();
+					
+					resultDetailsMap.put("value", bpe.getValue());
+					
+					resultDetailsMap.put("unitsdescription", bpe.getUnitsDescription());
+					
+					//resultDetailsMap.put("resultsdetails", resultDetailsList);
+					
+					resultList.add(resultDetailsMap);
+					
+				}
+			} 
+			bestPractices.put("resultdetails", resultList);
+			
+			bestPracticesList.add(bestPractices);
+		}
+		
+		return bestPracticesList;
+	}
+*/
+	/**
+	 * Genarate data for Json file
+	 * @param analysisData
+	 * @return
+	 */
+	public BestPractices[] getBestPracticeContentForJson(TraceData.Analysis analysisData) {
+
+		String pass = rb.getString("bestPractice.tooltip.pass");
+		String fail = rb.getString("bestPractice.tooltip.fail");
+		String warning = rb.getString("bestPractice.tooltip.warning");
+		String manual = rb.getString("bestPractice.tooltip.manual");
+		List<BestPractices> bestPracticesList = new ArrayList<BestPractices>();
+		// Iterate through best practices
+		for (AROBpOverallResulsPanel.BPResultRowPanel resultPanel : bpOverallResultsPanel.getResultRowPanels(null)) {
+			
+			//Map<String, Object> bestPractices = new HashMap<String, Object>();
+			BestPractices bpObj = new BestPractices();
+			BestPracticeDisplay bp = resultPanel.getBp();
+			
+			// Write title and status
+			bpObj.setName(bp.getDetailTitle());
+			
+			String bpresultString = "";
+			if (bp.isSelfTest()) {
+				bpresultString = manual;
+			} else {
+				//Added for Text Compression US197546
+				if (bp.getOverviewTitle().equals(rb.getString(BPTextFileCompression.TEXT_FILE_COMPRESSION_OVERVIEW_TITLE))){
+					String status = fail;
+					if (bp.isPass(analysisData)){
+						status = pass;
+					}
+					else if (bp.isWarning(analysisData)){
+						status = warning;
+					}
+					
+					bpresultString = status;
+				} //end for Text Compression US197546
+				
+				else if(((bp.getOverviewTitle()).equals(rb.getString("caching.usingCache.title")))
+						|| ((bp.getOverviewTitle()).equals(rb.getString("caching.cacheControl.title")))
+						|| ((bp.getOverviewTitle()).equals(rb.getString("connections.offloadingToWifi.title")))
+						|| ((bp.getOverviewTitle()).equals(rb.getString("html.httpUsage.title")))
+						|| ((bp.getOverviewTitle()).equals(rb.getString("other.accessingPeripherals.title")))
+						) {
+					bpresultString = bp.isPass(analysisData) ? pass : warning;
+					
+				} else {
+					bpresultString = bp.isPass(analysisData) ? pass : fail;
+				}
+			}
+			bpObj.setResult(bpresultString);
+			
+			List<BestPracticeDetails> resultList = new ArrayList<BestPracticeDetails>();
+			// Write custom info for best practice
+			List<BestPracticeExport> list = bp.getExportData(analysisData);
+			if (list != null && list.size() > 0) {
+				for (BestPracticeExport bpe : list) {
+					BestPracticeDetails resultDetails = new BestPracticeDetails();
+					resultDetails.setValue(bpe.getValue());
+					resultDetails.setDescription(bpe.getUnitsDescription());
+					
+					resultList.add(resultDetails);
+					
+				}
+			} 
+			bpObj.setResultDetails(resultList.toArray(new BestPracticeDetails[resultList.size()]));
+			
+			bestPracticesList.add(bpObj);
+		}
+		
+		return bestPracticesList.toArray(new BestPractices[bestPracticesList.size()]);
+	}
+	
 	
 	/**
 	 * Returns the aroBestPracticesMainPanel object

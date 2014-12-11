@@ -27,6 +27,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.view.Display;
 import android.view.View;
 import android.webkit.WebView;
 import android.widget.Button;
@@ -35,6 +36,7 @@ import com.att.android.arodatacollector.R;
 import com.att.android.arodatacollector.main.ARODataCollector;
 import com.att.android.arodatacollector.utils.AROCollectorUtils;
 import com.att.android.arodatacollector.utils.AROLogger;
+
 import android.provider.Settings;
 
 /**
@@ -55,6 +57,7 @@ public class AROCollectorLegalTermsActivity extends Activity {
 
 	/** Identifies that the Android keep activities settings is ON or OFF. */
 	private int mKeepActivities;
+
 	/**
 	 * Initializes data members with a saved instance of an AROCollectorLegalTermsActivity object. 
 	 * Overrides the android.app.Activity#onCreate method. 
@@ -63,6 +66,8 @@ public class AROCollectorLegalTermsActivity extends Activity {
 	 */
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+
+		AROLogger.d(TAG, "onCreate");
 		super.onCreate(savedInstanceState);
 		
 		if (new AROCollectorUtils().isTcpDumpRunning()) {
@@ -72,8 +77,18 @@ public class AROCollectorLegalTermsActivity extends Activity {
 			exitTCActivity();
 			return;
 		}
-		
-		setContentView(R.layout.aro_legal_terms);
+		Display display = getWindowManager().getDefaultDisplay();
+		int height = display.getHeight();
+		int width = display.getWidth();
+		display = null;
+		if (width < 300){
+			AROLogger.d(TAG, "onCreate (wearable)");
+			setContentView(R.layout.aro_legal_terms_wear);
+		} else {
+			AROLogger.d(TAG, "onCreate (normal)");
+			setContentView(R.layout.aro_legal_terms);
+		}
+
 		initializeLegalPageControls();
 		registerAnalyzerTimeoutReceiver();
 		registerAnalyzerLaunchReceiver();
@@ -88,6 +103,16 @@ public class AROCollectorLegalTermsActivity extends Activity {
 		AROLogger.d(TAG, "another instance of collector already running, will exit this tc screen");
 
 		finish();
+	}
+
+	/**
+	 * Reads the legal terms text from html file and creates the web view
+	 * 
+	 * @throws IOException
+	 */
+	private void readLegalTermsfromfileX() throws IOException {
+		final WebView legalView = (WebView) findViewById(R.id.termsWebView);
+		legalView.loadUrl("file:///android_asset/arolegal.html");
 	}
 
 	/**

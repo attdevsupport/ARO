@@ -15,15 +15,18 @@
  */
 package com.att.android.arodatacollector.activities;
 
-import java.io.File;
+import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
+import android.telephony.TelephonyManager;
+import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.view.Window;
@@ -38,9 +41,9 @@ import com.att.android.arodatacollector.main.AROCollectorCustomDialog.Dialog_Cal
 import com.att.android.arodatacollector.main.AROCollectorCustomDialog.Dialog_Type;
 import com.att.android.arodatacollector.main.AROCollectorCustomDialog.ReadyListener;
 import com.att.android.arodatacollector.main.AROCollectorService;
-import com.att.android.arodatacollector.main.AROCollectorTraceService;
 import com.att.android.arodatacollector.main.ARODataCollector;
 import com.att.android.arodatacollector.utils.AROCollectorUtils;
+import com.att.android.arodatacollector.utils.ARODialog;
 import com.att.android.arodatacollector.utils.AROLogger;
 
 /**
@@ -188,22 +191,37 @@ public class AROCollectorSplashActivity extends Activity {
 		// like height,width
 		Display mScreenDisplay;
 		super.onCreate(savedInstanceState);
-		
+
 		if (AROCollectorService.getServiceObj() != null) {
 			AROLogger.d(TAG, "collector already running, going to home screen");
 			startAROHomeActivity();
 			return;
 		}
-		
+
+		doCollection();
+
+	}
+
+	private void doCollection() {
+		Display mScreenDisplay;
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
-		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-				WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		mApp = (ARODataCollector) getApplication();
 		
 		mScreenDisplay = getWindowManager().getDefaultDisplay();
 		mApp.setDeviceScreenHeight(mScreenDisplay.getHeight());
 		mApp.setDeviceScreenWidth(mScreenDisplay.getWidth());
-		setContentView(R.layout.splash);
+
+		Display display = getWindowManager().getDefaultDisplay();
+		int height = display.getHeight();
+		int width = display.getWidth();
+		display = null;
+		if (width < 300){
+			setContentView(R.layout.splash_wear);
+		} else {
+			setContentView(R.layout.splash);
+		}
+
 		final TextView version = (TextView) findViewById(R.id.version);
 		version.setText("Version " + mApp.getVersion());
 		if (mScreenDisplay.getHeight() < SCREEN_HEIGHT_TOADJUST) {
@@ -319,7 +337,78 @@ public class AROCollectorSplashActivity extends Activity {
 		timerThread.start();
 		initializeThread.start();
 	}
+	
+	/**
+	 * Display ARO error 
+	 * 
+	 * @param message
+	 */
+	private void showUnapprovedPhoneError(String message) {
+		Intent dlog = new Intent(this, ARODialog.class);
+		dlog.putExtra("TITLE", this.getString(R.string.aro_error));
+		dlog.putExtra("MESSAGE", message);
+		startActivity(dlog);
+	}
 
+	/**
+	 * Check to see that phone is on the approved device list
+	 * @return true if device is listed as approved
+	 */
+	private boolean isThisPhoneInApprovedList() {
+		Log.i(TAG, "isThisPhoneInApprovedList()");
+		String[] approvedPhones = {
+				"SAMSUNG-SGH-I317, v. 4.1.1"		//  Reported to work
+				,"SAMSUNG-SGH-I317, v. 4.1.2"		//  Reported to work
+				,"HTC One X, v. 4.0.4"              //  Reported to work
+				,"HTC One X+, v. 4.1.1"				//  Reported to work
+				,"HTC Vivid, v. 4.0.3"				//  Reported to work
+				,"SAMSUNG-SGH-I337, v. 4.2.2"		//  Reported to work
+//				// unapproved devices (only here for debugging purposes)
+//				,"SAMSUNG-SGH-I337, v. 4.4.2"		// ATT SAMSUNG-SGH-I337, Version 4.4.2, IMEI 355368050138710, SIM carrier, SIM# 89014104276556239842
+//				,"LG-brickYourPhone, v. 4.1.2"		// LG E980 v 4.1.2 bricks with Secure collector
+//				,"HTC One X, v. 4.1.1"				// 
+//				,"Nexus 5, v. 4.4.2"				// Nexus 5 v:4.4.2 seems to survive 
+		};
+		
+		String model = Build.MODEL.toString()+", v. " + android.os.Build.VERSION.RELEASE;
+		Log.i(TAG, ">"+model+"<");
+		for (String approved : approvedPhones){
+			Log.i(TAG, "-"+approved+"-");
+			if (approved.equals(model)){
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private ArrayList<String> getPhoneDetails() {
+		// debug
+		String deviceIMEI = "";
+		TelephonyManager mTelephonyMgr = (TelephonyManager) getApplicationContext().getSystemService(Context.TELEPHONY_SERVICE);
+
+		if (deviceIMEI.equals("")) {
+			deviceIMEI = mTelephonyMgr.getDeviceId();
+		}
+
+		ArrayList<String> phoneDetails = new ArrayList();
+		
+		phoneDetails.add("Manufacturer: " + Build.MANUFACTURER.toString());
+		phoneDetails.add("Model: " + Build.MODEL.toString()                  );
+		phoneDetails.add("Version: " + android.os.Build.VERSION.RELEASE      );
+		phoneDetails.add("IMEI: " + deviceIMEI                               );
+		try {
+			phoneDetails.add("SIM carrier:" + mTelephonyMgr.getSimOperatorName() );
+			phoneDetails.add("SIM# " + mTelephonyMgr.getSimSerialNumber()       );
+		} catch (Exception e) {
+			phoneDetails.add("SIM carrier:");
+			phoneDetails.add("SIM# ");
+		}
+
+		return phoneDetails;	
+	}
+	
+	
 	/**
 	 * Shows the Legal terms page to user
 	 */

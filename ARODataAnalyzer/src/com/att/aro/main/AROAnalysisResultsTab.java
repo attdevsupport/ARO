@@ -48,11 +48,17 @@ import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
+
 import com.att.aro.commonui.AROUIManager;
 import com.att.aro.commonui.ImagePanel;
 import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.commonui.RoundedBorder;
 import com.att.aro.images.Images;
+import com.att.aro.json.JsonGenerator;
+import com.att.aro.json.JsonMapper;
 import com.att.aro.model.Profile;
 import com.att.aro.model.Profile3G;
 import com.att.aro.model.ProfileLTE;
@@ -78,8 +84,11 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	private JPanel headerPanel;
 	private DateTraceAppDetailPanel dateTraceAppDetailPanel;
 	private JLabel exportBtn;
+	private JLabel jsonExportBtn; //TODO
 	private ApplicationResourceOptimizer parent;
 	private static final ResourceBundle rb = ResourceBundleManager.getDefaultBundle();
+	
+	private JsonGenerator jsonGenerator;
 
 	TraceData.Analysis analysisData = null;
 
@@ -125,6 +134,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	 */
 	public void refresh(TraceData.Analysis analysisData) {
 		this.analysisData = analysisData;
+		getJsonGenerator().refresh(analysisData); //Json Object
 		dateTraceAppDetailPanel.refresh(analysisData);
 		getBasicStatisticsPanel().refresh(analysisData);
 		getBurstAnalysisPanel().refresh(analysisData);
@@ -147,6 +157,7 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 			energyModelStatisticsPanel.refresh(null);
 		}
 		exportBtn.setEnabled(analysisData != null);
+//		jsonExportBtn.setEnabled(analysisData != null); //Json
 	}
 
 	/**
@@ -367,9 +378,17 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 			JPanel buttonPanel = new JPanel();
 			buttonPanel.setLayout(new BorderLayout());
 			buttonPanel.setOpaque(false);
-			buttonPanel.add(getExportBtn(), BorderLayout.CENTER);
+			buttonPanel.add(getExportBtn(), BorderLayout.EAST);
+//			buttonPanel.add(getJsonExportBtn(), BorderLayout.WEST);
 			imagePanel.add(buttonPanel, BorderLayout.EAST);
 			
+			//TODO for json
+/*			JPanel buttonPanelForJson = new JPanel();
+			buttonPanelForJson.setLayout(new BorderLayout());
+			buttonPanelForJson.setOpaque(false);
+			buttonPanelForJson.add(getJsonExportBtn(), BorderLayout.CENTER);
+			imagePanel.add(buttonPanelForJson, BorderLayout.CENTER);
+*/			
 			headerPanel = new JPanel();
 			headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
 			headerPanel.add(imagePanel);
@@ -426,6 +445,98 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 			});
 		}
 		return exportBtn;
+	}
+	
+	//TODO For Json
+	private JLabel getJsonExportBtn() {
+		if (jsonExportBtn == null) {
+			// exportBtn = new JLabel(Images.EXPORT_BTN.getIcon());
+			jsonExportBtn = new JLabel("jsonExport...", Images.EXPORT_BTN.getIcon(),
+					JLabel.CENTER);
+			jsonExportBtn.setVerticalTextPosition(JLabel.BOTTOM);
+			jsonExportBtn.setHorizontalTextPosition(JLabel.CENTER);
+			jsonExportBtn.setForeground(Color.white);
+			jsonExportBtn.setEnabled(false);
+			jsonExportBtn.setToolTipText(rb.getString("chart.tooltip.export"));
+			jsonExportBtn.addMouseListener(new MouseAdapter() {
+
+				@Override
+				public void mouseClicked(MouseEvent e) {
+					if (!jsonExportBtn.isEnabled()) {
+						return;
+					}
+					JFileChooser chooser = new JFileChooser(UserPreferences.getInstance()
+							.getLastExportDirectory());
+					chooser.addChoosableFileFilter(new FileNameExtensionFilter(rb
+							.getString("fileChooser.desc.json"), rb
+							.getString("fileChooser.contentType.json")));
+					chooser.setDialogTitle(rb.getString("fileChooser.Title"));
+					chooser.setApproveButtonText(rb.getString("fileChooser.Save"));
+					chooser.setMultiSelectionEnabled(false);
+					try {
+						saveJSON(chooser);
+					} catch (IOException ex) {
+						logger.log(Level.SEVERE, ex.getMessage());
+						MessageDialogFactory.showErrorDialog(parent,
+								rb.getString("exportall.errorFileOpen") + ex.getMessage());
+					}
+				}
+				
+				@Override
+	            public void mouseEntered(MouseEvent e) {
+					jsonExportBtn.setForeground(Color.GRAY );
+					
+				}
+				@Override
+	            public void mouseExited(MouseEvent e) {
+					jsonExportBtn.setForeground(Color.WHITE);
+	            }    
+			});
+		}
+		return jsonExportBtn;
+	}
+	
+	/**
+	 * Added this method for the CSV menu
+	 */
+	public void exportCSVFileToFileSystem(){
+		JFileChooser chooser = new JFileChooser(UserPreferences.getInstance()
+				.getLastExportDirectory());
+		chooser.addChoosableFileFilter(new FileNameExtensionFilter(rb
+				.getString("fileChooser.desc.csv"), rb
+				.getString("fileChooser.contentType.csv")));
+		chooser.setDialogTitle(rb.getString("fileChooser.Title"));
+		chooser.setApproveButtonText(rb.getString("fileChooser.Save"));
+		chooser.setMultiSelectionEnabled(false);
+		try {
+			saveCSV(chooser);
+		} catch (IOException ex) {
+			logger.log(Level.SEVERE, ex.getMessage());
+			MessageDialogFactory.showErrorDialog(parent,
+					rb.getString("exportall.errorFileOpen") + ex.getMessage());
+		}
+	}
+	
+	/**
+	 * Added this method for the json menu
+	 */
+	public void exportJsonFileToFileSystem(){
+		JFileChooser chooser = new JFileChooser(UserPreferences.getInstance()
+				.getLastExportDirectory());
+		chooser.addChoosableFileFilter(new FileNameExtensionFilter(rb
+				.getString("fileChooser.desc.json"), rb
+				.getString("fileChooser.contentType.json")));
+		chooser.setDialogTitle(rb.getString("fileChooser.Title"));
+		chooser.setApproveButtonText(rb.getString("fileChooser.Save"));
+		chooser.setMultiSelectionEnabled(false);
+		try {
+			saveJSON(chooser);
+		} catch (IOException ex) {
+			logger.log(Level.SEVERE, ex.getMessage());
+			MessageDialogFactory.showErrorDialog(parent,
+					rb.getString("exportall.errorFileOpen") + ex.getMessage());
+		}
+
 	}
 
 	/**
@@ -577,6 +688,9 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 		} else {
 			MessageDialogFactory.showMessageDialog(chooser, rb.getString("table.export.success"));
 		}
+//		chooser.addChoosableFileFilter(new FileNameExtensionFilter("Java script oject notation (*.json)", rb
+//				.getString("fileChooser.contentType.json")));
+//		saveJSON(chooser);
 	}
 
 	/**
@@ -587,4 +701,212 @@ public class AROAnalysisResultsTab extends JScrollPane implements Printable {
 	private DateTraceAppDetailPanel getdateTraceAppDetailPanel() {
 		return this.dateTraceAppDetailPanel;
 	}
+	
+	/**
+	 * Save the Json file
+	 * @param chooser
+	 * @throws IOException
+	 */
+/*	private void saveJSON(JFileChooser chooser) throws IOException {
+		if (chooser.showSaveDialog(AROAnalysisResultsTab.this.getTopLevelAncestor()) != JFileChooser.APPROVE_OPTION) {
+			return;
+		}
+
+		File file = chooser.getSelectedFile();
+		if (file.getName().length() >= 50) {
+			MessageDialogFactory.showErrorDialog(parent,
+					rb.getString("exportall.errorLongFileName"));
+			return;
+		}
+		if (!chooser.getFileFilter().accept(file)) {
+			file = new File(file.getAbsolutePath() + "."
+					+ rb.getString("fileChooser.contentType.json"));
+		}
+		if (file.exists()) {
+			if (MessageDialogFactory.showConfirmDialog(
+					this.getTopLevelAncestor(),
+					MessageFormat.format(rb.getString("fileChooser.fileExists"),
+							file.getAbsolutePath()), JOptionPane.YES_NO_OPTION) == JOptionPane.NO_OPTION) {
+				return;
+			}
+		}
+
+		final Profile profile = this.parent.getProfile();
+		final AROBestPracticesTab aroBestPracticesPanel = this.parent.getBestPracticesPanel();
+		final AROAnalysisResultsTab analyisResultsPanel = this.parent.getAnalysisResultsPanel();
+
+		TraceData traceData = null;
+		if(analysisData != null){
+			traceData = analysisData.getTraceData();
+		}
+		
+		FileWriter writer = new FileWriter(file);
+		ObjectMapper objectMapper = new ObjectMapper();
+		
+		Map<String, Object> mainMapObject = new HashMap<String, Object>();
+		try {
+			
+		//	writer.append(rb.getString("Export.header.tracesummary"));
+		//	writer.append(lineSep);
+			
+			Map<String, Object> traceSummaryMap = new HashMap<String, Object>();
+			
+			// Adding Trace data content to Map.
+			traceSummaryMap = analyisResultsPanel.getdateTraceAppDetailPanel().addTraceDateContent(traceSummaryMap,
+							analysisData);
+			
+			
+			traceSummaryMap = aroBestPracticesPanel.getBestPracticesPanel().getAROBpOverallResulsPanel()
+					.addBpOverallContent(traceSummaryMap, analysisData);
+			
+			mainMapObject.put(Util.getNameForJson(rb.getString("Export.header.tracesummary")), traceSummaryMap);
+			
+
+			// Adding Best Practice content to Mapper.
+			mainMapObject.put(Util.getNameForJson(rb.getString("exportall.csvHeader.bestpractice")), aroBestPracticesPanel.getBestPracticesPanel().addBestPracticeContent(analysisData));
+			
+			//Adding File Types
+			mainMapObject.put(Util.getNameForJson(rb.getString("Export.header.filetypes")), this.parent.getAroSimpleTab().getFileTypesChartPanel().addFiletypes());
+
+			mainMapObject.put(Util.getNameForJson(rb.getString("Export.header.traceoverview")), this.parent.getAroSimpleTab().getTraceOverviewPanel().addTraceOverview());
+
+			mainMapObject.put(Util.getNameForJson(rb.getString("Export.header.connectionstatistics")), this.parent.getAroSimpleTab().getProperSessionTermChartPanel().addTraceOverview());
+			mainMapObject.put(Util.getNameForJson(rb.getString("statics.csvHeader.appScore")), analyisResultsPanel.getApplicationScorePanel().addApplicationScoreInfo(analysisData));
+			
+			mainMapObject.put(Util.getNameForJson(rb.getString("statics.csvHeader.endPointSummaryApp")), analyisResultsPanel
+					.getEndPointSummaryPanel().getTableModel().addEndPointSummaryPerAppTable(analyisResultsPanel.getEndPointSummaryPanel().getTable()));
+			
+			
+			mainMapObject.put(Util.getNameForJson(rb.getString("statics.csvHeader.endPointSummaryIP")), analyisResultsPanel
+					.getEndPointSummaryPanel().getIpTableModel().addEndPointSummaryPerIPTable(analyisResultsPanel.getEndPointSummaryPanel().getIPTable()));
+
+			mainMapObject.put(Util.getNameForJson(rb.getString("statics.csvHeader.rrcState")), analyisResultsPanel.getRRCStatisticsPanel().addRRCContent());
+			
+			mainMapObject.put(Util.getNameForJson(rb.getString("statics.csvHeader.burst")), analyisResultsPanel.getBurstAnalysisPanel().addBurstTable());
+			
+			mainMapObject.put(Util.getNameForJson(rb.getString("statics.csvHeader.individualBurst")), analyisResultsPanel.getBurstAnalysisPanel().addBurstCollectionTable());
+	
+			//TODO on hold
+			mainMapObject.put(Util.getNameForJson(rb.getString("cache.simulationSection")), analyisResultsPanel.getCacheStatisticsPanel().addCacheContent());
+
+			if (profile instanceof Profile3G) {
+				mainMapObject.put(Util.getNameForJson(rb.getString("statics.csvHeader.energyState")), analyisResultsPanel.getEnergyModelStatistics3GPanel().addEnergyContent());
+				
+			} else if (profile instanceof ProfileLTE) {
+				mainMapObject.put(Util.getNameForJson(rb.getString("statics.csvHeader.energyState")), analyisResultsPanel.getEnergyModelStatisticsLTEPanel().addEnergyContent());
+				
+			} else if (profile instanceof ProfileWiFi) {
+				mainMapObject.put(Util.getNameForJson(rb.getString("statics.csvHeader.energyState")), analyisResultsPanel.getWiFiEnergyModelStatisticsPanel().addEnergyContent());
+				
+			}
+			
+		    objectMapper.writeValue(file, mainMapObject);
+		 
+	
+		} catch (JsonGenerationException e) {
+            e.printStackTrace();
+        } catch (JsonMappingException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+
+            e.printStackTrace();
+        } finally {
+			//writer.close();
+		} 
+			
+			
+		if (file.getName().contains(".json")) {
+			if (MessageDialogFactory.showExportConfirmDialog(chooser) == JOptionPane.YES_OPTION) {
+				try {
+					Desktop desktop = Desktop.getDesktop();
+					desktop.open(file);
+				} catch (UnsupportedOperationException unsupportedException) {
+					MessageDialogFactory.showMessageDialog(chooser,
+							rb.getString("Error.unableToOpen"));
+				}
+			}
+		} else {
+			MessageDialogFactory.showMessageDialog(chooser, rb.getString("table.export.success"));
+		}
+	}
+*/	
+	private void saveJSON(JFileChooser chooser) throws IOException {
+		if (chooser.showSaveDialog(AROAnalysisResultsTab.this.getTopLevelAncestor()) != JFileChooser.APPROVE_OPTION) {
+			return;
+		}
+
+		File file = chooser.getSelectedFile();
+		if (file.getName().length() >= 50) {
+			MessageDialogFactory.showErrorDialog(parent,
+					rb.getString("exportall.errorLongFileName"));
+			return;
+		}
+		if (!chooser.getFileFilter().accept(file)) {
+			file = new File(file.getAbsolutePath() + "."
+					+ rb.getString("fileChooser.contentType.json"));
+		}
+		if (file.exists()) {
+			if (MessageDialogFactory.showConfirmDialog(
+					this.getTopLevelAncestor(),
+					MessageFormat.format(rb.getString("fileChooser.fileExists"),
+							file.getAbsolutePath()), JOptionPane.YES_NO_OPTION) == JOptionPane.NO_OPTION) {
+				return;
+			}
+		}
+
+//		final Profile profile = this.parent.getProfile();
+		final AROBestPracticesTab aroBestPracticesPanel = this.parent.getBestPracticesPanel();
+//		final AROAnalysisResultsTab analyisResultsPanel = this.parent.getAnalysisResultsPanel();
+/*
+		TraceData traceData = null;
+		if(analysisData != null){
+			traceData = analysisData.getTraceData();
+		}
+*/		
+//		FileWriter writer = new FileWriter(file);
+		ObjectMapper objectMapper = new ObjectMapper();
+		
+		JsonMapper jsonFileMapper;
+		try {
+			
+			jsonFileMapper = getJsonGenerator().getJsonMapper(aroBestPracticesPanel);
+						
+			
+		    objectMapper.writeValue(file, jsonFileMapper);
+		 
+	
+		} catch (JsonGenerationException e) {
+            e.printStackTrace();
+        } catch (JsonMappingException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+
+            e.printStackTrace();
+        } finally {
+			//writer.close();
+		} 
+			
+			
+		if (file.getName().contains(".json")) {
+			if (MessageDialogFactory.showExportConfirmDialog(chooser) == JOptionPane.YES_OPTION) {
+				try {
+					Desktop desktop = Desktop.getDesktop();
+					desktop.open(file);
+				} catch (UnsupportedOperationException unsupportedException) {
+					MessageDialogFactory.showMessageDialog(chooser,
+							rb.getString("Error.unableToOpen"));
+				}
+			}
+		} else {
+			MessageDialogFactory.showMessageDialog(chooser, rb.getString("table.export.success"));
+		}
+	}
+	
+	private JsonGenerator getJsonGenerator(){
+		if(this.jsonGenerator == null){
+			this.jsonGenerator = new JsonGenerator();
+		}
+		return this.jsonGenerator;
+	}
+	
 }

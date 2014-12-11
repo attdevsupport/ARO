@@ -277,6 +277,7 @@ public class DataCollectorMacOS implements ImageSubscriber, IOSDeviceStatus {
 		packetworker.execute();
 		
 		if(folder.isCaptureVideo()){
+			AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(rb.getString("ga.request.event.category.collector"), rb.getString("ga.request.event.collector.action.video"));
 			if(videoCapture == null){
 				final String videofilepath = datadir + Util.FILE_SEPARATOR + TraceData.VIDEO_MOV_FILE;
 				videofile = new File(videofilepath);

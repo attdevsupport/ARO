@@ -102,7 +102,7 @@ public class VideoCaptureThread extends Thread {
 		allDone = false;
 		Date lastFrameTime = this.videoStartTime = new Date();
 		setUsbDisconnected(false);
-		
+
 		while (!allDone) {
 			try {
 				// Screen shot is captured from the emulator.
@@ -111,15 +111,10 @@ public class VideoCaptureThread extends Thread {
 				}
 				if (rawImage != null) {
 					Date timestamp = new Date();
-					int duration = Math
-							.round((float) (timestamp.getTime() - lastFrameTime
-									.getTime()) * qos.getTimeScale() / 1000f);
+					int duration = Math.round((float) (timestamp.getTime() - lastFrameTime.getTime()) * qos.getTimeScale() / 1000f);
 					if (duration > 0) {
 						if (image == null) {
-							image = new BufferedImage(
-									rawImage.width,
-									rawImage.height,
-									BufferedImage.TYPE_INT_RGB);
+							image = new BufferedImage(rawImage.width, rawImage.height, BufferedImage.TYPE_INT_RGB);
 						}
 						convertImage(rawImage, image);
 						qos.writeFrame(image, duration);
@@ -127,29 +122,28 @@ public class VideoCaptureThread extends Thread {
 						callSubscriber(image);
 					}
 				}
-				try{
-					if (traceData != null) {
-						final String deviceMake= traceData.getDeviceMake().toLowerCase();
-						if(deviceMake.contains(rb.getString("Message.devicemakeHTC"))){
+				try {
+					if ((traceData != null) && (traceData.getDeviceMake() != null)) {
+						final String deviceMake = traceData.getDeviceMake().toLowerCase();
+						if (deviceMake.contains(rb.getString("Message.devicemakeHTC"))) {
 							//We would sleep for 1 sec for lower frame rate video on HTC devices via USB bridge 
 							Thread.sleep(1000);
-						}else{
+						} else {
 							//Delay for 300 for > 2fps video
 							Thread.sleep(300);
 						}
 					}
-					
-				}catch(InterruptedException e){
+
+				} catch (InterruptedException e) {
 					e.printStackTrace();
-					logger.info("Error: "+e.getMessage());
+					logger.info("Error: " + e.getMessage());
 				}
 			} catch (IOException e) {
 				iExceptionCount++;
-				if (e.getMessage().contains("device not found"))
-				{
+				if (e.getMessage().contains("device not found")) {
 					e.printStackTrace();
 					setUsbDisconnected(true);
-					
+
 				}
 				if (iExceptionCount > MAX_FETCH_EXCEPTIONS) {
 					allDone = true;
@@ -160,15 +154,14 @@ public class VideoCaptureThread extends Thread {
 		try {
 			qos.close();
 		} catch (IOException e) {
-			logger.log(Level.WARNING, "Exception closing video output stream",
-					e);
+			logger.log(Level.WARNING, "Exception closing video output stream", e);
 			//e.printStackTrace();			
 		}
 		if (iExceptionCount > 0) {
 			logger.warning((new StringBuilder())
 					.append("One or Mores Exceptions fetching image: ")
-					.append(savedException.toString()).toString());		
-			
+					.append(savedException.toString()).toString());
+
 		}
 	}
 	/**

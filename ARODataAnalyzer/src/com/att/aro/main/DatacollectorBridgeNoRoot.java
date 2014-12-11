@@ -31,6 +31,7 @@ import com.att.aro.analytics.AnalyticFactory;
 import com.att.aro.commonui.DataCollectorFolderDialog;
 import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.interfaces.ImageSubscriber;
+import com.att.aro.model.AdbService;
 import com.att.aro.model.MobileDevice;
 import com.att.aro.model.TraceData;
 import com.att.aro.pcap.windows.WinPacketCapture;
@@ -139,10 +140,7 @@ public class DatacollectorBridgeNoRoot implements ImageSubscriber {
 		final String filepath = dirpath + Util.FILE_SEPARATOR + TraceData.VIDEO_MOV_FILE;
 		
 		videofile = new File(filepath);
-		if(device == null){
-			MobileDevice mdevice = new MobileDevice();
-			device = mdevice.getFirstAndroidDevice();
-		}
+		
 		if(device == null){
 			MessageDialogFactory.showErrorDialog(null,rb.getString("Error.nodevicefound"));
 			return;
@@ -159,6 +157,7 @@ public class DatacollectorBridgeNoRoot implements ImageSubscriber {
 
 		//only do this if user want to capture video
 		if(folder.isCaptureVideo()){
+			AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(rb.getString("ga.request.event.category.collector"), rb.getString("ga.request.event.collector.action.video"));
 			//create a new thread of VideoCapture for performing in background later
 			try {
 				if(videoCapture == null){

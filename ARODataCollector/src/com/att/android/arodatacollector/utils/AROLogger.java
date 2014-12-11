@@ -1,7 +1,5 @@
 package com.att.android.arodatacollector.utils;
 
-import com.att.android.arodatacollector.BuildConfig;
-
 import android.util.Log;
 
 /**

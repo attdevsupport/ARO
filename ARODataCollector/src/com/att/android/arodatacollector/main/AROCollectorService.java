@@ -52,12 +52,15 @@ import android.provider.Settings;
 import android.provider.Settings.SettingNotFoundException;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 import com.att.android.arodatacollector.R;
 import com.att.android.arodatacollector.activities.AROCollectorCompletedActivity;
 import com.att.android.arodatacollector.activities.AROCollectorMainActivity;
 import com.att.android.arodatacollector.utils.AROCollectorUtils;
+import com.att.android.arodatacollector.utils.AROLogger;
 import com.flurry.android.FlurryAgent;
 
 /**
@@ -72,7 +75,7 @@ public class AROCollectorService extends Service {
 	public static final String TAG = "AROCollectorService";
 
 	/** The tcpdump executable name */
-	private static final String TCPDUMPFILENAME = "tcpdump";
+	private static final String TCPDUMPFILENAME = android.os.Build.VERSION.RELEASE.equals("5.0")?"tcpdump_pie":"tcpdump";
 
 	/**
 	 * The value to check SD Card minimum space during the trace cycle. Trace
@@ -161,6 +164,8 @@ public class AROCollectorService extends Service {
 	private static final String outBatteryInfoFileName = "batteryinfo_dump";
 	
 	private double dumpsysTimestamp = 0.0;
+
+	private Process  sh_tcpdump = null;
 	/**
 	 * Gets the valid instance of AROCollectorService.
 	 * 
@@ -182,6 +187,9 @@ public class AROCollectorService extends Service {
 	 */
 	@Override
 	public void onCreate() {
+		
+		// set to permissive
+		setEnforce(0);
 		
 		// Initializes the data controls and starts the Data Collector trace
 		// (i.e tcpdump,VideoCapture)
@@ -212,10 +220,34 @@ public class AROCollectorService extends Service {
 		TRACE_FOLDERNAME = mApp.getDumpTraceFolderName();
 		mVideoRecording = mApp.getCollectVideoOption();
 		startDataCollectorVideoCapture();
-		statDataCollectortcpdumpCapture();
+		startDataCollectortcpdumpCapture();
 		startDataCollectorDmesgCapture();
 	}
 
+	/**
+	 * Turn SELinux enforcement to Permissive or Enforced
+	 * 
+	 * @param setting
+	 */
+	private void setEnforce(int setting){
+		
+		try {
+			Process sh = Runtime.getRuntime().exec("su"); AROLogger.e(TAG, "AROCollectorService.setEnforce - su pid = "+sh);
+			DataOutputStream os = new DataOutputStream(sh.getOutputStream());
+			
+			String shCommand = "setenforce " + setting + "\n";
+			os.writeBytes(shCommand);
+			os.flush();
+			os.writeBytes("exit\n");
+			os.flush();
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+	
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 
@@ -308,7 +340,7 @@ public class AROCollectorService extends Service {
 	 * Starts the dedicated thread for tcpdump network traffic capture in the
 	 * native shell
 	 */
-	private void statDataCollectortcpdumpCapture() {
+	private void startDataCollectortcpdumpCapture() {
 		// Starting the tcpdump on separate thread
 		new Thread(new Runnable() {
 			@Override
@@ -374,7 +406,7 @@ public class AROCollectorService extends Service {
 
 	private void startTcpDump() throws IOException, InterruptedException {
 		Log.d(TAG, "inside startTcpDump at timestamp " + System.currentTimeMillis());
-		Process sh = null;
+		sh_tcpdump  = null;
 		DataOutputStream os = null;
 		int shExitValue = 0;
 		try {
@@ -386,33 +418,50 @@ public class AROCollectorService extends Service {
 				
 				Log.i(TAG, "tcpdump is not running. Starting tcpdump in the shell now");
 				
-				sh = Runtime.getRuntime().exec("su");
-				os = new DataOutputStream(sh.getOutputStream());
-				String Command = "chmod 777 " + ARODataCollector.INTERNAL_DATA_PATH + TCPDUMPFILENAME
-						+ "\n";
-				os.writeBytes(Command);
-				Command = "chmod 777 " + ARODataCollector.INTERNAL_DATA_PATH + "key.db" + "\n";
-				os.writeBytes(Command);
+				sh_tcpdump = Runtime.getRuntime().exec("su"); AROLogger.e(TAG, "startTcpDump - su pid = "+sh_tcpdump);
+				os = new DataOutputStream(sh_tcpdump.getOutputStream());
+				
+				String shCommand = "chmod 777 " + ARODataCollector.INTERNAL_DATA_PATH + TCPDUMPFILENAME + "\n";
+				os.writeBytes(shCommand);
+				os.flush();
+				
+				shCommand = "chmod 777 " + ARODataCollector.INTERNAL_DATA_PATH + "key.db" + "\n";
+				os.writeBytes(shCommand);
+				os.flush();
 				
 				//flurry timed event duration
 				mApp.writeToFlurryAndLogEvent(flurryTimedEvent, "Flurry trace start", startCalTime.getTime().toString(), "Trace Duration", true);
 				
-				/*Command = "." + ARODataCollector.INTERNAL_DATA_PATH + TCPDUMPFILENAME + " -w "
-						+ TRACE_FOLDERNAME + "\n";*/
+				shCommand = android.os.Build.VERSION.RELEASE.equals("5.0") ? "su -cn u:r:untrusted_app:s0 -c " : "";
+				shCommand += ARODataCollector.INTERNAL_DATA_PATH + TCPDUMPFILENAME + " -i any -w " + TRACE_FOLDERNAME + "\n";
 				
-				Command = "." + ARODataCollector.INTERNAL_DATA_PATH + TCPDUMPFILENAME + " -i any -w " + TRACE_FOLDERNAME + "\n";
+				AROLogger.e(TAG, ">>>>>>>>>>"+shCommand);
 				
-				os.writeBytes(Command);
-				Command = "exit\n";
-				os.writeBytes(Command);
+				os.writeBytes(shCommand);
+				os.writeBytes("exit\n");
 				os.flush();
+				os.writeBytes("exit\n");
+				os.flush();
+				os.writeBytes("exit\n");
+				os.flush();
+
+				mApp.addPid("TCPDUMP", sh_tcpdump);
 				
-				StreamClearer stdoutClearer = new StreamClearer(sh.getInputStream(), "stdout", true);
+				StreamClearer stdoutClearer = new StreamClearer(sh_tcpdump.getInputStream(), "stdout", true);
 				new Thread(stdoutClearer).start();
-				StreamClearer stderrClearer = new StreamClearer(sh.getErrorStream(), "stderr", true);
+				StreamClearer stderrClearer = new StreamClearer(sh_tcpdump.getErrorStream(), "stderr", true);
 				new Thread(stderrClearer).start();
 				
-				shExitValue = sh.waitFor();
+				if (android.os.Build.VERSION.RELEASE.equals("5.0")) {
+					do {
+						AROLogger.e(TAG, "Thread.sleep(2000)");
+						Thread.sleep(2000);
+					} while (findProc("tcpdump_pie") != 0);
+				}else{
+					AROLogger.e(TAG, "sh_tcpdump.waitFor()");
+					sh_tcpdump.waitFor();
+				}
+				
 				if (DEBUG) {
 					Log.i(TAG, "tcpdump waitFor returns exit value: " + shExitValue + " at " + System.currentTimeMillis());
 				}
@@ -438,7 +487,18 @@ public class AROCollectorService extends Service {
 				public void run() {
 					if (mVideoRecording && mApp.getAROVideoCaptureRunningFlag()) {
 						stopScreenVideoCapture();
+						
 						stopDmesg();
+						
+					}
+					Process ppid = mApp.getPid("DMESG");
+					if (ppid != null) {
+						String[] spid = ppid.toString().split("=|]");
+						if (spid.length == 2) {
+							int pid = Integer.parseInt(spid[1].toString());
+							killPid(-15, pid);
+							mApp.popPid("DMESG");
+						}
 					}
 				}
 			}).start();
@@ -456,8 +516,8 @@ public class AROCollectorService extends Service {
 				if (os != null){
 					os.close();
 				}
-				if (sh != null){
-					sh.destroy();
+				if (sh_tcpdump != null){
+					sh_tcpdump.destroy();
 				}
 			} catch (Exception e) {
 				Log.e(TAG, "exception in startTcpDump DataOutputStream close", e);
@@ -465,6 +525,30 @@ public class AROCollectorService extends Service {
 		}
 	}
 
+	/**
+	 * search processes for a match on the name
+	 * @param processName
+	 * @return pid or 0(zero) if not found
+	 */
+	private int findProc(String processName) {
+
+		int pid = 0;
+
+		try {
+			pid = mAroUtils.getProcessID(processName);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		AROLogger.e(TAG, "findProc("+processName+") -> pid = "+pid);
+		return pid;
+	}
+
+	
 	/**
 	 * Sample file content: FLURRY_API_KEY=YKN7M4TDXRKXH97PX565
 	 * Each Flurry API Key corresponds to an Application on Flurry site.  It is absolutely 
@@ -744,18 +828,24 @@ public class AROCollectorService extends Service {
 				Log.e(TAG, "Starting Video Capture");
 			}
 			sh = Runtime.getRuntime().exec("su");
+			AROLogger.e(TAG, "startScreenVideoCapture - su pid = " + sh);
 			os = new DataOutputStream(sh.getOutputStream());
+
 			String Command = "cd " + ARODataCollector.INTERNAL_DATA_PATH + " \n";
 			os.writeBytes(Command);
+
 			Command = "chmod 777 ffmpeg \n";
 			os.writeBytes(Command);
-			Command = "./ffmpeg -f fbdev -vsync 2 -r 3 -i /dev/graphics/fb0 /sdcard/ARO/"
-					+ TRACE_FOLDERNAME + "/video.mp4 2> /data/ffmpegout.txt \n";
+
+			Command = "./ffmpeg -f fbdev -vsync 2 -r 3 -i /dev/graphics/fb0 /sdcard/ARO/" + TRACE_FOLDERNAME + "/video.mp4 2> "+ARODataCollector.FFMPEG_OUTPUT_FILEPATH+" \n";
 			os.writeBytes(Command);
+
 			Command = "exit\n";
 			os.writeBytes(Command);
-			os.flush();		
+
+			os.flush();
 			sh.waitFor();
+
 		} catch (IOException e) {
 			Log.e(TAG, "exception in startScreenVideoCapture", e);
 		} catch (InterruptedException e) {
@@ -813,7 +903,7 @@ public class AROCollectorService extends Service {
 		}
 		if (pid != 0) {
 			try {
-				sh = Runtime.getRuntime().exec("su");
+				sh = Runtime.getRuntime().exec("su"); AROLogger.e(TAG, "stopScreenVideoCapture - su pid = "+sh);
 				os = new DataOutputStream(sh.getOutputStream());
 				String command = "kill -15 " + pid + "\n";
 				os.writeBytes(command);
@@ -885,7 +975,7 @@ public class AROCollectorService extends Service {
 					Log.i(TAG, "ffmpeg still running after kill -15. Will issue kill -9 " + pid);
 				}
 	
-				sh = Runtime.getRuntime().exec("su");
+				sh = Runtime.getRuntime().exec("su"); AROLogger.e(TAG, "kill9Ffmpeg - su pid = "+sh);
 				os = new DataOutputStream(sh.getOutputStream());
 				String Command = "kill -9 " + pid + "\n";
 				os.writeBytes(Command);
@@ -946,8 +1036,7 @@ public class AROCollectorService extends Service {
 			final String strTraceFolderName = mApp.getTcpDumpTraceFolderName();
 			Log.i(TAG, "Trace folder name is: " + strTraceFolderName);
 			final File appNameFile = new File(mApp.getTcpDumpTraceFolderName() + APP_NAME_FILE);
-			appNamesFileReader = new BufferedReader(new InputStreamReader(new FileInputStream(
-					appNameFile)));
+			appNamesFileReader = new BufferedReader(new InputStreamReader(new FileInputStream(appNameFile)));
 			String processName = null;
 			final List<String> appNamesWithVersions = new ArrayList<String>();
 			while ((processName = appNamesFileReader.readLine()) != null) {
@@ -958,13 +1047,13 @@ public class AROCollectorService extends Service {
 					appNamesWithVersions.add(processName + " " + versionNum);
 				} catch (NameNotFoundException e) {
 					appNamesWithVersions.add(processName);
-					Log.e(TAG, "Package name can not be found; unable to get version number.");
+					Log.e(TAG, "Package name can not be found; unable to get version number. versionNum=" + versionNum 
+							+ "\t\tprocessName =" + processName);
 				} catch (Exception e) {
 					Log.e(TAG, "Unable to get version number ");
 				}
 			}
-			appNmesFileWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
-					appNameFile)));
+			appNmesFileWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(appNameFile)));
 			final String eol = System.getProperty("line.separator");
 			for (String appNemeVersion : appNamesWithVersions) {
 				appNmesFileWriter.append(appNemeVersion + eol);
@@ -993,30 +1082,37 @@ public class AROCollectorService extends Service {
 	 * 
 	 * Requires root permission.
 	 */
-		private void getBatteryInfo() {
-			Process sh = null;
-			DataOutputStream os = null;
+	private void getBatteryInfo() {
+		Process sh = null;
+		DataOutputStream os = null;
+		try {
+			sh = Runtime.getRuntime().exec("su"); AROLogger.e(TAG, "getBatteryInfo - su pid = "+sh);
+			os = new DataOutputStream(sh.getOutputStream());
+			dumpsysTimestamp = System.currentTimeMillis();
+			
+			String command  = null;
+			int currentapiVersion = android.os.Build.VERSION.SDK_INT;
+			if (currentapiVersion >= android.os.Build.VERSION_CODES.FROYO){
+				command = "dumpsys batterystats > " + mApp.getTcpDumpTraceFolderName() + outBatteryInfoFileName + "\n";
+			} else{
+				command = "dumpsys batteryinfo > " + mApp.getTcpDumpTraceFolderName() + outBatteryInfoFileName + "\n";
+			}
+			
+			os.writeBytes(command);
+			
+			os.flush();
+			Log.d(TAG, "getBatteryInfo timestamp " + dumpsysTimestamp);
+			Runtime.getRuntime().exec("cat " + dumpsysTimestamp + " >> " + mApp.getTcpDumpTraceFolderName() + outBatteryInfoFileName + "\n");
+		} catch (IOException e) {
+			Log.e(TAG, "exception in getBatteryInfo ", e);
+		} finally {
 			try {
-				sh = Runtime.getRuntime().exec("su");
-				os = new DataOutputStream(sh.getOutputStream());
-				dumpsysTimestamp = System.currentTimeMillis();
-				String Command = "dumpsys batteryinfo > " + mApp.getTcpDumpTraceFolderName()
-					+ outBatteryInfoFileName +"\n";
-				os.writeBytes(Command);
-				os.flush();
-				Log.d(TAG, "getBatteryInfo timestamp " + dumpsysTimestamp);
-				Runtime.getRuntime().exec("cat " + dumpsysTimestamp + " >> " + mApp.getTcpDumpTraceFolderName()
-					+ outBatteryInfoFileName +"\n");
+				os.close();
 			} catch (IOException e) {
-				Log.e(TAG, "exception in getBatteryInfo ", e);
-			} finally {
-				try {
-					os.close();
-				} catch (IOException e) {
-					Log.e(TAG, "exception in getBatteryInfo closing output stream ", e);
-				}
+				Log.e(TAG, "exception in getBatteryInfo closing output stream ", e);
 			}
 		}
+	}
 	
 
 	/**
@@ -1036,11 +1132,12 @@ public class AROCollectorService extends Service {
 		Process sh = null;
 		DataOutputStream os = null;
 		try {
-			sh = Runtime.getRuntime().exec("su");
+			sh = Runtime.getRuntime().exec("su"); AROLogger.e(TAG, "getAlarmInfo - su pid = "+sh);
 			os = new DataOutputStream(sh.getOutputStream());
-			String Command = "dumpsys alarm > " + mApp.getTcpDumpTraceFolderName() +
-				 file +"\n";
+			
+			String Command = "dumpsys alarm > " + mApp.getTcpDumpTraceFolderName() + file + "\n";
 			os.writeBytes(Command);
+			
 			os.flush();
 		} catch (IOException e) {
 			Log.e(TAG, "exception in getAlarmInfo ", e);
@@ -1065,14 +1162,20 @@ public class AROCollectorService extends Service {
 		DataOutputStream os = null;
 		try {
 			sh = Runtime.getRuntime().exec("su");
+			AROLogger.e(TAG, "startDmesg - su pid = " + sh);
 			os = new DataOutputStream(sh.getOutputStream());
 			// Appending
-			String Command = "cat /proc/kmsg >> " + mApp.getTcpDumpTraceFolderName() +
-				 file + "\n";
+			String Command = "cat /proc/kmsg >> " + mApp.getTcpDumpTraceFolderName() + file + "\n";
 			os.writeBytes(Command);
+
 			os.flush();
+			os.writeBytes("exit\n");
+			os.close();
+
+			mApp.addPid("DMESG", sh);
+
 		} catch (IOException e) {
-			Log.e(TAG, "exception in startDmesg ", e);
+			Log.e(TAG, "IOException in startDmesg ", e);
 		} finally {
 			try {
 				os.close();
@@ -1093,44 +1196,62 @@ public class AROCollectorService extends Service {
 		Process sh = null;
 		DataOutputStream os = null;
 		int pid = 0;
-		try {
-			pid = mAroUtils.getProcessID("cat");
-		} catch (IOException e1) {
-			Log.e(TAG, "IOException in stopDmesg", e1);
-		} catch (IndexOutOfBoundsException e1) {
-			Log.e(TAG, "IndexOutOfBoundsException in stopDmesg", e1);
-		} catch (InterruptedException e1) {
-			Log.e(TAG, "exception in stopDmesg", e1);
-		}
-		if (DEBUG) {
-			Log.d(TAG, "stopDmesg=" + pid);
-		}
-		if (pid != 0) {
+		Process ppid = mApp.getPid("DMESG");
+		if (ppid != null) {
+			ppid.destroy();
+			mApp.popPid("DMESG");
+		} else {
 			try {
-				sh = Runtime.getRuntime().exec("su");
-				os = new DataOutputStream(sh.getOutputStream());
-				final String Command = "kill -15 " + pid + "\n";
-				os.writeBytes(Command);
-				os.flush();
-				sh.waitFor();
-			} catch (IOException e) {
-				Log.e(TAG, "exception in stopDmesg", e);
-			} catch (InterruptedException e) {
-				Log.e(TAG, "exception in stopDmesg", e);
-			} finally {
-				try {
-					os.close();
-				} catch (IOException e) {
-					Log.e(TAG,
-						"exception in stopDmesg DataOutputStream close",
-						e);
-				}
-				if (DEBUG) {
-					Log.d(TAG, "Stopped stopDmesg");
-				}
-				sh.destroy();
+				pid = mAroUtils.getProcessID("cat");
+			} catch (IOException e1) {
+				Log.e(TAG, "IOException in stopDmesg", e1);
+			} catch (IndexOutOfBoundsException e1) {
+				Log.e(TAG, "IndexOutOfBoundsException in stopDmesg", e1);
+			} catch (InterruptedException e1) {
+				Log.e(TAG, "exception in stopDmesg", e1);
+			}
+			if (DEBUG) {
+				Log.d(TAG, "stopDmesg=" + pid);
+			}
+			if (pid != 0) {
+				killPid(-15, pid);
 			}
 		}
+	}
+
+	private void killPid(int killLevel, int pid) {
+		
+		Process sh = null;
+		DataOutputStream os = null;
+		try {
+			sh = Runtime.getRuntime().exec("su");
+			AROLogger.e(TAG, "stopDmesg - su pid = " + sh);
+			os = new DataOutputStream(sh.getOutputStream());
+
+			final String Command = "kill " + killLevel +" "+ pid + "\n";
+			os.writeBytes(Command);
+
+			os.writeBytes("exit\n");
+			os.flush();
+			os.writeBytes("exit\n");
+			os.flush();
+			sh.waitFor();
+		} catch (IOException e) {
+			Log.e(TAG, "exception in stopDmesg", e);
+		} catch (InterruptedException e) {
+			Log.e(TAG, "exception in stopDmesg", e);
+		} finally {
+			try {
+				os.close();
+			} catch (IOException e) {
+				Log.e(TAG, "exception in stopDmesg DataOutputStream close", e);
+			}
+			if (DEBUG) {
+				Log.d(TAG, "Stopped stopDmesg");
+			}
+			sh.destroy();
+		}
+		
 	}
 
 	/**

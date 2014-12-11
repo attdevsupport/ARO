@@ -19,12 +19,14 @@ import java.awt.Component;
 import java.awt.Desktop;
 import java.awt.Font;
 import java.awt.Window;
+import java.awt.Dialog.ModalityType;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
 
+import javax.swing.JDialog;
 import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -62,10 +64,10 @@ public class MessageDialogFactory extends JOptionPane {
 		if (msg != null && msg.length() > 200) {
 			msg = rb.getString("Error.defaultMsg");
 		}
-		showMessageDialog(parentComponent
-						, MessageFormat.format(rb.getString("Error.unexpected"), t.getClass().getName(), msg)
-						, rb.getString("Error.title")
-						, ERROR_MESSAGE);
+		showMessageDialog(
+				parentComponent,
+				MessageFormat.format(rb.getString("Error.unexpected"), t.getClass().getName(),
+						msg), rb.getString("Error.title"), ERROR_MESSAGE);
 	}
 
 	/**
@@ -100,11 +102,12 @@ public class MessageDialogFactory extends JOptionPane {
 	 * @param t
 	 *            The exception that should be thrown for this error.
 	 */
-	public static void showInvalidDirectoryDialog(String strTraceDir, Component parentComponent, Throwable t) {
-		showMessageDialog(parentComponent
-						, MessageFormat.format(rb.getString("Error.invalidDirecotry"), strTraceDir, t.getLocalizedMessage())
-						, rb.getString("Error.title")
-						, ERROR_MESSAGE);
+	public static void showInvalidDirectoryDialog(String strTraceDir, Component parentComponent,
+			Throwable t) {
+		showMessageDialog(
+				parentComponent,
+				MessageFormat.format(rb.getString("Error.invalidDirecotry"), strTraceDir,
+						t.getLocalizedMessage()), rb.getString("Error.title"), ERROR_MESSAGE);
 	}
 
 	/**
@@ -120,10 +123,7 @@ public class MessageDialogFactory extends JOptionPane {
 	 *            The dialog title.
 	 */
 	public static void showErrorDialog(Window window, String message, String title) {
-		showMessageDialog(window
-						, message
-						, title
-						, ERROR_MESSAGE);
+		showMessageDialog(window, message, title, ERROR_MESSAGE);
 	}
 
 	/**
@@ -137,10 +137,7 @@ public class MessageDialogFactory extends JOptionPane {
 	 *            The message to be displayed in the dialog.
 	 */
 	public static void showErrorDialog(Window window, String message) {
-		showMessageDialog(window
-						, message
-						, rb.getString("Error.title")
-						, ERROR_MESSAGE);
+		showMessageDialog(window, message, rb.getString("Error.title"), ERROR_MESSAGE);
 	}
 
 	/**
@@ -157,14 +154,9 @@ public class MessageDialogFactory extends JOptionPane {
 	 */
 	public static int showConfirmDialog(Component parentComponent, String message, int optionType) {
 		Object[] options = { rb.getString("jdialog.option.yes"), rb.getString("jdialog.option.no") };
-		return JOptionPane.showOptionDialog(parentComponent
-											, message
-											, rb.getString("confirm.title")
-											, optionType
-											, JOptionPane.QUESTION_MESSAGE
-											, null
-											, options
-											, options[0]);
+		return JOptionPane.showOptionDialog(parentComponent, message,
+				rb.getString("confirm.title"), optionType, JOptionPane.QUESTION_MESSAGE, null,
+				options, options[0]);
 	}
 
 	/**
@@ -176,14 +168,9 @@ public class MessageDialogFactory extends JOptionPane {
 	 */
 	public static int showExportConfirmDialog(Component parentComponent) {
 		Object[] options = { rb.getString("Button.open"), rb.getString("Button.ok") };
-		return JOptionPane.showOptionDialog(parentComponent
-											, rb.getString("table.export.success")
-											, rb.getString("confirm.title")
-											, JOptionPane.YES_OPTION
-											, JOptionPane.OK_CANCEL_OPTION
-											, null
-											, options
-											, options[1]);
+		return JOptionPane.showOptionDialog(parentComponent, rb.getString("table.export.success"),
+				rb.getString("confirm.title"), JOptionPane.YES_OPTION,
+				JOptionPane.OK_CANCEL_OPTION, null, options, options[1]);
 	}
 	/**
 	 * Display input dialog for user to enter password
@@ -215,14 +202,9 @@ public class MessageDialogFactory extends JOptionPane {
 		
 		String[] options = new String[]{"OK", "Cancel"};
 		
-		int opt = MessageDialogFactory.showOptionDialog(parent
-														, panel
-														, title
-														, JOptionPane.OK_CANCEL_OPTION
-														, JOptionPane.PLAIN_MESSAGE
-														, null
-														, options
-														, options[0]);
+		int opt = MessageDialogFactory.showOptionDialog(parent, panel, title,
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE,
+                null, options, options[0]);
 		char[] passarr = pass.getPassword();
 		String passwd = null; //if cancel return null else return value
 		if(opt == MessageDialogFactory.OK_OPTION){
@@ -258,7 +240,7 @@ public class MessageDialogFactory extends JOptionPane {
 		
 		// html content
 		JEditorPane ep = new JEditorPane("text/html", "<html><body style=\"" + style + "\">" //
-				+ "<p>The device appears to have root access but does not have the ARO Collector installed.</p>"
+				+ "<p>The Phone appears to have root capability, but does not have the rooted collector installed.</p>"
 				+ line2
 				+ linkMessage
 				+ "</body></html>");
@@ -287,21 +269,49 @@ public class MessageDialogFactory extends JOptionPane {
 		ep.setEditable(false);
 		ep.setBackground(label.getBackground());
 
-		/*
-		 * -1 = window closed
-		 *  0 = OK
-		 *  1 = CANCEL
-		 */
-		int response = JOptionPane.showOptionDialog(null
-				, ep
-				, "Message"
+		JOptionPane pane = new JOptionPane(ep
 				, JOptionPane.CANCEL_OPTION
 				, JOptionPane.OK_CANCEL_OPTION
 				, Images.ICON.getIcon()
 				, options
 				, options[0]);
+		JDialog dialog = pane.createDialog("Message");
+		dialog.setModal(true);
+		dialog.setModalityType(ModalityType.APPLICATION_MODAL);
+		dialog.setVisible(true);
 		
+		int response = 0;
+
+		Object selectedValue = pane.getValue();
+		System.out.println(selectedValue);
+		if (selectedValue == null) {
+			response = 1;
+		}	
+		
+		for (int counter = 0, maxCounter = options.length; counter < maxCounter; counter++) {
+			if (options[counter].equals(selectedValue)){
+				System.out.println("result: "+counter);
+				response = counter;
+				break;
+			}
+		}
+
+		/*
+		 * -1 = window closed
+		 *  0 = OK
+		 *  1 = CANCEL
+		 */
+//		int response = JOptionPane.showOptionDialog(null
+//				, ep
+//				, "Message"
+//				, JOptionPane.CANCEL_OPTION
+//				, JOptionPane.OK_CANCEL_OPTION
+//				, Images.ICON.getIcon()
+//				, options
+//				, options[0]);
+//		
 		return Math.abs(response);
 		
 	}
+
 }

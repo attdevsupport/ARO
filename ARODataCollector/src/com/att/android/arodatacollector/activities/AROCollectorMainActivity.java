@@ -16,6 +16,7 @@
 
 package com.att.android.arodatacollector.activities;
 
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Timer;
@@ -32,6 +33,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.view.Display;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -103,6 +105,16 @@ public class AROCollectorMainActivity extends Activity {
 	
 	private String mAROTraceFolderNamefromAnalyzer;
 
+	private String currentBuildVersionCodeName;
+
+	/**
+	 * 
+	 * @return Android version  E.g., "1.0" or "3.4b5" or "5.0"
+	 */
+	public String getCurrentBuildVersionCodeName() {
+		return currentBuildVersionCodeName;
+	}
+
 	/**
 	 * Initializes data members with a saved instance of an AROCollectorMainActivity 
 	 * object. Overrides the android.app.Activity#onCreate method. 
@@ -122,13 +134,53 @@ public class AROCollectorMainActivity extends Activity {
 			return;
 		}
 		
-		setContentView(R.layout.arocollector_main_screen);
+		currentBuildVersionCodeName = android.os.Build.VERSION.RELEASE;
+		if (currentBuildVersionCodeName.equals("5.0")) {
+			setEnforce(0);
+		}
+		
+		Display display = getWindowManager().getDefaultDisplay();
+		int height = display.getHeight();
+		int width = display.getWidth();
+		display = null;
+		if (width < 300){
+			setContentView(R.layout.arocollector_main_screen_wear);
+		} else {
+			setContentView(R.layout.arocollector_main_screen);
+		}
+
 		validateAROAnalyzerConnectedLaunch();
 		initializeMainScreenControls();
 		registerAnalyzerTimeoutReceiver();
 		registerAnalyzerLaunchReceiver();
 	}
 	
+	/**
+	 * Turn SELinux enforcement to Permissive or Enforced
+	 * 
+	 * @param setting
+	 */
+	private void setEnforce(int setting){
+		
+		try {
+			Process sh = Runtime.getRuntime().exec("su"); AROLogger.e(TAG, "setEnforce - su pid = "+sh);
+			DataOutputStream os = new DataOutputStream(sh.getOutputStream());
+			
+			String shCommand = "setenforce " + setting + "\n";
+			os.writeBytes(shCommand);
+			os.flush();
+			
+			os.writeBytes("exit\n");
+			os.flush();
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+	
+
 	/**
 	 * Closes the current activity and display Home Screen of Data Collector,
 	 */
@@ -171,14 +223,14 @@ public class AROCollectorMainActivity extends Activity {
 		startDataCollector.setEnabled(true);
 		mAroUtils = new AROCollectorUtils();
 		mApp.setDataCollectorStopEnable(true);
-		if (mApp.getDumpTraceFolderName()!=null) {
+		if (mApp.getDumpTraceFolderName() != null) {
 			mApp.setUSBVideoCaptureON(true);
 			startDataCollector.setText(R.string.continuecollector);
-		}else {
+		} else {
 			mApp.setUSBVideoCaptureON(false);
 			startDataCollector.setText(R.string.startcollector);
 		}
-			
+
 		if (AROCollectorService.getServiceObj() != null) {
 			collectScreenVideo.setChecked(mApp.getCollectVideoOption());
 		}
@@ -189,9 +241,9 @@ public class AROCollectorMainActivity extends Activity {
 				startActivity(new Intent(AROCollectorMainActivity.this, AROCollectorTaskManagerActivity.class));
 			}
 		});
-		
-		if (mApp.isRQMCollectorLaunchfromAnalyzer() && getIntent().getExtras().getInt(ARODataCollector.ERRODIALOGID) ==100) {
-			if (getInitalCollectorvalidationCheck()) {
+
+		if (mApp.isRQMCollectorLaunchfromAnalyzer() && getIntent().getExtras().getInt(ARODataCollector.ERRODIALOGID) == 100) {
+			if (getInitalCollectorValidationCheck()) {
 				ARODataCollector.setAnalyzerLaunchInProgress(false);
 				mApp.setDataCollectorStopEnable(false);
 				startARODataCollector();
@@ -202,14 +254,14 @@ public class AROCollectorMainActivity extends Activity {
 		startDataCollector.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				
-				if (getIntent().getExtras() != null){
-					//was launched from analyzer, set waiting to false since
-					//the collector is now starting
+
+				if (getIntent().getExtras() != null) {
+					// was launched from analyzer, set waiting to false since
+					// the collector is now starting
 					AROLogger.d(TAG, "collector starting, setAnalyzerLaunchInProgress(false)");
 					ARODataCollector.setAnalyzerLaunchInProgress(false);
 				}
-				if (getInitalCollectorvalidationCheck()) {
+				if (getInitalCollectorValidationCheck()) {
 					if (mApp.getDumpTraceFolderName() != null) {
 						mApp.setCollectorLaunchfromAnalyzer(true);
 						mApp.setDataCollectorStopEnable(false);
@@ -224,7 +276,7 @@ public class AROCollectorMainActivity extends Activity {
 		handleARODataCollectorErrors(getIntent().getExtras().getInt(ARODataCollector.ERRODIALOGID));
 	}
 
-	private boolean getInitalCollectorvalidationCheck() {
+	private boolean getInitalCollectorValidationCheck() {
 		
 		// The Connectivity manager object to get current connect network, this
 		// is used to check if we have active network before DC kicks off
@@ -272,11 +324,12 @@ public class AROCollectorMainActivity extends Activity {
 		// starting trace cycle
 		Process mAROrootShell = null;
 		try {
-			mAROrootShell = Runtime.getRuntime().exec("su");
+			mAROrootShell = Runtime.getRuntime().exec("su");  AROLogger.e(TAG, "getInitalCollectorValidationCheck - su pid = "+mAROrootShell);
 			mAROrootShell.getOutputStream();
 		} catch (IOException e) {
 			AROLogger.e(TAG, "exception in getting root permission", e);
 		}
+		mAROrootShell.destroy();
 		mAROrootShell = null;
 		return true;
 	}
@@ -322,7 +375,7 @@ public class AROCollectorMainActivity extends Activity {
 		
 		if (mApp.getDumpTraceFolderName() != null) {
 		
-			//Takes a snap shoot of the time the system booted to be used for the timer on the home page.
+			// Takes a snap shoot of the time the system booted to be used for the timer on the home page.
 			mApp.setElapsedTimeStartTime(System.currentTimeMillis());
 			
 			// Starting the ARO Data collector service before tcpdump to record
@@ -337,8 +390,7 @@ public class AROCollectorMainActivity extends Activity {
 				mApp.setCollectVideoOption(false);
 			}
 			mApp.showProgressDialog(this);
-			// ARO Watch timer for failed start message of data collector after 15
-			// sec
+			// ARO Watch timer for failed start message of data collector after 15 sec
 			aroDCStartWatchTimer.schedule(new TimerTask() {
 				@Override
 				public void run() {
@@ -350,8 +402,7 @@ public class AROCollectorMainActivity extends Activity {
 						// service before tcpdump trace so we making sure we delete
 						// all of the traces if we don't have tcpdump running
 						mAroUtils.deleteTraceFolder(new File(mApp.getTcpDumpTraceFolderName()));
-						mAROFailStartHandler.sendMessage(Message.obtain(mAROFailStartHandler,
-								NAVIGATE_HOME_SCREEN));
+						mAROFailStartHandler.sendMessage(Message.obtain(mAROFailStartHandler, NAVIGATE_HOME_SCREEN));
 					}
 					// Cancel the timers
 					aroDCStartWatchTimer.cancel();
@@ -621,8 +672,9 @@ public class AROCollectorMainActivity extends Activity {
 					m_dialog = Dialog_Type.SDCARD_ERROR;
 					showARODataCollectorStopErrorDialog(Dialog_Type.SDCARD_ERROR);
 					return;
-				} else
+				} else{
 					startARODataCollector();
+				}
 			} else {
 				// Handling specific error message from the call backs
 				switch (errorcode) {

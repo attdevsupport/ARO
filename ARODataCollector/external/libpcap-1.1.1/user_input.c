@@ -132,9 +132,9 @@ void WriteUserInputLog(char *pszLogInfo, char *pszLogInfo2) {
 		if ((pszLogInfo != NULL) && (pszLogInfo2 != NULL)) {
 			fprintf(ofsEventsLog, "%c/%s %s\n", DEBUG_TAG_CHAR, pszLogInfo, pszLogInfo2);  
 		} else if (pszLogInfo != NULL) {
-			fprintf(ofsEventsLog, "%c/%s %s\n", DEBUG_TAG_CHAR, pszLogInfo) ; 
+			fprintf(ofsEventsLog, "%c/%s\n", DEBUG_TAG_CHAR, pszLogInfo) ;
 		} else {
-			fprintf(ofsEventsLog, "%c/%s %s\n", DEBUG_TAG_CHAR);
+			fprintf(ofsEventsLog, "%c/\n", DEBUG_TAG_CHAR);
 		}
 	} 
 }
@@ -216,7 +216,7 @@ void ReadDeviceKeyDB() {
 							if ((strlen(gszDeviceLine) > 0) &&
 							    (strstr(gszDeviceLine, gDeviceKeyArray[iDeviceIdx].searchString) != NULL)) {
 								myDevice = gDeviceKeyArray[iDeviceIdx].deviceID ;
-								printf("Device Type: %s %d\n", gDeviceKeyArray[iDeviceIdx].deviceName);
+								printf("Device Type: %s\n", gDeviceKeyArray[iDeviceIdx].deviceName);
 								//TODO : Need to come up with generic solution for device transition wait
 								if (myDevice == 9) {
 									sleeptimeforbearerchange = 8;

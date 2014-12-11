@@ -10,7 +10,7 @@
 	<string name="aro_usetestdata">Use only test data while running ARO Data Collector.</string>
 	<string name="aro_learnmore">Learn more at\nhttp://developer.att.com/ARO/quickstart</string>
 	<string name="aro_dcstarted"><b>ARO Data Collector STARTED! \n\n</b>Please navigate to the application you would like to test. After testing of your application is complete, please return to ARO to stop the ARO Data Collector.</string>
-	<string name="aro_tracecompleted"><b>Trace Completed! \n\n Trace Summary</b></string>
+	<string name="aro_tracecompleted"><b>Trace Completed!\n\nTrace Summary</b></string>
 	<string name="aro_aleartnotification">ARO data collector started</string>
 	<string name="app_alertmenulauchtext">Select to launch application</string>
 	<string name="aro_tracepath">Path :</string>

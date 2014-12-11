@@ -16,5 +16,5 @@
 package com.att.aro.model;
 
 public enum MobileDeviceType {
-	ANDROID, IOS, NO_DEVICE_CONNECTED
+	ANDROID, ANDROID_EMULATOR, IOS, IOS_EMULATOR, NO_DEVICE_CONNECTED
 }

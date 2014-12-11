@@ -39,6 +39,7 @@ import com.att.aro.commonui.DataCollectorFolderDialog;
 import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.interfaces.ImageSubscriber;
 import com.att.aro.model.MobileDevice;
+import com.att.aro.model.NetworkType;
 import com.att.aro.model.TraceData;
 import com.att.aro.util.ImageHelper;
 import com.att.aro.util.Util;
@@ -140,7 +141,6 @@ public class DataCollectorNoRootVpn implements ImageSubscriber {
 		// For getting the device details
 		MobileDevice connectedDevice = new MobileDevice();
 		device = connectedDevice.getFirstAndroidDevice();
-		writeDeviceDetailsToFile();
 
 		final String filepath = traceFolder + Util.FILE_SEPARATOR + TraceData.VIDEO_MOV_FILE;
 
@@ -167,6 +167,7 @@ public class DataCollectorNoRootVpn implements ImageSubscriber {
 
 		// only do this if user want to capture video
 		if (folder.isCaptureVideo()) {
+			AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(rb.getString("ga.request.event.category.collector"), rb.getString("ga.request.event.collector.action.video"));
 			// create a new thread of VideoCapture for performing in background later
 			try {
 				if (videoCapture == null) {
@@ -440,63 +441,5 @@ public class DataCollectorNoRootVpn implements ImageSubscriber {
 			liveview.setImage(newimg);
 		}
 	}
-	
-	/**
-    * Getting the device info and writing the details into device_details text file.
-    */
-   private void writeDeviceDetailsToFile(){
-       try {
-           BufferedWriter devicedetailsWriter = new BufferedWriter(
-                   new FileWriter(new File(localTraceFolder,
-                           TraceData.DEVICEDETAILS_FILE)));
-           try {
-               // Writing device details in file.
-               final String eol = System
-                       .getProperty("line.separator");
-               final String collector = rb
-                       .getString("Emulator.datacollectorpath")
-                       .substring(
-                               rb.getString(
-                                       "Emulator.datacollectorpath")
-                                       .lastIndexOf("/") + 1);
-               devicedetailsWriter.write(collector + eol);
-               /*devicedetailsWriter.write(rb
-                       .getString("bridge.device") + eol);*/
-               String deviceModel = device.getProperty("ro.product.model");
-               devicedetailsWriter
-                       .write((deviceModel != null ? deviceModel
-                               : "")
-                               + eol);
-               String deviceManufacturer = device.getProperty("ro.product.manufacturer");
-               devicedetailsWriter
-                       .write((deviceManufacturer != null ? deviceManufacturer
-                               : "")
-                               + eol);
-               devicedetailsWriter.write(device.getProperty(device.PROP_BUILD_CODENAME) + eol);
-               devicedetailsWriter.write(rb
-                       .getString("bridge.platform") + " / ");
-               devicedetailsWriter
-                       .write(device.getProperty("ro.build.version.release")
-                               + eol);
-               devicedetailsWriter.write(" " + eol);
 
-               final int deviceNetworkType = rb
-                       .getString("bridge.network.UMTS")
-                       .equalsIgnoreCase(
-                               device.getProperty("gsm.network.type")) ? 3
-                       : -1;
-               devicedetailsWriter.write(deviceNetworkType
-                       + eol);
-           } finally {
-               devicedetailsWriter.close();
-           }
-       } catch (IOException e) {
-           if(!CommandLineHandler.getInstance().IsCommandLineEvent()) {
-               MessageDialogFactory.showUnexpectedExceptionDialog(mAROAnalyzer, e);
-           } else {
-               CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.ErrorInPropFile"), e.getLocalizedMessage());
-               CommandLineHandler.getInstance().UpdateTraceInfoFile(rb.getString("cmdline.Status"), rb.getString("cmdline.status.failed"));
-           }
-       }
-   }
 }//end class

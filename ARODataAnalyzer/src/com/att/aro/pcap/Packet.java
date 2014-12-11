@@ -39,7 +39,7 @@ public class Packet implements Serializable {
 	private static final int NETMON_RAW = 9;
 
 	private static PcapngHelper pcapng = null;
-	private synchronized static PcapngHelper getPcapng(){
+	synchronized static PcapngHelper getPcapng(){
 		if(pcapng == null){
 			pcapng = new PcapngHelper();
 		}

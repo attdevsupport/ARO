@@ -20,6 +20,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.util.logging.Logger;
+
 import com.android.ddmlib.AndroidDebugBridge;
 import com.android.ddmlib.IDevice;
 import com.android.ddmlib.IShellOutputReceiver;
@@ -31,7 +32,12 @@ public class MobileDevice {
 	UDIDReader reader = null;
 	AdbService adbservice = null;
 	AndroidDebugBridge adb = null;
+	private String errorMessage = null;
+	private String serial;
 	
+	public String getErrorMessage(){
+		return errorMessage;
+	}
 	public MobileDevice(){
 		reader = new UDIDReader();
 		adbservice = new AdbService();
@@ -50,7 +56,7 @@ public class MobileDevice {
 	public MobileDeviceType getDeviceType() throws IOException{
 		MobileDeviceType type = MobileDeviceType.NO_DEVICE_CONNECTED;
 		if(Util.IsMacOS()){
-			String serial = reader.getSerialNumber();
+			serial = reader.getSerialNumber();
 			if(serial != null && serial.trim().length() > 1){
 				type = MobileDeviceType.IOS;
 			}
@@ -60,33 +66,32 @@ public class MobileDevice {
 			adbservice.ensureADBServiceStarted();
 			int count = getTotalAndroidDevice();
 			if(count > 0){
-				type = MobileDeviceType.ANDROID;
+				serial = devices[0].getSerialNumber();
+				if (serial.startsWith("emulator")){
+					type = MobileDeviceType.ANDROID_EMULATOR;
+				} else { 
+					type = MobileDeviceType.ANDROID;
+				}
 			}
 		}
 		return type;
 	}
-	
 	/**
 	 * check if a connected Android device is rooted or not
 	 * @throws IOException 
 	 */
+	@Deprecated
 	public boolean isRootedAndroid() throws IOException{
-		
-		boolean rootUser = false;
-		
 		if(devices != null && devices.length > 0){
-			
 			IDevice device = devices[0];
-			
 			ShellOutputReceiver receiver = new ShellOutputReceiver();
 			logger.info("executing su command on device");
 			device.executeShellCommand("su", receiver);
-
 			return receiver.isRoot();
 		}
 		return false;
 	}
-	
+
 	/**
 	 * check if a connected Android device is rooted or not
 	 * , performs 'su -c id' on Android a response of "uid=0(root) gid=0(root)" is considered rooted
@@ -140,6 +145,8 @@ public class MobileDevice {
 	 * @return IDevice
 	 */
 	public IDevice getFirstAndroidDevice(){
+		this.errorMessage = null;
+		adbservice.ensureADBServiceStarted();
 		int total = getTotalAndroidDevice();
 		if(total < 1){
 			return null;
@@ -177,7 +184,6 @@ public class MobileDevice {
 		 * uid=0(root) gid=0(root)
 		 */
 		public boolean isRootId() {
-			System.out.println(data);
 			return data.contains("uid=0(root) gid=0(root)");
 		}
 

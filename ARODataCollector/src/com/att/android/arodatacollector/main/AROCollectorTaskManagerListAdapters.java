@@ -193,12 +193,15 @@ public class AROCollectorTaskManagerListAdapters {
 						AROLogger.d("BACKGROUND", "Package Name=" + packagename + "PID=" + processId);
 					}
 					
-					sh = Runtime.getRuntime().exec("su");
+					sh = Runtime.getRuntime().exec("su"); AROLogger.e(TAG, "killPackage - su pid = "+sh);
 					os = new DataOutputStream(sh.getOutputStream());
+					
 					final String Command = "kill -9 " + processId + "\n";
 					os.writeBytes(Command);
+					
 					os.flush();
 					sh.waitFor();
+					
 				} catch (IOException e) {
 					AROLogger.e(TAG, "Failed to kill task" + e);
 				} catch (InterruptedException e) {
@@ -211,6 +214,13 @@ public class AROCollectorTaskManagerListAdapters {
 					sh.destroy();
 				}
 			} else {
+				/*
+				 * restartPackage(packageName) This is now just a wrapper for
+				 * killBackgroundProcesses(String); the previous behavior here
+				 * is no longer available to applications because it allows them
+				 * to break other applications by removing their alarms,
+				 * stopping their services, etc.
+				 */
 				aroActivityManager.restartPackage(packagename);
 			}
 

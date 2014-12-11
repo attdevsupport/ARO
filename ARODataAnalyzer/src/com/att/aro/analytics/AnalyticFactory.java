@@ -6,10 +6,8 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Iterator;
 import java.util.ServiceLoader;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.att.aro.plugin.MenuPlugin;
 import com.att.aro.util.Util;
 /**
  * Dynamically load interface implementation at runtime if the lib is available otherwise use the 
@@ -20,9 +18,9 @@ import com.att.aro.util.Util;
  */
 public class AnalyticFactory {
 	private static volatile boolean isLibloaded = false;
-	private static volatile boolean isAnalyticsloaded = false;
+//	private static volatile boolean isAnalyticsloaded = false;
 	private static final Logger LOGGER = Logger.getLogger(AnalyticFactory.class.getName());
-	
+	private static Object syncObj = new Object();
 	//cache of all interfaces
 	private static IPlatform platform = null;
 	private static IGoogleAnalytics googleAnalytics = null;
@@ -34,7 +32,8 @@ public class AnalyticFactory {
 		
 		if(!isLibloaded){
 			String libpath = getLibpath();
-			File file = new File(libpath);
+			
+			File file = new File(libpath.replaceAll("%20", " "));
 			if(!file.exists()){
 				return;
 			}
@@ -69,8 +68,9 @@ public class AnalyticFactory {
 			isLibloaded = true;
 		}
 	}
+	
 	private static String getLibpath(){
-		LOGGER.info("aro_Analytics jar path : " +Util.getCurrentRunningDir() + Util.FILE_SEPARATOR  + "aro_analytics.jar");
+		//LOGGER.info("aro_Analytics jar path : " +Util.getCurrentRunningDir() + Util.FILE_SEPARATOR  + "ARO_Analytics.jar");
 		return Util.getCurrentRunningDir() + Util.FILE_SEPARATOR +"ARO_Analytics.jar";
 	}
 	public static IPlatform getPlatform(){
@@ -84,35 +84,16 @@ public class AnalyticFactory {
 		
 		return platform;
 	}
-/*	
-	public static void loadGoogleAnalytics(String pluginGAClass){
-		
-		if(!isAnalyticsloaded){
-			String analyticsClassName = pluginGAClass;
-			
-			try{
-				googleAnalytics = (IGoogleAnalytics) Class.forName(analyticsClassName).newInstance();
-			} catch (InstantiationException e) {
-				LOGGER.log(Level.SEVERE, "Cannot load plugin Google Analytics", e.toString());
-			} catch (IllegalAccessException e) {
-				LOGGER.log(Level.SEVERE, "Cannot load plugin Google Analytics", e.toString());
-			} catch (ClassNotFoundException e) {
-				LOGGER.log(Level.SEVERE, "Cannot load plugin Google Analytics", e.toString());
-			}
-			
-			isAnalyticsloaded = true;
-		}
-	}
-	*/
+
 	public static IGoogleAnalytics getGoogleAnalytics(){
-		
-		if(googleAnalytics != null){
-			
-			
-			return googleAnalytics;
+		if(googleAnalytics == null){
+			synchronized(syncObj){
+				//double locking strategy to prevent multiple threads access
+				if(googleAnalytics == null){
+					googleAnalytics = new DefaultGoogleAnalyticsImpl();
+				}
+			}
 		}
-		
-		googleAnalytics = new DefaultGoogleAnalyticsImpl();
 		return googleAnalytics;
 		
 	}

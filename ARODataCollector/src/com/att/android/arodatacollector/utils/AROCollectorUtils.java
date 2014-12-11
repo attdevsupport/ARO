@@ -30,7 +30,6 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
@@ -39,11 +38,13 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
-
+import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
 import android.provider.Settings;
@@ -152,11 +153,14 @@ public class AROCollectorUtils {
 	 * @return A boolean value that is "true" if the flight mode is ON and
 	 *         "false" if it is not.
 	 */
+	@SuppressLint("NewApi")
 	public boolean isAirplaneModeOn(Context context) {
-		return Settings.System.getInt(context.getContentResolver(),
-				Settings.System.AIRPLANE_MODE_ON, 0) != 0;
-
-	}
+	    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1) {
+	        return Settings.System.getInt(context.getContentResolver(), Settings.System.AIRPLANE_MODE_ON, 0) == 1;
+	     } else {
+	        return Settings.Global.getInt(context.getContentResolver(), Settings.Global.AIRPLANE_MODE_ON, 0) == 1;
+	     }
+}
 
 	/**
 	 * Retrieves the value of the specified field from an instance of the specified class using
@@ -621,6 +625,7 @@ public class AROCollectorUtils {
 	 */
 	public boolean deleteTraceFolder(File tracefoldername) {
 
+		AROLogger.d(TAG, "deleteTraceFolder("+tracefoldername+")");
 		if (tracefoldername.isDirectory()) {
 			final String[] children = tracefoldername.list();
 			for (int i = 0; i < children.length; i++) {

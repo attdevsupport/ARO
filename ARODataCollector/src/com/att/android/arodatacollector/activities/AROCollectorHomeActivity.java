@@ -23,9 +23,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Point;
 import android.os.Bundle;
+import android.view.Display;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.Chronometer;
 import android.widget.TextView;
@@ -45,7 +46,52 @@ import com.att.android.arodatacollector.utils.AROLogger;
  * 
  * */
 
-public class AROCollectorHomeActivity extends Activity {
+public class AROCollectorHomeActivity extends Activity{
+
+	/**
+	 * Initialize the data control home screen controls
+	 */
+	private void initHomeScreenControls() {
+		hideDataCollector = (Button) findViewById(R.id.hidedatacollector);
+		stopDataCollector = (Button) findViewById(R.id.stopcollector);
+	}
+
+	/**
+	 * Initialized the set the events for home screen components
+	 */
+	private void initHomeScreenControlListeners() {
+//		hideDataCollector.setOnClickListener(new OnClickListener() {
+//			@Override
+//			public void onClick(View v) {
+//				finish(); // Will close current activity
+//			}
+//		});
+//		stopDataCollector.setOnClickListener(new OnClickListener() {
+//			@Override
+//			public void onClick(View v) {
+//				stopARODataCollector();
+//			}
+//		});
+		if(mApp.isCollectorLaunchfromAnalyzer() || mApp.isRQMCollectorLaunchfromAnalyzer()){
+			final boolean dataCollectorStopEnable = mApp.getDataCollectorStopEnable();
+			AROLogger.d(TAG, "dataCollectorStopEnable: " + dataCollectorStopEnable);
+			stopDataCollector.setEnabled(dataCollectorStopEnable);
+		}
+	}
+	
+	public void btnStopCollector(View view) {
+		AROLogger.e(TAG, "stop pressed");
+		stopARODataCollector();
+	}
+ 
+
+	public void btnHideCollector(View view) {
+		AROLogger.e(TAG, "hide pressed");
+		finish();
+	}
+ 
+
+
 
 	/** Android log TAG string for ARO-Data Collector Home Screen */
 	private static final String TAG = "ARO.HomeActivity";
@@ -82,7 +128,16 @@ public class AROCollectorHomeActivity extends Activity {
 		
 		mApp = (ARODataCollector) getApplication();
 		//mAroUtils = new AROCollectorUtils();
-		setContentView(R.layout.arocollector_home_screen);
+		
+		Display display = getWindowManager().getDefaultDisplay();
+		int height = display.getHeight();
+		int width = display.getWidth();
+		display = null;
+		if (width < 300){
+			setContentView(R.layout.arocollector_home_screen_wear);
+		} else {
+			setContentView(R.layout.arocollector_home_screen);
+		}
 		initHomeScreenControls();
 		initHomeScreenControlListeners();
 		      
@@ -175,37 +230,6 @@ public class AROCollectorHomeActivity extends Activity {
 	}
 
 
-	/**
-	 * Initialize the data control home screen controls
-	 */
-	private void initHomeScreenControls() {
-		hideDataCollector = (Button) findViewById(R.id.hidedatacollector);
-		stopDataCollector = (Button) findViewById(R.id.stopcollector);
-	}
-
-	/**
-	 * Initialized the set the events for home screen components
-	 */
-	private void initHomeScreenControlListeners() {
-		hideDataCollector.setOnClickListener(new OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				finish(); // Will close current activity
-			}
-		});
-		stopDataCollector.setOnClickListener(new OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				stopARODataCollector();
-			}
-		});
-		if(mApp.isCollectorLaunchfromAnalyzer() || mApp.isRQMCollectorLaunchfromAnalyzer()){
-			final boolean dataCollectorStopEnable = mApp.getDataCollectorStopEnable();
-			AROLogger.d(TAG, "dataCollectorStopEnable: " + dataCollectorStopEnable);
-			stopDataCollector.setEnabled(dataCollectorStopEnable);
-		}
-	}
-
 	
 	/**
 	 * Stops the data collector trace by stopping Video Trace and tcpdump from
@@ -293,5 +317,5 @@ public class AROCollectorHomeActivity extends Activity {
 	        finish();
 	    }
 	};
- 
+
 }

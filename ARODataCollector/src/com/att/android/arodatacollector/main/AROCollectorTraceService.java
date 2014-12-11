@@ -65,6 +65,8 @@ import android.provider.Settings.SettingNotFoundException;
 import android.telephony.PhoneStateListener;
 import android.telephony.SignalStrength;
 import android.telephony.TelephonyManager;
+import android.util.Log;
+
 import com.att.android.arodatacollector.R;
 import com.att.android.arodatacollector.utils.AROCollectorUtils;
 import com.att.android.arodatacollector.utils.AROLogger;
@@ -344,7 +346,13 @@ public class AROCollectorTraceService extends Service {
 		mDataCollectorTraceService = this;
 		mApp = (ARODataCollector) getApplication();
 		initializeFlurryObjects();
-		startARODataTraceCollection();
+		try {
+			startARODataTraceCollection();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			System.exit(0);
+		}
 		
 		//init the usb broadcast intent only once
 		usbBroadcastIntent = new Intent(USB_BROADCAST_ACTION);
@@ -399,12 +407,17 @@ public class AROCollectorTraceService extends Service {
 	 * 
 	 * @throws FileNotFoundException
 	 */
-	private void startARODataTraceCollection() {
+	private void startARODataTraceCollection() throws Exception {
+		if (AROLogger.logDebug) {
+			AROLogger.d(TAG, "starting ARO peripheral trace at timestamp=" + mAroUtils.getDataCollectorEventTimeStamp());
+		}
 		try {
-			if (AROLogger.logDebug){
-				AROLogger.d(TAG, "starting ARO peripheral trace at timestamp=" + mAroUtils.getDataCollectorEventTimeStamp());
-			}
 			initAROTraceFile();
+		} catch (FileNotFoundException e) {
+			AROLogger.e(TAG, "exception in initAROTraceFile: Failed to start ARO-Data Collector Trace", e);
+			throw new Exception("Failed to create tracefile connections "+e.getMessage());
+		}
+		try {
 			startAROCpuTrace();
 			startAROScreenTraceMonitor();
 			startAROGpsTraceMonitor();
@@ -418,8 +431,9 @@ public class AROCollectorTraceService extends Service {
 			startARODeviceSDCardSpaceMidTrace();
 			startAROAirplaneModeMidTrace();
 			startAroScreenRotationMonitor();
-		} catch (FileNotFoundException e) {
-			AROLogger.e(TAG, "exception in initAROTraceFile: Failed to start ARO-Data Collector Trace", e);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	
@@ -468,7 +482,15 @@ public class AROCollectorTraceService extends Service {
 	 * 3. execute script
 	 */
 	private void startAROCpuTraceScript(){
+		
+		AROLogger.d(TAG, "starting startAROCpuTraceScript()");
 		final int cpuScriptPid = getCpuScriptPid();
+		
+		String traceFolder = mApp.getTcpDumpTraceFolderName();
+		File traceName= new File(traceFolder);
+		if (!traceName.exists()){
+			traceName.mkdir();
+		}
 		
 		if (cpuScriptPid == -1){
 			//script NOT already running,  need to start it
@@ -481,13 +503,15 @@ public class AROCollectorTraceService extends Service {
 					cpuDir.mkdir();
 				}
 					
-				Process cpuMonProcess = Runtime.getRuntime().exec("su");
+				Process cpuMonProcess = Runtime.getRuntime().exec("su");  AROLogger.e(TAG, "startAROCpuTraceScript - su pid = "+cpuMonProcess);
 				os = new DataOutputStream(cpuMonProcess.getOutputStream());
-				String Command = "chmod 777 " + ARODataCollector.INTERNAL_DATA_PATH + ARODataCollector.PROCESS_CPU_MON
-						+ "\n";
+				String Command = "chmod 777 " + ARODataCollector.INTERNAL_DATA_PATH + ARODataCollector.PROCESS_CPU_MON + "\n";
 				os.writeBytes(Command);
 					
-				Command = "sh " + ARODataCollector.INTERNAL_DATA_PATH + ARODataCollector.PROCESS_CPU_MON + " " + cpuDirFullPath + "\n";
+				int currentApiVersion = android.os.Build.VERSION.SDK_INT;
+				
+				Command = android.os.Build.VERSION.RELEASE.equals("5.0") ? "su -cn u:r:untrusted_app:s0 -c " : "";
+				Command += "sh " + ARODataCollector.INTERNAL_DATA_PATH + ARODataCollector.PROCESS_CPU_MON + " " + cpuDirFullPath + "\n";
 				os.writeBytes(Command);
 				os.flush();
 					
@@ -790,7 +814,7 @@ public class AROCollectorTraceService extends Service {
 			int pid = getCpuScriptPid();
 			
 			if (pid != -1) {
-				sh = Runtime.getRuntime().exec("su");
+				sh = Runtime.getRuntime().exec("su"); AROLogger.e(TAG, "stopAROCpuTrace - su pid = "+sh);
 				os = new DataOutputStream(sh.getOutputStream());
 				String command = "kill -15 " + pid + "\n";
 				os.writeBytes(command);
@@ -945,35 +969,46 @@ public class AROCollectorTraceService extends Service {
 		if (AROLogger.logDebug) {
 			AROLogger.d(TAG, "mAroTraceDatapath=" + mAroTraceDatapath);
 		}
-		mWifiTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outWifiFileName ,true);
-		mWifiTracewriter = new BufferedWriter(new OutputStreamWriter(mWifiTraceOutputFile));
-		mRadioTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outRadioFileName , true);
-		mRadioTracewriter = new BufferedWriter(new OutputStreamWriter(mRadioTraceOutputFile));
-		mCameraTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outCameraFileName , true);
-		mCameraTracewriter = new BufferedWriter(new OutputStreamWriter(mCameraTraceOutputFile));
-		mBatteryTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outBatteryFileName , true);
-		mBatteryTracewriter = new BufferedWriter(new OutputStreamWriter(mBatteryTraceOutputFile));
-		mGPSTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outGPSFileName ,true);
-		mGPSTracewriter = new BufferedWriter(new OutputStreamWriter(mGPSTraceOutputFile));
-		mScreenOutputFile = new FileOutputStream(mAroTraceDatapath + outScreenFileName,true);
-		mNetworkDetailsOutputFile = new FileOutputStream(mAroTraceDatapath + outNetworkDetailsFileName ,true);
-		mCpuTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outCpuFileName ,true);
-		mCpuTraceDebugFile = new FileOutputStream(mAroTraceDatapath + "cpu_log.txt" ,true);
-		
-		mScreenRotationOutputFile = new FileOutputStream(mAroTraceDatapath+ outScreenRotationFileName,true);
-		mScreenTracewriter = new BufferedWriter(new OutputStreamWriter(mScreenOutputFile));
-		mNetworkTracewriter = new BufferedWriter(new OutputStreamWriter(mNetworkDetailsOutputFile));
-		mScreenRotationTracewriter = new BufferedWriter(new OutputStreamWriter(mScreenRotationOutputFile));
-		mActiveProcessOutputFile = new FileOutputStream(mAroTraceDatapath+ outActiveProcessFileName, true);
-		mActiveProcessTracewriter = new BufferedWriter(new OutputStreamWriter(mActiveProcessOutputFile));
-		mBluetoohTraceOutputFile = new FileOutputStream(mAroTraceDatapath + outBluetoothFileName, true);
-		mBluetoothTracewriter = new BufferedWriter(new OutputStreamWriter(mBluetoohTraceOutputFile));
-		mDeviceInfoOutputFile = new FileOutputStream(mAroTraceDatapath + outDeviceInfoFileName, true);
-		mDeviceDetailsOutputFile = new FileOutputStream(mAroTraceDatapath+ outDeviceDetailsFileName, false);
-		mDeviceInfoWriter = new BufferedWriter(new OutputStreamWriter(mDeviceInfoOutputFile));
-		mDeviceDetailsWriter = new BufferedWriter(new OutputStreamWriter(mDeviceDetailsOutputFile));
-		mCpuTraceWriter = new BufferedWriter(new OutputStreamWriter(mCpuTraceOutputFile));
-		mCpuDebugWriter = new BufferedWriter(new OutputStreamWriter(mCpuTraceDebugFile));
+		try {
+			
+			mWifiTraceOutputFile		= new FileOutputStream(mAroTraceDatapath + outWifiFileName ,true);				
+			mRadioTraceOutputFile		= new FileOutputStream(mAroTraceDatapath + outRadioFileName , true);			
+			mCameraTraceOutputFile		= new FileOutputStream(mAroTraceDatapath + outCameraFileName , true);			
+			mBatteryTraceOutputFile 	= new FileOutputStream(mAroTraceDatapath + outBatteryFileName , true);			
+			mGPSTraceOutputFile			= new FileOutputStream(mAroTraceDatapath + outGPSFileName ,true);				
+
+			mScreenOutputFile			= new FileOutputStream(mAroTraceDatapath + outScreenFileName,true);				
+			mNetworkDetailsOutputFile	= new FileOutputStream(mAroTraceDatapath + outNetworkDetailsFileName ,true);	
+			mCpuTraceOutputFile 		= new FileOutputStream(mAroTraceDatapath + outCpuFileName ,true);				
+			mCpuTraceDebugFile 			= new FileOutputStream(mAroTraceDatapath + "cpu_log.txt" ,true);				
+			
+			mScreenRotationOutputFile 	= new FileOutputStream(mAroTraceDatapath+ outScreenRotationFileName,true);		
+			mActiveProcessOutputFile 	= new FileOutputStream(mAroTraceDatapath+ outActiveProcessFileName, true);		
+			mBluetoohTraceOutputFile 	= new FileOutputStream(mAroTraceDatapath + outBluetoothFileName, true);			
+			mDeviceInfoOutputFile 		= new FileOutputStream(mAroTraceDatapath + outDeviceInfoFileName, true);		
+			mDeviceDetailsOutputFile 	= new FileOutputStream(mAroTraceDatapath+ outDeviceDetailsFileName, false);	
+			
+			mWifiTracewriter			= new BufferedWriter(new OutputStreamWriter(mWifiTraceOutputFile));      
+			mRadioTracewriter			= new BufferedWriter(new OutputStreamWriter(mRadioTraceOutputFile));     
+			mCameraTracewriter			= new BufferedWriter(new OutputStreamWriter(mCameraTraceOutputFile));    
+			mBatteryTracewriter			= new BufferedWriter(new OutputStreamWriter(mBatteryTraceOutputFile));   
+			mGPSTracewriter				= new BufferedWriter(new OutputStreamWriter(mGPSTraceOutputFile));       
+			                                                                                                     
+			mScreenTracewriter 			= new BufferedWriter(new OutputStreamWriter(mScreenOutputFile));         
+			mNetworkTracewriter 		= new BufferedWriter(new OutputStreamWriter(mNetworkDetailsOutputFile)); 
+			mCpuTraceWriter 			= new BufferedWriter(new OutputStreamWriter(mCpuTraceOutputFile));       
+			mCpuDebugWriter 			= new BufferedWriter(new OutputStreamWriter(mCpuTraceDebugFile));        
+			                                                                                                     
+			mScreenRotationTracewriter 	= new BufferedWriter(new OutputStreamWriter(mScreenRotationOutputFile)); 
+			mActiveProcessTracewriter 	= new BufferedWriter(new OutputStreamWriter(mActiveProcessOutputFile));  
+			mBluetoothTracewriter 		= new BufferedWriter(new OutputStreamWriter(mBluetoohTraceOutputFile));  
+			mDeviceInfoWriter 			= new BufferedWriter(new OutputStreamWriter(mDeviceInfoOutputFile));     
+			mDeviceDetailsWriter 		= new BufferedWriter(new OutputStreamWriter(mDeviceDetailsOutputFile));  
+			
+		} catch (Exception e) {
+			Log.e(TAG, "Exception with tracefile :"+e.getMessage());
+			throw new FileNotFoundException(e.getMessage());
+		}
 
 	}
 

@@ -1,7 +1,7 @@
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
-LOCAL_SRC_FILES:=\
+LOCAL_SRC_FILES:= tcpdump.c\
 	addrtoname.c\
 	af.c\
 	cpack.c\
@@ -112,7 +112,6 @@ LOCAL_SRC_FILES:=\
 	print-wb.c\
 	print-zephyr.c\
 	setsignal.c\
-	tcpdump.c\
 	util.c\
 	version.c\
 	smbutil.c\
@@ -155,3 +154,5 @@ LOCAL_MODULE := tcpdump
 include $(BUILD_EXECUTABLE)
 
 include $(LIB_PCAP_DIR)/Android.mk
+
+

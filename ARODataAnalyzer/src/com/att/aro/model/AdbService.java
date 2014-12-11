@@ -16,6 +16,7 @@
 
 package com.att.aro.model;
 
+import java.io.File;
 import java.util.logging.Logger;
 
 import com.android.ddmlib.AndroidDebugBridge;
@@ -24,6 +25,7 @@ import com.att.aro.interfaces.Settings;
 public class AdbService {
 	private static final Logger logger = Logger.getLogger(AdbService.class.getName());
 	Settings settings;
+	
 	public AdbService(){
 		settings = new SettingsImpl();
 	}
@@ -44,6 +46,15 @@ public class AdbService {
 	}
 	public String getAdbPath(){
 		return settings.getProperty("adb");
+	}
+	/**
+	 * adb path might have been set but the file does not exist or has been deleted
+	 * @return
+	 */
+	public boolean isAdbFileExist(){
+		String path = settings.getProperty("adb");
+		File file = new File(path);
+		return file.exists();
 	}
 	/**
 	 * will start ADB service if not started, given that ADB path is set.

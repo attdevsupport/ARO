@@ -24,6 +24,7 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnKeyListener;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Display;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
@@ -184,6 +185,8 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	/** ARO Data Collector trace folder name */
 	private String mTraceFolderName;
 
+	private boolean wearable = false;
+
 	/**
 	 * Initializes a new instance of the AROCollectorCustomDialog class using
 	 * the following parameters:
@@ -228,6 +231,8 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		
+		testForWearable();
 
 		switch (m_current_dialog) {
 
@@ -283,39 +288,71 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 		}
 	}
 
+	/**
+	 * determine if device is a wearable ie. vertical is equal to horizontal
+	 */
+	private void testForWearable() {
+		Display display = getWindow().getWindowManager().getDefaultDisplay();
+		int height = display.getHeight();
+		int width = display.getWidth();
+		display = null;
+		if (width < 300){
+			wearable = true;
+		}
+	}
+
+
 
 	private void createARONoRootAccessErrorDialog() {
-		setContentView(R.layout.arocollector_errormessage);
+
+		if (wearable) {
+			setContentView(R.layout.arocollector_errormessage_wear);
+		} else {
+			setContentView(R.layout.arocollector_errormessage);
+		}
 		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
 		mAroErrorText.setText(R.string.aro_norootaccess);
 		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
 
-		buttonOK.setOnClickListener(new OKListener());		
+		buttonOK.setOnClickListener(new OKListener());
 	}
 
 	private void createAnalyzeLaunchInProgressErrorDialog() {
-		setContentView(R.layout.arocollector_errormessage);
+		if (wearable) {
+			setContentView(R.layout.arocollector_errormessage_wear);
+		} else {
+			setContentView(R.layout.arocollector_errormessage);
+		}
 		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
 		mAroErrorText.setText(R.string.aro_analyzerlaunchinprogress);
 		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
-		buttonOK.setOnClickListener(new OKListener());				
+		buttonOK.setOnClickListener(new OKListener());
 	}
-	
-	private void createAROInstanceRunningErrorDialog(){
-		setContentView(R.layout.arocollector_errormessage);
+
+	private void createAROInstanceRunningErrorDialog() {
+		if (wearable) {
+			setContentView(R.layout.arocollector_errormessage_wear);
+		} else {
+			setContentView(R.layout.arocollector_errormessage);
+		}
 		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
 		mAroErrorText.setText(R.string.aro_aroinstancerunning);
 		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
-		buttonOK.setOnClickListener(new OKListener());		
+		buttonOK.setOnClickListener(new OKListener());
 
 	}
+	
 	/**
 	 * Creates the error message dialog to notify SD card is mounted mid trace
 	 * or before start of ARO Data Collector trace
 	 * 
 	 */
 	private void createAROSDCardMountedErrorDialog(boolean isMidtrace) {
-		setContentView(R.layout.arocollector_errormessage);
+		if (wearable) {
+			setContentView(R.layout.arocollector_errormessage_wear);
+		} else {
+			setContentView(R.layout.arocollector_errormessage);
+		}
 		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
 		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
 
@@ -334,7 +371,11 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	 * 
 	 */
 	private void createAROFailedStartErrorDialog() {
-		setContentView(R.layout.arocollector_errormessage);
+		if (wearable) {
+			setContentView(R.layout.arocollector_errormessage_wear);
+		} else {
+			setContentView(R.layout.arocollector_errormessage);
+		}
 		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
 		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
 		mAroErrorText.setText(R.string.aro_failedstart);
@@ -347,7 +388,11 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	 * 
 	 */
 	private void createAROGetTraceFolderDialog() {
-		setContentView(R.layout.arodialog_foldername);
+		if (wearable) {
+			setContentView(R.layout.arodialog_foldername_wear);
+		} else {
+			setContentView(R.layout.arodialog_foldername);
+		}
 		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
 		final Button buttonCancel = (Button) findViewById(R.id.dialog_button_cancel);
 		buttonOK.setOnClickListener(new OKListener());
@@ -367,7 +412,11 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	 * on the device sd card
 	 */
 	private void createAROTraceFolderExistsDialog() {
-		setContentView(R.layout.arodialog_folderexists);
+		if (wearable) {
+			setContentView(R.layout.arodialog_folderexists_wear);
+		} else {
+			setContentView(R.layout.arodialog_folderexists);
+		}
 		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
 		final Button buttonCancel = (Button) findViewById(R.id.dialog_button_cancel);
 		buttonOK.setOnClickListener(new OKListener());
@@ -378,7 +427,12 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	 * Creates the error dialogs UI for ARO-Data Collector
 	 */
 	private void createAROTraceFolderErrorDialog() {
-		setContentView(R.layout.arocollector_errormessage);
+		if (wearable) {
+			setContentView(R.layout.arocollector_errormessage_wear);
+		} else {
+			setContentView(R.layout.arocollector_errormessage);
+		}
+
 		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
 		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
 		mAroErrorText.setText(R.string.aro_foldername);
@@ -392,7 +446,12 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	 * 
 	 */
 	private void createTraceStoppedErrorDialog() {
-		setContentView(R.layout.arocollector_errormessage);
+		if (wearable) {
+			setContentView(R.layout.arocollector_errormessage_wear);
+		} else {
+			setContentView(R.layout.arocollector_errormessage);
+		}
+
 		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
 		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
 		mAroErrorText.setText(R.string.aro_stopped);
@@ -404,7 +463,12 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	 * Creates the error dialog for special character in trace folder name
 	 */
 	private void createSpecialCharErrorDialog() {
-		setContentView(R.layout.arocollector_errormessage);
+		if (wearable) {
+			setContentView(R.layout.arocollector_errormessage_wear);
+		} else {
+			setContentView(R.layout.arocollector_errormessage);
+		}
+
 		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
 		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
 		mAroErrorText.setText(R.string.aro_spcharerror);
@@ -415,7 +479,12 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	 * Creates the error dialog to air plane mode ON
 	 */
 	private void createAROAirPlanceModeErrorDialog() {
-		setContentView(R.layout.arocollector_errormessage);
+		if (wearable) {
+			setContentView(R.layout.arocollector_errormessage_wear);
+		} else {
+			setContentView(R.layout.arocollector_errormessage);
+		}
+
 		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
 		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
 		mAroErrorText.setText(R.string.aro_flightmodeerror);
@@ -426,7 +495,12 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	 * Creates the error dialog to air plane mode ON Mid Trace
 	 */
 	private void createAROAirPlanceModeMidTraceErrorDialog() {
-		setContentView(R.layout.arocollector_errormessage);
+		if (wearable) {
+			setContentView(R.layout.arocollector_errormessage_wear);
+		} else {
+			setContentView(R.layout.arocollector_errormessage);
+		}
+
 		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
 		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
 		mAroErrorText.setText(R.string.aro_flightmodeerrormidtrace);
@@ -437,7 +511,12 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	 * Creates the error dialog for SD card error
 	 */
 	private void createAROSDCardErrorDialog() {
-		setContentView(R.layout.arocollector_errormessage);
+		if (wearable) {
+			setContentView(R.layout.arocollector_errormessage_wear);
+		} else {
+			setContentView(R.layout.arocollector_errormessage);
+		}
+
 		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
 		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
 		mAroErrorText.setText(R.string.aro_sdcarderror);
@@ -445,11 +524,15 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 	}
 
 	/**
-	 * Creates the error dialog for case when data collector should not be
-	 * started with both Mobile and Wifi OFF
+	 * Creates the error dialog for case when data collector should not be started with both Mobile and Wifi OFF
 	 */
 	private void createAROWifiMobileOffErrorDialog() {
-		setContentView(R.layout.arocollector_errormessage);
+		if (wearable) {
+			setContentView(R.layout.arocollector_errormessage_wear);
+		} else {
+			setContentView(R.layout.arocollector_errormessage);
+		}
+
 		final TextView mAroErrorText = (TextView) findViewById(R.id.aro_error_message_text);
 		final Button buttonOK = (Button) findViewById(R.id.dialog_button_ok);
 		mAroErrorText.setText(R.string.aro_wifi_mobile_both_off_error);

@@ -4,6 +4,10 @@
 #include <sys/timeb.h>
 #include <sys/stat.h>
 
+#include <errno.h>
+#include <android/log.h>
+#define DEBUG_TAG "TCPDUMP_socket_proc"
+
 #define MAX_PIDS 8192
 #define MAX_CONNS 512
 #define MAX_PROCS 512
@@ -720,8 +724,8 @@ void StartCapture(char * pcapFilename) {
 		printf("Synchronized timestamp file: %s\n", pcapFilename);
 		ofsTime = fopen(pcapFilename, "w");	
 		if (ofsTime == NULL) {
-			
-			fprintf(stderr, "Cannot write %s\n", pcapFilename);
+			__android_log_print(ANDROID_LOG_DEBUG, DEBUG_TAG, "Cannot write %s, errno:%i\n", pcapFilename, errno);
+			fprintf(stderr, "Cannot write %s, errno:%i\n", pcapFilename, errno);
 			exit(0);
 		}
 		fprintf(ofsTime, "%s\n%.3lf\n%u\n", "Synchronized timestamps", pcapTime, (DWORD)(userTime * 1000.0f));
@@ -831,5 +835,5 @@ void TerminateCapture() {
 	fclose(ofsEvents);
 	//fclose(ofsCPU);
 	
-	
+	printf("done TerminateCapture()\n");
 }

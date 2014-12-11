@@ -1,44 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-	android:orientation="vertical" android:layout_width="fill_parent"
-	android:layout_height="fill_parent" android:gravity="center"
-	android:background="@drawable/gray">
-	<TextView android:id="@+id/testdata" android:layout_height="wrap_content"
-		android:layout_width="wrap_content" android:paddingTop="35dip"
-		android:textColor="@drawable/white_text" 
-		android:paddingBottom="50dip" android:gravity="center"
-		android:textSize="17sp" android:text="@string/aro_usetestdata"></TextView>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/RelativeLayout1"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@drawable/gray"
+    android:orientation="vertical" >
 
-	<LinearLayout android:orientation="vertical"
-		android:layout_width="fill_parent" android:layout_height="fill_parent"
-		android:padding="4dip" android:gravity="center_horizontal"
-		android:layout_marginTop="15dip">
+    <TextView
+        android:id="@+id/learnmore"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="60dp"
+        android:background="@drawable/att_blue_headercolor"
+        android:gravity="center_horizontal"
+        android:layout_below="@+id/ck"
+        android:paddingBottom="5dip"
+        android:paddingLeft="2dip"
+        android:paddingRight="2dip"
+        android:text="@string/aro_learnmore"
+        android:textColor="@drawable/white_text"
+        android:textSize="16sp" />
 
-		<Button android:id="@+id/taskkiller" android:layout_width="150dp"
-			style="@style/BlueButton" android:layout_height="35dp"
-			android:layout_marginBottom="25dip" android:textSize="16sp"
-			android:text="@string/opentaskkiller">
-			<requestFocus />
-		</Button>
+    <Button
+        android:id="@+id/startcollector"
+        style="@style/BlueButton"
+        android:layout_width="150dp"
+        android:layout_height="35dp"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:layout_marginBottom="42dp"
+        android:text="@string/startcollector"
+        android:textSize="16sp" />
 
-		<Button android:id="@+id/startcollector" android:layout_width="150dp"
-			style="@style/BlueButton" android:layout_height="35dp"
-			android:text="@string/startcollector" android:textSize="16sp">
-		</Button>
+    <Button
+        android:id="@+id/taskkiller"
+        style="@style/BlueButton"
+        android:layout_width="150dp"
+        android:layout_height="35dp"
+        android:layout_above="@+id/startcollector"
+        android:layout_alignLeft="@+id/startcollector"
+        android:layout_marginBottom="34dp"
+        android:text="@string/opentaskkiller"
+        android:textSize="16sp" />
 
-		<CheckBox android:id="@+id/ckbx_screenshot"
-			android:layout_width="150dp" android:layout_marginTop="30dp"
-			android:layout_height="wrap_content" android:text="Record Video" android:gravity="center"
-			android:textSize="16sp" android:checked="true" android:textColor="@drawable/white_text"
-			android:layout_alignTop="@+id/Stop">
-		</CheckBox>
+    <CheckBox
+        android:id="@+id/ckbx_screenshot"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/startcollector"
+        android:layout_below="@+id/startcollector"
+        android:checked="true"
+        android:gravity="center"
+        android:text="Record Video"
+        android:textColor="@drawable/white_text"
+        android:textSize="16sp" />
 
-		<TextView android:id="@+id/learnmore" android:layout_height="wrap_content"
-			android:layout_width="wrap_content" android:layout_marginTop="50dp"
-			android:textColor="@drawable/white_text" android:paddingLeft="2dip"
-			android:paddingRight="2dip" android:paddingBottom="5dip" android:gravity="center_horizontal"
-			android:background="@drawable/att_blue_headercolor" android:textSize="16sp"
-			android:text="@string/aro_learnmore"></TextView>
+    <TextView
+        android:id="@+id/testdata"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:gravity="center"
+        android:paddingBottom="50dip"
+        android:paddingTop="35dip"
+        android:text="@string/aro_usetestdata"
+        android:textColor="@drawable/white_text"
+        android:textSize="17sp" />
 
-	</LinearLayout>
-</LinearLayout>
+</RelativeLayout>

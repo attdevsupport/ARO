@@ -29,6 +29,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.view.Display;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.Window;
@@ -134,7 +135,17 @@ public class AROCollectorTaskManagerActivity extends Activity {
 		// Select All checkbox for task killer
 		final CheckBox mAROselectAllTasks;
 		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
-		setContentView(R.layout.arocollector_taskmanager_home);
+		
+		Display display = getWindowManager().getDefaultDisplay();
+		int height = display.getHeight();
+		int width = display.getWidth();
+		display = null;
+		if (width < 300){
+			setContentView(R.layout.arocollector_taskmanager_home_wear);
+		} else {
+			setContentView(R.layout.arocollector_taskmanager_home);
+		}
+
 		aroActivityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
 		mAROselectAllTasks = (CheckBox) findViewById(R.id.aro_selectall);
 		// Kill selected tasks button for task Killer
@@ -143,7 +154,7 @@ public class AROCollectorTaskManagerActivity extends Activity {
 		mApp.setectTaskKillerAllTasks(false);
 		mAROkillTask.setOnClickListener(new OnClickListener() {
 			@Override
-			public void onClick(View arg0) {
+			public void onClick(View v) {
 				// Kills the selected tasks
 				tasksAdapter.killSelectedTasks();
 				mAROselectAllTasks.setChecked(false);
@@ -191,15 +202,7 @@ public class AROCollectorTaskManagerActivity extends Activity {
 			currentTask = true;
 		} else
 			currentTask = false;
-		for (int index = 0; index < taskManagerList.getChildCount(); index++) { // for
-																				// (int
-																				// index
-																				// =
-																				// 0;
-																				// index
-																				// <
-																				// taskManagerList.getChildCount();
-																				// index++)
+		for (int index = 0; index < taskManagerList.getChildCount(); index++) { 
 			if (!detailProcessesList.get(index).getPackageName()
 					.equalsIgnoreCase(this.getPackageName())
 					|| !currentTask) {
@@ -209,15 +212,8 @@ public class AROCollectorTaskManagerActivity extends Activity {
 				final CheckBox selectTask = (CheckBox) itemLayout.findViewById(R.id.task_select);
 				selectTask.setChecked(selectvalue);
 			}
-			for (int indextokill = 0; indextokill < detailProcessesList.size(); indextokill++) { // for
-																									// (int
-																									// index
-																									// =
-																									// 0;
-																									// index
-																									// <
-																									// taskManagerList.getChildCount();
-																									// index++)
+			for (int indextokill = 0; indextokill < detailProcessesList.size(); indextokill++) { 
+			//	for (int index = 0; index < taskManagerList.getChildCount(); index++)
 				if (!detailProcessesList.get(indextokill).getPackageName()
 						.equalsIgnoreCase(this.getPackageName())) {
 					detailProcessesList.get(indextokill).setSelected(selectvalue);

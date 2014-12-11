@@ -39,8 +39,11 @@ import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
 import java.io.File;
 import java.io.IOException;
+import java.text.DateFormat;
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.StringTokenizer;
@@ -90,7 +93,6 @@ import com.att.aro.commonui.MessageDialogFactory;
 import com.att.aro.datadump.DataDump;
 import com.att.aro.diagnostics.AROAdvancedTabb;
 import com.att.aro.images.Images;
-import com.att.aro.interfaces.Settings;
 import com.att.aro.main.menu.view.ChartPlotOptionsDialog;
 import com.att.aro.main.menu.view.ExcludeTimeRangeAnalysisDialog;
 import com.att.aro.main.menu.view.FilterApplicationsAndIpDialog;
@@ -106,6 +108,7 @@ import com.att.aro.model.Profile3G;
 import com.att.aro.model.ProfileException;
 import com.att.aro.model.ProfileLTE;
 import com.att.aro.model.ProfileType;
+import com.att.aro.interfaces.Settings;
 import com.att.aro.model.SettingsImpl;
 import com.att.aro.model.TimeRange;
 import com.att.aro.model.TraceData;
@@ -156,6 +159,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 	private JMenuItem wiresharkMenuItem;
 	private JMenuItem timeRangeAnalysisMenuItem;
 	private JMenuItem dataDumpMenuItem;
+	private JMenuItem csvExportMenuItem;
+	private JMenuItem jsonExportMenuItem;
 
 	// View menu
 	private JMenu jViewMenu;
@@ -217,11 +222,12 @@ public class ApplicationResourceOptimizer extends JFrame {
 		super();
 		ApplicationResourceOptimizer.aroFrame = this;
 		initialize();
-		
+
 		AnalyticFactory.loadLib();
-		AnalyticFactory.getGoogleAnalytics().applicationInfo(RB.getString("ga.trackid"), RB.getString("aro.title.short").trim(), ResourceBundleManager.getBuildBundle().getString("build.majorversion").trim());
-		AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(RB.getString("ga.request.event.category.analyzer"), RB.getString("ga.request.event.analyzer.action.startapp"));
-		
+		AnalyticFactory.getGoogleAnalytics().applicationInfo(RB.getString("ga.trackid"), RB.getString("aro.title.short").trim(), ResourceBundleManager.getBuildBundle().getString("build.majorversion").trim());		
+		installationInfoTOGA();		
+		AnalyticFactory.getGoogleAnalytics().sendAnalyticsStartSessionEvents(RB.getString("ga.request.event.category.analyzer"), RB.getString("ga.request.event.analyzer.action.startapp"));
+
 	}
 	
 	/**
@@ -377,7 +383,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 			traceDirectory = traceFileName.getParentFile();
 			try {
 				traceData = new TraceData(traceFileName);
-
+				sendTraceInfoToGA();
 			} catch (UnsatisfiedLinkError e1) {
 				LOGGER.log(Level.SEVERE, "UnsatisifiedLinkError while getting the parent file");
 			} catch (IOException e1) {
@@ -538,8 +544,9 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 */
 	public synchronized void openTrace(File dir) throws IOException {
 		
-		AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(RB.getString("ga.request.event.category.analyzer"), RB.getString("ga.request.event.analyzer.action.load")); //GA Code
+	   AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(RB.getString("ga.request.event.category.analyzer"), RB.getString("ga.request.event.analyzer.action.load")); //GA Code
 
+    
 		traceFileName = dir;
 
 		// Initializing all the packet counters
@@ -632,6 +639,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 				traceDirectory = pcapFileName.getParentFile();
 				try {
 					traceData = new TraceData(pcapFileName);
+					AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(RB.getString("ga.request.event.category.analyzer"), RB.getString("ga.request.event.analyzer.action.load"), RB.getString("ga.request.event.analyzer.action.load.pcap"));
 				} catch (UnsatisfiedLinkError e) {
 					LOGGER.log(Level.SEVERE, "Unsatisfied Link Error Exception while loading the traces");
 				} catch (IOException e) {
@@ -1130,7 +1138,6 @@ public class ApplicationResourceOptimizer extends JFrame {
 		}
 		return startDataCollectorMenuItem;
 	}
-	
 	private void startCollector(){
 		boolean isMac = Util.IsMacOS();
 		boolean isIOS = false;
@@ -1147,22 +1154,26 @@ public class ApplicationResourceOptimizer extends JFrame {
 		if(type == MobileDeviceType.NO_DEVICE_CONNECTED){
 			AdbService adbservice = new AdbService();
 			boolean hasAdbPath = adbservice.hasADBpath();
-			
-			if(!isMac){
-				if(hasAdbPath){
-					MessageDialogFactory.showErrorDialog(null, RB.getString("Error.noandroiddevicefound"));
-				}else{
-					MessageDialogFactory.showErrorDialog(null, RB.getString("Message.setadbpathandtryagain"));
-				}
+			if(hasAdbPath && !adbservice.isAdbFileExist()){
+				MessageDialogFactory.showErrorDialog(null, "ADB file not found: "+adbservice.getAdbPath());
 			}else{
-				if(hasAdbPath){
-					MessageDialogFactory.showErrorDialog(null, RB.getString("Error.nodevicefoundtryagain"));
+				if(!isMac){
+					if(hasAdbPath){
+						MessageDialogFactory.showErrorDialog(null, RB.getString("Error.noandroiddevicefound"));
+					}else{
+						MessageDialogFactory.showErrorDialog(null, RB.getString("Message.setadbpathandtryagain"));
+					}
 				}else{
-					MessageDialogFactory.showErrorDialog(null, RB.getString("Error.nodevicesetadbpath"));
+					if(hasAdbPath){
+						MessageDialogFactory.showErrorDialog(null, RB.getString("Error.nodevicefoundtryagain"));
+					}else{
+						MessageDialogFactory.showErrorDialog(null, RB.getString("Error.nodevicesetadbpath"));
+					}
 				}
 			}
 			return;
 		}
+		
 		
 		if(type == MobileDeviceType.IOS){
 			isIOS = true;
@@ -1170,69 +1181,67 @@ public class ApplicationResourceOptimizer extends JFrame {
 
 		
 		if(isMac && isIOS){
-			startDataCollectorMacOS();
+			if(aroDataCollectorMacOS == null){
+				aroDataCollectorMacOS = new DataCollectorMacOS(ApplicationResourceOptimizer.this);
+			}
+			aroDataCollectorMacOS.startCollector();
 		}else{
 			boolean isrootedAndroid = false;
-			boolean isEmulator = false;
 			try {
 				isrootedAndroid = device.isAndroidRooted();
-				isEmulator = device.getFirstAndroidDevice().isEmulator();
 				LOGGER.info("Returned result of rooting: "+isrootedAndroid);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 			
+			//if rooted collector has ARP installed then rooted collector else go with noon rooted vpn collector  
 			boolean isApkInstalled = false;
-			if (isEmulator) {
-				startDataCollectorBridge();
-			} else if (isrootedAndroid && checkForApkOnRootedCollector(device.getFirstAndroidDevice())) {
+			if(isrootedAndroid && type == MobileDeviceType.ANDROID){
+				isApkInstalled = checkForApkOnRootedCollector(device.getFirstAndroidDevice()); //Check for APK package
+				if (!isApkInstalled) {
+					int answer = 0;
+					String linkMessage = "<p>Download the Rooted Collector on the <a href=\"https://developer.att.com/application-resource-optimizer/get-aro/download\">Developer Portal</a></p>";
 
-				LOGGER.info("Is datacollector package available : " + isApkInstalled);
-				LOGGER.info("Launching the rooted collector");
-				startDataCollectorBridge();
-
-			} else if (isrootedAndroid) {
-
-				if (isMac) {
-					Object[] options = { new String("Ok") };
-					String linkMessage = "<p>Please <a href=\"https://developer.att.com/application-resource-optimizer/get-aro/download\">download and install the ARO Collector</a> and restart your trace.</p>";
-					MessageDialogFactory.confirmCollectionMethod(options, null, linkMessage);
-				} else {
-					Object[] options = { new String("Ok"), new String("Cancel") };
-					String linkMessage = "<p>Choose OK to proceed with the ARO Wi-Fi Collector (Beta)<br>or<br><a href=\"https://developer.att.com/application-resource-optimizer/get-aro/download\">Download and install the ARO Collector</a>, choose CANCEL and restart your trace.</p>";
-					if (MessageDialogFactory.confirmCollectionMethod(options, null, linkMessage) == 0) {
-						startDataCollectorBridgeWifi();
+					if (isMac && !Util.isVpnEnabled()) {
+						Object[] options = { new String("Ok")};
+						MessageDialogFactory.confirmCollectionMethod(options, null, linkMessage);
+						answer = 1;
+					}else{
+						Object[] options = { new String("Ok"), new String("Cancel")};
+						String defaultMsg =Util.isVpnEnabled()?"Choose OK to proceed with the vpn collector":"Choose OK to proceed with the wifi collector";
+						answer = MessageDialogFactory.confirmCollectionMethod(options, defaultMsg, linkMessage);
 					}
+		            if (answer == 1){
+		            	// do not continue with starting the collector
+		            	return;
+		            }
 				}
-			} else if(Util.isWindowsOS()){
+				LOGGER.info("Is datacollector package available : " +isApkInstalled);
+			}
+			if(isrootedAndroid && (isApkInstalled || type == MobileDeviceType.ANDROID_EMULATOR)){
+				LOGGER.info("Launching the rooted collector");
+				// rooted collector
+				if (aroDataCollectorBridge == null) {
+					aroDataCollectorBridge = new DatacollectorBridge(ApplicationResourceOptimizer.this);
+				}
+				aroDataCollectorBridge.startARODataCollector();
+			}else if(Util.isVpnEnabled()){
+				// non-root Android VPN collector
+                if (aroDataCollectorVPN == null) {
+					aroDataCollectorVPN = new DataCollectorNoRootVpn(ApplicationResourceOptimizer.this);
+				}
+				aroDataCollectorVPN.startCollector();
+            } else if(Util.isWindowsOS()){
 				// Windows virtual wifi
-                startDataCollectorBridgeWifi();
+                if(aroDataCollectorBridgeNoRoot == null){
+                    aroDataCollectorBridgeNoRoot = new DatacollectorBridgeNoRoot(ApplicationResourceOptimizer.this);
+                }
+                aroDataCollectorBridgeNoRoot.startCollector();
             }else {
             	//TODO update this message for a more appropriate message
             	MessageDialogFactory.showErrorDialog(mAROAnalyzer, "Currently non-rooted android collector is only supported by Windows.");
             }
 		}
-	}
-
-	private void startDataCollectorMacOS() {
-		if(aroDataCollectorMacOS == null){
-			aroDataCollectorMacOS = new DataCollectorMacOS(ApplicationResourceOptimizer.this);
-		}
-		aroDataCollectorMacOS.startCollector();
-	}
-
-	private void startDataCollectorBridgeWifi() {
-		if(aroDataCollectorBridgeNoRoot == null){
-		    aroDataCollectorBridgeNoRoot = new DatacollectorBridgeNoRoot(ApplicationResourceOptimizer.this);
-		}
-		aroDataCollectorBridgeNoRoot.startCollector();
-	}
-
-	private void startDataCollectorBridge() {
-		if (aroDataCollectorBridge == null) {
-			aroDataCollectorBridge = new DatacollectorBridge(ApplicationResourceOptimizer.this);
-		}
-		aroDataCollectorBridge.startARODataCollector();
 	}
 
 	/**
@@ -1358,6 +1367,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 			}
 			jToolMenu.add(getTimeRangeAnalysisMenuItem());
 			jToolMenu.add(getDataDump());
+			jToolMenu.add(getCSVExport());
+			jToolMenu.add(getJsonExport());
 
 			// plugin menus
 			loadPluginMenuItems(jToolMenu);
@@ -1519,6 +1530,44 @@ public class ApplicationResourceOptimizer extends JFrame {
 			});
 		}
 		return dataDumpMenuItem;
+	}
+	
+	/**
+	 * Initializes and returns Json Export Munu under tools
+	 * 
+	 */
+	private JMenuItem getJsonExport() {
+		if (jsonExportMenuItem == null) {
+			jsonExportMenuItem = new JMenuItem(RB.getString("menu.tools.jsonExport"));
+			jsonExportMenuItem.setEnabled(analysisData != null); 
+			jsonExportMenuItem.addActionListener(new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					analyisResultsPanel.exportJsonFileToFileSystem();
+				}
+			});
+		}
+		return jsonExportMenuItem;
+	}
+	
+	/**
+	 * Initializes and returns CSV Export Munu under tools
+	 * 
+	 */
+	private JMenuItem getCSVExport() {
+		if (csvExportMenuItem == null) {
+			csvExportMenuItem = new JMenuItem(RB.getString("menu.tools.csvExport"));
+			csvExportMenuItem.setEnabled(analysisData != null); 
+			csvExportMenuItem.addActionListener(new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					analyisResultsPanel.exportCSVFileToFileSystem();
+				}
+			});
+		}
+		return csvExportMenuItem;
 	}
 
 	/**
@@ -2296,6 +2345,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 		getAroSimpleTab().refresh(analysisData);
 		getBestPracticesPanel().refresh(analysisData);
 		getAnalysisResultsPanel().refresh(analysisData);
+		csvExportMenuItem.setEnabled(analysisData != null);
+		jsonExportMenuItem.setEnabled(analysisData != null);
 		getWaterfallPanel().refresh(analysis);
 
 		this.profile = profile;
@@ -2491,12 +2542,6 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * stop background tasks and clean up all resources
 	 */
 	public void Dispose(){
-		
-		
-		//Set gaFocusPoint
-	    AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(RB.getString("ga.request.event.category.analyzer"), RB.getString("ga.request.event.analyzer.action.endapp"));
-       
-		
 		//for user friendly experience, there should be a progress box while cleaning up resource
 		//which take a few seconds
 		final AROProgressDialog box = new AROProgressDialog(ApplicationResourceOptimizer.this, "Please wait...");
@@ -2507,6 +2552,8 @@ public class ApplicationResourceOptimizer extends JFrame {
 			//this will take a couple seconds
 			aroDataCollectorMacOS.Dispose();
 		}
+		AnalyticFactory.getGoogleAnalytics().sendAnalyticsEndSessionEvents(RB.getString("ga.request.event.category.analyzer"), RB.getString("ga.request.event.analyzer.action.endapp"));
+	    AnalyticFactory.getGoogleAnalytics().close();
 		LOGGER.info("Finished Dispose()");
 		box.setVisible(false);
 	}
@@ -2531,8 +2578,70 @@ public class ApplicationResourceOptimizer extends JFrame {
 		return (shelloutPut.getResponseString() != null);
 	}
 
-    public ResourceBundle getRb() {
+	public void sendTraceInfoToGA(){
+    	
+    	if(this.traceData != null){
+    		if(this.traceData.getCollectorName() != null){
+    			if(this.traceData.getCollectorName().contains("IOS")){
+    				AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(RB.getString("ga.request.event.category.analyzer"), RB.getString("ga.request.event.analyzer.action.load"), RB.getString("ga.request.event.collector.ios"));
+    			} else if (this.traceData.getCollectorName().contains("com.att.android.arodatacollector")){
+    				//Rooted Android collector
+    				AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(RB.getString("ga.request.event.category.analyzer"), RB.getString("ga.request.event.analyzer.action.load"), RB.getString("ga.request.event.collector.rooted"));
+    			} else if (this.traceData.getCollectorName().contains("com.att.arocollector")){
+    				//Non rooted collector
+    				AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(RB.getString("ga.request.event.category.analyzer"), RB.getString("ga.request.event.analyzer.action.load"), RB.getString("ga.request.event.collector.nonrooted"));
+    			}
+    		}
+    		
+    		if(this.traceData.getDeviceModel() != null){
+    			AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(this.traceData.getDeviceModel(), this.traceData.getOsType(), this.traceData.getOsVersion());
+    		}
+  /*  		if(this.traceData.getDeviceMake() != null){
+    			
+    		} 
+    		if(this.traceData.getOsType() != null){
+    			
+    		}
+    		if(this.traceData.getOsVersion() != null){
+    			
+    		}*/
+    		
+    	}
+    	
+    }
+    public static ResourceBundle getRb() {
         return RB;
     }
+    
+    public static void sendInstallationInfoToGA(String installerDir){
+		//create some text file
+    	String filePath = installerDir + "/gaInstalledFile.txt";
+		File afile = new File(filePath);
+		try{
+			afile.createNewFile();
+		} catch(Exception ex){
+			
+		}
+		
+    }
+    
+   
+	public void installationInfoTOGA(){
+		
+    	String userHome = System.getProperty("user.home") + "/gaInstalledFile.txt";
+    	
+    	File installationFile = new File(userHome);
+    	
+    	if(installationFile.exists()){
+    		DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH-mm");  
+    		long installedTime = installationFile.lastModified();
+    		String lastModifiedDate = df.format(new Date(installedTime));
+    		lastModifiedDate = lastModifiedDate.replace(" ", "-");
+    		AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(RB.getString("ga.request.event.installation.event"), ResourceBundleManager.getBuildBundle().getString("build.majorversion").trim(), lastModifiedDate);
+    		AnalyticFactory.getGoogleAnalytics().sendAnalyticsEvents(RB.getString("ga.request.event.installation.event"), RB.getString("ga.request.event.installation.java.event"), System.getProperty("java.version"));
+    		installationFile.delete();
+    		
+    	} 
+	}
 
 }
