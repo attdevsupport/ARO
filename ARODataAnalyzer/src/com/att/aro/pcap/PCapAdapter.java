@@ -203,25 +203,38 @@ public class PCapAdapter {
 	 */
 	static void setAroJpcapLibName() {
 		String osname = Util.OS_NAME;
-		String os = Util.OS_ARCHYTECTURE;
-		logger.fine("OS: " + osname);
-		logger.fine("OS Arch: " + os);
-		
-		if (osname != null && os != null) {
-			
-			if (osname.contains("Windows") && os.contains("64")) {
+		String osarch = Util.OS_ARCHYTECTURE;
+		if (logger != null)
+			logger.info("OS: " + osname);
+		if (logger != null)
+			logger.info("OS Arch: " + osarch);
+
+		if (osname != null && osarch != null) {
+
+			if (osname.contains("Windows") && osarch.contains("64")) { // _______ 64 bit Windows jpcap64.DLL
 				aroJpcapLibName = "jpcap64";
-				aroJpcapLibFileName = aroJpcapLibName + ".DLL";  
-			} else if (osname.contains("Windows")){  // 32 bit Windows
+				aroJpcapLibFileName = aroJpcapLibName + ".DLL";
+
+			} else if (osname.contains("Windows")) { // _________________________ 32 bit Windows jpcap.DLL
 				aroJpcapLibName = "jpcap";
-				aroJpcapLibFileName = aroJpcapLibName + ".DLL";  
-			} else { // Mac OS X
+				aroJpcapLibFileName = aroJpcapLibName + ".DLL";
+
+			} else if (osname.contains("Linux") && osarch.contains("amd64")) { // 64 bit Linux libjpcap64.so
+				aroJpcapLibName = "jpcap64";
+				aroJpcapLibFileName = "lib" + aroJpcapLibName + ".so";
+
+			} else if (osname.contains("Linux") && osarch.contains("i386")) { //  32 bit Linux libjpcap.so
+				aroJpcapLibName = "jpcap32";
+				aroJpcapLibFileName = "lib" + aroJpcapLibName + ".so";
+
+			} else { // _________________________________________________________ Mac OS X libjpcap.jnilib
 				aroJpcapLibName = "jpcap";
-				aroJpcapLibFileName = "lib" + aroJpcapLibName + ".jnilib";  
+				aroJpcapLibFileName = "lib" + aroJpcapLibName + ".jnilib";
 			}
 		}
-		
-		logger.fine("ARO Jpcap DLL lib file name: " + aroJpcapLibFileName);
+
+		if (logger != null)
+			logger.info("ARO Jpcap DLL lib file name: " + aroJpcapLibFileName);
 	}
 	
 	/**

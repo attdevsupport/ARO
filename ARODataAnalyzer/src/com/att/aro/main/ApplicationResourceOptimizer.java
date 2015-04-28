@@ -37,8 +37,10 @@ import java.awt.event.WindowStateListener;
 import java.awt.print.Printable;
 import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
@@ -620,7 +622,7 @@ public class ApplicationResourceOptimizer extends JFrame {
 	 * @param pcap
 	 * @throws IOException
 	 */
-	private synchronized void openPcap(File pcap) throws IOException, UnsatisfiedLinkError {
+	public synchronized void openPcap(File pcap) throws IOException, UnsatisfiedLinkError {
 
 		pcapFileName = pcap;
 
@@ -2644,4 +2646,37 @@ public class ApplicationResourceOptimizer extends JFrame {
     	} 
 	}
 
+	/**
+	 * This method is for installer to check the ARO instances on Mac while installing ARO.
+	 * @param appName
+	 * @return
+	 */
+	public static boolean checkForRunningAROApp(String appName){
+		boolean isARORunning = false;
+		String osName = System.getProperty("os.name");
+		if(osName.contains("Mac OS")){
+			try {
+				
+				String process;
+				// getRuntime: Returns the runtime object associated with the current Java application.
+				// exec: Executes the specified string command in a separate process.
+				Process p = Runtime.getRuntime().exec("ps aux");
+				BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
+				int lineNumber=0;
+				while ((process = input.readLine()) != null) {
+					if(process.contains(appName)){
+						lineNumber = lineNumber + 1;
+						if(lineNumber > 2){
+							isARORunning = true;
+						}
+					}
+				}
+
+				input.close();
+			} catch (Exception err) {
+				err.printStackTrace();
+			}
+		}
+		return isARORunning;
+	}
 }

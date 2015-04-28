@@ -59,14 +59,12 @@ public class AnalysisFilter implements Serializable {
 	 * 			  This parameter cannot be null.
 	 */
 	public AnalysisFilter(AnalysisFilter filter) {
-		if(filter.getTcpSessions() != null){ 
-			if(filter.getDomainNames() == null){
-				//call method to set domain names map
-				this.generateDomainNames(filter);
-			} else{
-				this.domainNames = filter.getDomainNames();
-			}
-			
+ 
+		if(filter.getDomainNames() == null){
+			//call method to set domain names map
+			this.generateDomainNames(filter);
+		} else{
+			this.domainNames = filter.getDomainNames();
 		}
 		
 		this.timeRange = filter.timeRange;
@@ -168,9 +166,11 @@ public class AnalysisFilter implements Serializable {
 	private void generateDomainNames(AnalysisFilter filter){
 		
 		domainNames = new HashMap<InetAddress, String>();
-		for (TCPSession tcpSession : filter.getTcpSessions()) {
-			if(! domainNames.containsKey(tcpSession.getRemoteIP())){
-				domainNames.put(tcpSession.getRemoteIP(), tcpSession.getDomainName());
+		if(filter.getTcpSessions() != null){
+			for (TCPSession tcpSession : filter.getTcpSessions()) {
+				if(! domainNames.containsKey(tcpSession.getRemoteIP())){
+					domainNames.put(tcpSession.getRemoteIP(), tcpSession.getDomainName());
+				}
 			}
 		}
 		

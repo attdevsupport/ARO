@@ -27,4 +27,4 @@ if "%_JAVA%" == "" set _JAVA=java.exe
 :run
 if "%PROCESSOR_ARCHITECTURE%"=="x86" (set openssl_lib=openssl32) else (set openssl_lib=openssl64)
 set PATH=%openssl_lib%;%PATH%
-"%_JAVA%" -cp "%~dp0..\lib\*" -Xms100m -Xmx1024m com.att.aro.main.Launch
+"%_JAVA%" -cp "%~dp0..\lib\*" -Xms100m -Xmx1024m com.att.aro.main.Launch %1

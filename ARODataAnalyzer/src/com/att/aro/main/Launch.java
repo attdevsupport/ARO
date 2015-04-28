@@ -17,6 +17,8 @@
 
 package com.att.aro.main;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -128,10 +130,32 @@ public class Launch {
 						if(CommandLineHandler.getInstance().IsCommandLineEvent() == true) {
 							ApplicationResourceOptimizer parent = CommandLineHandler.getInstance().getParent();
 							if (parent != null) {
-								JOptionPane.showMessageDialog(parent,
-										rb.getString("cmdline.startupmsg"),
-										rb.getString("aro.title.short"),
-										JOptionPane.INFORMATION_MESSAGE);
+								File traceDir = new File(CommandLineHandler.getInstance().getTraceDirectoryName());
+								if(traceDir.isFile()){
+									CommandLineHandler.getInstance().SetCommandLineEvent(false);
+									try {
+										parent.openPcap(traceDir); //For open command line pcap
+									} catch (IOException ioExp) {
+										logger.log(Level.SEVERE, "Failed loading trace", ioExp);
+										MessageDialogFactory.showUnexpectedExceptionDialog(parent, ioExp);
+									} catch (UnsatisfiedLinkError uer) {
+										logger.log(Level.SEVERE, "Failed loading trace", uer);
+										MessageDialogFactory.showErrorDialog(parent, rb.getString("Error.noNetmon"));
+									}
+								} else if(traceDir.exists() && traceDir.isDirectory()){
+									CommandLineHandler.getInstance().SetCommandLineEvent(false);
+									try{
+										parent.openTrace(traceDir); //for opening the command line trace directory
+									} catch(IOException ioExp){
+										logger.log(Level.SEVERE, "Failed loading trace", ioExp);
+										MessageDialogFactory.showInvalidTraceDialog(traceDir.getPath(), parent, ioExp);
+									}
+								} else {
+									JOptionPane.showMessageDialog(parent,
+											rb.getString("cmdline.startupmsg"),
+											rb.getString("aro.title.short"),
+											JOptionPane.INFORMATION_MESSAGE);
+								}
 							}
 	        			}
 					}

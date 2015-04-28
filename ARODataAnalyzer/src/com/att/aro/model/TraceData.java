@@ -2068,18 +2068,17 @@ public class TraceData implements Serializable {
 			// Line 2 - pcap time
 			s = br.readLine();
 			if (s != null) {
-				result.startTime = Double.valueOf(s);
-
+				result.startTime = Double.valueOf(s.trim().replaceAll(",", "."));
 				// line 3 - "/proc/uptime"
 				s = br.readLine();
 				if (s != null) {
-					result.eventTime = Double.parseDouble(s) / 1000.0;
+					result.eventTime = Double.parseDouble(s.trim().replaceAll(",", ".")) / 1000.0;
 				}
 
 				// line 4 - duration
 				s = br.readLine();
 				if (s != null) {
-					result.duration = Double.valueOf(Double.parseDouble(s) - result.startTime.doubleValue());
+					result.duration = Double.valueOf(Double.parseDouble(s.trim().replaceAll(",", ".")) - result.startTime.doubleValue());
 				}
 
 				// line 5 - time zone offset

@@ -6,13 +6,14 @@
 JAVA_DIR = $(JAVA_HOME)
 
 JNI_INCLUDE = $(JAVA_DIR)/include
+PCAP_INCLUDE = /usr/include/pcap
 
 # try to detect your OS using 'uname'
 PLATFORM = $(shell "uname")
 
 ifeq ($(PLATFORM), Linux)
     JNI_INCLUDE2 = $(JAVA_DIR)/include/linux
-    COMPILE_OPTION = -shared -L.
+    COMPILE_OPTION = -shared -L. -fPIC
     SUFFIX = .so
 else
 ifeq ($(PLATFORM), FreeBSD)
@@ -28,6 +29,7 @@ else
 ifeq ($(PLATFORM), Darwin)
     JNI_INCLUDE2 = /System/Library/Frameworks/JavaVM.framework/Headers 
     COMPILE_OPTION = -bundle -framework JavaVM
+    PCAP_INCLUDE = /usr/include
     SUFFIX = .jnilib
 endif
 endif
@@ -35,8 +37,7 @@ endif
 endif
 
 # Specify where pcap.h is
-PCAP_INCLUDE = /usr/include
-#PCAP_INCLUDE = /usr/include/pcap
+
 
 #CC = cl
 CC = gcc
