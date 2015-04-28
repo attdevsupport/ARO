@@ -618,7 +618,9 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 			try {
 
 				Dialog_CallBack_Error errrocode = Dialog_CallBack_Error.CALLBACK_DEFAULT;
+				
 				switch (m_current_dialog) {
+				
 				case TRACE_FOLDERNAME: {
 					final EditText givenTraceFolderName = (EditText) findViewById(R.id.dialog_tracefoldername);
 					mTraceFolderName = givenTraceFolderName.getText().toString();
@@ -646,9 +648,10 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 							AROCollectorCustomDialog.this.dismiss();
 							mApp.setTcpDumpTraceFolderName(null);
 						} else if (traceFolderPath.isDirectory()) {
+							// trace folder exists, need to get approval to replace
 							errrocode = Dialog_CallBack_Error.CALLBACK_TRACEEXISTSERROR; // "Trace folder already exists";
 							AROCollectorCustomDialog.this.dismiss();
-							mApp.setTcpDumpTraceFolderName(null);
+						//	mApp.setTcpDumpTraceFolderName(null);
 						}
 						readyListener.ready(errrocode, false);
 					}
@@ -656,21 +659,22 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 					break;
 
 				case TRACE_FOLDERNAME_EXISTS:
-					if (mApp.getTcpDumpTraceFolderName() != null) {
-						mAROUtils.deleteDirectory(new File(mApp.getTcpDumpTraceFolderName()));
+					String traceFolder = mApp.getTcpDumpTraceFolderName();
+					if ( traceFolder != null) {
+						mAROUtils.deleteDirectory(new File(traceFolder));
 						if (AROLogger.logDebug) {
-							AROLogger.d(TAG,
-									"TRACE_FOLDERNAME_EXISTS deleting directory"
-											+ mApp.getTcpDumpTraceFolderName());
+							AROLogger.d(TAG, "TRACE_FOLDERNAME_EXISTS deleting directory" + traceFolder);
 						}
 					}
 					readyListener.ready(Dialog_CallBack_Error.CALLBACK_DEFAULT, true);
 					AROCollectorCustomDialog.this.dismiss();
 					break;
+					
 				case TRACE_FOLDERNAME_ERRORMESSAGE:
 					readyListener.ready(Dialog_CallBack_Error.CALLBACK_SHOWTRACENAMEERROR, false);
 					AROCollectorCustomDialog.this.dismiss();
 					break;
+					
 				case DC_FAILED_START:
 				case SDCARD_MOUNTED:
 				case SDCARD_MOUNTED_MIDTRACE:
@@ -682,12 +686,14 @@ public class AROCollectorCustomDialog extends Dialog implements OnKeyListener {
 				case ARO_INSTANCE_RUNNING:
 					AROCollectorCustomDialog.this.dismiss();
 					break;
+					
 				case ARO_ANALYZER_LAUNCH_IN_PROGRESS:
 					AROCollectorCustomDialog.this.dismiss();
 					if (readyListener != null){
 						readyListener.ready(null, false);
 					}
 					break;
+					
 				case TRACE_STOPPED:
 					AROCollectorCustomDialog.this.dismiss();
 					readyListener.ready(Dialog_CallBack_Error.CALLBACK_TRACEFOLDERERROR, false);
