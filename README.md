@@ -61,45 +61,33 @@ Contact Us:  http://developer.att.com/developer/contact_us.jsp
 
 
 **Version:**  
-ARO Data Analyzer 4.0  
+ARO Data Analyzer 4.0.1  
 ARO Data Collector 3.1.1.9  
 
 
 
-**What’s new in Release 4.0?  (12/11/14)**  
+**What’s new in Release 4.0.1?  (4/17/15)**  
 
-+  **AT&T ARO Data Collector adds support for Non-Rooted Android Devices**  
-AT&T ARO now includes a VPN implementation that allows you to more easily collect and analyze data from an app on an Android device (running version 4.4 and above), without requiring access to the root of the device. This feature has been tested on the following devices:  
++  **AT&T ARO Non-Rooted Data Collector adds support for Android 5.01/5.1 (Lollipop)**  
+The AT&T ARO non-rooted collector now supports data collection from devices running Android 5.01 and 5.1 (Lollipop).  
+
   
-	+  Samsung Galaxy S5 and LG Nexus 5 running Android 4.4 (Kitkat)  
-	+  Motorola Nexus 6 and LG Nexus 5 running Android 5 (Lollipop)  
-  
-By connecting the device to a computer running AT&T ARO and selecting the Start Collector option, an ARO VPN is installed on the device which allows for the capture of HTTP and UDP packet data requests before they are sent, and responses when they are received. In addition to TCP and UDP packet data, the ARO VPN solution captures a video of the trace, and device state information, such as battery, WiFi, and GPS usage.  
-
-
-+  **AT&T ARO Data Collector adds support for Android 4.4 (Kitkat), Android 5 (Lollipop), and wearable devices**  
-AT&T ARO now supports data collection from the following rooted versions of Android:  
-
-  	+  Android 4.4: Tested on Samsung Galaxy S5 and LG Nexus 5 devices.  
-	+  Android 5.0: Tested on LG Nexus 5 and Motorola Nexus 6 devices.  
-  	+  For wearables running Android, AT&T ARO also supports data collection directly on these wearable devices on which the ARO Data Collector apk can be installed.  
-
-
-+  **AT&T ARO Data Collector supports iOS 8**  
-The AT&T ARO Analyzer can now analyze traces on a Mac computer running OS 10.10 (Yosemite) with Java 8 and the latest version of XCode installed.  
-
-
-+  **AT&T ARO Analyzer exports data in JSON format**  
-The AT&T ARO Analyzer now includes an "Export Json" option on the Tools menu that allows you to export statistical and analytical data from the currently loaded trace to a .json file.  
++  **AT&T ARO Data Collector adds support for Android 5.01/5.1 (Lollipop) on the Android Emulator**  
+AT&T ARO now supports data collection from Android 5.01 and 5.1 (Lollipop) virtual devices on the Android Emulator.  
   
 
++  **AT&T ARO Analyzer no longer contains pre-defined profiles for specific devices**  
+The AT&T ARO Analyzer now only contains profiles for the network types AT&T 3G, AT&T LTE, and AT&T WiFi. Network profiles were found to be more widely used and more effective when analyzing traces than device profiles. The values of the attributes for all three profiles can still be fully customized through options in the AT&T ARO Analyzer Profiles menu.  
 
-**What are the known issues in Release 4.0?** 
 
-+  The AT&T ARO Analyzer now includes an "Export Json" option on the Tools menu that allows you to export statistical and analytical data from the currently loaded trace to a .json file. 
+**What are the known issues in Release 4.0.1?** 
+
++  When the AT&T ARO Data Collector apk is launched on a device, it may be blocked if the Back button is pressed or if the Terms and Conditions for ARO are declined. If the Terms and Conditions are declined and the collector is launched again, you will see the message "ARO is currently running on the device".  
++  The total megabytes (MB) value in the results for the Duplicate Content Best Practices test in AT&T ARO Analyzer does not match with the total amount of TCP data transferred.  
++  When the rooted AT&T ARO Data Collector apk is launched on a device with the GPS turned on, it activates the device GPS for the duration of the trace.  
++  When using the AT&T ARO Data Collector apk on a rooted Motorola Nexus 6 device running Android 5 (Lollipop), the trace video that is captured cannot be displayed in the ARO Analyzer. To work around this, run the ARO Data Collector directly from the Data Collector menu of the ARO Analyzer to capture the trace.  
 +  When using the AT&T ARO Data Collector apk on rooted Motorola Nexus devices that use an emulated SD card, the trace file stored on the device must be retrieved manually using the following ADB shell command:  
    adb pull /sdcard/ARO/tracename  
-
 
 
 **What are the other known issues from previous releases?**
