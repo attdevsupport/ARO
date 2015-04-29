@@ -163,7 +163,7 @@ The ARO Open Source code package contains the following:
 
 
 **ARO Compilation and Build Guide.pdf** - Describes how to compile and build the ARO components.  
-**ARODataCollector_OpenSource_v3.1.1.9.apk.zip** - A zip package containing a compiled open source version of the ARO Data Collector.  
+**ARODataCollector_OpenSource_v3.1.1.10.apk.zip** - A zip package containing a compiled open source version of the ARO Data Collector.  
 **Adding Custom Best Practices in Open Source ARO.pdf** - Describes how to add custom Best Practices to the ARO Data Analyzer.  
 **README.md** - This file.
 
