@@ -5,6 +5,7 @@ import android.util.Log;
 /**
  * if debug build, print all log statements. If not debug build, only print log
  * statements higher than predefined level.
+ *
  */
 public class AROLogger {
 	//TODO: have a method to detect debug build and set logging level accordingly
