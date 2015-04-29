@@ -61,12 +61,13 @@ Contact Us:  http://developer.att.com/developer/contact_us.jsp
 
 
 **Version:**  
-ARO Data Analyzer 4.0.1  
+ARO Data Analyzer 4.1.1  
 ARO Data Collector 3.1.1.9  
 
 
 
-**What’s new in Release 4.0.1?**  
+**What’s new in Release 4.1.1?** 
+(Note: ARO versions 4.0.1 and 4.1 have been combined for this new release.)  
 
 +  **AT&T ARO Non-Rooted Data Collector adds support for Android 5.01/5.1 (Lollipop)**  
 The AT&T ARO non-rooted collector now supports data collection from devices running Android 5.01 and 5.1 (Lollipop).  
@@ -80,7 +81,7 @@ AT&T ARO now supports data collection from Android 5.01 and 5.1 (Lollipop) virtu
 The AT&T ARO Analyzer now only contains profiles for the network types AT&T 3G, AT&T LTE, and AT&T WiFi. Network profiles were found to be more widely used and more effective when analyzing traces than device profiles. The values of the attributes for all three profiles can still be fully customized through options in the AT&T ARO Analyzer Profiles menu.  
 
 
-**What are the known issues in Release 4.0.1?** 
+**What are the known issues in Release 4.1.1?** 
 
 +  When the AT&T ARO Data Collector apk is launched on a device, it may be blocked if the Back button is pressed or if the Terms and Conditions for ARO are declined. If the Terms and Conditions are declined and the collector is launched again, you will see the message "ARO is currently running on the device".  
 +  The total megabytes (MB) value in the results for the Duplicate Content Best Practices test in AT&T ARO Analyzer does not match with the total amount of TCP data transferred.  
