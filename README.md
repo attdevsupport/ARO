@@ -62,12 +62,13 @@ Contact Us:  http://developer.att.com/developer/contact_us.jsp
 
 **Version:**  
 ARO Data Analyzer 4.1.1  
-ARO Data Collector 3.1.1.9  
+ARO Data Collector 3.1.1.10  
+  
 
 
-
-**What’s new in Release 4.1.1?** 
+**What’s new in Release 4.1.1?**  
 (Note: ARO versions 4.0.1 and 4.1 have been combined for this new release.)  
+  
 
 +  **AT&T ARO Non-Rooted Data Collector adds support for Android 5.01/5.1 (Lollipop)**  
 The AT&T ARO non-rooted collector now supports data collection from devices running Android 5.01 and 5.1 (Lollipop).  
