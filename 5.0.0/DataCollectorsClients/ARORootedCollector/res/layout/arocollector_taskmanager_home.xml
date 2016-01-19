@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@drawable/gray"
+    android:orientation="vertical" >
+
+    <RelativeLayout
+        android:id="@+id/main_title_layer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerInParent="true"
+        android:orientation="vertical" >
+
+        <Button
+            android:id="@+id/btn_arotaskmanagerkill"
+            style="@style/BlueButton"
+            android:layout_height="40dip"
+            android:layout_marginLeft="60dp"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="5dp"
+            android:paddingBottom="0dip"
+            android:paddingTop="0dip"
+            android:text="@string/aro_killtasks"
+            android:textSize="16sp" />
+
+        <CheckBox
+            android:id="@+id/aro_selectall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_centerInParent="true"
+            android:layout_marginRight="5dip"
+            android:checked="false" />
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/main_control_layer"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="vertical"
+        android:visibility="gone" >
+    </RelativeLayout>
+
+    <ListView
+        android:id="@+id/listbody"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_above="@id/main_control_layer"
+        android:layout_alignWithParentIfMissing="true"
+        android:layout_below="@id/main_title_layer"
+        android:choiceMode="multipleChoice"
+        android:scrollbars="none|vertical" />
+
+</RelativeLayout>

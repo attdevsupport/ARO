@@ -1,0 +1,174 @@
+package com.att.aro.view.images;
+
+import java.awt.Image;
+import java.util.ResourceBundle;
+import java.util.logging.Logger;
+
+import javax.swing.ImageIcon;
+
+import com.att.aro.ui.utils.ResourceBundleHelper;
+
+/**
+ * The Images enumeration specifies constant values that describe the types of
+ * Images and ImageIcons. The constant values are used with the defined methods
+ * to retrieve the Images and ImageIcons through a resource bundle lookup.
+ */
+public enum Images {
+	/**
+	 * The Icon image key.
+	 */
+	ICON("icon"),
+	/**
+	 * The Refresh image key. The associated image is used to identify that
+	 * refresh on a chart has been disabled.
+	 */
+	REFRESH("refresh"),
+	/**
+	 * The Demagnify image key. The associated image is used to identify that
+	 * magnification on a chart has been disabled.
+	 */
+	DEMAGNIFY("demagnify"),
+	/**
+	 * The Magnify image key. The associated image is used to identify that
+	 * magnification on a chart has been enabled.
+	 */
+	MAGNIFY("magnify"),
+	/**
+	 * The Save image key.
+	 */
+	SAVE("save"),
+	/**
+	 * The ARO Logo image key.
+	 */
+	AROLOGO("arologo"),
+	/**
+	 * The Brand image key.
+	 */
+	BRAND("brand"),
+	/**
+	 * The Pass image key. The associated image is used to identify when a Best
+	 * Practices test has passed.
+	 */
+	BP_PASS_DARK("bpPassDark"),
+	/**
+	 * The Fail image key. The associated image is used to identify when a Best
+	 * Practices test has failed.
+	 */
+	BP_FAIL_DARK("bpFailDark"),
+	/**
+	 * The Warning image key. The associated image is used to identify when a Best
+	 * Practices test has failed.
+	 */
+	BP_WARNING_DARK("bpWarningDark"),
+	/**
+	 * The Manual image key. The associated image is used to identify when a
+	 * Best Practices test has been run manually.
+	 */
+	BP_MANUAL("bpManual"),
+	/**
+	 * The Self Test image key. The associated image is used to identify when a Best
+	 * Practices test has passed.
+	 */
+	BP_SELFTEST_TRIGGERED("bpSeftTestTriggered"),
+	/**
+	 * The NA active gray image key.
+	 */
+	NA_GRAY("naGray"),
+	/**
+	 * The default video player image.
+	 */
+	NO_VIDEO_AVAILABLE("noVideoAvailable"),
+	/**
+	 * The Header image key.
+	 */
+	HEADER_ICON("headerIcon"),
+	/**
+	 * The Blue header image key.
+	 */
+	BLUE_HEADER("blueHeader"),
+	/**
+	 * The Grey header image key indicating that a test has not been run.
+	 */
+	TEST_NOT_RUN_HEADER("greyHeader"),
+	/**
+	 * The Green header image key indicating that a test has passed.
+	 */
+	TEST_PASS_HEADER("greenHeader"),
+	/**
+	 * The Red header image key indicating that a test has failed.
+	 */
+	TEST_FAIL_HEADER("redHeader"),
+	/**
+	 * The warning header image key.
+	 */
+	TEST_WARNING_HEADER("warningHeader"),
+	/**
+	 * The Background image key.
+	 */
+	BACKGROUND("background"),
+	/**
+	 * The Divider image key.
+	 */
+	DIVIDER("divider"),
+	/**
+	 * The Export button image key.
+	 */
+	EXPORT_BTN("exportBtn"),
+	/**
+	 * The Green recording image key.
+	 */
+	GREEN_RECORDING_INDICATOR("greenRecordingIndicator"),
+	/**
+	 * The Yellow recording image key.
+	 */
+	YELLOW_RECORDING_INDICATOR("yellowRecordingIndicator"),
+	/**
+	 * The Red recording image key.
+	 */
+	RED_RECORDING_INDICATOR("redRecordingIndicator");
+
+	private static Logger logger = Logger.getLogger(Images.class.getName());
+
+	private static final String PREFIX = "Image.";
+	private static final ResourceBundle rb = ResourceBundleHelper.getImagesBundle();
+	private static final String basePath = rb.getString("ImageBasePath");
+	private final String resourceKey; // resource bundle key
+	private ImageIcon imageIcon = null;
+
+	/**
+	 * Private constructor for enum
+	 * 
+	 * @param resourceKey
+	 *            key of the image.
+	 */
+	private Images(String resourceKey) {
+		this.resourceKey = resourceKey;
+	}
+
+	/**
+	 * Gets the ImageIcon object that is associated with the current enumeration
+	 * entry.
+	 * 
+	 * @return The ImageIcon object that is associated with the current key.
+	 */
+	public ImageIcon getIcon() {
+		if (imageIcon == null) {
+			String resourceName = basePath + rb.getString(PREFIX + this.resourceKey);
+			logger.fine("Creating ImageIcon: " +  resourceName);
+			this.imageIcon = new ImageIcon(getClass().getResource(resourceName));
+		}
+		return imageIcon;
+	}
+	
+
+	/**
+	 * Gets the Image object that is associated with the current enumeration
+	 * entry.
+	 * 
+	 * @return The Image object that is associated with the current key.
+	 */
+	public Image getImage() {
+		return getIcon().getImage();
+	}
+
+}

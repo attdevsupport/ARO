@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/RelativeLayout1"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@drawable/gray"
+    android:orientation="vertical" >
+
+    <TextView
+        android:id="@+id/learnmore"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="60dp"
+        android:background="@drawable/att_blue_headercolor"
+        android:gravity="center_horizontal"
+        android:layout_below="@+id/ck"
+        android:paddingBottom="5dip"
+        android:paddingLeft="2dip"
+        android:paddingRight="2dip"
+        android:text="@string/aro_learnmore"
+        android:textColor="@drawable/white_text"
+        android:textSize="16sp" />
+
+    <Button
+        android:id="@+id/startcollector"
+        style="@style/BlueButton"
+        android:layout_width="150dp"
+        android:layout_height="35dp"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:layout_marginBottom="42dp"
+        android:text="@string/startcollector"
+        android:textSize="16sp" />
+
+    <Button
+        android:id="@+id/taskkiller"
+        style="@style/BlueButton"
+        android:layout_width="150dp"
+        android:layout_height="35dp"
+        android:layout_above="@+id/startcollector"
+        android:layout_alignLeft="@+id/startcollector"
+        android:layout_marginBottom="34dp"
+        android:text="@string/opentaskkiller"
+        android:textSize="16sp" />
+
+    <CheckBox
+        android:id="@+id/ckbx_screenshot"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/startcollector"
+        android:layout_below="@+id/startcollector"
+        android:checked="true"
+        android:gravity="center"
+        android:text="Record Video"
+        android:textColor="@drawable/white_text"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/testdata"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:gravity="center"
+        android:paddingBottom="50dip"
+        android:paddingTop="35dip"
+        android:text="@string/aro_usetestdata"
+        android:textColor="@drawable/white_text"
+        android:textSize="17sp" />
+
+</RelativeLayout>

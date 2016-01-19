@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">ARO Collector</string>
+    <string name="service_name">AROService</string>
+    <string name="action_settings">Settings</string>
+
+    <!-- Flurry Analytics strings -->
+    <string name="flurry_networkType">Network Type</string>
+    <string name="flurry_networkInterface">Network Interface</string>
+    <string name="flurry_wifi">Wifi</string>
+    <string name="flurry_battery">Battery</string>
+    <string name="flurry_gps">GPS</string>
+    <string name="flurry_camera">Camera</string>
+    <string name="flurry_bluetooth">Bluetooth</string>
+    <string name="flurry_backgroundApps">Background Apps</string>
+    <string name="flurry_makeModel">Make and Model</string>
+    <string name="flurry_param_status">status</string>
+    <string name="flurry_param_time">time</string>
+    <string name="flurry_NA">NA</string>
+    <string name="flurry_param_traceVideoTaken">Trace video</string>
+    <string name="splashmessageopensource">Built from Public code supplied by \n AT&amp;T Developer Program \n \n http://developer.att.com/aro</string>
+    <string name="splash_message">ARO-Data Collector\nVPN Method</string>
+    <string name="timeout_message">Please wait...\nOr press the BackButton</string>
+    <string name="quit">Quit</string>
+    <string name="try_again">Try again</string>
+    
+</resources>

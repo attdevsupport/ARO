@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!--  ARO String localization -->
+    <string name="app_name">AT&amp;T ARO</string>
+    <string name="splash_message">Don\'t use this app while driving.</string>
+    <string name="StartDataCollector">Start Data Collector</string>
+	<string name="StopDataCollector">Stop Data Collector</string>
+	<string name="notification_bar_text">ARO</string>
+	<string name="aro_createfolder">Create Folder /sdcard/ARO/</string>
+	<string name="aro_usetestdata">Use only test data while running AT&amp;T ARO Data Collector.</string>
+	<string name="aro_learnmore">Learn more at\nhttp://developer.att.com/ARO/quickstart</string>
+	<string name="aro_dcstarted"><b>AT&amp;T ARO Data Collector STARTED! \n\n</b>Please navigate to the application you would like to test. After testing of your application is complete, please return to AT&amp;T ARO to stop the ARO Data Collector.</string>
+	<string name="aro_tracecompleted"><b>Trace Completed! \n\n Trace Summary</b></string>
+	<string name="aro_aleartnotification">AT&amp;T ARO data collector started</string>
+	<string name="app_alertmenulauchtext">Select to launch application</string>
+	<string name="aro_tracepath">Path :</string>
+	<string name="aro_tracevideo">Video :</string>
+	<string name="aro_tracedata">Data :</string>
+	<string name="aro_traceduration">Duration :</string>
+	<string name="aro_failedvideo">Video failed to start</string>
+	<string name="splashmessageopensource">Built from Public code supplied by \n AT&amp;T Developer Program \n \n http://developer.att.com/aro</string>
+	<string name="aro_traceTimer">Duration:</string>
+	<!-- Error Dialog Message -->
+	<string name="aro_error">Error</string>
+	<string name="aro_foldername">Please enter trace folder name.</string>
+	<string name="aro_sdcardmountedstart">SD card is either not available or it is mounted. Please check the SD card before running AT&amp;T ARO-Data Collector.</string>
+	<string name="aro_sdcardmountedmidtrace">SD Card mounted, AT&amp;T ARO Data Collector trace session terminated.</string>
+	<string name="aro_failedstart">AT&amp;T ARO Data Collector failed to start!</string>
+	<string name="aro_stopped">AT&amp;T ARO Data Collector trace collection stopped.</string>
+	<string name="aro_flightmodeerror">AT&amp;T ARO Data Collector trace session can\'t be started with flight mode on.</string>
+	<string name="aro_flightmodeerrormidtrace">AT&amp;T ARO Data Collector trace session stopped due to flight mode being turned ON while there was no active WIFI connection.</string>
+	<string name="aro_wifi_mobile_both_off_error">AT&amp;T ARO Data Collector trace session can\'t be started with both wifi and mobile turned off.</string>
+	<string name="aro_sdcarderror">SD Card memory full, stopping AT&amp;T ARO Data Collector. </string>
+	<string name="aro_spcharerror">Trace folder name should not have special characters or spaces. </string>
+	<string name="aro_tracefolderexists">Trace folder already exists! Do you want to overwrite existing trace?</string>
+	<string name="aro_norootaccess">You do not have administrator-level permission (i.e., root level access) on this device. It is recommended that you use a device that is dedicated to experimentation and testing since rooting may have an adverse impact on device performance and/or manufacturer warranty.</string>
+	<string name="aro_aroinstancerunning">AT&amp;T ARO Data Collector instance is already running on device!</string>
+	<string name="aro_analyzerlaunchinprogress">AT&amp;T ARO Data Collector launch from the Analyzer is already in progress</string>
+	
+	<!--  Button Text -->
+	<string name="aro_oktext">OK</string>
+	<string name="aro_yestext">Yes</string>
+	<string name="aro_notext">No</string>
+	<string name="aro_cnltext">Cancel</string>
+	<string name="aro_accept">Accept</string>
+	<string name="aro_decline">Decline</string>
+	<string name="aro_killtasks">Kill Selected Tasks</string>
+	<string name="aro_selectall">Select All</string>
+	<string name="recording"><b>Recording</b></string>
+	<string name="startcollector">Start Collector</string>
+	<string name="continuecollector">Continue Trace</string>
+	<string name="stopcollector">Stop Collector</string>
+	<string name="hidecollector">Hide Collector</string>
+	<string name="opentaskkiller">Open Task Killer</string>
+	<!--  Flurry Analytics strings -->
+	<string name="flurry_networkType">Network Type</string>
+	<string name="flurry_networkInterface">Network Interface</string>
+	<string name="flurry_wifi">Wifi</string>
+	<string name="flurry_battery">Battery</string>
+	<string name="flurry_gps">GPS</string>
+	<string name="flurry_camera">Camera</string>
+	<string name="flurry_bluetooth">Bluetooth</string>
+	<string name="flurry_backgroundApps">Background Apps</string>
+	<string name="flurry_makeModel">Make and Model</string>
+	<string name="flurry_param_status">status</string>
+	<string name="flurry_param_time">time</string>
+	<string name="flurry_NA">NA</string>
+	<string name="flurry_param_traceVideoTaken">Trace video</string>	  
+</resources>

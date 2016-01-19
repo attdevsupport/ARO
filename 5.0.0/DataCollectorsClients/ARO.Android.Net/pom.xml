@@ -1,0 +1,135 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.att.aro.android</groupId>
+  <artifactId>aro-android-net</artifactId>
+  <version>1.1.1-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+	<repositories>
+	  <repository>
+            <id>java-net</id>
+            <name>Java Net</name>
+            <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/java-net</url>
+      </repository>
+      <repository>
+            <id>codehaus-snapshots</id>
+            <name>Codehause Snapshots</name>
+            <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/codehaus-snapshots</url>
+      </repository>
+      <repository>
+            <id>central</id>
+            <name>MavenCentral Repository</name>
+            <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/central</url>
+      </repository>
+      <repository>
+          <id>apache-snapshots</id>
+          <name>Apache Snapshot</name>
+          <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/apache-snapshots</url>
+      </repository>
+      <repository>
+          <id>sonatype</id>
+          <name>Sonatype</name>
+          <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/sonatype</url>
+      </repository>
+      <repository>
+          <id>sonatype-flex</id>
+          <name>Sonatype Flex</name>
+          <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/sonatype-flex</url>
+      </repository> 
+      <repository>
+          <id>aro-3rd-paty</id>
+          <name>ARO third party</name>
+          <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/aro-3rd-party</url>
+      </repository> 
+	</repositories>
+ <pluginRepositories>
+        <pluginRepository>
+          <id>central</id>
+          <name>MavenCentral Repository</name>
+          <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/central</url>
+        </pluginRepository>
+        <pluginRepository>
+          <id>aro-3rd-paty</id>
+          <name>ARO third party</name>
+          <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/aro-3rd-party</url>
+        </pluginRepository> 
+  </pluginRepositories>
+  <dependencies>
+      
+    <dependency>
+      <groupId>junit</groupId>
+	  <artifactId>junit</artifactId>
+	  <version>4.11</version>
+	  <scope>test</scope>
+    </dependency>
+    <dependency>
+	  <groupId>org.mockito</groupId>
+	  <artifactId>mockito-core</artifactId>
+	  <version>1.9.5</version>
+	  <scope>test</scope>
+	</dependency>
+    <dependency>
+        <groupId>com.google.android</groupId>
+        <artifactId>android</artifactId>
+        <version>4.4.2</version>
+    </dependency>
+    
+  </dependencies>
+  <distributionManagement>
+	  <repository>
+	    <id>aro-releases</id>
+	    <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/aro-releases</url>
+	    <layout>default</layout>
+	  </repository>
+	  <snapshotRepository>
+	    <id>aro-snapshots</id> 
+	    <name>aro-snapshots</name> 
+	    <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/aro-snapshots</url> 
+	  </snapshotRepository>
+  </distributionManagement>
+
+  <build>
+      <plugins>
+          <plugin>
+	        <artifactId>maven-antrun-plugin</artifactId>
+	        <version>1.7</version>
+	        <executions>
+	          <execution>
+	            <phase>validate</phase>
+	            <configuration>
+	              <tasks>
+	                <delete>
+					    <fileset dir="${basedir}/target" includes="aro-android-net*" />
+					</delete>
+	              </tasks>
+	            </configuration>
+	            <goals>
+	              <goal>run</goal>
+	            </goals>
+	          </execution>
+	        </executions>
+	      </plugin>
+          <plugin>
+              <artifactId>maven-dependency-plugin</artifactId>
+                  <executions>
+                      <execution>
+                          <phase>install</phase>
+                          <goals>
+                              <goal>copy-dependencies</goal>
+                          </goals>
+                          <configuration>
+                              <outputDirectory>${basedir}/libs</outputDirectory>
+                          </configuration>
+                      </execution>
+                  </executions>
+          </plugin>
+          
+      </plugins>
+  </build>
+</project>

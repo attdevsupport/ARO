@@ -1,0 +1,23 @@
+Use the following steps to build a new version of ssl lib:
+1. under the openSSL folder, create a sub-folder with name set to the openSsl version
+2. download the source and copy it into the folder created. To download, I did the following using the git bash tool:
+	i. git clone https://review.source.android.com/p/platform/external/openssl.git
+	ii. git checkout tags/<tag_name>
+	Note: after cloning, list of tag_name can be seen by issuing "git tag -l" 
+3. Create a jni folder, and copy the Application.mk file over from prev version
+4. Copy over the AndroidManifest.xml
+5. Modify the following files to match the previous version:
+	i. Apps.mk (local_c_includes, and comment out the last group)
+	ii. Crypto.mk (change the .s files into .S [5ii], local_c_includes, and comment out the last group)
+	iii. Ssl.mk (local_c_includes, LOCAL_LDLIBS := -llog (2 places)) 
+	Note: In some older version there is no Apps.mk or Crypto.mk; instead the files are called 
+		Android.mk under the respective apps or crypto folder. It's best to use a diff tool (like DiffMerge) to compare
+	iv. include/openssl/ssl.h if you want to restrict the cipher list option to only rsa
+	v. ssl/ssl_lib.c to restrict the encryption suite
+	vi. Modify ssl/t1_enc.c to log the ssl key (modify include & code)
+6. Try a manual build using cygwin (ndk-build clean; ndk-build)
+7. Add version to buildVersions in build.sh
+
+
+Referred links:
+[5ii]: http://stackoverflow.com/questions/4941513/building-android-openssl-using-ndk-doesnt-make-arm4-assembly-files-properly

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:plugin="http://www.springframework.org/schema/plugin"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/plugin http://www.springframework.org/schema/plugin/spring-plugin.xsd">
+	<import resource="classpath*:**/plugins-noroot.xml"/>
+	<import resource="classpath*:**/plugins.xml" />
+	<import resource="classpath*:**/plugins-analytics.xml" />
+		<bean id="dataCollectorManager" class="com.att.aro.core.datacollector.impl.DataCollectorManagerImpl">
+	  <property name="plugins" ref="plugins" />
+	</bean>
+	<bean class="com.att.aro.core.datacollector.impl.DefaultDataCollectorImpl" />
+	<plugin:list id="plugins" class="com.att.aro.core.datacollector.IDataCollector" />
+ 
+	<bean id="googleAnalyticsManager" class="com.att.aro.core.analytics.impl.GoogleAnalyticsManagerImpl">
+	  <property name="analyticsPlugins" ref="analyticsPlugins" />
+	</bean>
+	<bean id="defaultAnalytics" class="com.att.aro.core.analytics.impl.DefaultGoogleAnalyticsImpl" />
+	<plugin:list id="analyticsPlugins" class="com.att.aro.core.analytics.IGoogleAnalytics" />
+</beans>

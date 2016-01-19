@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@drawable/gray"
+    android:gravity="center"
+    android:orientation="vertical" >
+
+    <TextView
+        android:id="@+id/libReplaced"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingBottom="50dip"
+        android:paddingTop="35dip"
+        android:text="@string/aro_libReplaced"
+        android:textColor="@drawable/white_text"
+        android:textSize="17sp" >
+    </TextView>
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_marginTop="15dip"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="4dip" >
+
+        <TextView
+            android:id="@+id/learnmore"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="50dp"
+            android:background="@drawable/att_blue_headercolor"
+            android:gravity="center_horizontal"
+            android:paddingBottom="5dip"
+            android:paddingLeft="2dip"
+            android:paddingRight="2dip"
+            android:text="@string/aro_learnmore"
+            android:textColor="@drawable/white_text"
+            android:textSize="16sp" >
+        </TextView>
+    </LinearLayout>
+
+</LinearLayout>
