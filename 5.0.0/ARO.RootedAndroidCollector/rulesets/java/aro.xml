@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+
+<ruleset name="ARO"
+    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 http://pmd.sourceforge.net/ruleset_2_0_0.xsd">
+
+  <description>
+Rules specific to ARO Project.
+  </description>
+
+	<rule
+        name="DoNotUseThreads"
+   		language="java"
+        since="4.1"
+        class="net.sourceforge.pmd.lang.rule.XPathRule"
+        message="To be compliant to J2EE, do not use any thread. Implement Runnable interface and use ThreadPool instead."
+    	externalInfoUrl="http://pmd.sourceforge.net/pmd-5.1.0/rules/java/j2ee.html#DoNotUseThreads">
+        <description>
+            <![CDATA[
+The J2EE specification explicitly forbids the use of threads.
+            ]]>
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+                    <![CDATA[
+                        //ClassOrInterfaceType[@Image = 'Thread']
+                    ]]>
+                </value>
+            </property>
+        </properties>
+        <example>
+            	<![CDATA[
+            // This is not allowed
+public class UsingThread extends Thread {
+
+ }
+	// Neither this,
+public class OtherThread extends Thread {
+	// Nor this ...
+	public void methode() {
+			Runnable thread = new Thread(); thread.run();
+	}
+}
+				]]>
+		</example>
+	</rule>
+
+</ruleset>
