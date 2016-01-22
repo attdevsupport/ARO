@@ -164,12 +164,12 @@
 	  <repository>
 	    <id>aroDeploymentRepo</id> 
 	    <name>aro-releases</name> 
-	    <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/aro-releases</url> 
+	    <url>http://repo1.maven.org/maven2</url> 
 	  </repository>
 	  <snapshotRepository>
 	    <id>aroDeploymentRepo</id> 
 	    <name>aro-snapshots</name> 
-	    <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/aro-snapshots</url> 
+	    <url>http://repo1.maven.org/maven2</url> 
 	  </snapshotRepository>
   </distributionManagement>
 
