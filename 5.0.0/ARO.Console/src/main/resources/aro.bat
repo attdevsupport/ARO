@@ -1,6 +1,6 @@
 @echo off
 
-REM Copyright 2012 AT&T
+REM Copyright 2016 AT&T
  
 REM Licensed under the Apache License, Version 2.0 (the "License");
 REM you may not use this file except in compliance with the License.

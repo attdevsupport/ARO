@@ -2,6 +2,22 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
+ <!--  
+ * Copyright 2016 AT&T
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
+
   <groupId>com.att.aro</groupId>
   <artifactId>aro-console</artifactId>
   <version>1.0</version>
@@ -23,60 +39,71 @@
 	  <repository>
             <id>java-net</id>
             <name>Java Net</name>
-            <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/java-net</url>
-      </repository>
+            <url>https://maven.java.net/content/repositories/public/</url>      </repository>
       <repository>
             <id>codehaus-snapshots</id>
             <name>Codehause Snapshots</name>
-            <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/codehaus-snapshots</url>
+            <url>https://repository-master.mulesoft.org/nexus/content/groups/public/</url>
       </repository>
       <repository>
-            <id>central</id>
-            <name>MavenCentral Repository</name>
-            <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/central</url>
-      </repository>
-      <repository>
-          <id>apache-snapshots</id>
-          <name>Apache Snapshot</name>
-          <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/apache-snapshots</url>
+		      <id>central</id>
+		      <name>Central Repository</name>
+		      <url>http://repo.maven.apache.org/maven2</url>
+		      <layout>default</layout>
+		      <snapshots>
+		        <enabled>false</enabled>
+		      </snapshots>
+      </repository>  
+       <repository>
+		    <id>apache.snapshots</id>
+		    <name>Apache Development Snapshot Repository</name>
+		    <url>https://repository.apache.org/content/repositories/snapshots/</url>
+		    <releases>
+		        <enabled>false</enabled>
+		    </releases>
+		    <snapshots>
+		        <enabled>true</enabled>
+		    </snapshots>
       </repository>
       <repository>
           <id>sonatype</id>
           <name>Sonatype</name>
-          <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/sonatype</url>
+          <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
       </repository>
       <repository>
           <id>sonatype-flex</id>
           <name>Sonatype Flex</name>
-          <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/sonatype-flex</url>
+          <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
       </repository>
       <repository>
           <id>aro-releases</id>
           <name>ARO Releases</name>
-          <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/aro-releases</url>
+	      <url>http://repo1.maven.org/maven2</url>
       </repository>
       <repository>
           <id>aro-snapshots</id>
           <name>ARO Snapshots</name>
-          <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/aro-snapshots</url>
+	      <url>http://repo1.maven.org/maven2</url>
       </repository>
       <repository>
           <id>aro-3rd-paty</id>
           <name>ARO third party</name>
-          <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/aro-3rd-party</url>
+	      <url>http://repo1.maven.org/maven2</url>
       </repository> 
 	</repositories>
   <pluginRepositories>
-        <pluginRepository>
-          <id>central</id>
-          <name>MavenCentral Repository</name>
-          <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/central</url>
-        </pluginRepository>
-        <pluginRepository>
-          <id>aro-3rd-paty</id>
-          <name>ARO third party</name>
-          <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/aro-3rd-party</url>
-        </pluginRepository> 
+   	<pluginRepository>
+	      <id>central</id>
+	      <name>Maven Plugin Repository</name>
+	      <url>http://repo1.maven.org/maven2</url>
+	      <layout>default</layout>
+	      <snapshots>
+	        <enabled>false</enabled>
+	      </snapshots>
+	      <releases>
+	        <updatePolicy>never</updatePolicy>
+	      </releases>
+	 </pluginRepository>
   </pluginRepositories>
   
   <dependencies>
@@ -137,12 +164,12 @@
 	  <repository>
 	    <id>aroDeploymentRepo</id> 
 	    <name>aro-releases</name> 
-	    <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/aro-releases</url> 
+	    <url>http://repo1.maven.org/maven2</url> 
 	  </repository>
 	  <snapshotRepository>
 	    <id>aroDeploymentRepo</id> 
 	    <name>aro-snapshots</name> 
-	    <url>http://mavencentral.it.att.com:8084/nexus/content/repositories/aro-snapshots</url> 
+	    <url>http://repo1.maven.org/maven2</url> 
 	  </snapshotRepository>
   </distributionManagement>
 
@@ -321,6 +348,39 @@
 		  	</executions>
 		  </plugin>
       </plugins>
+      <pluginManagement>
+      	<plugins>
+      		<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+      		<plugin>
+      			<groupId>org.eclipse.m2e</groupId>
+      			<artifactId>lifecycle-mapping</artifactId>
+      			<version>1.0.0</version>
+      			<configuration>
+      				<lifecycleMappingMetadata>
+      					<pluginExecutions>
+      						<pluginExecution>
+      							<pluginExecutionFilter>
+      								<groupId>org.jacoco</groupId>
+      								<artifactId>
+      									jacoco-maven-plugin
+      								</artifactId>
+      								<versionRange>
+      									[0.7.0.201403182114,)
+      								</versionRange>
+      								<goals>
+      									<goal>prepare-agent</goal>
+      								</goals>
+      							</pluginExecutionFilter>
+      							<action>
+      								<ignore></ignore>
+      							</action>
+      						</pluginExecution>
+      					</pluginExecutions>
+      				</lifecycleMappingMetadata>
+      			</configuration>
+      		</plugin>
+      	</plugins>
+      </pluginManagement>
   </build>
   
 </project>
