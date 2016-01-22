@@ -40,7 +40,7 @@ public class TCPPacketFactory {
 		TCPHeader tcp = new TCPHeader(tcpheader.getSourcePort(), tcpheader.getDestinationPort(), tcpheader.getSequenceNumber(), 
 				tcpheader.getDataOffset(), tcpheader.isNS(), tcpheader.getTcpFlags(), tcpheader.getWindowSize(), 
 				tcpheader.getChecksum(), tcpheader.getUrgentPointer(), tcpheader.getOptions(), tcpheader.getAckNumber());
-		tcp.setMaxSegmentSize(tcpheader.getMaxSegmentSize());
+		tcp.setMaxSegmentSize(65535);//tcpheader.getMaxSegmentSize());
 		tcp.setWindowScale(tcpheader.getWindowScale());
 		tcp.setSelectiveAckPermitted(tcpheader.isSelectiveAckPermitted());
 		tcp.setTimeStampSender(tcpheader.getTimeStampSender());

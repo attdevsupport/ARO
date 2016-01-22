@@ -20,5 +20,5 @@ package com.att.aro.android.arocollector.socket;
  * Date: June 2, 2014
  */
 public class DataConst {
-	public static final int MAX_RECEIVE_BUFFER_SIZE = 4096;
+	public static final int MAX_RECEIVE_BUFFER_SIZE = 65535;
 }
