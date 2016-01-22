@@ -1,0 +1,29 @@
+1- download source code from http://www.libimobiledevice.org
+2- compile the code
+3- if the compilation is successful, there will be necessary header files: 
+    - /usr/local/include/libimobiledevice
+    - /opt/local/include/plist
+4- After compilation, move binary file to bin/libimobiledevice
+   Current files and all dependencies in this folder:
+   - idevicescreenshot	
+   - libplist.1.dylib		
+   - libplist.dylib
+   - libssl.1.0.0.dylib
+   - libcrypto.1.0.0.dylib		
+   - libusbmuxd.1.0.8.dylib
+   - libiconv.2.dylib		
+   - libusbmuxd.2.dylib
+   - libimobiledevice.4.dylib	
+   - libusbmuxd.dylib
+   - libimobiledevice.dylib		
+   - libxml2.2.dylib
+   - liblzma.5.dylib			
+   - libz.1.dylib
+   
+ 5- use otool on each lib to check dependency and path
+ 6- use install_name_tool to update dependency path so that each library is portable.
+    to test if the lib is portalble, copy the entire lib to a clean Mac OS, hook an IOS device
+    then run ./idevicescreenshot, there should be a screenshot captured and saved to this dir.
+ 7- run ./compile.sh to build java jni library: libScreencaptureBridge.jnilib 
+    if the build is successful, this library will be automatically copied to the folder bin/libimobiledevice
+ 

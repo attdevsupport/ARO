@@ -1,0 +1,5 @@
+this package is here for backward compatible with old native lib.
+PCapAdapter.java is the bridge between java code and native code which was compile 
+to only work with packet com.att.aro.pcap. To remove this package and moving this 
+PCapAdapter.java to the proper place: com.att.aro.core.packetreader.impl; we will
+need to recompile all the native code, which we don't have have time as of now.
