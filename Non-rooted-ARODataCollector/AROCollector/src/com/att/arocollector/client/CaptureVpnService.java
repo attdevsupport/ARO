@@ -636,7 +636,7 @@ public class CaptureVpnService
         FileOutputStream clientwriter = new FileOutputStream(mInterface.getFileDescriptor());
         
         // Allocate the buffer for a single packet.
-        ByteBuffer packet = ByteBuffer.allocate(65535);
+        ByteBuffer packet = ByteBuffer.allocate(4092);
         IClientPacketWriter clientpacketwriter = new ClientPacketWriterImpl(clientwriter);
         SessionHandler handler = SessionHandler.getInstance();
         handler.setWriter(clientpacketwriter);
