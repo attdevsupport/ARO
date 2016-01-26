@@ -4,7 +4,7 @@
 
 All works distributed in this package are covered by the Apache 2.0 License unless otherwise stated.
 
-> Copyright 2012 AT&T Intellectual Property
+> Copyright 2016 AT&T Intellectual Property
 
 > Licensed under the Apache License, Version 2.0 (the "License");
 > you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ AT&T Application Resource Optimizer contains the following open source libraries
 
 
 
+
 ##Open Source Code Package
 
 The Application Resource Optimizer (ARO) is a diagnostic tool for analyzing mobile web application performance developed by AT&T. ARO allows you to automatically profile an application to optimize performance, make battery utilization more efficient, and reduce network impact.
@@ -61,89 +62,49 @@ Contact Us:  http://developer.att.com/developer/contact_us.jsp
 
 
 **Version:**  
-ARO Data Analyzer 4.1.1  
+ARO Data Analyzer 5.0.0  
 ARO Data Collector 3.1.1.10  
+
+**What’s new in Release 5.0.0?**  
   
 
-
-**What’s new in Release 4.1.1?**  
-(Note: ARO versions 4.0.1 and 4.1 have been combined for this new release.)  
-  
-
-+  **AT&T ARO Non-Rooted Data Collector adds support for Android 5.01/5.1 (Lollipop)**  
-The AT&T ARO non-rooted collector now supports data collection from devices running Android 5.01 and 5.1 (Lollipop).  
++  **New ARO SDK containing APIs, ARO Command Line Interface (CLI) and Examples**  
+The installation of AT&T ARO 5.0 Beta includes an ARO SDK with features like the following that give you access to the core technology of ARO:
+- ARO APIs: To facilitate the integration of ARO with developer tools, automated testing environments and Enterprise build environments, weÕve exposed APIs for collecting and analyzing traces.
+- ARO CLI: The ARO Command Line Interface provides access to the primary functions of AT&T ARO through console commands, allowing you to integrate ARO data collection and analysis into your testing and build tools.
 
   
-+  **AT&T ARO Data Collector adds support for Android 5.01/5.1 (Lollipop) on the Android Emulator**  
-AT&T ARO now supports data collection from Android 5.01 and 5.1 (Lollipop) virtual devices on the Android Emulator.  
++  **AT&T ARO Rooted Collector and VPN Collector Support for Android 5.0 through 6.0**  
+The AT&T ARO 5.0 Beta collector supports data collection from devices running Android 5.0 through Android 6.0  
   
 
-+  **AT&T ARO Analyzer no longer contains pre-defined profiles for specific devices**  
-The AT&T ARO Analyzer now only contains profiles for the network types AT&T 3G, AT&T LTE, and AT&T WiFi. Network profiles were found to be more widely used and more effective when analyzing traces than device profiles. The values of the attributes for all three profiles can still be fully customized through options in the AT&T ARO Analyzer Profiles menu.  
++  **AT&T ARO iOS Collector Support for iOS 9**  
+The AT&T ARO iOS collector supports data collection from devices running iOS 9.
+
++  **AT&T ARO is compatible with MAC 10.11 and Windows 10**  
+
++  **Updates to AT&T ARO Best Practices**  
+The File Compression test has been enhanced so that more types of files are tested for compression, and the number of tests has been streamlined by removing the Content Pre-fetching and Inefficient Connections ÐOffloading to Wi-Fi when Possible tests.
+
++  **Features not included**  
+The AT&T ARO 5.0 Beta build does not contain IBM Rational Team Concert integration, HP Application Lifecycle Management (ALM) integration, Data Dump, Lookout Security integration, Diff Tool and analysis to the secure data.
 
 
-**What are the known issues in Release 4.1.1?** 
-
-+  When the AT&T ARO Data Collector apk is launched on a device, it may be blocked if the Back button is pressed or if the Terms and Conditions for ARO are declined. If the Terms and Conditions are declined and the collector is launched again, you will see the message "ARO is currently running on the device".  
-+  The total megabytes (MB) value in the results for the Duplicate Content Best Practices test in AT&T ARO Analyzer does not match with the total amount of TCP data transferred.  
-+  When the rooted AT&T ARO Data Collector apk is launched on a device with the GPS turned on, it activates the device GPS for the duration of the trace.  
-+  When using the AT&T ARO Data Collector apk on a rooted Motorola Nexus 6 device running Android 5 (Lollipop), the trace video that is captured cannot be displayed in the ARO Analyzer. To work around this, run the ARO Data Collector directly from the Data Collector menu of the ARO Analyzer to capture the trace.  
-+  When using the AT&T ARO Data Collector apk on rooted Motorola Nexus devices that use an emulated SD card, the trace file stored on the device must be retrieved manually using the following ADB shell command:  
-   adb pull /sdcard/ARO/tracename  
-
-
-**What are the other known issues from previous releases?**
- 
-+  **Video Sync/Video Correlation feature:**  This feature allows you to sync externally captured video to PCAP data by placing it in the trace folder. When using this feature in ARO 2.3, note the following:  
-	+  Please ensure that the video duration is at least as long as the trace duration.  
-	+  Avoid clicking in the Diagnostics Chart when the video is playing; the timing of response may be affected.  
-	+  Certain 64 bit Windows 7 computers may have unexpected/random video sync issues. If this occurs, Re-sync the trace to the video.  
-	+  Do not use a High Definition (HD) video file with the Video Sync feature.  
-	+  Avoid disconnecting the USB cable during the collection of a trace, it may cause unexpected behavior.  
-	+  On a Mac computer, the Trace Summary notification window may appear distorted. This will be fixed in a future release.  
-
-+  **USB Video Feature:**  In some cases, the following notification may appear incorrectly when the trace is completed: "Unexpected error accessing device SD card. ADB Connection Error" When this occurs, the trace is intact and the error message can be disregarded.  
-
-+  **Recording video in a trace:**  Some devices may not record video during a trace due to hardware limitations. For these devices, use the USB Video feature to record a video for the trace.  
-
-+  **Loading a trace:**  While loading a trace in the ARO Analyzer, an Out of Memory (OOM) notification (application heap size issue) error may occur, or the message: “ARO Analyzer has reached the maximum memory heap size. Close ARO Analyzer and try again or increase ARO Analyzer’s heap size. Also consider collecting multiple, smaller, more isolated traces.” may appear. This can also occur when the same trace is re-loaded.  
-  
-+  **AT&T ARO Data Collector support for iOS:**  The following issues can occur on the specified iPhone devices if they are disconnected from a Mac running OS X Mountain Lion 10.8 and OS X Mavericks 10.9 while a trace is being collected:  
-	+  On the iPhone 5c, the ARO Data Analyzer may hang and display an empty pop-up, requiring the Analyzer to be closed.  
-	+  On the iPhone 5 and iPhone 4s, the error message “No data Packet captured” may be displayed. The correct error message is “Device got disconnected”.  
-	+  Traces collected from an iPhone connected to a Mac running OS X Mavericks 10.9 are not supported by the AT&T ARO Analyzer when it is running on a Windows OS. 
-
-+  **ARO Analyzer Diagnostics Chart:**  
-	+  Alarm Triggers are not displayed in the Diagnostics chart of the ARO Analyzer for traces collected from the HTC One X.  
-	+  The type of Burst may be reported differently, for the same testing scenario steps, on the Diagnostics Chart for traces captured from an Android device and an iPhone.  
-	+  When a TCP/UDP flow is deselected and the Diagnostics Chart is refreshed more than three times, the deselected packet information displays on the chart and the burst length changes.  
-
-+  **ARO Analyzer Best Practices "Resize images for Mobile":**  Due to limitations in the structure of pcap files, the results for the “Resize Images for Mobile” test will appear differently for ARO trace files and pcap files.  
-
-+  **ARO Analyzer Best Practices "Duplicate Content":**  When data is exported to a .csv file using the Export button in the Statistics Tab or the Data Dump option in the Tools menu, the results listed for the Duplicate Content test are incorrect 80% of the time, when compared to the results in the ARO Analyzer.  
-
-+  **Set ADB Path Option:**  When using the Set ADB Path option on the File menu, the Cancel button does not work correctly, it saves the path name that is entered in the dialog.  
-
-+  **iOS Traces:**  Some devices may not record video during a trace due to hardware limitations. For these devices, use the USB Video feature to record a video for the trace.  
-
-
-
-##Documentation:
-ARO Compilation and Build Guide - Describes how to compile and build the ARO components.  
-ARO Data Collector API Reference - To read this reference, open the file **index.html** in the folder ARODataCollector\docs\api  
-ARO Data Analyzer API Reference - To read this reference, open the file **index.html** in the folder ARODataAnalyzer\docs\api  
-Adding Custom Best Practices in Open Source ARO - Describes how to add custom Best Practices to the ARO Data Analyzer.  
-
+**What are the known issues in Release 5.0.0?** 
++  For iOS 9 and above, for iPhone 6 and higher, user should use standard display (not zoomed), otherwise Video capture will look smaller with the right and bottom sections in black.
++  When collecting a trace using the VPN collector, if the user manually quits the VPN on the device, ARO Analyzer will not receive the trace back to the local computer. User will only get a trace with only video file in the trace folder. To avoid this issue, do not stop the VPN collector on the device manually and instead stop the trace by using the stop collector from ARO Analyzer Menu.
 
 ##Contents:
 The ARO Open Source code package contains the following:
 
+##5.0.0
+**ARO.Core** - ARO main project
+**ARO.Console** - ARO user commend line interface project
+**ARO.UI** - ARO GUI interface project
+**ARO.Parent** - ARO Project for ordering all dependency projects 
+**DataCollectors** ARO plug in project for the bridge of core and devices
 
-**2013DevSummitTurbocharge** - Main folder for ARO sample applications that were introduced and discussed at the 2013 Developer Summit.
-+  **com.example.android.multires.MultiRes.caching** - Contains a sample application that demonstrates caching.  
-+  **com.example.android.multires.MultiRes.closing** - Contains a sample application that demonstrates the difference between properly and improperly closing connections.
-
-
+##4.1.1
 **ARODataAnalyzer** - Main folder for the ARO Data Analyzer open source code.  
 +  **bin** - Contains the Jpcap dlls.  
 +  **c** - Contains C code used to build the Jpcap dlls in the bin folder.  
@@ -152,7 +113,8 @@ The ARO Open Source code package contains the following:
 +  **src** - Source code for the ARO Data Analyzer.  
 +  *build.xml* - Used to build the .jar file for the ARO Data Analyzer.  
 
-  
+
+##ClientCollectors
 **ARODataCollector** - Main folder for the ARO Data Analyzer open source code.  
 +  **docs** - API reference for the ARO Data Collector (Open docs\api\index.html)  
 +  **external** - Source code for external dependencies: tcpdump and libpcap.  
@@ -160,16 +122,35 @@ The ARO Open Source code package contains the following:
 +  **res** - Resources for an Android project.  
 +  **src** - Source code for the ARO Data Collector.  
 +  *AndroidManifest.xml* - Manifest file for an Android project.
-
-
-**ARO Compilation and Build Guide.pdf** - Describes how to compile and build the ARO components.  
 **ARODataCollector_OpenSource_v3.1.1.10.apk.zip** - A zip package containing a compiled open source version of the ARO Data Collector.  
+
+##Documentation
+**ARO Compilation and Build Guide.pdf** - Describes how to compile and build the ARO components.  
 **Adding Custom Best Practices in Open Source ARO.pdf** - Describes how to add custom Best Practices to the ARO Data Analyzer.  
+
 **README.md** - This file.
 
 
+##Running the pre-built Open Source ARO 5.0.0**
+To launch the pre-built version of ARO Analyzer that is included in this open source download, do the following:
+
+**On Mac/Windows:**  
+1. Download the zip file for this repository, and un-zip the files to the desired location. (e.g: Desktop)  
+2. Confirm that there are four folders in the unzipped files: switch to folder "5.0.0" and inside the folder there are five folders inside.   
+3. Open terminal and change directory to the ARO.Parent folder in the ARO location. (e.g: cd /Users/ARO-master/5.0.0/ARO.Parent)  
+4. Run maven pom file , ARO.Parent project will help to build all of the ARO module projects orderly.
+
+Note: please check the ARO.Parent pom file module project location, change the modules path to the desired location if needed.
+
+**Build project Independently**
+Users can build the single project with each project pom file.
++  **ARO.Core** - Running ARO.Core pom file with maven tool, use "mvn install" to publish ARO.Core library  to your local repository.
++  **DataCollectors** - Each of the collectors is spring plug in, we suggest running "mvn install" phase to publish to the user local repository for ARO.Console and ARO.UI dependency 
++  **ARO.Console** - After run the pom file with maven tool, users need to switch to the lib folder and run jar file. We have script under main/resources folder(aro/aro.bat) leverage the comment line interface.
++  **ARO.UI** - After running the pom file with maven tool, users need to switch to the lib folder. Open the terminal and execution AROUI.jar file.
+
   
-##Running the pre-built Open Source ARO Analyzer:  
+##Running the pre-built Open Source ARO Analyzer 4.1.1:  
   
 To launch the pre-built version of ARO Analyzer that is included in this open source download, do the following:
 
@@ -185,7 +166,6 @@ To launch the pre-built version of ARO Analyzer that is included in this open so
 2. Confirm that there is one main folder in the unzipped files: ARO, and two sub-folders inside ARO: bin and lib.  
 3. Open a command prompt (cmd) and change directory to the bin folder in the ARO location. (e.g: cd Desktop/ARO/bin)  
 4. Inside the bin directory, type: aro  
-
  
 
 ##Compiling and Building ARO
