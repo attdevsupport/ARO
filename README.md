@@ -38,9 +38,6 @@ AT&T Application Resource Optimizer contains the following open source libraries
 > The AT&T Application Resource Optimizer(ARO) uses Open Source Software that is licensed under the Apache Software License 2.0  (the "License"), and you may not use this file except in compliance with the License. You may obtain a copy of the Licenses at: http://source.android.com/source/licenses.html. Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the Licenses for the specific language governing permissions and limitations under the Licenses.
 
 
-
-
-
 ##Open Source Code Package
 
 The Application Resource Optimizer (ARO) is a diagnostic tool for analyzing mobile web application performance developed by AT&T. ARO allows you to automatically profile an application to optimize performance, make battery utilization more efficient, and reduce network impact.
@@ -63,15 +60,14 @@ Contact Us:  http://developer.att.com/developer/contact_us.jsp
 
 **Version:**  
 ARO Data Analyzer 5.0.0  
-ARO Data Collector 3.1.1.10  
 
 **Whatís new in Release 5.0.0?**  
   
 
 +  **New ARO SDK containing APIs, ARO Command Line Interface (CLI) and Examples**  
 The installation of AT&T ARO 5.0 Beta includes an ARO SDK with features like the following that give you access to the core technology of ARO:
-- ARO APIs: To facilitate the integration of ARO with developer tools, automated testing environments and Enterprise build environments, we’ve exposed APIs for collecting and analyzing traces.
-- ARO CLI: The ARO Command Line Interface provides access to the primary functions of AT&T ARO through console commands, allowing you to integrate ARO data collection and analysis into your testing and build tools.
+	- 	ARO APIs: To facilitate the integration of ARO with developer tools, automated testing environments and Enterprise build environments, we’ve exposed APIs for collecting and analyzing traces.
+	- 	ARO CLI: The ARO Command Line Interface provides access to the primary functions of AT&T ARO through console commands, allowing you to integrate ARO data collection and analysis into your testing and build tools.
 
   
 +  **AT&T ARO Rooted Collector and VPN Collector Support for Android 5.0 through 6.0**  
@@ -91,18 +87,23 @@ The AT&T ARO 5.0 Beta build does not contain IBM Rational Team Concert integrati
 
 
 **What are the known issues in Release 5.0.0?** 
-+  For iOS 9 and above, for iPhone 6 and higher, user should use standard display (not zoomed), otherwise Video capture will look smaller with the right and bottom sections in black.
++  Intermittent issue - When using AT&T ARO Data Collector apk, if you notice collection was successful, but the trace folder is empty, then the trace folder can be retrieved manually by using the following ADB shell command (trace name is the name of the trace folder name): adb pull /sdcard/ARO/tracename
 +  When collecting a trace using the VPN collector, if the user manually quits the VPN on the device, ARO Analyzer will not receive the trace back to the local computer. User will only get a trace with only video file in the trace folder. To avoid this issue, do not stop the VPN collector on the device manually and instead stop the trace by using the stop collector from ARO Analyzer Menu.
 
 ##Contents:
 The ARO Open Source code package contains the following:
 
 ##5.0.0
-**ARO.Core** - ARO main project
-**ARO.Console** - ARO user commend line interface project
-**ARO.UI** - ARO GUI interface project
-**ARO.Parent** - ARO Project for ordering all dependency projects 
-**DataCollectors** ARO plug in project for the bridge of core and devices
+
+ **ARO.Core** - ARO main project
+
+ **ARO.Console** - ARO user commend line interface project
+
+ **ARO.UI** - ARO GUI interface project
+
+ **ARO.Parent** - ARO Project for ordering all dependency projects 
+
+ **DataCollectors** ARO plug in project for the bridge of core and devices
 
 ##4.1.1
 **ARODataAnalyzer** - Main folder for the ARO Data Analyzer open source code.  
@@ -122,7 +123,8 @@ The ARO Open Source code package contains the following:
 +  **res** - Resources for an Android project.  
 +  **src** - Source code for the ARO Data Collector.  
 +  *AndroidManifest.xml* - Manifest file for an Android project.
-**ARODataCollector_OpenSource_v3.1.1.10.apk.zip** - A zip package containing a compiled open source version of the ARO Data Collector.  
+
+ **ARODataCollector_OpenSource_v3.1.1.10.apk.zip** - A zip package containing a compiled open source version of the ARO Data Collector.  
 
 ##Documentation
 **ARO Compilation and Build Guide.pdf** - Describes how to compile and build the ARO components.  
