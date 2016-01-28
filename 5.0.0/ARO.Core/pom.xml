@@ -23,6 +23,7 @@
 	<packaging>jar</packaging>
 
 	<properties>
+		<skipTests>true</skipTests>	
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>		
 		<build.timestamp>${maven.build.timestamp}</build.timestamp>		
 		<maven.build.timestamp.format>yyyy-MM-dd</maven.build.timestamp.format>				
@@ -86,6 +87,8 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+				<!-- Note: You're going to need to download the jars and install them in your local maven repository, or 
+		local repository proxy server (Nexus/Artifactory).  -->		
 			<groupId>javax.media.jai</groupId>
 			<artifactId>com.springsource.javax.media.jai.core</artifactId>
 			<version>1.1.3</version>
@@ -176,6 +179,21 @@
 	      	</resource>
 		</resources>
 		<plugins>
+				<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.17</version>
+				<configuration>
+          			<skipTests>${skipTests}</skipTests>
+		        </configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.apache.maven.surefire</groupId>
+						<artifactId>surefire-junit47</artifactId>
+						<version>2.16</version>
+					</dependency>
+				</dependencies>
+			</plugin>
 			<plugin>
 				<artifactId>maven-dependency-plugin</artifactId>
 				<executions>
@@ -190,140 +208,7 @@
 					</execution>
 				</executions>
 			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.17</version>
-				<dependencies>
-					<dependency>
-						<groupId>org.apache.maven.surefire</groupId>
-						<artifactId>surefire-junit47</artifactId>
-						<version>2.16</version>
-					</dependency>
-				</dependencies>
-			</plugin>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-pmd-plugin</artifactId>
-				<version>3.1</version>
-				<dependencies>
-					<dependency>
-						<groupId>com.att.aro</groupId>
-						<artifactId>ARO.PMD.Rulesets</artifactId>
-						<version>1.0</version>
-					</dependency>
-				</dependencies>
-				<configuration>
-					<verbose>true</verbose>
-					<linkXref>true</linkXref>
-					<sourceEncoding>utf-8</sourceEncoding>
-					<minimumTokens>100</minimumTokens>
-					<targetJdk>1.6</targetJdk>
-					<excludes>
-						<exclude>**/*Test.java</exclude>
-						<exclude>**/util/*.java</exclude>
-						<exclude>**/IThreadExecutor.java</exclude>
-						<exclude>**/ThreadExecutorImpl.java</exclude>
-						<exclude>**/LoggerImpl.java</exclude>
-						<exclude>**/LoggerPostProcessor.java</exclude>
-						<exclude>**/CryptoAdapter.java</exclude>
-						<exclude>**/SSLKeyServiceImpl.java</exclude>
-						<exclude>**/QuickTimeOutputStream.java</exclude>
-						<exclude>**/DataAtomOutputStream.java</exclude>
-						<exclude>**/FilterImageOutputStream.java</exclude>
-						<exclude>**/AROConfig.java</exclude>
-					</excludes>
-					<excludeRoots>
-						<excludeRoot>target/test-classes</excludeRoot>
-					</excludeRoots>
-					<rulesets>
-						<ruleset>${basedir}/rulesets/java/aro_pmd.xml</ruleset>
-						<ruleset>${basedir}/rulesets/java/aro.xml</ruleset>
-					</rulesets>
-				</configuration>
-				<executions>
-					<execution>
-						<goals>
-							<goal>check</goal>
-							<goal>cpd-check</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-  
-			<plugin>
-				<groupId>org.jacoco</groupId>
-				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.7.0.201403182114</version>
-				<executions>
-					<execution>
-						<id>default-prepare-agent</id>
-						<goals>
-							<goal>prepare-agent</goal>
-						</goals>
-					</execution>
-					<execution>
-						<id>default-report</id>
-						<phase>prepare-package</phase>
-						<goals>
-							<goal>report</goal>
-						</goals>
-					</execution>
-					<execution>
-						<id>default-check</id>
-						<goals>
-							<goal>check</goal>
-						</goals>
-						<configuration>
-							<rules>
-								<rule>
-									<element>CLASS</element>
-									<excludes>
-										<exclude>*Test</exclude>
-										<exclude>*Config</exclude>
-										<exclude>*LoggerPostProcessor</exclude>
-										<exclude>*pojo*</exclude>
-										<exclude>*NetmonAdapter</exclude>
-										<exclude>com.att.aro.pcap.PCapAdapter</exclude>
-										<exclude>*securedpacketreader*</exclude>
-										<exclude>com.att.aro.core.commandline.impl.ProcessFactoryImpl</exclude>
-										<exclude>com.att.aro.core.datacollector.impl.DefaultDataCollectorImpl</exclude>
-										<exclude>com.att.aro.mvc.MainController</exclude>
-										<exclude>com.att.aro.core.util.Util</exclude>
-										<exclude>com.att.aro.mvc.AROController*</exclude>
-										<exclude>com.att.aro.mvc.AROCollectorActionEvent</exclude>
-										<exclude>com.att.aro.core.exception.*</exclude>
-										<exclude>com.att.aro.core.analytics.*</exclude>
-										<exclude>com.att.aro.core.util.GoogleAnalyticsUtil</exclude>
-										<exclude>com.att.aro.core.util.CrashHandler</exclude>
-										<exclude>com.att.aro.core.packetanalysis.impl.SessionManagerImpl</exclude>
-										<exclude>com.att.aro.pcap.packetrebuild.*</exclude>
-										<exclude>com.att.aro.core.packetreader.impl.PacketReaderImpl</exclude>
-									</excludes>
-									<limits>
-										<limit>
-											<counter>LINE</counter>
-											<value>COVEREDRATIO</value>
-											<minimum>0.80</minimum>
-										</limit>
-									</limits>
-								</rule>
-							</rules>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-
-			<plugin>
-		        <groupId>org.apache.maven.plugins</groupId>
-		        <artifactId>maven-javadoc-plugin</artifactId>
-		        <version>2.10.1</version>
-		        <configuration>
-		          <show>private</show>
-		          <nohelp>true</nohelp>
-		        </configuration>
-		     </plugin>
 		</plugins>
 	</build>
 	<reporting>

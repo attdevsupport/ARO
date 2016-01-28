@@ -124,16 +124,16 @@ The ARO Open Source code package contains the following:
 +  **src** - Source code for the ARO Data Collector.  
 +  *AndroidManifest.xml* - Manifest file for an Android project.
 
- **ARODataCollector_OpenSource_v3.1.1.10.apk.zip** - A zip package containing a compiled open source version of the ARO Data Collector.  
+**ARODataCollector_OpenSource_v3.1.1.10.apk.zip** - A zip package containing a compiled open source version of the ARO Data Collector.  
 
 ##Documentation
-**ARO Compilation and Build Guide.pdf** - Describes how to compile and build the ARO components.  
+**ARO Compilation and Build Guide.pdf** - Describes how to compile and build the ARO 4.1.1 components.  
 **Adding Custom Best Practices in Open Source ARO.pdf** - Describes how to add custom Best Practices to the ARO Data Analyzer.  
 
 **README.md** - This file.
 
 
-##Running the pre-built Open Source ARO 5.0.0**
+##Running the pre-built Open Source ARO 5.0.0
 To launch the pre-built version of ARO Analyzer that is included in this open source download, do the following:
 
 **On Mac/Windows:**  
