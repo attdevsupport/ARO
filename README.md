@@ -59,7 +59,16 @@ Contact Us:  http://developer.att.com/developer/contact_us.jsp
 
 
 **Version:**  
-ARO Data Analyzer 5.0.0  
+ARO Analyzer 5.0.0  
+
+**Note:**
+Before you start ARO 5.0.0, make sure you meet the following system requirements for your operating system.
+
+    - At least 1GB of RAM
+    - Java 7 or above (should have the latest update of Java 1.7 or above)
+    - At least 1GB of RAMFor Android developers, Android SDK Platform-tools version 23.0.1 or later
+    - For those using the ARO Collector on iOS, use xcode 7 or above
+    - WinPcap
 
 **What's new in Release 5.0.0?**    
 
