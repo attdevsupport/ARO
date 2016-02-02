@@ -78,16 +78,16 @@ Before you start ARO 5.0.0, make sure you meet the following system requirements
 	- 	ARO CLI: The ARO Command Line Interface provides access to the primary functions of AT&T ARO through console commands, allowing you to integrate ARO data collection and analysis into your testing and build tools.
 
   
-+  **AT&T ARO Rooted Collector and VPN Collector Support for Android 5.0 through 6.0**  
-The AT&T ARO 5.0.0 collector supports data collection from devices running Android 5.0 through Android 6.0  
++  **ARO Rooted Collector and VPN Collector Support for Android 5.0 through 6.0**  
+The ARO 5.0.0 collector supports data collection from devices running Android 5.0 through Android 6.0  
   
 
-+  **AT&T ARO iOS Collector Support for iOS 9**  
++  **ARO iOS Collector Support for iOS 9**  
 The AT&T ARO iOS collector supports data collection from devices running iOS 9.
 
-+  **AT&T ARO is compatible with MAC 10.11 and Windows 10**  
++  **ARO is compatible with MAC 10.11 and Windows 10**  
 
-+  **Updates to AT&T ARO Best Practices**  
++  **Updates to ARO Best Practices**  
 The File Compression test has been enhanced so that more types of files are tested for compression, and the number of tests has been streamlined by removing the Content Pre-fetching and Inefficient Connections' Offloading to Wi-Fi when Possible tests.
 
 +  **Features not included**  
