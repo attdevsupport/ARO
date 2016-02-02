@@ -83,7 +83,7 @@ The ARO 5.0.0 collector supports data collection from devices running Android 5.
   
 
 +  **ARO iOS Collector Support for iOS 9**  
-The AT&T ARO iOS collector supports data collection from devices running iOS 9.
+The ARO iOS collector supports data collection from devices running iOS 9.
 
 +  **ARO is compatible with MAC 10.11 and Windows 10**  
 
@@ -91,11 +91,11 @@ The AT&T ARO iOS collector supports data collection from devices running iOS 9.
 The File Compression test has been enhanced so that more types of files are tested for compression, and the number of tests has been streamlined by removing the Content Pre-fetching and Inefficient Connections' Offloading to Wi-Fi when Possible tests.
 
 +  **Features not included**  
-The AT&T ARO 5.0.0 build does not contain IBM Rational Team Concert integration, HP Application Lifecycle Management (ALM) integration, Data Dump, Lookout Security integration, Diff Tool and analysis to the secure data.
+The ARO 5.0.0 build does not contain IBM Rational Team Concert integration, HP Application Lifecycle Management (ALM) integration, Data Dump, Lookout Security integration, Diff Tool and analysis to the secure data.
 
 
 **What are the known issues in Release 5.0.0?** 
-+  Intermittent issue - When using AT&T ARO Data Collector apk, if you notice collection was successful, but the trace folder is empty, then the trace folder can be retrieved manually by using the following ADB shell command (trace name is the name of the trace folder name): adb pull /sdcard/ARO/tracename
++  Intermittent issue - When using ARO Data Collector apk, if you notice collection was successful, but the trace folder is empty, then the trace folder can be retrieved manually by using the following ADB shell command (trace name is the name of the trace folder name): adb pull /sdcard/ARO/tracename
 +  When collecting a trace using the VPN collector, if the user manually quits the VPN on the device, ARO Analyzer will not receive the trace back to the local computer. User will only get a trace with only video file in the trace folder. To avoid this issue, do not stop the VPN collector on the device manually and instead stop the trace by using the stop collector from ARO Analyzer Menu.
 
 ##Contents:
