@@ -61,12 +61,12 @@ Contact Us:  http://developer.att.com/developer/contact_us.jsp
 **Version:**  
 ARO Data Analyzer 5.0.0  
 
-**What�s new in Release 5.0.0?**  
+**What/''s new in Release 5.0.0?**  
   
 
 +  **New ARO SDK containing APIs, ARO Command Line Interface (CLI) and Examples**  
 The installation of AT&T ARO 5.0.0 includes an ARO SDK with features like the following that give you access to the core technology of ARO:
-	- 	ARO APIs: To facilitate the integration of ARO with developer tools, automated testing environments and Enterprise build environments, we�ve exposed APIs for collecting and analyzing traces.
+	- 	ARO APIs: To facilitate the integration of ARO with developer tools, automated testing environments and Enterprise build environments, we/''ve exposed APIs for collecting and analyzing traces.
 	- 	ARO CLI: The ARO Command Line Interface provides access to the primary functions of AT&T ARO through console commands, allowing you to integrate ARO data collection and analysis into your testing and build tools.
 
   
