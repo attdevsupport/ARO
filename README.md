@@ -61,8 +61,7 @@ Contact Us:  http://developer.att.com/developer/contact_us.jsp
 **Version:**  
 ARO Data Analyzer 5.0.0  
 
-**What's new in Release 5.0.0?**  
-  
+**What's new in Release 5.0.0?**    
 
 +  **New ARO 5.0.0 containing APIs, ARO Command Line Interface (CLI) and Examples**  
 
