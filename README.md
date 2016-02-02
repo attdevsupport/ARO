@@ -64,8 +64,8 @@ ARO Data Analyzer 5.0.0
 **What's new in Release 5.0.0?**  
   
 
-+  **New ARO SDK containing APIs, ARO Command Line Interface (CLI) and Examples**  
-The installation of AT&T ARO 5.0.0 includes an ARO SDK with features like the following that give you access to the core technology of ARO:
++  **New ARO 5.0.0 containing APIs, ARO Command Line Interface (CLI) and Examples**  
+
 	- 	ARO APIs: To facilitate the integration of ARO with developer tools, automated testing environments and Enterprise build environments, we've exposed APIs for collecting and analyzing traces.
 	- 	ARO CLI: The ARO Command Line Interface provides access to the primary functions of AT&T ARO through console commands, allowing you to integrate ARO data collection and analysis into your testing and build tools.
 
@@ -80,7 +80,7 @@ The AT&T ARO iOS collector supports data collection from devices running iOS 9.
 +  **AT&T ARO is compatible with MAC 10.11 and Windows 10**  
 
 +  **Updates to AT&T ARO Best Practices**  
-The File Compression test has been enhanced so that more types of files are tested for compression, and the number of tests has been streamlined by removing the Content Pre-fetching and Inefficient Connections �Offloading to Wi-Fi when Possible tests.
+The File Compression test has been enhanced so that more types of files are tested for compression, and the number of tests has been streamlined by removing the Content Pre-fetching and Inefficient Connections' Offloading to Wi-Fi when Possible tests.
 
 +  **Features not included**  
 The AT&T ARO 5.0.0 build does not contain IBM Rational Team Concert integration, HP Application Lifecycle Management (ALM) integration, Data Dump, Lookout Security integration, Diff Tool and analysis to the secure data.
