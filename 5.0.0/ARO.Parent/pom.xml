@@ -40,9 +40,9 @@
     
   <modules>
   	  <module>../ARO.Core</module>
-  	  <module>../ARO.IOSCollector</module>
-  	  <module>../ARO.NorootAndroidCollector</module>
-  	  <module>../ARO.RootedAndroidCollector</module>
+  	  <module>../DataCollectors/ARO.IOSCollector</module>
+  	  <module>../DataCollectors/ARO.NorootAndroidCollector</module>
+  	  <module>../DataCollectors/ARO.RootedAndroidCollector</module>
   	  <module>../ARO.Console</module>  	  
       <module>../ARO.UI</module>
   </modules>  

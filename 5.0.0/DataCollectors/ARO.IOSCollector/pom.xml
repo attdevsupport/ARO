@@ -75,21 +75,6 @@
           <name>Sonatype Flex</name>
           <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
       </repository>
-      <repository>
-          <id>aro-releases</id>
-          <name>ARO Releases</name>
-	      <url>http://repo1.maven.org/maven2</url>
-      </repository>
-      <repository>
-          <id>aro-snapshots</id>
-          <name>ARO Snapshots</name>
-	      <url>http://repo1.maven.org/maven2</url>
-      </repository>
-      <repository>
-          <id>aro-3rd-paty</id>
-          <name>ARO third party</name>
-	      <url>http://repo1.maven.org/maven2</url>
-      </repository> 
 	</repositories>
   <pluginRepositories>
    	<pluginRepository>
