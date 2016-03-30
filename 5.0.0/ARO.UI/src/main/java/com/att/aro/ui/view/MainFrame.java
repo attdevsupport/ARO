@@ -78,6 +78,11 @@ import com.att.aro.ui.view.video.AROVideoPlayer;
 import com.att.aro.ui.view.video.LiveScreenViewDialog;
 import com.att.aro.ui.view.waterfalltab.WaterfallTab;
 import com.att.aro.view.images.Images;
+import com.beust.jcommander.IParameterValidator;
+import com.beust.jcommander.IStringConverter;
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParameterException;
 
 public class MainFrame implements SharedAttributesProcesses {
 
@@ -128,16 +133,73 @@ public class MainFrame implements SharedAttributesProcesses {
 		return controller;
 	}
 
+	public static class CommandLineParams {
+		@Parameter(names = {"--help", "-h", "-?"}, description = "show help", help = true)
+		private boolean help = false;
+
+		@Parameter(names = "--input", converter = FileConverter.class,
+				validateWith = ValidateInput.class, description = "open report located in directory")
+		private File input;
+
+		@Parameter(names = "--splash", description = "display splashscreen upon startup", arity = 1, hidden = true)
+		private boolean isSplashRequired = true;
+
+		public File getInputDirectory() {
+			return input;
+		}
+
+		public boolean isSplashRequired() {
+			return isSplashRequired;
+		}
+
+		public static class ValidateInput implements IParameterValidator {
+			public void validate(String name, String value)
+					throws ParameterException {
+				File input = new File(value);
+				if (!input.exists()) {
+					throw new ParameterException("File not found: " + value);
+				}
+			}
+		}
+
+		public static class FileConverter implements IStringConverter<File> {
+			public File convert(String value) {
+				return new File(value);
+			}
+		}
+	}
+
 	/**
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
+		CommandLineParams cmds = new CommandLineParams();
+		JCommander commandLineParser = new JCommander(cmds);
+		try {
+			commandLineParser.parse(args);
+			if (cmds.help) {
+				commandLineParser.usage();
+				System.exit(0);
+			} else {
+				startUI(cmds);
+			}
+		} catch (ParameterException ex) {
+			System.err.println("Error parsing command: " + ex.getMessage());
+			commandLineParser.usage();
+			System.exit(1);
+		}
+	}
+
+	private static void startUI(final CommandLineParams params) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				try {
 					window = new MainFrame();
 					window.frmApplicationResourceOptimizer.setVisible(true);
-					
+					File input = params.getInputDirectory();
+					if (input != null) {
+						window.updateTracePath(input);
+					}
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -156,25 +218,27 @@ public class MainFrame implements SharedAttributesProcesses {
 				        //fail quietly
 				    }
 				}
-				final SplashScreen splash = new SplashScreen();
-				splash.setVisible(true);
-				splash.setAlwaysOnTop(true);
-				new SwingWorker<Object, Object>() {
+				if (params.isSplashRequired()) {
+					final SplashScreen splash = new SplashScreen();
+					splash.setVisible(true);
+					splash.setAlwaysOnTop(true);
+					new SwingWorker<Object, Object>() {
 
-					@Override
-					protected Object doInBackground() {
-						try {
-							Thread.sleep(2000);
-						} catch (InterruptedException e) {
+						@Override
+						protected Object doInBackground() {
+							try {
+								Thread.sleep(2000);
+							} catch (InterruptedException e) {
+							}
+							return null;
 						}
-						return null;
-					}
-					@Override
-					protected void done() {
-						splash.dispose();
-					}
+						@Override
+						protected void done() {
+							splash.dispose();
+						}
 
-				}.execute();
+					}.execute();
+				}
 				System.out.println("---------------------DONE---------------------");
 			}
 		});
