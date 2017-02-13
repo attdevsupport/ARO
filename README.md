@@ -1,6 +1,7 @@
 
 #Application Resource Optimizer (ARO)
 
+#NOTE: Application Resource Optimizer (ARO) code is now rebranded and lives on as Video Optimizer; the latest open source version of Video Optimizer is now [avialble here for download] (https://github.com/attdevsupport/VideoOptimzer).
 
 All works distributed in this package are covered by the Apache 2.0 License unless otherwise stated.
 
