@@ -1,0 +1,10 @@
+Requirements:
+- NSIS  (http://nsis.sourceforge.net/Main_Page)
+- Inetc (http://nsis.sourceforge.net/Inetc_plug-in)
+- Launch4j (http://launch4j.sourceforge.net/)
+
+1)  Generate the wrapper with launch4j and the laun4j_aro.xml configuration file
+    This will create the aro.exe file.
+2)  Build the installer with makensis by running "makensis install.nsis" from this
+    directory.
+    This will package the wrapper and all the required files in a setup.exe file.

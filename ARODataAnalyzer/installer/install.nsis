@@ -1,0 +1,134 @@
+!include "FileFunc.nsh"
+!include "MUI2.nsh"
+
+!define PRODUCT_NAME "ARO"
+!define VERSION_MAJOR 2
+!define VERSION_MINOR 4
+!define PRODUCT_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}"
+!define COMPANY_NAME "AT&T"
+!define DESCRIPTION "Application Resource Optimizer"
+!define HELP_URL "http://developer.att.com/ARO"
+!define ABOUT_URL "http://developer.att.com/ARO"
+!define BINARY_PATH "bin"
+!define BINARY_NAME "aro.exe"
+
+# This is the size (in kB) of all the files copied into install directory
+!define INSTALL_SIZE 16000
+
+SetCompressor lzma
+# required to properly delete startup menu links on uninstall
+RequestExecutionLevel user
+
+VIProductVersion ${VERSION_MAJOR}.${VERSION_MINOR}.0.0
+VIAddVersionKey ProductName ${PRODUCT_NAME}
+VIAddVersionKey ProductVersion "${PRODUCT_VERSION}"
+VIAddVersionKey FileVersion "${PRODUCT_VERSION}"
+VIAddVersionKey CompanyName "${COMPANY_NAME}"
+VIAddVersionKey CompanyWebsite "${ABOUT_URL}"
+VIAddVersionKey FileDescription "DESCRIPTION"
+VIAddVersionKey LegalCopyright "Copyright 2012 AT&T Intellectual Property"
+
+# see if /norun parameter has been set
+Var runExe
+!insertmacro GetParameters
+!insertmacro GetOptions
+
+!define      MUI_ABORTWARNING
+!define      MUI_ICON "logo.ico"
+!insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_LICENSE license.txt
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
+!define      MUI_FINISHPAGE_NOAUTOCLOSE
+!define      MUI_FINISHPAGE_RUN "$runExe"
+!define      MUI_PAGE_CUSTOMFUNCTION_SHOW ShowFunction_Finish
+!insertmacro MUI_PAGE_FINISH
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+!insertmacro MUI_UNPAGE_FINISH
+!insertmacro MUI_LANGUAGE "English"
+
+Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
+OutFile "setup-${PRODUCT_NAME}-${PRODUCT_VERSION}.exe"
+InstallDir "$PROGRAMFILES\${PRODUCT_NAME}"
+ShowInstDetails show
+
+Section -SETTINGS
+  SetOutPath "$INSTDIR"
+  SetOverwrite ifnewer
+SectionEnd
+
+# depending on /norun being present, the "run" screen
+# is displayed or not.
+# 1) We look for /norun in the command line arguments when
+# onInit is called and set runExe accordingly.
+# 2) When the "finish" page is about to be dispayed, we check
+# the content of runExe to dismiss the "run" page if asked
+
+Function ShowFunction_Finish
+    ${If} $runExe == ""
+        ShowWindow $mui.FinishPage.Run 0
+    ${EndIf}
+FunctionEnd
+
+Function .onInit
+    var /GLOBAL cmdLineParams
+    Push $R0
+    ${GetParameters} $cmdLineParams
+    ClearErrors
+    ${GetOptions} $cmdLineParams '/norun' $R0
+    IfErrors 0 +2
+    StrCpy $runExe "$INSTDIR\${BINARY_PATH}\${BINARY_NAME}"
+FunctionEnd
+
+ # the installer first checks if WinPcap is already installed by inspecting
+ # the registry.
+ # if not present, the winpcap installer is downloaded from winpcap.org and executed
+Section "install"
+    ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WinPcapInst" "UninstallString"
+    IfFileExists $R0 InstallARO InstallWinPcap
+
+InstallWinPcap:
+    MessageBox MB_YESNO \
+    "It looks like the WinPcap library required by ARO is missing. Would you like to install it now ?" IDNO InstallARO
+    inetc::get "http://www.winpcap.org/install/bin/WinPcap_4_1_3.exe" "$TEMP\WinPcap_4_1_3.exe"
+    ExecWait "$TEMP\WinPcap_4_1_3.exe"
+
+InstallARO:
+    SetOutPath $INSTDIR
+    File /r "..\bin"
+    File /r "..\lib"
+    SetOutPath $INSTDIR\${BINARY_PATH}
+    File ${BINARY_NAME}
+
+    # Uninstaller - See function un.onInit and section "uninstall" for configuration
+    writeUninstaller "$INSTDIR\uninstall.exe"
+
+    createDirectory "$SMPROGRAMS\${COMPANY_NAME}"
+    createShortCut "$SMPROGRAMS\${COMPANY_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\${BINARY_PATH}\${BINARY_NAME}" "" "$INSTDIR\${BINARY_PATH}\${BINARY_NAME}" 0
+
+	# Registry information for add/remove programs
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANY_NAME} ${PRODUCT_NAME}" "DisplayName" "${COMPANY_NAME} - ${PRODUCT_NAME} - ${DESCRIPTION}"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANY_NAME} ${PRODUCT_NAME}" "UninstallString" "$INSTDIR\uninstall.exe"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANY_NAME} ${PRODUCT_NAME}" "QuietUninstallString" "$INSTDIR\uninstall.exe /S"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANY_NAME} ${PRODUCT_NAME}" "InstallLocation" "$INSTDIR"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANY_NAME} ${PRODUCT_NAME}" "DisplayIcon" "$INSTDIR\${BINARY_PATH}\${BINARY_NAME},0"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANY_NAME} ${PRODUCT_NAME}" "Publisher" "${COMPANY_NAME}"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANY_NAME} ${PRODUCT_NAME}" "HelpLink" "${HELP_URL}"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANY_NAME} ${PRODUCT_NAME}" "URLInfoAbout" "${ABOUT_URL}"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANY_NAME} ${PRODUCT_NAME}" "DisplayVersion" "${VERSION_MAJOR}.${VERSION_MINOR}"
+    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANY_NAME} ${PRODUCT_NAME}" "VersionMajor" ${VERSION_MAJOR}
+    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANY_NAME} ${PRODUCT_NAME}" "VersionMinor" ${VERSION_MINOR}
+    # There is no option for modifying or repairing the install
+    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANY_NAME} ${PRODUCT_NAME}" "NoModify" 1
+    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANY_NAME} ${PRODUCT_NAME}" "NoRepair" 1
+    # Set the INSTALLSIZE constant (!defined at the top of this script) so Add/Remove Programs can accurately report the size
+    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANY_NAME} ${PRODUCT_NAME}" "EstimatedSize" ${INSTALL_SIZE}
+SectionEnd
+
+Section "uninstall"
+    rmDir /r $INSTDIR
+    delete "$SMPROGRAMS\${COMPANY_NAME}\${PRODUCT_NAME}.lnk"
+    rmDir "$SMPROGRAMS\${COMPANY_NAME}"
+    DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${COMPANY_NAME} ${PRODUCT_NAME}"
+SectionEnd
